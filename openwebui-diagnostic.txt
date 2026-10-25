@@ -1,0 +1,112 @@
+=== OPEN WEBUI MODEL PARAMETER SCHEMA ===
+class ModelParams(BaseModel):
+    """Parameters for model inference (temperature, top_p, etc.)."""
+
+    model_config = ConfigDict(extra='allow')
+
+    model_controls: dict[ModelControlKey, ModelControl] = Field(
+        default_factory=dict, exclude_if=lambda value: not value
+    )
+
+
+
+
+=== API RESTRICTION REFERENCES (LIMITED) ===
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:519:        'auth.api_key.endpoint_restrictions',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:520:        'auth.api_key.allowed_endpoints',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:535:    # Enforce endpoint restrictions — checked here (not in middleware)
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:538:    if config_values.get('auth.api_key.endpoint_restrictions'):
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:539:        allowed_endpoints = config_values.get('auth.api_key.allowed_endpoints', '')
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/utils/auth.py:540:        allowed_paths = [path.strip() for path in str(allowed_endpoints).split(',') if path.strip()]
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/migrations/versions/3ff2c63645b8_reshape_config_to_per_key_rows.py:58:    'auth.api_key.allowed_endpoints': 'API_KEYS_ALLOWED_ENDPOINTS',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/migrations/versions/3ff2c63645b8_reshape_config_to_per_key_rows.py:59:    'auth.api_key.endpoint_restrictions': 'ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:2549:ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS = (
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:2551:        'ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:2552:        os.getenv('ENABLE_API_KEY_ENDPOINT_RESTRICTIONS', 'False'),
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:2557:API_KEYS_ALLOWED_ENDPOINTS = os.getenv('API_KEYS_ALLOWED_ENDPOINTS', os.getenv('API_KEY_ALLOWED_ENDPOINTS', ''))
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:3273:    'auth.api_key.endpoint_restrictions': ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS,
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/config.py:3274:    'auth.api_key.allowed_endpoints': API_KEYS_ALLOWED_ENDPOINTS,
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/routers/auths.py:116:    'ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS': 'auth.api_key.endpoint_restrictions',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/routers/auths.py:117:    'API_KEYS_ALLOWED_ENDPOINTS': 'auth.api_key.allowed_endpoints',
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/routers/auths.py:1176:    ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS: bool
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/routers/auths.py:1177:    API_KEYS_ALLOWED_ENDPOINTS: str
+/home/deck/LocalAIProject/open-webui-venv/lib/python3.12/site-packages/open_webui/routers/retrieval.py:2470:                'AZURE_AI_SEARCH_API_KEY, AZURE_AI_SEARCH_ENDPOINT, and AZURE_AI_SEARCH_INDEX_NAME are required for Azure AI Search'
+
+=== MODEL UPDATE FORM FIELDS ===
+class ModelForm(BaseModel):
+    commit_message: str | None = None
+
+    model_config = ConfigDict(extra='ignore')
+
+    id: str = Field(pattern=r'^\S+$')
+    base_model_id: str | None = None
+    name: str
+    meta: ModelMeta
+    params: ModelParams
+    access_grants: list[dict] | None = None
+    is_active: bool = True
+
+
+@router.post('/model/update', response_model=ModelModel | None)
+async def update_model_by_id(
+    request: Request,
+    form_data: ModelForm,
+    user=Depends(get_verified_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    """Update a workspace model's configuration."""
+    model = await Models.get_model_by_id(form_data.id, db=db)
+    if not model:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
+
+    if (
+        model.user_id != user.id
+        and not await AccessGrants.has_access(
+            user_id=user.id,
+            resource_type='model',
+            resource_id=model.id,
+            permission='write',
+            db=db,
+        )
+        and user.role != 'admin'
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
+
+    await _verify_knowledge_file_access(
+        getattr(form_data.meta, 'knowledge', None) if form_data.meta else None,
+        user,
+        db,
+    )
+
+    if 'base_model_id' not in form_data.model_fields_set:
+        form_data.base_model_id = model.base_model_id
+    if form_data.base_model_id == form_data.id:
+        # Should never be stored: a model cannot be based on itself.
+        form_data.base_model_id = None
+
+    if user.role != 'admin' and model.base_model_id and not form_data.base_model_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ERROR_MESSAGES.UNAUTHORIZED,
+        )
+
+    if 'profile_image_url' not in form_data.meta.model_fields_set:
+        form_data.meta.profile_image_url = model.meta.profile_image_url
+
+    if 'voice_avatar' not in form_data.meta.model_fields_set:
+        form_data.meta.voice_avatar = model.meta.voice_avatar
+    await _verify_voice_avatar(form_data.meta.voice_avatar, user, db, model.meta.voice_avatar)
+    if 'background_image_url' not in form_data.meta.model_fields_set:
+        form_data.meta.background_image_url = model.meta.background_image_url
+    await _verify_background_image(form_data.meta.background_image_url, user, db, model.meta.background_image_url)
+
+    await _check_model_controls(form_data, model, user, request)
+    model = await Models.update_model_by_id(form_data.id, form_data, db=db, user_id=user.id)
+    if model:
+        await publish_event(
