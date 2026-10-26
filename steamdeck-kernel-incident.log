@@ -1,0 +1,948 @@
+Oct 26 23:07:16 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: task:kwin_wayla:cs0  state:D stack:0     pid:1856  tgid:1788  ppid:1761   task_flags:0x400040 flags:0x00080000
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? gpu_buddy_alloc_blocks+0x272/0x5f0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_validate+0xd6/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:07:16 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:07:16 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f3c06717b9d
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007f3bed98d4b0 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:07:16 Laco kernel: RAX: ffffffffffffffda RBX: 00007f3bed98d788 RCX: 00007f3c06717b9d
+Oct 26 23:07:16 Laco kernel: RDX: 00007f3bed98d540 RSI: 00000000c0186444 RDI: 0000000000000010
+Oct 26 23:07:16 Laco kernel: RBP: 00007f3bed98d500 R08: 00007f3bed98d610 R09: 00007f3bed98d510
+Oct 26 23:07:16 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000010
+Oct 26 23:07:16 Laco kernel: R13: 00007f3bed98d788 R14: 0000000000000004 R15: 00005641b36c8000
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:07:16 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:07:16 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:07:16 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:07:16 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:07:16 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:07:16 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:07:16 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:07:16 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:07:16 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:07:16 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:07:16 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:07:16 Laco kernel: INFO: task brave:505335 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: task:brave           state:D stack:0     pid:505335 tgid:505335 ppid:505286 task_flags:0x400040 flags:0x00080000
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? drm_syncobj_destroy_ioctl+0xb4/0xe0
+Oct 26 23:07:16 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:07:16 Laco kernel:  ? __check_object_size+0x43/0x200
+Oct 26 23:07:16 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:07:16 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:07:16 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:07:16 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:07:16 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f048514ebec
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007ffe85820818 EFLAGS: 00010246
+Oct 26 23:07:16 Laco kernel: RAX: 00007f04652ff1f0 RBX: 0000174400222838 RCX: 00000000000001f0
+Oct 26 23:07:16 Laco kernel: RDX: 0000000000000010 RSI: 00001744000c9a70 RDI: 00007f04652ff1f0
+Oct 26 23:07:16 Laco kernel: RBP: 00007ffe85820870 R08: 00001744001a0fc8 R09: 00007f04652ff000
+Oct 26 23:07:16 Laco kernel: R10: 00001744001a0fa0 R11: 00000000000001f0 R12: 0000000000000010
+Oct 26 23:07:16 Laco kernel: R13: 00000000000001f0 R14: 0000174400220000 R15: 0000000000000800
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:07:16 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:07:16 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:07:16 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:07:16 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:07:16 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:07:16 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:07:16 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:07:16 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:07:16 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:07:16 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:07:16 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:07:16 Laco kernel: INFO: task llama-server:555495 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: task:llama-server    state:D stack:0     pid:555495 tgid:555495 ppid:552048 task_flags:0x400000 flags:0x00080000
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:07:16 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:07:16 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:07:16 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:07:16 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f15a2f88e26
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007ffdef384958 EFLAGS: 00010246
+Oct 26 23:07:16 Laco kernel: RAX: 00007f15a0fa2fb0 RBX: 0000000000000020 RCX: 0000000000002030
+Oct 26 23:07:16 Laco kernel: RDX: 0000000000000080 RSI: 0000000034927454 RDI: 00007f15a0fa2fb0
+Oct 26 23:07:16 Laco kernel: RBP: 00007ffdef3849e0 R08: 00007ffdef3849a0 R09: 0000000000000900
+Oct 26 23:07:16 Laco kernel: R10: 00000000ffffe89b R11: 0000000000001764 R12: 0000000000000001
+Oct 26 23:07:16 Laco kernel: R13: 0000000034924400 R14: 0000000035313ef0 R15: 0000000034924408
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:07:16 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:07:16 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:07:16 Laco kernel: Call Trace:
+Oct 26 23:07:16 Laco kernel:  <TASK>
+Oct 26 23:07:16 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:07:16 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:07:16 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:07:16 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:07:16 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:07:16 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:07:16 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:07:16 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:07:16 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:07:16 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:07:16 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:07:16 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:07:16 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:07:16 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:07:16 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:07:16 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:07:16 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:07:16 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:07:16 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:07:16 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: task:kwin_wayla:cs0  state:D stack:0     pid:1856  tgid:1788  ppid:1761   task_flags:0x400040 flags:0x00080000
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? gpu_buddy_alloc_blocks+0x272/0x5f0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_validate+0xd6/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:09:19 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:09:19 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f3c06717b9d
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007f3bed98d4b0 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:09:19 Laco kernel: RAX: ffffffffffffffda RBX: 00007f3bed98d788 RCX: 00007f3c06717b9d
+Oct 26 23:09:19 Laco kernel: RDX: 00007f3bed98d540 RSI: 00000000c0186444 RDI: 0000000000000010
+Oct 26 23:09:19 Laco kernel: RBP: 00007f3bed98d500 R08: 00007f3bed98d610 R09: 00007f3bed98d510
+Oct 26 23:09:19 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000010
+Oct 26 23:09:19 Laco kernel: R13: 00007f3bed98d788 R14: 0000000000000004 R15: 00005641b36c8000
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:09:19 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:09:19 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:09:19 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:09:19 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:09:19 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:09:19 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:09:19 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:09:19 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:09:19 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task brave:505335 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: task:brave           state:D stack:0     pid:505335 tgid:505335 ppid:505286 task_flags:0x400040 flags:0x00080000
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? drm_syncobj_destroy_ioctl+0xb4/0xe0
+Oct 26 23:09:19 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:09:19 Laco kernel:  ? __check_object_size+0x43/0x200
+Oct 26 23:09:19 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:09:19 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:09:19 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:09:19 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:09:19 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f048514ebec
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007ffe85820818 EFLAGS: 00010246
+Oct 26 23:09:19 Laco kernel: RAX: 00007f04652ff1f0 RBX: 0000174400222838 RCX: 00000000000001f0
+Oct 26 23:09:19 Laco kernel: RDX: 0000000000000010 RSI: 00001744000c9a70 RDI: 00007f04652ff1f0
+Oct 26 23:09:19 Laco kernel: RBP: 00007ffe85820870 R08: 00001744001a0fc8 R09: 00007f04652ff000
+Oct 26 23:09:19 Laco kernel: R10: 00001744001a0fa0 R11: 00000000000001f0 R12: 0000000000000010
+Oct 26 23:09:19 Laco kernel: R13: 00000000000001f0 R14: 0000174400220000 R15: 0000000000000800
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:09:19 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:09:19 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:09:19 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:09:19 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:09:19 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:09:19 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:09:19 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:09:19 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:09:19 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task llama-server:555495 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: task:llama-server    state:D stack:0     pid:555495 tgid:555495 ppid:552048 task_flags:0x400000 flags:0x00080000
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:09:19 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:09:19 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:09:19 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:09:19 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f15a2f88e26
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007ffdef384958 EFLAGS: 00010246
+Oct 26 23:09:19 Laco kernel: RAX: 00007f15a0fa2fb0 RBX: 0000000000000020 RCX: 0000000000002030
+Oct 26 23:09:19 Laco kernel: RDX: 0000000000000080 RSI: 0000000034927454 RDI: 00007f15a0fa2fb0
+Oct 26 23:09:19 Laco kernel: RBP: 00007ffdef3849e0 R08: 00007ffdef3849a0 R09: 0000000000000900
+Oct 26 23:09:19 Laco kernel: R10: 00000000ffffe89b R11: 0000000000001764 R12: 0000000000000001
+Oct 26 23:09:19 Laco kernel: R13: 0000000034924400 R14: 0000000035313ef0 R15: 0000000034924408
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:09:19 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:09:19 Laco kernel: Call Trace:
+Oct 26 23:09:19 Laco kernel:  <TASK>
+Oct 26 23:09:19 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:09:19 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:09:19 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:09:19 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:09:19 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:09:19 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:09:19 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:09:19 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:09:19 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:09:19 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:09:19 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:09:19 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:09:19 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:09:19 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:09:19 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:09:19 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:09:19 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:09:19 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:09:19 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:09:19 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: task:kwin_wayla:cs0  state:D stack:0     pid:1856  tgid:1788  ppid:1761   task_flags:0x400040 flags:0x00080000
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? gpu_buddy_alloc_blocks+0x272/0x5f0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_validate+0xd6/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:11:22 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:11:22 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f3c06717b9d
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007f3bed98d4b0 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:11:22 Laco kernel: RAX: ffffffffffffffda RBX: 00007f3bed98d788 RCX: 00007f3c06717b9d
+Oct 26 23:11:22 Laco kernel: RDX: 00007f3bed98d540 RSI: 00000000c0186444 RDI: 0000000000000010
+Oct 26 23:11:22 Laco kernel: RBP: 00007f3bed98d500 R08: 00007f3bed98d610 R09: 00007f3bed98d510
+Oct 26 23:11:22 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000010
+Oct 26 23:11:22 Laco kernel: R13: 00007f3bed98d788 R14: 0000000000000004 R15: 00005641b36c8000
+Oct 26 23:11:22 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:11:22 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:11:22 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:11:22 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:11:22 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:11:22 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:11:22 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:11:22 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:11:22 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:11:22 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:11:22 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task brave:505335 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: task:brave           state:D stack:0     pid:505335 tgid:505335 ppid:505286 task_flags:0x400040 flags:0x00080000
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? drm_syncobj_destroy_ioctl+0xb4/0xe0
+Oct 26 23:11:22 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:11:22 Laco kernel:  ? __check_object_size+0x43/0x200
+Oct 26 23:11:22 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:11:22 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:11:22 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:11:22 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:11:22 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f048514ebec
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007ffe85820818 EFLAGS: 00010246
+Oct 26 23:11:22 Laco kernel: RAX: 00007f04652ff1f0 RBX: 0000174400222838 RCX: 00000000000001f0
+Oct 26 23:11:22 Laco kernel: RDX: 0000000000000010 RSI: 00001744000c9a70 RDI: 00007f04652ff1f0
+Oct 26 23:11:22 Laco kernel: RBP: 00007ffe85820870 R08: 00001744001a0fc8 R09: 00007f04652ff000
+Oct 26 23:11:22 Laco kernel: R10: 00001744001a0fa0 R11: 00000000000001f0 R12: 0000000000000010
+Oct 26 23:11:22 Laco kernel: R13: 00000000000001f0 R14: 0000174400220000 R15: 0000000000000800
+Oct 26 23:11:22 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:11:22 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:11:22 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:11:22 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:11:22 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:11:22 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:11:22 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:11:22 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:11:22 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:11:22 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:11:22 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task llama-server:555495 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: task:llama-server    state:D stack:0     pid:555495 tgid:555495 ppid:552048 task_flags:0x400000 flags:0x00080000
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __mutex_lock.constprop.0+0x3dc/0x920
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x21/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ttm_bo_vm_fault_reserved+0x271/0x4a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_gem_fault+0x95/0x100 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  __do_fault+0x34/0x160
+Oct 26 23:11:22 Laco kernel:  do_fault+0x1cd/0x680
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? __pte_offset_map+0x1b/0xb0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  __handle_mm_fault+0x9d4/0x1110
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  handle_mm_fault+0xed/0x2c0
+Oct 26 23:11:22 Laco kernel:  do_user_addr_fault+0x165/0x720
+Oct 26 23:11:22 Laco kernel:  exc_page_fault+0x75/0x160
+Oct 26 23:11:22 Laco kernel:  asm_exc_page_fault+0x26/0x30
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f15a2f88e26
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007ffdef384958 EFLAGS: 00010246
+Oct 26 23:11:22 Laco kernel: RAX: 00007f15a0fa2fb0 RBX: 0000000000000020 RCX: 0000000000002030
+Oct 26 23:11:22 Laco kernel: RDX: 0000000000000080 RSI: 0000000034927454 RDI: 00007f15a0fa2fb0
+Oct 26 23:11:22 Laco kernel: RBP: 00007ffdef3849e0 R08: 00007ffdef3849a0 R09: 0000000000000900
+Oct 26 23:11:22 Laco kernel: R10: 00000000ffffe89b R11: 0000000000001764 R12: 0000000000000001
+Oct 26 23:11:22 Laco kernel: R13: 0000000034924400 R14: 0000000035313ef0 R15: 0000000034924408
+Oct 26 23:11:22 Laco kernel:  </TASK>
+Oct 26 23:11:22 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: task:plasmashel:cs0  state:S stack:0     pid:2085  tgid:1997  ppid:1447   task_flags:0x400040 flags:0x00080800
+Oct 26 23:11:22 Laco kernel: Call Trace:
+Oct 26 23:11:22 Laco kernel:  <TASK>
+Oct 26 23:11:22 Laco kernel:  __schedule+0x406/0x16e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? psi_task_switch+0x1c6/0x2e0
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? finish_task_switch.isra.0+0xc8/0x3f0
+Oct 26 23:11:22 Laco kernel:  schedule+0x27/0xa0
+Oct 26 23:11:22 Laco kernel:  schedule_preempt_disabled+0x15/0x30
+Oct 26 23:11:22 Laco kernel:  __ww_mutex_lock.constprop.0+0x7d2/0xd10
+Oct 26 23:11:22 Laco kernel:  ? srso_alias_untrain_ret+0x1/0x10
+Oct 26 23:11:22 Laco kernel:  __drm_exec_lock_obj+0x75/0x130 [drm_exec 54404fd4c59bcbbee93cf3a87e9d0a7d2b681178]
+Oct 26 23:11:22 Laco kernel:  __ttm_bo_lru_cursor_next+0xfa/0x330 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_device_swapout+0x104/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_global_swapout+0x50/0xd0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_tt_populate+0x91/0x160 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_populate+0x4f/0xe0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_handle_move_mem+0x16f/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_bounce_temp_buffer+0x9b/0xc0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict+0x11f/0x1f0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? amdgpu_ttm_bo_eviction_valuable+0x118/0x150 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_cb+0x150/0x1b0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_lru_walk_for_evict+0xb1/0x180 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_evict_alloc+0x1b4/0x220 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ? __pfx_ttm_bo_evict_cb+0x10/0x10 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_alloc_resource+0x2e0/0x3a0 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  ttm_bo_validate+0xb8/0x240 [ttm 21d61e258b08cfe9af72d301c21e87066580d3af]
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_bo_validate+0x1bb/0x2d0 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  amdgpu_cs_ioctl+0x144b/0x2140 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  ? futex_hash+0xa1/0xd0
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  drm_ioctl_kernel+0xae/0x100
+Oct 26 23:11:22 Laco kernel:  drm_ioctl+0x2d8/0x570
+Oct 26 23:11:22 Laco kernel:  ? __pfx_amdgpu_cs_ioctl+0x10/0x10 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  amdgpu_drm_ioctl+0x4a/0x80 [amdgpu 65662cc623f2f9609bd466ba54f497a5aba4a5b1]
+Oct 26 23:11:22 Laco kernel:  __x64_sys_ioctl+0xb9/0x100
+Oct 26 23:11:22 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? __x64_sys_futex+0x136/0x220
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0xa6/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 26 23:11:22 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 26 23:11:22 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 26 23:11:22 Laco kernel: RIP: 0033:0x7f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RSP: 002b:00007f993f1c4460 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Oct 26 23:11:22 Laco kernel: RAX: ffffffffffffffda RBX: 00007f993f1c4788 RCX: 00007f9962d17b9d
+Oct 26 23:11:22 Laco kernel: RDX: 00007f993f1c44f0 RSI: 00000000c0186444 RDI: 0000000000000013
+Oct 26 23:11:22 Laco kernel: RBP: 00007f993f1c44b0 R08: 00007f993f1c45c0 R09: 00007f993f1c44c0
+Oct 26 23:11:22 Laco kernel: R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+Oct 26 23:11:22 Laco kernel: R13: 00007f993f1c4788 R14: 0000000000000004 R15: 00007f99041d4000
+Oct 26 23:11:22 Laco kernel:  </TASK>

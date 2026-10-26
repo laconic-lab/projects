@@ -1,0 +1,38 @@
+Oct 26 23:06:20 Laco accounts-daemon[4214]: Unable to open /etc/tcb: No such file or directory
+Oct 26 23:06:20 Laco accounts-daemon[4214]: couldn't list homed users: GDBus.Error:org.freedesktop.DBus.Error.NameHasNoOwner: Could not activate remote peer 'org.freedesktop.home1': activation request failed: unknown unit
+Oct 26 23:07:16 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:07:16 Laco kernel: INFO: task brave:505335 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:07:16 Laco kernel: INFO: task llama-server:555495 blocked for more than 122 seconds.
+Oct 26 23:07:16 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:07:16 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:07:16 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: INFO: task brave:505335 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:09:19 Laco kernel: INFO: task llama-server:555495 blocked for more than 245 seconds.
+Oct 26 23:09:19 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:09:19 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:09:19 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: INFO: task kwin_wayla:cs0:1856 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: INFO: task kwin_wayla:cs0:1856 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: INFO: task brave:505335 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: INFO: task brave:505335 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
+Oct 26 23:11:22 Laco kernel: INFO: task llama-server:555495 blocked for more than 368 seconds.
+Oct 26 23:11:22 Laco kernel:       Not tainted 7.2.7-valve2-2-neptune-72-g31504582a073 #1
+Oct 26 23:11:22 Laco kernel: "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+Oct 26 23:11:22 Laco kernel: INFO: task llama-server:555495 is blocked on a mutex likely owned by task plasmashel:cs0:2085.
