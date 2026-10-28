@@ -199,3 +199,34 @@ Interpretation and limitations:
   suggestions remains a quality issue for later, controlled tuning.
 - No application code, model weights, or service configuration is changed
   by this documentation follow-up.
+
+2026-10-28 — Shyrka dashboard input controls and validation
+Version: Maintenance update; existing release numbering unchanged.
+
+Changes recorded:
+- dashboard/index.html: added a 12,000-character composer limit,
+  a live character counter, Edit controls for reusing a previous user
+  message, and Copy controls for message text.
+- dashboard/server.py: added server-side message-length validation
+  with MAX_MESSAGE_CHARS=12000 and MAX_BODY=64000 bytes.
+- MAX_MESSAGES remains 12.
+
+Validation recorded from the implementation session:
+- Focused input tests: 7/7 passed.
+- Full test suite: 27/27 passed.
+- Python compilation check passed for dashboard/server.py and
+  tests/test_dashboard_input.py.
+- Dashboard status reported RUNNING; port 8765 was listening and
+  the HTTP check returned 200 after the implementation restart.
+- A roughly 10,995-character audit prompt was accepted and completed
+  in 125.1 seconds in the tested workload.
+- The reported audit used the approved diagnostic tools
+  check_ollama_status, inspect_localai_project_files, and
+  read_approved_localai_log.
+
+Limitations and boundaries:
+- These results establish the tested behavior, not universal reliability
+  for every prompt or browser environment.
+- No new agent tools or permissions were added by this change.
+- This documentation update does not modify application code,
+  configuration, dependencies, or running services.

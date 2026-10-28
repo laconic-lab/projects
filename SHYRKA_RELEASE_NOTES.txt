@@ -238,3 +238,33 @@ Limitations:
   diagnosis-first and manual-start operating rules.
 - No application code, dependencies, model weights, or services were
   changed by this documentation follow-up.
+
+2026-10-28 — Shyrka dashboard input controls and validation
+----------------------------------------------------------
+Changes:
+- Added a 12,000-character composer limit and live character counter.
+- Added Edit controls to reuse a previous user message in the composer.
+- Added Copy controls for message text.
+- Added server-side message-length validation: 12,000 characters per
+  message and a 64,000-byte request-body limit.
+- The existing maximum of 12 messages remains unchanged.
+
+Validation reported from the implementation session:
+- Focused tests: 7/7 passed; full suite: 27/27 passed.
+- Python compilation check passed for the dashboard server and its
+  input-validation tests.
+- Dashboard reported RUNNING, port 8765 listening, and HTTP 200
+  following the implementation restart.
+- A roughly 10,995-character audit prompt was accepted and completed
+  in 125.1 seconds for the tested workload.
+- The audit reportedly used only the approved diagnostic tools
+  check_ollama_status, inspect_localai_project_files, and
+  read_approved_localai_log.
+
+Limitations:
+- One successful long-prompt test does not guarantee all future requests.
+- Browser clipboard behavior can depend on browser permissions.
+- Local-first operation, manual startup, and existing tool permissions
+  remain unchanged.
+- This documentation update does not modify application code,
+  dependencies, model configuration, or services.

@@ -17,6 +17,10 @@ Integrated components:
 - Read-only /api/search endpoint and debounced dashboard search UI
 - Dashboard start/stop/status scripts
 - Unit tests
+- Dashboard composer with a 12,000-character limit and live counter
+- Dashboard message Edit and Copy controls
+- Server-side input validation: 12,000 characters per message and
+  a 64,000-byte maximum request body
 - Unified backup and recovery scripts
 - Project and release history documentation
 
