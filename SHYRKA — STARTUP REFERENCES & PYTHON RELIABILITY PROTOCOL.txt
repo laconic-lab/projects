@@ -37,76 +37,24 @@ https://github.com/laconic-lab/tmp/blob/main/SHYRKA_STARTUP_PROTOCOL.md
 
 ## 2. Current Project Environment
 
-The following values are the last recorded environment details. Verify them when relevant before relying on them.
+- Steam Deck host: SteamOS, build 20261023.100.
+- Host Python: /usr/bin/python3, version 3.14.6.
+- Distrobox: localai-box, Ubuntu 24.04.5 LTS.
+- Container Python: /usr/bin/python3.12, version 3.12.3.
+- Shyrka project: /home/deck/LocalAIProject/AIAgent.
+- Shyrka venv: /home/deck/LocalAIProject/AIAgent/.venv.
+- Shyrka's venv uses the container's Python 3.12.3 base interpreter.
+- Host and container interpreters are separate; do not mix their environments.
 
-**Host:** Steam Deck OLED / SteamOS
+## 3. Python Reference and Verified Baseline
 
-**Container:** `localai-box`  
-**Distribution:** Ubuntu 24.04.x  
-**Previously recorded Python version:** 3.12.3
+Consult /home/deck/LocalAIProject/PYTHON_VENV.readme for the detailed
+interpreter inventory, package versions, venv policy, test commands, and
+planned Kokoro paths. It is the detailed reference for verified Python facts.
 
-**Canonical project directory inside `localai-box`:**
-
-`/home/deck/LocalAIProject/AIAgent`
-
-**Python virtual environment:**
-
-`/home/deck/LocalAIProject/AIAgent/.venv`
-
-**Preferred Python executable for project commands:**
-
-`./.venv/bin/python`
-
-**Execution environment rule**
-
-Commands for this project should run directly inside `localai-box`.
-
-Do not wrap commands in another `distrobox enter localai-box` command unless explicitly requested or the execution context requires it.
-
-Before giving commands, establish whether the current terminal is inside the container or on the SteamOS host. Do not confuse host paths, container paths, and paths visible inside the virtual environment.
-
----
-
-## 3. Verified Python Environment Results
-
-These are previously observed results, not guarantees about the current working tree or environment.
-
-### System Python
-
-- `/usr/bin/python`
-- `/usr/bin/python3`
-- Previously reported version: Python 3.12.3
-- `pip` and `pytest` were not available as assumed system-level project tools.
-
-### Project virtual environment
-
-- `./.venv/bin/python` existed.
-- `pip` was available inside the virtual environment.
-- Application dependencies were installed there.
-- `pytest` was not installed there.
-- `requirements-lock.txt` did not include `pytest`.
-
-**Incorrect assumption to avoid:** Never assume `pytest` is installed or that a test command is supported simply because it is commonly used in Python projects.
-
-### Previously successful unit test command
-
-Run from the project directory inside `localai-box`:
-
-    ./.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
-
-Previously observed result:
-
-    17 tests ran in 0.434 seconds — OK.
-
-### Previously successful syntax check
-
-    ./.venv/bin/python -m py_compile dashboard/server.py
-
-These results are historical. Re-run the relevant checks after changes when appropriate. Do not report historical results as current verification.
-
-Do not install packages merely to make an assumed test command work. First establish which test runner the project actually supports and whether installing anything is necessary and authorized.
-
----
+The previously recorded Shyrka unit-test result was 27/27 passing on
+2026-10-28. This is a historical result, not a claim that tests ran during
+this documentation update. Re-run the relevant checks after code changes.
 
 ## 4. Mandatory Python and Shell Reliability Rules
 
@@ -144,83 +92,29 @@ Before generating or running commands:
 
 ---
 
-## 5. Mandatory Current-Chat Project Scope
+## 5. Mandatory Documentation Scope
 
-### 5.1 Scope lock
+At the beginning of a Shyrka session:
 
-The project and task established by the current conversation define the scope of work.
+1. Consult the three authoritative GitHub references above when accessible and relevant.
+2. Identify the project and task actually being continued.
+3. Inspect the relevant local authoritative documentation before updating it.
+4. Work only on the project relevant to the conversation.
+5. Include `PROJECT_VERSIONS.txt` when the change warrants updating the established cross-project history.
+6. Do not scan every project or Distrobox on the Steam Deck.
+7. Exclude historical backups from active editing unless the task explicitly concerns recovery or historical comparison.
+8. Back up documentation before modifying it.
+9. Read back and verify every modified file.
+10. Preserve existing history, naming conventions, and useful information.
+11. Do not claim that GitHub and local files are synchronized unless both have actually been checked.
+12. After a long pause or conversation handover, recover the last verified state and next action from the available handover and project evidence.
+13. Do not restart the entire discovery process if the existing evidence is sufficient.
+14. Update the appropriate documentation after significant verified changes.
+15. Avoid redundant updates to every document when a single authoritative record is sufficient.
 
-1. Identify the active project, canonical path, current task, and last verified state from the conversation, handover, and authoritative references.
-2. Treat the identified project as the sole default search boundary.
-3. Do not scan every project, Distrobox, recovery directory, or the entire Steam Deck filesystem.
-4. Do not restart discovery from zero after a pause or handover when existing evidence is sufficient.
-5. If the active project or its path cannot be established confidently, inspect only the relevant evidence and ask for clarification before modifying files.
+**Documentation update rule:** Update only the documents justified by the change. For example, a significant agent configuration change may warrant a manifest update, release notes, and a master history entry. A temporary investigation or unsuccessful experiment does not automatically require a release entry.
 
-### 5.2 Shared startup references
-
-Use the authoritative GitHub references as the initial project map:
-
-- Master history: https://github.com/laconic-lab/tmp/blob/main/PROJECT_VERSIONS.txt
-- Shyrka manifest: https://github.com/laconic-lab/tmp/blob/main/SHYRKA-AGENT-MANIFEST.txt
-- Shyrka release notes: https://github.com/laconic-lab/tmp/blob/main/SHYRKA_RELEASE_NOTES.txt
-- Startup and Python reliability protocol: https://github.com/laconic-lab/tmp/blob/main/SHYRKA%20%E2%80%94%20STARTUP%20REFERENCES%20%26%20PYTHON%20RELIABILITY%20PROTOCOL.txt
-
-Consult references already available in the conversation without unnecessarily retrieving them again. Check current remote contents when relevant and accessible.
-
-These references provide context; they do not prove that the current local working tree or runtime matches the documented state.
-
-### 5.3 Targeted local discovery
-
-Within the active project's scope:
-
-1. Inspect the known project root, relevant files, and established documentation paths.
-2. Select only the documentation justified by the current change.
-3. Include the master project history only when the change warrants an entry under its established conventions.
-4. Update the project manifest when its inventory or documented configuration changes.
-5. Update project release notes when a meaningful change merits a release-history entry.
-6. Do not update every document automatically when a single authoritative record is sufficient.
-7. Exclude historical backups, patch backups, and archived copies from active editing unless recovery or historical comparison is the explicit task.
-8. Do not expand discovery into unrelated projects merely because a shared document mentions them.
-
-### 5.4 Documentation accuracy and safe updates
-
-Before writing:
-
-1. Read the selected local files and identify the exact insertion points.
-2. Distinguish historical information, planned work, and currently verified facts.
-3. Create verified pre-update copies of every document to be changed.
-4. Make the smallest justified changes, preserving existing history and conventions.
-5. Do not modify application code, configuration, dependencies, databases, services, or unrelated files during a documentation-only task.
-
-After writing:
-
-1. Read back every modified document.
-2. Verify expected entries, preserved history, and absence of unintended duplicates.
-3. Verify backups exist and are readable.
-4. Check hashes and file sizes or line counts where practical.
-5. If verification fails, stop, report the failure, and restore only when the verified backup and restoration procedure are unambiguous. Verify restoration afterward.
-6. Do not claim GitHub and local files are synchronized unless both states have actually been checked.
-
-### 5.5 Resume checkpoint
-
-After a long pause or when continuing in another chat, establish:
-
-- Active project and canonical path.
-- Current task and last verified state.
-- Files already changed and backup locations.
-- Checks actually performed and their observed results.
-- Outstanding issue and the single justified next action.
-- Existing safety restrictions and exclusions.
-
-Verify only what is necessary to confirm that the recorded state remains valid. If the evidence conflicts, investigate that discrepancy before proceeding.
-
-### 5.6 Completion report
-
-Report the project and path, documentation updated, verified changes, backup location, read-back results, unresolved issues, and any skipped checks.
-
-Explicitly confirm that unrelated projects and application files were left untouched.
-
-**Operating rule:** Start from shared references, narrow discovery to the current project's actual needs, inspect before modifying, back up first, verify afterward, and stop when the requested task is complete.---
+---
 
 ## 6. Shyrka Operating Guardrails
 

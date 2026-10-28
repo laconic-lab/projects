@@ -268,3 +268,9 @@ Limitations:
   remain unchanged.
 - This documentation update does not modify application code,
   dependencies, model configuration, or services.
+
+2026-10-28 — Python environment reference and backup coverage
+- Documented the SteamOS host, localai-box container, and Shyrka virtual environment.
+- Added the Python baseline to the agent manifest and project history.
+- Added PYTHON_VENV.readme to the backup script's selected project files.
+- No Python runtime or package changes were made.

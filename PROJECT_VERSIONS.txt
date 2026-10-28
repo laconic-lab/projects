@@ -230,3 +230,10 @@ Limitations and boundaries:
 - No new agent tools or permissions were added by this change.
 - This documentation update does not modify application code,
   configuration, dependencies, or running services.
+
+2026-10-28 — Python environment baseline documented
+- Recorded SteamOS host Python 3.14.6 and localai-box Python 3.12.3.
+- Documented Shyrka's isolated .venv, base interpreter, and inspected package versions.
+- Added the detailed reference at PYTHON_VENV.readme.
+- Updated backup.sh to include the Python reference and generated-manifest entry.
+- Documentation change only: no Python packages or runtime environments changed.

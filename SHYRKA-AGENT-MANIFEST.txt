@@ -81,6 +81,13 @@ Operational boundaries:
 - This configuration update does not add tools or grant mutation capability.
 - No claim is made that all future long answers will complete successfully.
 
+Python environment baseline:
+- SteamOS host Python: /usr/bin/python3, version 3.14.6 (observed 2026-10-28).
+- localai-box Python: /usr/bin/python3.12, version 3.12.3.
+- Shyrka uses AIAgent/.venv; project dependencies remain isolated.
+- Detailed reference: /home/deck/LocalAIProject/PYTHON_VENV.readme.
+- Backup payload path: project-docs/PYTHON_VENV.readme.
+
 Operational rules:
 - Manual start only; no boot auto-start.
 - Keep model inference local unless explicitly authorized otherwise.
