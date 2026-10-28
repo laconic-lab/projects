@@ -1,0 +1,569 @@
+(deck@Laco ~)$ sudo journalctl \
+  --since "2026-10-28 08:38:20" \
+  --until "2026-10-28 08:40:30" \
+  --no-pager -o short-precise
+Oct 28 08:38:37.105450 Laco systemd[1]: Started dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@1.service.
+Oct 28 08:38:37.196954 Laco systemd-logind[1104]: suspend requested from client PID 12465 ('org_kde_powerde') (unit user@1000.service)...
+Oct 28 08:38:37.197275 Laco systemd-logind[1104]: The system will suspend now!
+Oct 28 08:38:37.198409 Laco org_kde_powerdevil[12465]: [ 12514][24294.439775] (ldbus_handle_message)Received dbus signal PrepareForSleep(true=prepare)
+Oct 28 08:38:37.198488 Laco rtkit-daemon[1558]: Demoting known real-time threads.
+Oct 28 08:38:37.198997 Laco NetworkManager[13542]: <info>  [1793173117.1989] manager: sleep: sleep requested (sleeping: no  enabled: yes)
+Oct 28 08:38:37.198600 Laco rtkit-daemon[1558]: Successfully demoted thread 13241 of process 12950.
+Oct 28 08:38:37.199006 Laco kdeconnectd[12608]: Avahi: already not announcing
+Oct 28 08:38:37.198658 Laco rtkit-daemon[1558]: Successfully demoted thread 13060 of process 12950.
+Oct 28 08:38:37.199857 Laco NetworkManager[13542]: <info>  [1793173117.1997] device (wlan0): state change: unavailable -> unmanaged (reason 'unmanaged-nm-disabled', managed-type: 'full')
+Oct 28 08:38:37.198708 Laco rtkit-daemon[1558]: Successfully demoted thread 13059 of process 12950.
+Oct 28 08:38:37.200619 Laco NetworkManager[13542]: <info>  [1793173117.2005] device (/net/connman/iwd/0): state change: unavailable -> unmanaged (reason 'unmanaged-nm-disabled', managed-type: 'full')
+Oct 28 08:38:37.198765 Laco rtkit-daemon[1558]: Successfully demoted thread 1821 of process 1819.
+Oct 28 08:38:37.201506 Laco NetworkManager[13542]: <info>  [1793173117.2014] manager: NetworkManager state is now DISABLED (ASLEEP)
+Oct 28 08:38:37.198811 Laco rtkit-daemon[1558]: Successfully demoted thread 1819 of process 1819.
+Oct 28 08:38:37.203530 Laco systemd[1]: Reached target Sleep.
+Oct 28 08:38:37.198815 Laco rtkit-daemon[1558]: Demoted 5 threads.
+Oct 28 08:38:37.205630 Laco systemd[1]: Starting System Suspend...
+Oct 28 08:38:37.235858 Laco systemd[1]: session-4.scope: Unit now frozen-by-parent.
+Oct 28 08:38:37.235896 Laco systemd[1]: session-6.scope: Unit now frozen-by-parent.
+Oct 28 08:38:37.235926 Laco systemd[1]: session-7.scope: Unit now frozen-by-parent.
+Oct 28 08:38:37.235957 Laco systemd[1]: session-5.scope: Unit now frozen-by-parent.
+Oct 28 08:38:37.235985 Laco systemd[1]: session-3.scope: Unit now frozen-by-parent.
+Oct 28 08:38:47.100759 Laco systemd[1]: dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@1.service: Deactivated successfully.
+Oct 28 08:39:37.280822 Laco systemd-sleep[108270]: Failed to freeze unit 'user.slice': Connection timed out
+Oct 28 08:39:37.322883 Laco systemd-sleep[108270]: Performing sleep operation 'suspend'...
+Oct 28 08:39:37.323119 Laco kernel: PM: suspend entry (deep)
+Oct 28 08:39:37.338068 Laco kernel: Filesystems sync: 0.014 seconds
+Oct 28 08:39:57.369957 Laco kernel: Freezing user space processes
+Oct 28 08:39:57.370074 Laco kernel: Freezing user space processes failed after 20.005 seconds (1 tasks refusing to freeze, wq_busy=0):
+Oct 28 08:39:57.370110 Laco kernel: task:database        state:D stack:0     pid:2097  tgid:2089  ppid:2085   task_flags:0x400040 flags:0x00080002
+Oct 28 08:39:57.370136 Laco kernel: Call Trace:
+Oct 28 08:39:57.370161 Laco kernel:  <TASK>
+Oct 28 08:39:57.370186 Laco kernel:  __schedule+0x406/0x16e0
+Oct 28 08:39:57.370213 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370239 Laco kernel:  ? do_select+0x7c7/0x8b0
+Oct 28 08:39:57.370265 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370289 Laco kernel:  ? kmem_cache_alloc_noprof+0x310/0x460
+Oct 28 08:39:57.370315 Laco kernel:  schedule+0x27/0xa0
+Oct 28 08:39:57.370340 Laco kernel:  request_wait_answer+0xe2/0x2f0
+Oct 28 08:39:57.370365 Laco kernel:  ? __pfx_autoremove_wake_function+0x10/0x10
+Oct 28 08:39:57.370390 Laco kernel:  fuse_chan_send+0xcc/0x1e0
+Oct 28 08:39:57.370416 Laco kernel:  fuse_getxattr+0x110/0x190
+Oct 28 08:39:57.370441 Laco kernel:  __fuse_get_acl.part.0+0x7e/0x120
+Oct 28 08:39:57.370463 Laco kernel:  __get_acl+0x14a/0x230
+Oct 28 08:39:57.370483 Laco kernel:  generic_permission+0x252/0x350
+Oct 28 08:39:57.370507 Laco kernel:  fuse_permission+0xe6/0x200
+Oct 28 08:39:57.370531 Laco kernel:  inode_permission+0xfa/0x180
+Oct 28 08:39:57.370557 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370580 Laco kernel:  link_path_walk+0x5bf/0x6e0
+Oct 28 08:39:57.370600 Laco kernel:  path_lookupat+0x40/0x2f0
+Oct 28 08:39:57.370620 Laco kernel:  filename_lookup+0x129/0x230
+Oct 28 08:39:57.370640 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370659 Laco kernel:  ? kmem_cache_alloc_noprof+0x310/0x460
+Oct 28 08:39:57.370679 Laco kernel:  vfs_statx+0x8e/0x1b0
+Oct 28 08:39:57.370699 Laco kernel:  __do_sys_newstat+0x79/0xd0
+Oct 28 08:39:57.370719 Laco kernel:  do_syscall_64+0xa6/0x670
+Oct 28 08:39:57.370732 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370744 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370757 Laco kernel:  ? poll_select_finish+0x134/0x250
+Oct 28 08:39:57.370771 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370817 Laco kernel:  ? kern_select+0xfe/0x180
+Oct 28 08:39:57.370833 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370847 Laco kernel:  ? __seccomp_filter+0x86/0x6e0
+Oct 28 08:39:57.370860 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370874 Laco kernel:  ? do_syscall_64+0x5b/0x670
+Oct 28 08:39:57.370887 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370900 Laco kernel:  ? exc_page_fault+0x75/0x160
+Oct 28 08:39:57.370913 Laco kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Oct 28 08:39:57.370927 Laco kernel: RIP: 0033:0x7f2873160980
+Oct 28 08:39:57.370941 Laco kernel: RSP: 002b:00007f28728cd430 EFLAGS: 00000246 ORIG_RAX: 0000000000000004
+Oct 28 08:39:57.370956 Laco kernel: RAX: ffffffffffffffda RBX: 00007f287318bdf5 RCX: 00007f2873160980
+Oct 28 08:39:57.370969 Laco kernel: RDX: 00007f28728cd460 RSI: 00007f28728cd460 RDI: 00007f287318bdf5
+Oct 28 08:39:57.370983 Laco kernel: RBP: 00007f28728cd5d0 R08: 00007f28728cd520 R09: 00000000ffffff9c
+Oct 28 08:39:57.370997 Laco kernel: R10: 00007f287363e000 R11: 0000000000000246 R12: 00007f28734bc5c0
+Oct 28 08:39:57.371010 Laco kernel: R13: 000000006ae1a600 R14: 000000006ae1530b R15: 000000006ae1a658
+Oct 28 08:39:57.371024 Laco kernel:  </TASK>
+Oct 28 08:39:57.371050 Laco kernel: OOM killer enabled.
+Oct 28 08:39:57.371065 Laco kernel: Restarting tasks: Starting
+Oct 28 08:39:57.371080 Laco kernel: Restarting tasks: Done
+Oct 28 08:39:57.371094 Laco kernel: efivarfs: resyncing variable state
+Oct 28 08:39:57.376540 Laco systemd[1]: Unmounting /efi...
+Oct 28 08:39:57.379609 Laco systemd[1]: Unmounting /esp...
+Oct 28 08:39:57.380066 Laco kernel: efivarfs: finished resyncing variable state
+Oct 28 08:39:57.380121 Laco kernel: random: crng reseeded on system resumption
+Oct 28 08:39:57.380769 Laco systemd-sleep[108270]: Failed to put system to sleep. System resumed again: Device or resource busy
+Oct 28 08:39:57.381324 Laco kernel: PM: suspend exit
+Oct 28 08:39:57.381357 Laco kernel: PM: suspend entry (s2idle)
+Oct 28 08:39:57.381372 Laco kernel: PM: s2idle sleep is not supported
+Oct 28 08:39:57.381385 Laco kernel: PM: suspend exit
+Oct 28 08:39:57.398602 Laco systemd-sleep[108270]: Successfully thawed unit 'user.slice'.
+Oct 28 08:39:57.399340 Laco systemd[1]: session-4.scope: Unit now thawed.
+Oct 28 08:39:57.399376 Laco systemd[1]: session-6.scope: Unit now thawed.
+Oct 28 08:39:57.399408 Laco systemd[1]: session-7.scope: Unit now thawed.
+Oct 28 08:39:57.399441 Laco systemd[1]: session-5.scope: Unit now thawed.
+Oct 28 08:39:57.399518 Laco systemd[1]: session-3.scope: Unit now thawed.
+Oct 28 08:39:57.400931 Laco systemd[1]: systemd-suspend.service: Main process exited, code=exited, status=1/FAILURE
+Oct 28 08:39:57.401220 Laco systemd[1]: systemd-suspend.service: Failed with result 'exit-code'.
+Oct 28 08:39:57.401861 Laco systemd[1]: Failed to start System Suspend.
+Oct 28 08:39:57.402269 Laco systemd[1]: Dependency failed for Suspend.
+Oct 28 08:39:57.402435 Laco systemd[1]: suspend.target: Job suspend.target/start failed with result 'dependency'.
+Oct 28 08:39:57.403930 Laco systemd-logind[1104]: Operation 'suspend' finished.
+Oct 28 08:39:57.404137 Laco org_kde_powerdevil[12465]: [ 12514][24374.645499] (ldbus_handle_message)Received dbus signal PrepareForSleep(false=resume)
+Oct 28 08:39:57.404912 Laco NetworkManager[13542]: <info>  [1793173197.4048] manager: sleep: wake requested (sleeping: yes  enabled: yes)
+Oct 28 08:39:57.409218 Laco avahi-daemon[1068]: Leaving mDNS multicast group on interface enp4s0f3u1u4.IPv4 with address 192.168.1.161.
+Oct 28 08:39:57.404921 Laco systemd-resolved[556]: Closing all remaining TCP connections.
+Oct 28 08:39:57.409240 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:39:57.404931 Laco systemd-resolved[556]: Resetting learnt feature levels on all servers.
+Oct 28 08:39:57.409244 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:39:57.405485 Laco NetworkManager[13542]: <info>  [1793173197.4054] device (enp4s0f3u1u4): state change: activated -> unmanaged (reason 'unmanaged-nm-disabled', managed-type: 'full')
+Oct 28 08:39:57.409249 Laco pasta[1976]: (suppressed 8 similar messages)
+Oct 28 08:39:57.405801 Laco NetworkManager[13542]: <info>  [1793173197.4057] dhcp4 (enp4s0f3u1u4): canceled DHCP transaction
+Oct 28 08:39:57.409268 Laco avahi-daemon[1068]: Interface enp4s0f3u1u4.IPv4 no longer relevant for mDNS.
+Oct 28 08:39:57.405816 Laco NetworkManager[13542]: <info>  [1793173197.4058] dhcp4 (enp4s0f3u1u4): activation: beginning transaction (timeout in 45 seconds)
+Oct 28 08:39:57.409700 Laco avahi-daemon[1068]: Leaving mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address 2001:861:3013:b730:4890:3eea:67:3db5.
+Oct 28 08:39:57.405830 Laco NetworkManager[13542]: <info>  [1793173197.4058] dhcp4 (enp4s0f3u1u4): state changed no lease
+Oct 28 08:39:57.409713 Laco avahi-daemon[1068]: Joining mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address 2001:861:3013:b730:9e86:f740:ab73:ae13.
+Oct 28 08:39:57.405992 Laco NetworkManager[13542]: <info>  [1793173197.4059] dhcp6 (enp4s0f3u1u4): canceled DHCP transaction
+Oct 28 08:39:57.410817 Laco avahi-daemon[1068]: Leaving mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address 2001:861:3013:b730:9e86:f740:ab73:ae13.
+Oct 28 08:39:57.406004 Laco NetworkManager[13542]: <info>  [1793173197.4059] dhcp6 (enp4s0f3u1u4): activation: beginning transaction (timeout in 45 seconds)
+Oct 28 08:39:57.410833 Laco avahi-daemon[1068]: Joining mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address fe80::61d4:7843:e196:34c1.
+Oct 28 08:39:57.406016 Laco NetworkManager[13542]: <info>  [1793173197.4060] dhcp6 (enp4s0f3u1u4): state changed no lease
+Oct 28 08:39:57.410851 Laco avahi-daemon[1068]: Leaving mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address fe80::61d4:7843:e196:34c1.
+Oct 28 08:39:57.407918 Laco systemd[1]: Stopped target Sleep.
+Oct 28 08:39:57.410860 Laco avahi-daemon[1068]: Interface enp4s0f3u1u4.IPv6 no longer relevant for mDNS.
+Oct 28 08:39:57.412636 Laco kdeconnectd[12608]: Avahi: Could not create entry group: QDBusError("org.freedesktop.Avahi.NotPermittedError", "Not permitted")
+Oct 28 08:39:57.414348 Laco rtkit-daemon[1558]: Resuming known real-time threads.
+Oct 28 08:39:57.414523 Laco rtkit-daemon[1558]: Successfully made thread 13241 of process 12950 owned by '1000' high priority at nice level -10.
+Oct 28 08:39:57.414869 Laco rtkit-daemon[1558]: Successfully made thread 13060 of process 12950 owned by '1000' high priority at nice level -10.
+Oct 28 08:39:57.415081 Laco rtkit-daemon[1558]: Successfully made thread 13059 of process 12950 owned by '1000' high priority at nice level -10.
+Oct 28 08:39:57.415254 Laco rtkit-daemon[1558]: Successfully made thread 1821 of process 1819 owned by '1000' RT at priority 20.
+Oct 28 08:39:57.415357 Laco rtkit-daemon[1558]: Successfully made thread 1819 of process 1819 owned by '1000' high priority at nice level -11.
+Oct 28 08:39:57.415370 Laco rtkit-daemon[1558]: Resumed scheduling 5 threads.
+Oct 28 08:39:57.428728 Laco kdeconnectd[12608]: Bluetooth device is powered off
+Oct 28 08:39:57.437876 Laco NetworkManager[13542]: <info>  [1793173197.4378] manager: NetworkManager state is now CONNECTED_GLOBAL
+Oct 28 08:39:57.439464 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier off
+Oct 28 08:39:57.445140 Laco NetworkManager[13542]: <info>  [1793173197.4451] manager: NetworkManager state is now DISCONNECTED
+Oct 28 08:39:57.445856 Laco NetworkManager[13542]: <info>  [1793173197.4458] device (enp4s0f3u1u4): state change: unmanaged -> unavailable (reason 'managed', managed-type: 'external')
+Oct 28 08:39:57.449909 Laco systemd[1]: Starting Network Manager Script Dispatcher Service...
+Oct 28 08:39:57.454620 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:39262 -> 1.0.0.1:53
+Oct 28 08:39:57.454766 Laco pasta[1976]: (suppressed 8 similar messages)
+Oct 28 08:39:57.454884 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:39:57.454940 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:39:57.455002 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:39262 -> 9.9.9.9:53
+Oct 28 08:39:57.455055 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:39:57.455061 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:39:57.455073 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:39262 -> 149.112.112.112:53
+Oct 28 08:39:57.455126 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:39:57.455130 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:39:57.455143 Laco pasta[1976]: Dropping datagram with no flow TAP fe80::8894:ebff:fe26:16ef:56415 -> 2001:4860:4860::8888:53
+Oct 28 08:39:57.455173 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:39:57.455177 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:39:57.455182 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:39:57.455193 Laco pasta[1976]: Dropping datagram with no flow TAP fe80::8894:ebff:fe26:16ef:56415 -> 2001:4860:4860::8844:53
+Oct 28 08:39:57.455197 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:39:57.458632 Laco NetworkManager[13542]: <info>  [1793173197.4586] device (wlan0): state change: unmanaged -> unavailable (reason 'managed', managed-type: 'external')
+Oct 28 08:39:57.460659 Laco NetworkManager[13542]: <info>  [1793173197.4595] device (/net/connman/iwd/0): state change: unmanaged -> unavailable (reason 'managed', managed-type: 'external')
+Oct 28 08:39:57.460880 Laco NetworkManager[13542]: <warn>  [1793173197.4608] device (/net/connman/iwd/0): error setting IPv4 forwarding to '0': Resource temporarily unavailable
+Oct 28 08:39:57.462816 Laco systemd-resolved[556]: enp4s0f3u1u4: Bus client set default route setting: no
+Oct 28 08:39:57.470194 Laco systemd-resolved[556]: enp4s0f3u1u4: Bus client reset DNS server list.
+Oct 28 08:39:57.470750 Laco systemd[1]: efi.mount: Deactivated successfully.
+Oct 28 08:39:57.471650 Laco systemd[1]: Unmounted /efi.
+Oct 28 08:39:57.473678 Laco systemd[1]: esp.mount: Deactivated successfully.
+Oct 28 08:39:57.474669 Laco systemd[1]: Unmounted /esp.
+Oct 28 08:39:57.481295 Laco systemd[1]: efi.automount: Got automount request for /efi, triggered by 15010 (data-cache-2)
+Oct 28 08:39:57.483471 Laco systemd[1]: esp.automount: Got automount request for /esp, triggered by 12751 (KIO::WorkerThre)
+Oct 28 08:39:57.489352 Laco systemd[1]: Mounting /efi...
+Oct 28 08:39:57.491850 Laco systemd[1]: Mounting /esp...
+Oct 28 08:39:57.517920 Laco systemd[1]: Started Network Manager Script Dispatcher Service.
+Oct 28 08:39:57.539059 Laco systemd[1]: Mounted /efi.
+Oct 28 08:39:57.539903 Laco systemd[1]: Mounted /esp.
+Oct 28 08:40:00.492340 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:00.492350 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:00.492357 Laco pasta[1976]: (suppressed 643 similar messages)
+Oct 28 08:40:00.492381 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:45654 -> 8.8.8.8:53
+Oct 28 08:40:00.492386 Laco pasta[1976]: (suppressed 643 similar messages)
+Oct 28 08:40:00.492455 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:00.492461 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:00.492477 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:47635 -> 8.8.8.8:53
+Oct 28 08:40:00.554802 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:00.554812 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:00.554832 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 8.8.8.8:53
+Oct 28 08:40:00.554921 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:00.554925 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:00.554941 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 8.8.4.4:53
+Oct 28 08:40:00.555015 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:00.555019 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:00.555023 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:40:00.555034 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 1.1.1.1:53
+Oct 28 08:40:00.555052 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:40:01.038081 Laco kernel: [drm] Failed to add display topology, DTM TA is not initialized.
+Oct 28 08:40:01.038188 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier on
+Oct 28 08:40:01.038111 Laco NetworkManager[13542]: <info>  [1793173201.0380] device (enp4s0f3u1u4): carrier: link connected
+Oct 28 08:40:01.039104 Laco NetworkManager[13542]: <info>  [1793173201.0390] device (enp4s0f3u1u4): state change: unavailable -> disconnected (reason 'carrier-changed', managed-type: 'full')
+Oct 28 08:40:01.040516 Laco NetworkManager[13542]: <info>  [1793173201.0404] policy: auto-activating connection 'Steam Wired Connection' (b06c87d1-d7b8-46cc-9a4e-55f687e6f620)
+Oct 28 08:40:01.041080 Laco NetworkManager[13542]: <info>  [1793173201.0410] device (enp4s0f3u1u4): Activation: starting connection 'Steam Wired Connection' (b06c87d1-d7b8-46cc-9a4e-55f687e6f620)
+Oct 28 08:40:01.041153 Laco NetworkManager[13542]: <info>  [1793173201.0411] device (enp4s0f3u1u4): state change: disconnected -> prepare (reason 'none', managed-type: 'full')
+Oct 28 08:40:01.041421 Laco NetworkManager[13542]: <info>  [1793173201.0413] manager: NetworkManager state is now CONNECTING
+Oct 28 08:40:01.043910 Laco NetworkManager[13542]: <info>  [1793173201.0438] device (enp4s0f3u1u4): state change: prepare -> config (reason 'none', managed-type: 'full')
+Oct 28 08:40:01.059174 Laco NetworkManager[13542]: <info>  [1793173201.0591] device (enp4s0f3u1u4): state change: config -> ip-config (reason 'none', managed-type: 'full')
+Oct 28 08:40:01.059852 Laco NetworkManager[13542]: <info>  [1793173201.0598] dhcp4 (enp4s0f3u1u4): activation: beginning transaction (timeout in 45 seconds)
+Oct 28 08:40:01.061966 Laco systemd-resolved[556]: enp4s0f3u1u4: Bus client set default route setting: yes
+Oct 28 08:40:01.062531 Laco systemd-resolved[556]: enp4s0f3u1u4: Bus client set DNS server list to: 1.1.1.1, 8.8.8.8, 2606:4700:4700::1111, 2001:4860:4860::8888
+Oct 28 08:40:01.070077 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier off
+Oct 28 08:40:02.852199 Laco avahi-daemon[1068]: Joining mDNS multicast group on interface enp4s0f3u1u4.IPv6 with address fe80::61d4:7843:e196:34c1.
+Oct 28 08:40:02.852238 Laco avahi-daemon[1068]: New relevant interface enp4s0f3u1u4.IPv6 for mDNS.
+Oct 28 08:40:03.733299 Laco systemd-resolved[556]: Switching to fallback DNS server 9.9.9.9#dns.quad9.net.
+Oct 28 08:40:04.496578 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:04.496589 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:04.496595 Laco pasta[1976]: (suppressed 103 similar messages)
+Oct 28 08:40:04.496626 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:45654 -> 8.8.8.8:53
+Oct 28 08:40:04.496632 Laco pasta[1976]: (suppressed 103 similar messages)
+Oct 28 08:40:04.496922 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:04.496926 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:04.496941 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:47635 -> 8.8.8.8:53
+Oct 28 08:40:04.556212 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:04.556227 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:04.556255 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 8.8.8.8:53
+Oct 28 08:40:04.556316 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:04.556321 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:04.556331 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 8.8.4.4:53
+Oct 28 08:40:04.556434 Laco pasta[1976]: Flow 41 (UDP flow): Couldn't connect flow socket
+Oct 28 08:40:04.556437 Laco pasta[1976]: : Network is unreachable
+Oct 28 08:40:04.556440 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:40:04.556450 Laco pasta[1976]: Dropping datagram with no flow TAP 192.168.1.161:48325 -> 1.1.1.1:53
+Oct 28 08:40:04.556454 Laco pasta[1976]: (suppressing further similar messages)
+Oct 28 08:40:04.717964 Laco NetworkManager[13542]: <info>  [1793173204.7179] device (enp4s0f3u1u4): carrier: link connected
+Oct 28 08:40:04.718576 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier on
+Oct 28 08:40:04.718893 Laco NetworkManager[13542]: <info>  [1793173204.7188] device (enp4s0f3u1u4): ip:dhcp4: restarting
+Oct 28 08:40:04.723179 Laco NetworkManager[13542]: <info>  [1793173204.7231] dhcp4 (enp4s0f3u1u4): canceled DHCP transaction
+Oct 28 08:40:04.723202 Laco NetworkManager[13542]: <info>  [1793173204.7231] dhcp4 (enp4s0f3u1u4): state changed no lease
+Oct 28 08:40:04.723293 Laco NetworkManager[13542]: <info>  [1793173204.7232] dhcp4 (enp4s0f3u1u4): activation: beginning transaction (timeout in 45 seconds)
+Oct 28 08:40:07.519893 Laco systemd[1]: NetworkManager-dispatcher.service: Deactivated successfully.
+Oct 28 08:40:21.507252 Laco NetworkManager[13542]: <info>  [1793173221.5072] dhcp4 (enp4s0f3u1u4): state changed new lease, address=192.168.1.161, acd pending
+Oct 28 08:40:21.630322 Laco NetworkManager[13542]: <info>  [1793173221.6302] dhcp4 (enp4s0f3u1u4): state changed new lease, address=192.168.1.161
+Oct 28 08:40:21.632082 Laco avahi-daemon[1068]: Joining mDNS multicast group on interface enp4s0f3u1u4.IPv4 with address 192.168.1.161.
+Oct 28 08:40:21.632153 Laco avahi-daemon[1068]: New relevant interface enp4s0f3u1u4.IPv4 for mDNS.
+Oct 28 08:40:21.634341 Laco NetworkManager[13542]: <info>  [1793173221.6343] policy: set 'Steam Wired Connection' (enp4s0f3u1u4) as default for IPv4 routing and DNS
+Oct 28 08:40:21.635831 Laco systemd-resolved[556]: enp4s0f3u1u4: Bus client set DNS server list to: 1.1.1.1, 8.8.8.8
+Oct 28 08:40:21.642610 Laco systemd[1]: Starting Network Manager Script Dispatcher Service...
+Oct 28 08:40:21.665089 Laco systemd[1]: Started Network Manager Script Dispatcher Service.
+Oct 28 08:40:21.714686 Laco NetworkManager[13542]: <info>  [1793173221.7146] device (enp4s0f3u1u4): state change: ip-config -> ip-check (reason 'none', managed-type: 'full')
+Oct 28 08:40:21.716700 Laco NetworkManager[13542]: <info>  [1793173221.7166] device (enp4s0f3u1u4): state change: ip-check -> secondaries (reason 'none', managed-type: 'full')
+Oct 28 08:40:21.716890 Laco NetworkManager[13542]: <info>  [1793173221.7168] device (enp4s0f3u1u4): state change: secondaries -> activated (reason 'none', managed-type: 'full')
+Oct 28 08:40:21.717377 Laco NetworkManager[13542]: <info>  [1793173221.7173] manager: NetworkManager state is now CONNECTED_SITE
+Oct 28 08:40:21.717661 Laco NetworkManager[13542]: <info>  [1793173221.7176] device (enp4s0f3u1u4): Activation: successful, device activated.
+Oct 28 08:40:21.822834 Laco steam[12741]: [2026-10-28 08:40:21] Background update loop checking for update. . .
+Oct 28 08:40:21.825000 Laco steam[12741]: [2026-10-28 08:40:21] Downloading manifest: https://client-update.fastly.steamstatic.com/steam_client_steamdeck_stable_steamrt64
+Oct 28 08:40:21.834255 Laco NetworkManager[13542]: <info>  [1793173221.8342] manager: NetworkManager state is now CONNECTED_GLOBAL
+Oct 28 08:40:21.871441 Laco steam[12741]: [2026-10-28 08:40:21] Manifest download: send request
+Oct 28 08:40:21.897890 Laco foreground_booster[12288]:
+Oct 28 08:40:21.897927 Laco foreground_booster[12288]: SAME PID "io.missioncenter.MissionCenter.desktop"
+Oct 28 08:40:22.075610 Laco steam[12741]: [2026-10-28 08:40:22] Manifest download: waiting for download to finish
+Oct 28 08:40:22.575808 Laco steam[12741]: [2026-10-28 08:40:22] Manifest download: finished
+Oct 28 08:40:22.575940 Laco steam[12741]: [2026-10-28 08:40:22] Download skipped by HTTP 304 Not Modified
+Oct 28 08:40:22.575940 Laco steam[12741]: [2026-10-28 08:40:22] Nothing to do
+Oct 28 08:40:26.835099 Laco foreground_booster[12288]:
+Oct 28 08:40:26.835124 Laco foreground_booster[12288]: SAME PID "io.missioncenter.MissionCenter.desktop"
+(deck@Laco ~)$ sudo journalctl -k \
+  --since "2026-10-28 08:38:20" \
+  --until "2026-10-28 08:40:30" \
+  --no-pager -o short-precise \
+  | grep -iE -C 5 'freez|freeze|task|blocked|busy|suspend|PM:'
+Oct 28 08:39:37.323119 Laco kernel: PM: suspend entry (deep)
+Oct 28 08:39:37.338068 Laco kernel: Filesystems sync: 0.014 seconds
+Oct 28 08:39:57.369957 Laco kernel: Freezing user space processes
+Oct 28 08:39:57.370074 Laco kernel: Freezing user space processes failed after 20.005 seconds (1 tasks refusing to freeze, wq_busy=0):
+Oct 28 08:39:57.370110 Laco kernel: task:database        state:D stack:0     pid:2097  tgid:2089  ppid:2085   task_flags:0x400040 flags:0x00080002
+Oct 28 08:39:57.370136 Laco kernel: Call Trace:
+Oct 28 08:39:57.370161 Laco kernel:  <TASK>
+Oct 28 08:39:57.370186 Laco kernel:  __schedule+0x406/0x16e0
+Oct 28 08:39:57.370213 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370239 Laco kernel:  ? do_select+0x7c7/0x8b0
+Oct 28 08:39:57.370265 Laco kernel:  ? srso_return_thunk+0x5/0x5f
+Oct 28 08:39:57.370289 Laco kernel:  ? kmem_cache_alloc_noprof+0x310/0x460
+--
+Oct 28 08:39:57.370956 Laco kernel: RAX: ffffffffffffffda RBX: 00007f287318bdf5 RCX: 00007f2873160980
+Oct 28 08:39:57.370969 Laco kernel: RDX: 00007f28728cd460 RSI: 00007f28728cd460 RDI: 00007f287318bdf5
+Oct 28 08:39:57.370983 Laco kernel: RBP: 00007f28728cd5d0 R08: 00007f28728cd520 R09: 00000000ffffff9c
+Oct 28 08:39:57.370997 Laco kernel: R10: 00007f287363e000 R11: 0000000000000246 R12: 00007f28734bc5c0
+Oct 28 08:39:57.371010 Laco kernel: R13: 000000006ae1a600 R14: 000000006ae1530b R15: 000000006ae1a658
+Oct 28 08:39:57.371024 Laco kernel:  </TASK>
+Oct 28 08:39:57.371050 Laco kernel: OOM killer enabled.
+Oct 28 08:39:57.371065 Laco kernel: Restarting tasks: Starting
+Oct 28 08:39:57.371080 Laco kernel: Restarting tasks: Done
+Oct 28 08:39:57.371094 Laco kernel: efivarfs: resyncing variable state
+Oct 28 08:39:57.380066 Laco kernel: efivarfs: finished resyncing variable state
+Oct 28 08:39:57.380121 Laco kernel: random: crng reseeded on system resumption
+Oct 28 08:39:57.381324 Laco kernel: PM: suspend exit
+Oct 28 08:39:57.381357 Laco kernel: PM: suspend entry (s2idle)
+Oct 28 08:39:57.381372 Laco kernel: PM: s2idle sleep is not supported
+Oct 28 08:39:57.381385 Laco kernel: PM: suspend exit
+Oct 28 08:39:57.439464 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier off
+Oct 28 08:40:01.038081 Laco kernel: [drm] Failed to add display topology, DTM TA is not initialized.
+Oct 28 08:40:01.038188 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier on
+Oct 28 08:40:01.070077 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier off
+Oct 28 08:40:04.718576 Laco kernel: r8152 2-1.4:1.0 enp4s0f3u1u4: carrier on
+(deck@Laco ~)$ echo "=== USER SLICE STATUS ==="
+systemctl status user.slice --no-pager
+
+echo
+echo "=== CURRENT USER PROCESSES ==="
+ps -u deck -o pid,ppid,stat,etime,comm --sort=-etime | head -35
+
+echo
+echo "=== CURRENT SUSPEND SERVICE STATUS ==="
+systemctl status systemd-suspend.service --no-pager
+=== USER SLICE STATUS ===
+● user.slice - User and Session Slice
+     Loaded: loaded (/usr/lib/systemd/system/user.slice; static)
+     Active: active since Wed 2026-10-28 01:16:05 CET; 12h ago
+ Invocation: 51d39a526bbf45ce81f162989469ba57
+       Docs: man:systemd.special(7)
+ Act. Units: 8
+      Tasks: 759
+     Memory: 7G (peak: 13.1G, swap: 247.8M, swap peak: 2.8G)
+        CPU: 6h 11min 5.482s
+     CGroup: /user.slice
+             └─user-1000.slice
+               ├─session-10.scope
+               │ ├─204282 "sshd-session: deck [priv]"
+               │ ├─204289 "sshd-session: deck@pts/3"
+               │ ├─204291 -bash
+               │ └─211434 systemctl status user.slice --no-pager
+               ├─session-11.scope
+               │ ├─208375 "sshd-session: deck [priv]"
+               │ ├─208381 "sshd-session: deck@notty"
+               │ └─208384 /usr/lib/ssh/sftp-server
+               ├─session-3.scope
+               │ ├─12031 /usr/lib/sddm/sddm-helper --socket /tmp/sddm-auth-eb34c0f2-3d80-493f-98fd-1eb17ee8e67a --id 2 …
+               │ └─12160 /usr/bin/startplasma-wayland
+               ├─session-8.scope
+               │ ├─199202 "sshd-session: deck [priv]"
+               │ ├─199214 "sshd-session: deck@notty"
+               │ └─199216 /usr/lib/ssh/sftp-server
+               ├─session-9.scope
+               │ ├─203404 "sshd-session: deck [priv]"
+               │ ├─203410 "sshd-session: deck@pts/2"
+               │ ├─203412 -bash
+               │ └─203693 /bin/sh /usr/bin/distrobox enter localai-box
+               └─user@1000.service
+                 ├─app.slice
+                 │ ├─app-dbus\x2d:1.112\x2dorg.a11y.atspi.Registry.slice
+                 │ │ └─dbus-:1.112-org.a11y.atspi.Registry@0.service
+                 │ │   └─12442 /usr/lib/at-spi2-registryd --use-gnome-session
+                 │ ├─app-dbus\x2d:1.1\x2dorg.freedesktop.portal.IBus.slice
+                 │ │ └─dbus-:1.1-org.freedesktop.portal.IBus@1.service
+                 │ │   └─12683 /usr/lib/ibus/ibus-portal
+                 │ ├─app-dbus\x2d:1.37\x2dorg.a11y.atspi.Registry.slice
+                 │ │ └─dbus-:1.37-org.a11y.atspi.Registry@0.service
+                 │ │   └─3226 /usr/lib/at-spi2-registryd --use-gnome-session
+                 │ ├─app-flatpak-io.missioncenter.MissionCenter-2893687083.scope
+                 │ │ ├─14880 bwrap --args 76 -- missioncenter
+                 │ │ ├─14896 bwrap --args 79 -- xdg-dbus-proxy --args=76
+                 │ │ ├─14897 xdg-dbus-proxy --args=76
+                 │ │ ├─14900 bwrap --args 76 -- missioncenter
+                 │ │ ├─14901 missioncenter
+                 │ │ ├─14949 /app/bin/missioncenter-spawner -v --env=LD_PRELOAD= --env=MC_MAGPIE_HW_DB=/var/lib/flatpak…
+                 │ │ └─14950 /usr/bin/flatpak-spawn --watch-bus --host -v --env=LD_PRELOAD= --env=MC_MAGPIE_HW_DB=/var/…
+                 │ ├─app-ibus@autostart.service
+                 │ │ ├─12622 /usr/bin/ibus-daemon --panel=/usr/lib/kimpanel-ibus-panel
+                 │ │ ├─12651 /usr/lib/ibus/ibus-dconf
+                 │ │ ├─12656 /usr/lib/kimpanel-ibus-panel
+                 │ │ ├─12663 /usr/lib/ibus/ibus-extension-gtk3
+                 │ │ └─12725 /usr/lib/ibus/ibus-engine-simple
+                 │ ├─app-org.kde.discover.notifier@autostart.service
+                 │ │ └─12625 /usr/lib/DiscoverNotifier --check-delay 20
+                 │ ├─app-org.kde.kdeconnect.daemon@autostart.service
+                 │ │ └─12608 /usr/bin/kdeconnectd
+                 │ ├─app-steam@autostart.service
+                 │ │ ├─12631 bash /home/deck/.local/share/Steam/steam.sh -srt-logger-opened -steamdeck -pipewire -silent
+                 │ │ ├─12741 /home/deck/.local/share/Steam/ubuntu12_32/steam-runtime/usr/libexec/steam-runtime-tools-0/…
+                 │ │ ├─12950 /home/deck/.local/share/Steam/ubuntu12_32/steam -srt-logger-opened -steamdeck -pipewire -s…
+                 │ │ ├─12991 /home/deck/.local/share/Steam/steamrt64/pv-runtime/steam-runtime-steamrt/pressure-vessel/l…
+                 │ │ ├─13003 /home/deck/.local/share/Steam/ubuntu12_32/steam-runtime/usr/libexec/steam-runtime-tools-0/…
+                 │ │ ├─13143 steam-runtime-launcher-service --alongside-steam
+                 │ │ ├─13197 /usr/lib/pressure-vessel/from-host/libexec/steam-runtime-tools-0/pv-adverb --prefix=/usr/l…
+                 │ │ ├─13224 ./steamwebhelper -nocrashdialog -lang=en_US -cachedir=/home/deck/.local/share/Steam/config…
+                 │ │ ├─13228 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --monitor-self-annotation=ptype=c…
+                 │ │ ├─13232 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-zygote-sandbox…
+                 │ │ ├─13233 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-sandbox --cras…
+                 │ │ ├─13264 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-zygote-sandbox…
+                 │ │ ├─13489 /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US…
+                 │ │ ├─13497 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-sandbox --cras…
+                 │ │ ├─13546 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-sandbox --cras…
+                 │ │ └─14301 /home/deck/.local/share/Steam/ubuntu12_64/steamwebhelper --type=zygote --no-sandbox --cras…
+                 │ ├─cecd.service
+                 │ │ └─1769 /usr/bin/cecd -e
+                 │ ├─dconf.service
+                 │ │ └─12469 /usr/lib/dconf-service
+                 │ ├─dmemcg-booster-user.service
+                 │ │ └─1744 /usr/bin/dmemcg-booster
+                 │ ├─flatpak-session-helper.service
+                 │ │ ├─14888 /usr/lib/flatpak-session-helper
+                 │ │ ├─14893 server --sh -n /run/user/1000/.flatpak-helper/pkcs11-flatpak-14888 --provider p11-kit-trus…
+                 │ │ ├─14954 /var/lib/flatpak/app/io.missioncenter.MissionCenter/x86_64/stable/98dd962a3249d6d516826980…
+                 │ │ └─15006 nethogs -v 2 -C
+                 │ ├─gamemoded.service
+                 │ │ └─1545 /usr/bin/gamemoded
+                 │ ├─pihole.service
+                 │ │ ├─1975 /usr/bin/fuse-overlayfs -o lowerdir=/home/deck/.local/share/containers/storage/overlay/09dd…
+                 │ │ ├─1976 /usr/bin/pasta --config-net -t 192.168.1.161/53-53:53-53 -t 192.168.1.161/8080-8080:80-80 -…
+                 │ │ └─1982 /usr/bin/conmon --api-version 1 -c dd33930cdcdd76eee0cb53e58be38495d2f1a7d08d85b1c633d00ccd…
+                 │ ├─speech-dispatcher.service
+                 │ │ ├─1794 /usr/bin/speech-dispatcher -s -t 0
+                 │ │ ├─1815 /usr/lib/speech-dispatcher/speech-dispatcher-modules/sd_espeak-ng /etc/speech-dispatcher/mo…
+                 │ │ ├─1816 /usr/lib/speech-dispatcher/speech-dispatcher-modules/sd_dummy /etc/speech-dispatcher/module…
+                 │ │ └─1825 /usr/lib/speech-dispatcher/speech-dispatcher-modules/sd_espeak-ng /etc/speech-dispatcher/mo…
+                 │ ├─steamos-manager.service
+                 │ │ └─1746 /usr/lib/steamos-manager
+                 │ └─xdg-desktop-portal-gtk.service
+                 │   └─12688 /usr/lib/xdg-desktop-portal-gtk
+                 ├─background.slice
+                 │ ├─kde-baloo.service
+                 │ │ └─12296 /usr/lib/kf6/baloo_file
+                 │ ├─plasma-foreground-booster.service
+                 │ │ └─12288 /usr/bin/foreground_booster
+                 │ ├─plasma-gmenudbusmenuproxy.service
+                 │ │ └─12461 /usr/bin/gmenudbusmenuproxy
+                 │ ├─plasma-kaccess.service
+                 │ │ └─12462 /usr/bin/kaccess
+                 │ ├─plasma-kactivitymanagerd.service
+                 │ │ └─12453 /usr/lib/kactivitymanagerd
+                 │ ├─plasma-ksystemstats.service
+                 │ │ └─12517 /usr/bin/ksystemstats
+                 │ ├─plasma-polkit-agent.service
+                 │ │ └─12464 /usr/lib/polkit-kde-authentication-agent-1
+                 │ ├─plasma-powerdevil.service
+                 │ │ └─12465 /usr/lib/org_kde_powerdevil
+                 │ └─plasma-xembedsniproxy.service
+                 │   └─12466 /usr/bin/xembedsniproxy
+                 ├─init.scope
+                 │ ├─1435 /usr/lib/systemd/systemd --user
+                 │ └─1472 "(sd-pam)"
+                 ├─session.slice
+                 │ ├─at-spi-dbus-bus.service
+                 │ │ ├─12391 /usr/lib/at-spi-bus-launcher
+                 │ │ ├─12402 /usr/bin/dbus-broker-launch --config-file=/usr/share/defaults/at-spi2/accessibility.conf -…
+                 │ │ └─12406 dbus-broker --log 10 --controller 9 --machine-id df41ac71a60944339a3368c640296f3d --max-by…
+                 │ ├─dbus-broker.service
+                 │ │ ├─1543 /usr/bin/dbus-broker-launch --scope user
+                 │ │ └─1544 dbus-broker --log 11 --controller 10 --machine-id df41ac71a60944339a3368c640296f3d --max-by…
+                 │ ├─filter-chain.service
+                 │ │ └─1549 /usr/bin/pipewire -c filter-chain.conf
+                 │ ├─pipewire-pulse.service
+                 │ │ └─1819 /usr/bin/pipewire-pulse
+                 │ ├─pipewire.service
+                 │ │ └─1547 /usr/bin/pipewire
+                 │ ├─plasma-kded6.service
+                 │ │ ├─12409 /usr/bin/kded6
+                 │ │ └─12727 /usr/bin/xsettingsd
+                 │ ├─plasma-ksmserver.service
+                 │ │ └─12407 /usr/bin/ksmserver
+                 │ ├─plasma-kwin_wayland.service
+                 │ │ ├─12274 /usr/bin/kwin_wayland_wrapper --xwayland
+                 │ │ ├─12291 /usr/bin/kwin_wayland --wayland-fd 7 --socket wayland-0 --xwayland-fd 8 --xwayland-fd 9 --…
+                 │ │ └─12364 /usr/bin/Xwayland :0 -auth /run/user/1000/xauth_qSrMgO -listenfd 8 -listenfd 9 -displayfd …
+                 │ ├─plasma-plasmashell.service
+                 │ │ └─12440 /usr/bin/plasmashell --no-respawn
+                 │ ├─plasma-xdg-desktop-portal-kde.service
+                 │ │ └─12783 /usr/lib/xdg-desktop-portal-kde
+                 │ ├─wireplumber.service
+                 │ │ └─1548 /usr/bin/wireplumber
+                 │ ├─xdg-desktop-portal.service
+                 │ │ └─12617 /usr/lib/xdg-desktop-portal
+                 │ ├─xdg-document-portal.service
+                 │ │ ├─12643 /usr/lib/xdg-document-portal
+                 │ │ └─12669 fusermount3 -o rw,nosuid,nodev,fsname=portal,auto_unmount,subtype=portal -- /run/user/1000…
+                 │ └─xdg-permission-store.service
+                 │   └─11979 /usr/lib/xdg-permission-store
+                 └─user.slice
+                   ├─libpod-5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88.scope
+                   │ └─container
+                   │   ├─ 38606 /bin/sh /usr/bin/entrypoint --verbose --name deck --user 1000 --group 1000 --home /home…
+                   │   ├─ 50431 /usr/local/bin/ollama serve
+                   │   ├─ 50503 /home/deck/LocalAIProject/open-webui-venv/bin/python /home/deck/LocalAIProject/open-web…
+                   │   ├─ 74100 /bin/sh -c "\$(getent passwd 'deck' | cut -f 7 -d :) -l"
+                   │   ├─ 74104 /usr/bin/bash -l
+                   │   ├─ 74273 /home/deck/LocalAIProject/AIAgent/.venv/bin/python /home/deck/LocalAIProject/AIAgent/da…
+                   │   ├─203801 /bin/sh -c "\$(getent passwd 'deck' | cut -f 7 -d :) -l"
+                   │   ├─203805 /usr/bin/bash -l
+                   │   └─211347 sleep 15
+                   ├─libpod-conmon-5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88.scope
+                   │ ├─ 38604 /usr/bin/conmon --api-version 1 -c 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80…
+                   │ ├─ 50375 /usr/bin/conmon --api-version 1 -c 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80…
+                   │ ├─ 74097 /usr/bin/conmon --api-version 1 -c 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80…
+                   │ └─203798 /usr/bin/conmon --api-version 1 -c 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80…
+                   ├─libpod-dd33930cdcdd76eee0cb53e58be38495d2f1a7d08d85b1c633d00ccd727d6105.scope
+                   │ └─container
+                   │   ├─1984 /bin/bash /usr/bin/start.sh
+                   │   ├─2044 /bin/bash /usr/bin/start.sh
+                   │   ├─2045 /usr/sbin/crond -f -d 6
+                   │   ├─2046 /bin/bash /usr/bin/prefix-time.sh
+                   │   ├─2085 /bin/bash -c "/usr/bin/pihole-FTL no-daemon >/dev/null"
+                   │   ├─2089 /usr/bin/pihole-FTL no-daemon
+                   │   └─2485 tail -F -c +1086 -- /var/log/pihole/FTL.log
+                   ├─podman-203695.scope
+                   │ └─203695 podman exec --interactive --detach-keys= --user=deck --tty --workdir=/home/deck --env=PWD…
+                   ├─podman-38583.scope
+                   │ └─38599 /usr/bin/fuse-overlayfs -o lowerdir=/home/deck/.local/share/containers/storage/overlay/32a…
+                   └─podman-pause-4c424bba.scope
+                     └─1947 catatonit -P
+
+Oct 28 03:55:12 Laco systemd[1]: user.slice: Unit now frozen.
+Oct 28 05:07:49 Laco systemd[1]: user.slice: Unit now thawed.
+Notice: journal has been rotated since unit was started, output may be incomplete.
+
+=== CURRENT USER PROCESSES ===
+    PID    PPID STAT     ELAPSED COMMAND
+   1092       1 Ss      12:36:45 python
+   1435       1 Ss      12:36:44 systemd
+   1472    1435 S       12:36:44 (sd-pam)
+   1543    1435 Ss      12:36:44 dbus-broker-lau
+   1544    1543 S       12:36:44 dbus-broker
+   1545    1435 Ssl     12:36:44 gamemoded
+   1547    1435 Ssl     12:36:44 pipewire
+   1548    1435 SLsl    12:36:44 wireplumber
+   1549    1435 SLsl    12:36:44 pipewire
+   1744    1435 Ss      12:36:43 dmemcg-booster
+   1746    1435 Ssl     12:36:43 steamos-manager
+   1769    1435 Ssl     12:36:43 cecd
+   1794    1435 Ssl     12:36:43 speech-dispatch
+   1810    1794 Z       12:36:43 sd_festival <defunct>
+   1812    1794 Z       12:36:43 sd_espeak-ng-mb <defunct>
+   1815    1794 S       12:36:43 sd_espeak-ng
+   1816    1794 Sl      12:36:42 sd_dummy
+   1819    1435 S<sl    12:36:42 pipewire-pulse
+   1824    1794 Z       12:36:42 sd_openjtalk <defunct>
+   1825    1794 S       12:36:42 sd_espeak-ng
+   1947    1435 S       12:36:16 catatonit
+   1975    1435 Ss      12:36:16 fuse-overlayfs
+   1976    1435 Ss      12:36:16 passt.avx2
+   1982    1435 Ss      12:36:16 conmon
+   1984    1982 Ss      12:36:16 start.sh
+   2044    1984 S       12:36:16 start.sh
+   2045    2044 S       12:36:16 crond
+   2046    2044 S       12:36:16 prefix-time.sh
+   2485    1984 S       12:36:11 tail
+   3226    1435 Ssl     12:36:06 at-spi2-registr
+  11979    1435 Ssl     11:59:18 xdg-permission-
+  12160   12031 Ssl+    11:59:16 startplasma-way
+  12274    1435 Ssl     11:59:15 kwin_wayland_wr
+  12288    1435 Ssl     11:59:15 foreground_boos
+
+=== CURRENT SUSPEND SERVICE STATUS ===
+× systemd-suspend.service - System Suspend
+     Loaded: loaded (/usr/lib/systemd/system/systemd-suspend.service; static)
+     Active: failed (Result: exit-code) since Wed 2026-10-28 08:39:57 CET; 5h 12min ago
+ Invocation: c17cd4f1cb2249bfb32d9fa6969a3534
+       Docs: man:systemd-suspend.service(8)
+    Process: 108270 ExecStart=/usr/lib/systemd/systemd-sleep suspend (code=exited, status=1/FAILURE)
+   Main PID: 108270 (code=exited, status=1/FAILURE)
+   Mem peak: 3M
+        CPU: 977ms
+
+Oct 28 08:38:37 Laco systemd[1]: Starting System Suspend...
+Oct 28 08:39:37 Laco systemd-sleep[108270]: Failed to freeze unit 'user.slice': Connection timed out
+Oct 28 08:39:37 Laco systemd-sleep[108270]: Performing sleep operation 'suspend'...
+Oct 28 08:39:57 Laco systemd-sleep[108270]: Failed to put system to sleep. System resumed again: Device or resource busy
+Oct 28 08:39:57 Laco systemd-sleep[108270]: Successfully thawed unit 'user.slice'.
+Oct 28 08:39:57 Laco systemd[1]: systemd-suspend.service: Main process exited, code=exited, status=1/FAILURE
+Oct 28 08:39:57 Laco systemd[1]: systemd-suspend.service: Failed with result 'exit-code'.
+Oct 28 08:39:57 Laco systemd[1]: Failed to start System Suspend.
+Hint: Some lines were ellipsized, use -l to show in full.
+(3)(deck@Laco ~)$
