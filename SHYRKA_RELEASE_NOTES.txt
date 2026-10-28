@@ -1,0 +1,240 @@
+SHYRKA AGENT — RELEASE NOTES
+============================
+
+Purpose
+-------
+Feature-level history for Shyrka, the local LangGraph agent and its dashboard
+inside localai-box. The master platform history is maintained separately in
+LocalAIProject/PROJECT_VERSIONS.txt.
+
+2026-10-27 — Initial integrated feature baseline
+------------------------------------------------
+Components:
+- LangGraph agent using the local Granite 4.1 8B model through Ollama.
+- Approved local diagnostic tools.
+- Browser dashboard on port 8765.
+- Create, list, reopen, rename, continue, and delete archived conversations.
+- SQLite conversation storage under LocalAIAgentrecovery.
+- Agent tests and dashboard lifecycle scripts.
+
+Known behavior:
+- Conversation history is archived locally.
+- Reopening a conversation rebuilds context from recent archived messages.
+- The LangGraph graph has no persistent checkpointer; hidden graph state is
+  not restored by reopening a transcript.
+- The dashboard is intended for LAN access and has a configured client
+  allowlist. Do not expose it to the public internet.
+- Manual start only; no boot auto-start.
+
+Validation already reported:
+- Dashboard returned HTTP 200.
+- Archive endpoint tests passed with a mocked graph.
+- A pre-migration SQLite snapshot passed PRAGMA integrity_check.
+- Snapshot SHA-256 verification passed.
+
+Pending work — NOT YET A RELEASE
+-------------------------------
+- Standardize active filenames and visible labels to Shyrka.
+- Integrate dashboard source and SQLite archive into one complete backup.
+- Update recovery to restore both source files and the archive safely.
+- Verify the new integrated backup and recovery checks.
+- Retire obsolete backup sets only after the new backup is verified.
+
+Future release entry template
+-----------------------------
+Date:
+Version:
+Changes:
+Validation:
+Backup identifier:
+Known limitations / rollback:
+
+2026-10-27 — Naming migration and unified backup system
+-------------------------------------------------------
+Changes:
+- Standardized active dashboard branding to Shyrka.
+- Renamed the live archive database to shyrka-conversations.sqlite3.
+- Consolidated project backup into Shyrka-Agent timestamped packages.
+- Added SQLite snapshot and integrity verification to backups.
+- Added integrated source/archive recovery workflow.
+
+Validation status:
+- Live dashboard restart and HTTP 200 verified before this backup-system update.
+- Live archive integrity and existing counts verified before this update.
+- Final backup/recovery validation remains pending until the new backup passes.
+
+2026-10-27 — Shyrka unified backup baseline verified
+Timestamp recorded: 2026-10-27T05:14:12+01:00
+
+Validation:
+- 17/17 agent unit tests passed.
+- Integrated backup checksums passed.
+- SQLite snapshot integrity passed (1 conversation, 2 messages).
+- Dashboard remained running and returned HTTP 200.
+- No Jarvis references found in checked active dashboard and recovery files.
+- A full restore drill remains outstanding.
+
+2026-10-27 — Lab recovery validation and backup cleanup
+-------------------------------------------------------
+- Verified all 21 checksums in Shyrka-Agent-20261027-051412.
+- Isolated recovery test passed: required files were present, five Python
+  files compiled, and SQLite integrity and foreign-key checks passed.
+- Snapshot contained 1 conversation and 2 messages.
+- Retired the older Shyrka backup and verified legacy Jarvis archive.
+- Retained the latest backup and migration-safety snapshots.
+- Full live restore drill remains pending; no full restoration was performed.
+
+2026-10-27 — Command Center archive search
+--------------------------------------
+Changes:
+- Added search for archived conversation titles and message content.
+- Added the dashboard /api/search endpoint and a debounced search input.
+- Search is read-only; no archive schema migration was introduced.
+
+Validation:
+- 17/17 existing agent and tool-boundary unit tests passed.
+- Dashboard backend Python syntax check passed.
+- Search route and frontend wiring confirmed by source inspection.
+- Live HTTP search verification is not yet recorded.
+- Full restore drill remains outstanding.
+
+Backup identifier: final release backup to be recorded after documentation update.
+Known limitations:
+- Conversation transcripts are archived, but hidden LangGraph state is not
+  restored because the graph has no persistent checkpointer.
+- Dashboard remains LAN-only and manual-start.
+
+2026-10-28 — Shyrka Command Center archive delete selection fix
+-------------------------------------------------------
+Changes:
+- Restored the selected conversation ID after the archive list is re-rendered.
+- One-line UI change in AIAgent/dashboard/index.html.
+
+Validation:
+- One-line diff against the pre-fix backup confirmed.
+- User reported successful Delete UI testing.
+- Archive database integrity check passed; 1 conversation and 4 messages
+  remained. The remaining conversation was confirmed to be a different one.
+- Exact HTTP DELETE response code was not independently verified because
+  no project log files were found in the searched locations.
+
+Backup identifier: /home/deck/LocalAIProject/AIAgent/dashboard/index.html.pre-delete-fix-20261028-051340.bak
+Known limitations:
+- HTTP response status was not captured independently.
+- Full live restore drill remains outstanding.
+2026-10-28 — Shyrka Granite generation-limit tuning
+------------------------------------------------------------
+Change classification:
+- Maintenance configuration tuning; existing release numbering unchanged.
+- Scope: the active Granite 4.1 8B generation-parameter profile used by
+  Shyrka in localai-box.
+- No agent tools, dashboard behavior, archive schema, or application
+  source files were intentionally changed by this tuning.
+
+Why this tuning was performed:
+An earlier long answer ended mid-sentence. Inspection of the archived
+conversation showed that the stored assistant message itself ended
+incomplete, which made frontend-only truncation an insufficient
+explanation for that particular response. The active Granite profile
+contained num_predict=1024 and num_ctx=4096. The relatively low output
+limit was identified as a plausible contributor, but the evidence did
+not prove that it was the only cause.
+
+Exact configuration change:
+- Profile:
+  /home/deck/LocalAIProject/config/granite-api-options.json
+- num_predict: 1024 -> 4096.
+- num_ctx: 4096 -> 4096 (unchanged).
+- temperature: 0.3 (unchanged).
+- top_k: 40 (unchanged).
+- top_p: 0.9 (unchanged).
+- repeat_penalty: 1.1 (unchanged).
+- repeat_last_n: 64 (unchanged).
+- seed: 42 (unchanged).
+
+Explanation of the two settings:
+num_ctx describes the context window available to the model for the
+prompt and conversation context. num_predict limits the number of
+tokens generated in an output. Both are now set to 4096 to make the
+values easier to remember, but they are not interchangeable settings.
+The configured output limit is a ceiling, not a promise that every
+response will use that many tokens or finish every requested section.
+
+Backup and change evidence:
+- Pre-change profile backup:
+  /home/deck/LocalAIAgentrecovery/patch-backups/granite-output-limit-20261028-065121/granite-api-options.json
+- Pre-change profile SHA-256: a6bf00a178cb8250f458389dc8b1a345fc8200a19a907fa0fcaa11a79d551cd9
+- The pre-change backup was checked for num_ctx=4096 and num_predict=1024.
+- The active profile was read back and confirmed at num_ctx=4096 and
+  num_predict=4096.
+- Non-target settings were compared with the backup and found unchanged.
+- This is evidence of configuration state, not proof of successful
+  long-form generation.
+
+Validation status:
+CONFIRMED:
+- Active profile parses as JSON.
+- Both requested numeric settings read back as 4096.
+- Pre-change profile backup exists and contains the expected prior values.
+- Other profile settings match the pre-change backup.
+
+FOLLOW-UP VALIDATION (reported 2026-10-28):
+- A fresh long-response test was reported successful for the tested workload.
+- Dashboard restart reportedly succeeded and returned HTTP 200.
+- agent.py --check reportedly passed, including model-options recognition,
+  the exact four-tool allowlist, and LangGraph compilation.
+- The exact transcript and final-sentinel evidence were not independently
+  inspected during this documentation update.
+- Unexpected tool-call behavior and universal long-response reliability
+  remain unestablished.
+
+Next controlled test:
+Start a fresh Shyrka conversation and submit a substantial, explicitly
+structured long-answer task with a unique required final sentinel.
+Inspect the complete visible answer and, if necessary, compare it with
+the locally archived assistant message. Record the result separately;
+do not infer success solely from an HTTP completion indicator.
+
+Operational and safety boundaries:
+- Local-first model configuration remains in place.
+- No cloud access was enabled by this change.
+- No new tools or permissions were added.
+- Manual-start policy remains unchanged.
+- No service restart or application-code modification is claimed here.
+- Full restore testing remains a separate outstanding recovery task.
+
+Conclusion:
+The Granite output-generation limit has been raised from 1024 to 4096
+while the context-window setting remains at 4096. This is a verified
+configuration adjustment intended to support longer answers. Its
+effectiveness remains subject to the controlled long-response test.
+
+2026-10-28 — Shyrka long-response validation follow-up
+------------------------------------------------------
+Purpose:
+Record the follow-up results after increasing Granite num_predict from
+1024 to 4096 while keeping num_ctx at 4096.
+
+Results reported:
+- A fresh long-response test completed the requested response successfully
+  for the tested workload.
+- The dashboard was restarted successfully and returned HTTP 200.
+- agent.py --check passed, including model-options recognition, the exact
+  four-tool allowlist, and LangGraph compilation.
+
+Assessment:
+The earlier configuration entry correctly marked the effectiveness test
+as pending at the time it was written. This follow-up records the later
+reported success without rewriting that historical entry.
+
+Limitations:
+- Success applies to the reported test workload, not every future answer.
+- The exact test transcript and final-sentinel result were not independently
+  inspected as part of this documentation update.
+- HTTP 200 confirms an HTTP response, not by itself the completeness of an
+  assistant answer.
+- A separate quality concern remains: generic operational suggestions,
+  including service restarts, should be constrained to respect Shyrka's
+  diagnosis-first and manual-start operating rules.
+- No application code, dependencies, model weights, or services were
+  changed by this documentation follow-up.

@@ -1,0 +1,97 @@
+SHYRKA AGENT — CURRENT PROJECT MANIFEST
+=======================================
+
+Project identity: Shyrka Agent
+Platform: localai-box
+Container: Ubuntu 24.04
+Project root: /home/deck/LocalAIProject/AIAgent
+Recovery root: /home/deck/LocalAIAgentrecovery
+
+Integrated components:
+- LangGraph agent and approved diagnostic tools
+- Granite 4.1 8B local model configuration
+- Dashboard at http://192.168.1.161:8765/
+- SQLite conversation archive
+- Archive search by conversation title and message content
+- Archive selection is restored after list refresh, supporting conversation deletion
+- Read-only /api/search endpoint and debounced dashboard search UI
+- Dashboard start/stop/status scripts
+- Unit tests
+- Unified backup and recovery scripts
+- Project and release history documentation
+
+CURRENT GRANITE GENERATION CONFIGURATION
+
+FOLLOW-UP VALIDATION — 2026-10-28
+- A long-response test was subsequently reported successful for its tested
+  workload after num_predict was raised to 4096.
+- Dashboard restart and HTTP 200 were reported successful.
+- agent.py --check was reported successful, including model-options
+  recognition, the exact four-tool allowlist, and LangGraph compilation.
+- The exact test transcript and final-sentinel evidence were not
+  independently inspected during this documentation update.
+- Do not interpret one successful test as a guarantee of universal
+  completion. The quality concern about generic operational suggestions
+  remains open.
+----------------------------------------
+Active profile:
+- Path: /home/deck/LocalAIProject/config/granite-api-options.json
+- Model: Granite 4.1 8B through the configured local Ollama endpoint.
+- num_ctx: 4096.
+- num_predict: 4096.
+- temperature: 0.3.
+- top_k: 40.
+- top_p: 0.9.
+- repeat_penalty: 1.1.
+- repeat_last_n: 64.
+- seed: 42.
+
+Setting semantics:
+- num_ctx controls the context window.
+- num_predict limits generated output tokens.
+- The two settings currently share the numeric value 4096 for ease
+  of recall; they serve different purposes.
+- The output limit is a maximum, not a guarantee of response completion.
+
+Tuning rationale and evidence:
+- The output limit was increased from 1024 to 4096 after an archived
+  long answer was found to end mid-sentence.
+- The stored incomplete answer established incompleteness, not the
+  unique cause. The previous output limit was considered a plausible
+  contributor.
+- Pre-change profile backup:
+  /home/deck/LocalAIAgentrecovery/patch-backups/granite-output-limit-20261028-065121/granite-api-options.json
+- Pre-change backup SHA-256: a6bf00a178cb8250f458389dc8b1a345fc8200a19a907fa0fcaa11a79d551cd9
+- Active values and unchanged non-target settings were checked against
+  that backup during this documentation update.
+
+Current validation status:
+- Configuration values: VERIFIED.
+- Pre-change profile backup: VERIFIED for the expected prior parameter values.
+- Long-response completion: SUCCESSFUL FOR THE REPORTED TEST WORKLOAD; not a guarantee for all future answers.
+- Absence of unexpected tool calls across future tests: NOT ESTABLISHED.
+- A full Shyrka backup restore drill: NOT ESTABLISHED BY THIS CHANGE.
+
+Operational boundaries:
+- Local-first behavior and manual startup remain the intended policy.
+- This configuration update does not add tools or grant mutation capability.
+- No claim is made that all future long answers will complete successfully.
+
+Operational rules:
+- Manual start only; no boot auto-start.
+- Keep model inference local unless explicitly authorized otherwise.
+- Do not add shell execution or unapproved agent tools.
+- Do not expose the dashboard publicly.
+- Back up before significant changes and after successful validation.
+
+Backup format:
+backups/Shyrka-Agent-<timestamp>/
+Includes a checksum manifest and a consistent SQLite archive snapshot.
+
+Recovery:
+recovery.sh check
+recovery.sh restore /home/deck/LocalAIAgentrecovery/backups/Shyrka-Agent-TIMESTAMP
+
+Important limitation:
+Conversation transcripts are preserved, but hidden LangGraph state is not
+restored because the graph has no persistent checkpointer.
