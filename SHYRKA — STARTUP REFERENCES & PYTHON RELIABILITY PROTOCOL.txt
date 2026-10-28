@@ -1,0 +1,149 @@
+============================================================
+SHYRKA — SHARED REFERENCES & PYTHON RELIABILITY HANDOVER
+Date: 2026-10-28
+============================================================
+
+[1] GITHUB-SHARED PROJECT REFERENCES
+------------------------------------
+
+PROJECT VERSIONS / MASTER HISTORY:
+Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+
+SHYRKA RELEASE NOTES:
+Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+
+SHYRKA AGENT MANIFEST:
+Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+
+IMPORTANT:
+Use these shared files as the initial project reference.
+Do not assume they represent the latest live filesystem state.
+Verify the active local files before making changes.
+
+[2] AUTHORITATIVE LOCAL PROJECT PATHS
+-------------------------------------
+
+Execution environment:
+Distrobox: localai-box
+Container OS: Ubuntu 24.04
+
+Project root:
+/home/deck/LocalAIProject/AIAgent
+
+Master project history:
+/home/deck/LocalAIProject/PROJECT_VERSIONS.txt
+
+Shyrka release notes:
+/home/deck/LocalAIAgentrecovery/SHYRKA_RELEASE_NOTES.txt
+
+Shyrka manifest:
+/home/deck/LocalAIAgentrecovery/SHYRKA-AGENT-MANIFEST.txt
+
+Python virtual environment:
+/home/deck/LocalAIProject/AIAgent/.venv
+
+[3] PYTHON ENVIRONMENT — DO NOT ASSUME
+-------------------------------------
+
+1. Establish the actual execution environment before writing commands.
+2. This project runs inside localai-box, an Ubuntu 24.04 Distrobox.
+3. The user may already be inside the container.
+   Do not unnecessarily wrap commands in another distrobox entry.
+4. Do not assume system Python and project Python have identical packages.
+5. The system Python was previously found to lack pip/pytest.
+6. The project's virtual environment has Python 3.12.3.
+7. For project tests and compilation, prefer the verified interpreter:
+
+   ./.venv/bin/python
+
+8. Do not assume the sqlite3 command-line executable is installed.
+   It previously returned:
+
+   bash: sqlite3: command not found
+
+   If SQLite inspection is needed, first inspect available tools.
+   Python's standard-library sqlite3 module may be used if appropriate.
+
+9. Check actual executable paths, versions, package availability,
+   working directory, and file existence before relying on them.
+
+10. Never install packages just because a command failed.
+    First determine whether the cause is the wrong environment,
+    executable, path, or missing dependency.
+
+[4] PREVIOUSLY REPORTED PYTHON / VALIDATION RESULTS
+--------------------------------------------------
+
+Earlier Shyrka validation:
+- Python version in .venv: 3.12.3.
+- Agent unit tests: 17/17 passed in an earlier test run.
+- dashboard/server.py syntax compilation: passed.
+- Five Python files compiled during an isolated recovery check.
+- SQLite PRAGMA integrity_check: ok.
+- SQLite foreign-key checks: zero violations in that recovery check.
+- Integrated backup checksum verification: passed.
+- Dashboard HTTP response: 200.
+- Full live restore drill: previously reported as outstanding.
+
+Latest dashboard input-controls change:
+- Focused tests: 7/7 passed.
+- Full test suite: 27/27 passed.
+- Compilation of dashboard/server.py and
+  tests/test_dashboard_input.py: passed.
+- Long prompt of approximately 10,995 characters was accepted.
+- Dashboard was verified running on port 8765 with HTTP 200.
+
+These are historical results, not a substitute for rerunning
+tests when relevant files change.
+
+[5] PYTHON / BASH RELIABILITY PROTOCOL
+--------------------------------------
+
+Before generating a command:
+- Identify host versus container.
+- Confirm current directory and exact target paths.
+- Confirm the intended interpreter and required packages.
+- Inspect the relevant files before modifying them.
+- Avoid assumptions about installed commands.
+
+When modifying files:
+- Back up first.
+- Use explicit paths.
+- Use guarded, minimal changes.
+- Prefer atomic replacement for scripted file writes.
+- Stop on unexpected state rather than improvising destructively.
+
+After modifying files:
+- Read the files back.
+- Run syntax checks and relevant tests.
+- Verify the expected behavior using actual output.
+- Report failures honestly.
+- Do not claim success based only on a command being issued.
+
+[6] PROJECT SAFETY RULES
+------------------------
+
+- Local-first; no cloud inference unless explicitly authorized.
+- Manual start only; no boot auto-start.
+- Read-only approved agent tools only.
+- No shell-execution tool or unapproved agent capabilities.
+- Back up before significant changes.
+- Preserve historical documentation; append rather than rewrite.
+- Do not scan unrelated projects.
+- Do not modify unrelated services or files.
+
+[7] MANDATORY START-OF-CHAT PROCEDURE
+------------------------------------
+
+1. Read this handover and the available shared references.
+2. Identify the current task and exact project scope.
+3. Verify the active environment and current project state.
+4. Inspect only the files relevant to this task.
+5. Reuse prior verified findings where still applicable.
+6. Do not repeat broad scans without a specific reason.
+7. Proceed incrementally: inspect, change, test, verify.
+
+CORE RULE:
+Never generate a technical command based solely on an assumed
+environment. Verify the environment first.
+============================================================
