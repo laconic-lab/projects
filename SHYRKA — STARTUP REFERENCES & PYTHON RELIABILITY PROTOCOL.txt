@@ -1,149 +1,260 @@
-============================================================
-SHYRKA — SHARED REFERENCES & PYTHON RELIABILITY HANDOVER
-Date: 2026-10-28
-============================================================
+# SHYRKA — Startup References & Python Reliability Protocol
 
-[1] GITHUB-SHARED PROJECT REFERENCES
-------------------------------------
+**Purpose:** Provide a reliable starting point for new LocalAI-Box and Shyrka sessions, prevent repeated environment mistakes, and resume work from the last verified state.
 
-PROJECT VERSIONS / MASTER HISTORY:
-Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+**Protocol status:** Operational reference  
+**Scope:** Shyrka / LocalAI-Box  
+**Maintenance rule:** Update this document when verified environment details, project paths, operating rules, or authoritative references change.
 
-SHYRKA RELEASE NOTES:
-Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+---
 
-SHYRKA AGENT MANIFEST:
-Exact GitHub URL: NOT RECOVERED — INSERT VERIFIED URL
+## 1. Authoritative Project References
 
-IMPORTANT:
-Use these shared files as the initial project reference.
-Do not assume they represent the latest live filesystem state.
-Verify the active local files before making changes.
+Use these documents as the initial project map. Check their current contents when accessible and relevant to the task.
 
-[2] AUTHORITATIVE LOCAL PROJECT PATHS
--------------------------------------
+### Master project history
+https://github.com/laconic-lab/tmp/blob/main/PROJECT_VERSIONS.txt
 
-Execution environment:
-Distrobox: localai-box
-Container OS: Ubuntu 24.04
+### Shyrka agent manifest
+https://github.com/laconic-lab/tmp/blob/main/SHYRKA-AGENT-MANIFEST.txt
 
-Project root:
-/home/deck/LocalAIProject/AIAgent
+### Shyrka release notes
+https://github.com/laconic-lab/tmp/blob/main/SHYRKA_RELEASE_NOTES.txt
 
-Master project history:
-/home/deck/LocalAIProject/PROJECT_VERSIONS.txt
+### Shyrka startup protocol
+https://github.com/laconic-lab/tmp/blob/main/SHYRKA_STARTUP_PROTOCOL.md
 
-Shyrka release notes:
-/home/deck/LocalAIAgentrecovery/SHYRKA_RELEASE_NOTES.txt
+**Authority and synchronization rules**
 
-Shyrka manifest:
-/home/deck/LocalAIAgentrecovery/SHYRKA-AGENT-MANIFEST.txt
+1. Treat these documents as the initial project map, not automatic proof of the current local state.
+2. Distinguish documented intentions, historical results, and facts verified against the current working tree.
+3. Do not assume GitHub and local files are synchronized.
+4. Do not overwrite newer local information merely to match a remote document.
+5. If authoritative sources disagree, identify the discrepancy and inspect the relevant evidence before deciding which information is current.
+6. Record significant verified changes in the appropriate project documentation.
 
-Python virtual environment:
-/home/deck/LocalAIProject/AIAgent/.venv
+---
 
-[3] PYTHON ENVIRONMENT — DO NOT ASSUME
--------------------------------------
+## 2. Current Project Environment
 
-1. Establish the actual execution environment before writing commands.
-2. This project runs inside localai-box, an Ubuntu 24.04 Distrobox.
-3. The user may already be inside the container.
-   Do not unnecessarily wrap commands in another distrobox entry.
-4. Do not assume system Python and project Python have identical packages.
-5. The system Python was previously found to lack pip/pytest.
-6. The project's virtual environment has Python 3.12.3.
-7. For project tests and compilation, prefer the verified interpreter:
+The following values are the last recorded environment details. Verify them when relevant before relying on them.
 
-   ./.venv/bin/python
+**Host:** Steam Deck OLED / SteamOS
 
-8. Do not assume the sqlite3 command-line executable is installed.
-   It previously returned:
+**Container:** `localai-box`  
+**Distribution:** Ubuntu 24.04.x  
+**Previously recorded Python version:** 3.12.3
 
-   bash: sqlite3: command not found
+**Canonical project directory inside `localai-box`:**
 
-   If SQLite inspection is needed, first inspect available tools.
-   Python's standard-library sqlite3 module may be used if appropriate.
+`/home/deck/LocalAIProject/AIAgent`
 
-9. Check actual executable paths, versions, package availability,
-   working directory, and file existence before relying on them.
+**Python virtual environment:**
 
-10. Never install packages just because a command failed.
-    First determine whether the cause is the wrong environment,
-    executable, path, or missing dependency.
+`/home/deck/LocalAIProject/AIAgent/.venv`
 
-[4] PREVIOUSLY REPORTED PYTHON / VALIDATION RESULTS
---------------------------------------------------
+**Preferred Python executable for project commands:**
 
-Earlier Shyrka validation:
-- Python version in .venv: 3.12.3.
-- Agent unit tests: 17/17 passed in an earlier test run.
-- dashboard/server.py syntax compilation: passed.
-- Five Python files compiled during an isolated recovery check.
-- SQLite PRAGMA integrity_check: ok.
-- SQLite foreign-key checks: zero violations in that recovery check.
-- Integrated backup checksum verification: passed.
-- Dashboard HTTP response: 200.
-- Full live restore drill: previously reported as outstanding.
+`./.venv/bin/python`
 
-Latest dashboard input-controls change:
-- Focused tests: 7/7 passed.
-- Full test suite: 27/27 passed.
-- Compilation of dashboard/server.py and
-  tests/test_dashboard_input.py: passed.
-- Long prompt of approximately 10,995 characters was accepted.
-- Dashboard was verified running on port 8765 with HTTP 200.
+**Execution environment rule**
 
-These are historical results, not a substitute for rerunning
-tests when relevant files change.
+Commands for this project should run directly inside `localai-box`.
 
-[5] PYTHON / BASH RELIABILITY PROTOCOL
---------------------------------------
+Do not wrap commands in another `distrobox enter localai-box` command unless explicitly requested or the execution context requires it.
 
-Before generating a command:
-- Identify host versus container.
-- Confirm current directory and exact target paths.
-- Confirm the intended interpreter and required packages.
-- Inspect the relevant files before modifying them.
-- Avoid assumptions about installed commands.
+Before giving commands, establish whether the current terminal is inside the container or on the SteamOS host. Do not confuse host paths, container paths, and paths visible inside the virtual environment.
 
-When modifying files:
-- Back up first.
-- Use explicit paths.
-- Use guarded, minimal changes.
-- Prefer atomic replacement for scripted file writes.
-- Stop on unexpected state rather than improvising destructively.
+---
 
-After modifying files:
-- Read the files back.
-- Run syntax checks and relevant tests.
-- Verify the expected behavior using actual output.
-- Report failures honestly.
-- Do not claim success based only on a command being issued.
+## 3. Verified Python Environment Results
 
-[6] PROJECT SAFETY RULES
-------------------------
+These are previously observed results, not guarantees about the current working tree or environment.
 
-- Local-first; no cloud inference unless explicitly authorized.
-- Manual start only; no boot auto-start.
-- Read-only approved agent tools only.
-- No shell-execution tool or unapproved agent capabilities.
-- Back up before significant changes.
-- Preserve historical documentation; append rather than rewrite.
-- Do not scan unrelated projects.
-- Do not modify unrelated services or files.
+### System Python
 
-[7] MANDATORY START-OF-CHAT PROCEDURE
-------------------------------------
+- `/usr/bin/python`
+- `/usr/bin/python3`
+- Previously reported version: Python 3.12.3
+- `pip` and `pytest` were not available as assumed system-level project tools.
 
-1. Read this handover and the available shared references.
-2. Identify the current task and exact project scope.
-3. Verify the active environment and current project state.
-4. Inspect only the files relevant to this task.
-5. Reuse prior verified findings where still applicable.
-6. Do not repeat broad scans without a specific reason.
-7. Proceed incrementally: inspect, change, test, verify.
+### Project virtual environment
 
-CORE RULE:
-Never generate a technical command based solely on an assumed
-environment. Verify the environment first.
-============================================================
+- `./.venv/bin/python` existed.
+- `pip` was available inside the virtual environment.
+- Application dependencies were installed there.
+- `pytest` was not installed there.
+- `requirements-lock.txt` did not include `pytest`.
+
+**Incorrect assumption to avoid:** Never assume `pytest` is installed or that a test command is supported simply because it is commonly used in Python projects.
+
+### Previously successful unit test command
+
+Run from the project directory inside `localai-box`:
+
+    ./.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
+
+Previously observed result:
+
+    17 tests ran in 0.434 seconds — OK.
+
+### Previously successful syntax check
+
+    ./.venv/bin/python -m py_compile dashboard/server.py
+
+These results are historical. Re-run the relevant checks after changes when appropriate. Do not report historical results as current verification.
+
+Do not install packages merely to make an assumed test command work. First establish which test runner the project actually supports and whether installing anything is necessary and authorized.
+
+---
+
+## 4. Mandatory Python and Shell Reliability Rules
+
+Before generating or running commands:
+
+1. **Establish the target environment.** Identify SteamOS host, `localai-box`, or another explicitly named container.
+
+2. **Inspect before assuming.** Verify the actual project directory, relevant files, filenames, and existing project structure before proposing changes.
+
+3. **Verify executables and versions.** Check the available Python interpreter, package manager, test runner, and other tools relevant to the task.
+
+4. **Prefer the existing virtual environment.** Use `./.venv/bin/python` for project commands unless inspection establishes a justified alternative.
+
+5. **Use the supported test runner.** `unittest` has previously been verified. Check current project evidence before choosing a different runner.
+
+6. **Never invent facts.** Do not fabricate package availability, APIs, filenames, paths, command output, configuration values, test results, or successful operations.
+
+7. **Keep commands explicit and minimal.** Commands must fit the verified environment and perform only the required operation.
+
+8. **Inspect before modifying.** Read the relevant files, understand their current state, and make a backup before writing changes.
+
+9. **Make the smallest justified change.** Avoid broad rewrites, unrelated refactoring, destructive operations, and unnecessary dependency changes.
+
+10. **Use guarded file operations.** Where appropriate, use assertions, precondition checks, and atomic file replacement. Verify the final contents after writing.
+
+11. **Diagnose actual failures.** If a command fails, inspect the error and relevant environment before proposing a correction. Do not repeatedly guess at fixes.
+
+12. **Respect authorization boundaries.** Do not install dependencies, alter configuration, restart services, introduce automatic startup behavior, or modify unrelated projects unless explicitly required and authorized.
+
+13. **Verify the result.** Read back modified files and run appropriate checks. Report only checks actually performed and their observed results.
+
+14. **Distinguish verification levels.** A successful syntax check does not prove application correctness. A passing unit test suite does not prove every feature works. State what was and was not verified.
+
+15. **Preserve working state.** If the environment or project state differs from expectations, stop and investigate before proceeding with a potentially disruptive change.
+
+---
+
+## 5. Mandatory Documentation Scope
+
+At the beginning of a Shyrka session:
+
+1. Consult the three authoritative GitHub references above when accessible and relevant.
+2. Identify the project and task actually being continued.
+3. Inspect the relevant local authoritative documentation before updating it.
+4. Work only on the project relevant to the conversation.
+5. Include `PROJECT_VERSIONS.txt` when the change warrants updating the established cross-project history.
+6. Do not scan every project or Distrobox on the Steam Deck.
+7. Exclude historical backups from active editing unless the task explicitly concerns recovery or historical comparison.
+8. Back up documentation before modifying it.
+9. Read back and verify every modified file.
+10. Preserve existing history, naming conventions, and useful information.
+11. Do not claim that GitHub and local files are synchronized unless both have actually been checked.
+12. After a long pause or conversation handover, recover the last verified state and next action from the available handover and project evidence.
+13. Do not restart the entire discovery process if the existing evidence is sufficient.
+14. Update the appropriate documentation after significant verified changes.
+15. Avoid redundant updates to every document when a single authoritative record is sufficient.
+
+**Documentation update rule:** Update only the documents justified by the change. For example, a significant agent configuration change may warrant a manifest update, release notes, and a master history entry. A temporary investigation or unsuccessful experiment does not automatically require a release entry.
+
+---
+
+## 6. Shyrka Operating Guardrails
+
+These constraints apply unless the user explicitly authorizes a specific change within the intended scope.
+
+- **Local-first:** No cloud AI or external AI services unless explicitly authorized.
+- **Manual start:** No new automatic startup behavior.
+- **Read-only by default:** Use only explicitly approved tools and permissions.
+- **No arbitrary shell execution by the agent.**
+- **No mail-reading feature.**
+- **Diagnose before modifying.**
+- **Work incrementally:** Make one justified change at a time and verify it before continuing.
+- **Protect unrelated projects and data.**
+- **No unnecessary service restarts or configuration changes.**
+- **No claims of success without evidence.**
+- **No expansion of scope without authorization.**
+
+Reading documentation does not grant permission to execute commands, modify files, access external services, or change the agent's permissions.
+
+If a requested task conflicts with these guardrails, identify the conflict and obtain the required authorization before proceeding.
+
+---
+
+## 7. Start-of-Session Checklist
+
+Before acting, establish:
+
+- [ ] Which project and task are being continued?
+- [ ] What is the canonical project path?
+- [ ] Which execution environment is active?
+- [ ] What was the last verified state?
+- [ ] Which files, components, or services are actually in scope?
+- [ ] Which Python executable and test runner are available, if relevant?
+- [ ] Are the relevant local and remote references consistent?
+- [ ] Is a backup necessary before the proposed modification?
+- [ ] What is the single justified next step?
+
+If a critical answer is uncertain, inspect only the relevant project evidence before proceeding.
+
+Do not turn uncertainty into an assumption.
+
+---
+
+## 8. Session Handover and Resumption
+
+When ending a substantial session or preparing to continue in another conversation, record:
+
+1. **Task:** What was being worked on?
+2. **Environment:** Where were commands executed?
+3. **Last verified state:** What was actually inspected or tested?
+4. **Files changed:** Which files were modified, if any?
+5. **Backup status:** What was backed up and where?
+6. **Checks performed:** Exact commands and observed outcomes where useful.
+7. **Outstanding issues:** What remains unresolved?
+8. **Next action:** One specific, justified action.
+9. **Constraints:** Any permissions, exclusions, or safety requirements that remain in force.
+
+Clearly distinguish completed work from proposed work.
+
+A handover is a record of evidence, not proof that the current environment has remained unchanged.
+
+On resumption, verify only what is necessary to establish that the recorded state is still valid.
+
+---
+
+## 9. Document Maintenance
+
+Update this protocol when a durable fact or operating rule changes, including:
+
+- Project paths or container environment.
+- Python version or virtual environment.
+- Supported test runner or dependency assumptions.
+- Authoritative reference locations.
+- Security and operating guardrails.
+- Session-resumption or documentation procedures.
+
+Do not update historical test results merely because a new test run has occurred. Record new results in the appropriate change history or handover, and revise this reference only when its maintained facts need correction.
+
+When practical, maintain this file in Markdown so GitHub can render its headings, lists, and checkboxes.
+
+After editing:
+
+1. Inspect the proposed changes.
+2. Preserve existing content that remains valid.
+3. Verify the final file.
+4. Commit or publish only when authorized.
+5. Confirm the resulting remote contents before claiming publication or synchronization.
+
+---
+
+**END OF PROTOCOL**
