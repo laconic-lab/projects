@@ -15,6 +15,9 @@ Use these documents as the initial project map. Check their current contents whe
 ### Master project history
 https://github.com/laconic-lab/tmp/blob/main/PROJECT_VERSIONS.txt
 
+### Python environment (must read)
+https://github.com/laconic-lab/tmp/blob/main/PYTHON_VENV.readme
+
 ### Shyrka agent manifest
 https://github.com/laconic-lab/tmp/blob/main/SHYRKA-AGENT-MANIFEST.txt
 
