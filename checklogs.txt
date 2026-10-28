@@ -1,0 +1,751 @@
+(deck@Laco ~)$ echo "=== CURRENT TIME ==="
+date
+
+echo
+echo "=== UPTIME ==="
+uptime -p
+cat /proc/uptime
+
+echo
+echo "=== RECORDED BOOTS ==="
+journalctl --list-boots --no-pager
+
+echo
+echo "=== RECENT BOOT / SHUTDOWN HISTORY ==="
+last -x -F | head -25
+=== CURRENT TIME ===
+Wed Oct 28 01:49:04 PM CET 2026
+
+=== UPTIME ===
+up 12 hours, 33 minutes
+45182.54 300808.48
+
+=== RECORDED BOOTS ===
+IDX BOOT ID                          FIRST ENTRY                  LAST ENTRY
+ -7 68767ff7993d4f1baf00c5ef66a780ad Sat 2026-10-24 16:35:14 CEST Sat 2026-10-24 21:36:16 CEST
+ -6 1864530c55ef44a68d87a98e6bb4c358 Sat 2026-10-24 21:36:35 CEST Sun 2026-10-25 04:59:49 CET
+ -5 b313b5673a2b494dafa763f8dede1768 Sun 2026-10-25 05:00:07 CET  Sun 2026-10-25 05:01:42 CET
+ -4 b1969f3d17cc4da38ab7a172a553751b Sun 2026-10-25 05:01:59 CET  Sun 2026-10-25 05:03:53 CET
+ -3 09fb9fe46d64450fa2e130ef92be7716 Sun 2026-10-25 05:04:10 CET  Sun 2026-10-25 07:59:37 CET
+ -2 9797139b9f8e4277a44b3e16c1bcd311 Sun 2026-10-25 07:59:56 CET  Mon 2026-10-26 23:26:44 CET
+ -1 e725d4c9527f4a05bc9d142476255ed8 Mon 2026-10-26 23:27:02 CET  Wed 2026-10-28 01:15:47 CET
+  0 2a56b85672d14c3a994446ab1451e826 Wed 2026-10-28 01:16:05 CET  Wed 2026-10-28 13:45:16 CET
+
+=== RECENT BOOT / SHUTDOWN HISTORY ===
+deck     pts/3        192.168.1.169    Wed Oct 28 13:33:42 2026   still logged in
+deck     pts/2        192.168.1.169    Wed Oct 28 13:31:41 2026   still logged in
+deck     pts/3        192.168.1.169    Wed Oct 28 05:16:14 2026 - Wed Oct 28 10:54:37 2026  (05:38)
+deck     pts/2        192.168.1.169    Wed Oct 28 05:09:53 2026 - Wed Oct 28 10:54:37 2026  (05:44)
+deck     pts/0        :0               Wed Oct 28 01:53:43 2026   still logged in
+deck     tty1                          Wed Oct 28 01:53:39 2026   still logged in
+deck     tty1                          Wed Oct 28 01:16:11 2026 - Wed Oct 28 01:53:38 2026  (00:37)
+reboot   system boot  7.2.7-valve2-2-* Wed Oct 28 01:16:04 2026   still running
+shutdown system down  7.2.7-valve2-2-* Wed Oct 28 01:15:42 2026 - Wed Oct 28 01:16:04 2026  (00:00)
+deck     pts/2        192.168.1.169    Wed Oct 28 00:07:59 2026 - Wed Oct 28 01:15:42 2026  (01:07)
+deck     pts/4        :0               Tue Oct 27 22:35:38 2026 - Tue Oct 27 22:35:44 2026  (00:00)
+deck     pts/3        192.168.1.169    Tue Oct 27 19:45:39 2026 - Wed Oct 28 01:15:42 2026  (05:30)
+deck     pts/3        192.168.1.169    Tue Oct 27 19:42:55 2026 - Tue Oct 27 19:45:07 2026  (00:02)
+deck     pts/3        192.168.1.169    Tue Oct 27 17:38:28 2026 - Tue Oct 27 19:42:30 2026  (02:04)
+deck     pts/2        192.168.1.169    Tue Oct 27 14:54:10 2026 - Wed Oct 28 00:07:54 2026  (09:13)
+deck     pts/2        :0               Tue Oct 27 06:38:58 2026 - Tue Oct 27 06:39:08 2026  (00:00)
+deck     pts/3        :0               Tue Oct 27 06:36:22 2026 - Tue Oct 27 06:36:26 2026  (00:00)
+deck     pts/2        :0               Tue Oct 27 06:36:22 2026 - Tue Oct 27 06:36:27 2026  (00:00)
+deck     pts/4        :0               Tue Oct 27 03:15:51 2026 - Tue Oct 27 03:36:44 2026  (00:20)
+deck     pts/5        :0               Tue Oct 27 02:13:01 2026 - Tue Oct 27 02:17:18 2026  (00:04)
+deck     pts/4        :0               Tue Oct 27 02:10:30 2026 - Tue Oct 27 02:17:17 2026  (00:06)
+deck     pts/3        192.168.1.169    Tue Oct 27 01:10:51 2026 - Tue Oct 27 04:00:41 2026  (02:49)
+deck     pts/2        192.168.1.169    Tue Oct 27 00:56:53 2026 - Tue Oct 27 06:35:37 2026  (05:38)
+deck     pts/3        192.168.1.169    Mon Oct 26 23:28:57 2026 - Tue Oct 27 00:53:01 2026  (01:24)
+deck     pts/2        192.168.1.169    Mon Oct 26 23:27:59 2026 - Tue Oct 27 00:52:56 2026  (01:24)
+(deck@Laco ~)$ echo "=== SLEEP / SUSPEND / RESUME EVENTS ==="
+sudo journalctl \
+  --since "2026-10-27 18:00:00" \
+  --until "2026-10-28 10:00:00" \
+  --no-pager -o short-iso \
+  | grep -iE 'suspend|suspending|suspend entry|suspend exit|sleep|resume|wakeup|woke|inhibit|logind|PM:|ACPI|lid|power key|failed to suspend|sleep operation'
+=== SLEEP / SUSPEND / RESUME EVENTS ===
+[sudo] password for deck:
+2026-10-27T19:42:30+01:00 Laco systemd-logind[1107]: Removed session 10.
+2026-10-27T19:42:55+01:00 Laco systemd-logind[1107]: New session '11' of user 'deck' with class 'user' and type 'tty'.
+2026-10-27T19:45:07+01:00 Laco systemd-logind[1107]: Removed session 11.
+2026-10-27T19:45:39+01:00 Laco systemd-logind[1107]: New session '12' of user 'deck' with class 'user' and type 'tty'.
+2026-10-27T22:20:53+01:00 Laco systemd-logind[1107]: Removed session 8.
+2026-10-27T23:34:50+01:00 Laco systemd-logind[1107]: New session '13' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T00:07:54+01:00 Laco systemd-logind[1107]: Removed session 9.
+2026-10-28T00:07:59+01:00 Laco systemd-logind[1107]: New session '14' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: reboot requested from client PID 424038 ('systemctl') (unit session-12.scope)...
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: The system will reboot now!
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: System is rebooting.
+2026-10-28T01:15:42+01:00 Laco systemd[1]: Removed slice Slice /system/dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper.
+2026-10-28T01:15:42+01:00 Laco fwupd[205185]: 00:15:42.221 FuPluginUpower       failed to query lid state
+2026-10-28T01:15:42+01:00 Laco fwupd[205185]: 00:15:42.228 FuPluginUpower       failed to query lid state
+2026-10-28T01:15:42+01:00 Laco steamos-manager[1095]: 2026-10-28T00:15:42.245522Z  INFO steamos_manager: Shutting down ds-inhibitor
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Removed session 2.
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Removed session 13.
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Removed session 14.
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Removed session 12.
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.609107] (dw_watch_display_connections) Time since last return from sleep = 37841821950674 ns = 37841822 ms
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.630044] (recently_resumed_from_sleep_by_clocktime) Resume from sleep detected by BOOTTIME/MONOTONIC
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event0 (Power Button)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event2 (Power Button)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event1 (Lid Switch)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event3 (AT Translated Set 2 keyboard)
+2026-10-28T01:15:42+01:00 Laco kded6[1962]: Failed to reconnect Invalid argument
+2026-10-28T01:15:42+01:00 Laco kded6[1962]: Failed to reconnect Invalid argument
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event12 (Valve Software Steam Controller)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event10 (Logitech G502 HERO Gaming Mouse Keyboard)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event8 (Logitech USB Keyboard System Control)
+2026-10-28T01:15:42+01:00 Laco systemd-logind[1107]: Watching system buttons on /dev/input/event6 (Logitech USB Keyboard)
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37841.842 seconds = 37841843 millisec (37841842896873nanosec)
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.920073] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.922442] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023772] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37842.236 seconds = 37842237 millisec (37842236627514nanosec)
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.166089] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.168462] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270644] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37842.483 seconds = 37842483 millisec (37842483498916nanosec)
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.413235] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.415560] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628518] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37842.841 seconds = 37842841 millisec (37842841373611nanosec)
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.765307] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.767588] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869497] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37843.082 seconds = 37843082 millisec (37843082352354nanosec)
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.019144] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.021562] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123884] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483]    Time since last resume from sleep: 37843.336 seconds = 37843337 millisec (37843336739070nanosec)
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483]    recently_returned_from_sleep() returned true
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.272843] open() EACCES failure, recently resumed from sleep: false
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.275374] EACCES retry_ct=1: Sleeping for 100 milliseconds
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.376218] (dw_watch_display_connections) Time since last return from sleep = 37843589074412 ns = 37843589 ms
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.376225] (recently_resumed_from_sleep_by_clocktime) Called within 5 sec of reset
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.376230] (dw_watch_display_connections) Recentlyresumed from sleep detected
+2026-10-28T01:15:44+01:00 Laco kded6[1962]: Failed to reconnect Invalid argument
+2026-10-28T01:15:44+01:00 Laco plasmashell[1994]: Failed to reconnect Invalid argument
+2026-10-28T01:15:44+01:00 Laco plasmashell[1994]: Failed to reconnect Invalid argument
+2026-10-28T01:15:44+01:00 Laco plasmashell[1994]: Failed to reconnect Invalid argument
+2026-10-28T01:15:46+01:00 Laco systemd-logind[1107]: Removed session 1.
+2026-10-28T01:15:46+01:00 Laco systemd[1]: systemd-logind.service: Deactivated successfully.
+2026-10-28T01:16:05+01:00 Laco kernel: BIOS-e820: [mem 0x0000000009f00000-0x0000000009f20fff]  ACPI NVS
+2026-10-28T01:16:05+01:00 Laco kernel: BIOS-e820: [mem 0x000000007af7f000-0x000000007cf7efff]  ACPI NVS
+2026-10-28T01:16:05+01:00 Laco kernel: BIOS-e820: [mem 0x000000007cf7f000-0x000000007cffefff]  ACPI data
+2026-10-28T01:16:05+01:00 Laco kernel: efi: ACPI=0x7cffe000 ACPI 2.0=0x7cffe014 TPMFinalLog=0x7cefe000 SMBIOS=0x796fd000 SMBIOS 3.0=0x796fb000 MEMATTR=0x7467f018 ESRT=0x73aa1798 INITRD=0x6c57af98 RNG=0x7cfbc018 TPMEventLog=0x7cfb9018
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Early table checksum verification disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: RSDP 0x000000007CFFE014 000024 (v02 AMDYDE)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: XSDT 0x000000007CFCB188 000104 (v01 AMDYDE EDK2     00000002      01000013)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: FACP 0x000000007CFEF000 00010C (v05 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: DSDT 0x000000007CFE0000 008706 (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: FACS 0x000000007CEF7000 000040
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: UEFI 0x000000007CF7E000 000236 (v01 AMDYDE EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFF5000 007237 (v02 AMD    EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFF4000 00046D (v01 AMDyde EDK2     00001000 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: TPM2 0x000000007CFF3000 00004C (v04 AMD    EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: ASF! 0x000000007CFF1000 0000A5 (v32 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: BOOT 0x000000007CFF0000 000028 (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: HPET 0x000000007CFEE000 000038 (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: APIC 0x000000007CFED000 000138 (v03 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: MCFG 0x000000007CFEC000 00003C (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SLIC 0x000000007CFEB000 000176 (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: WDAT 0x000000007CFEA000 00017C (v01 AMDYDE EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: WDRT 0x000000007CFE9000 000047 (v01 AMD    EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFDF000 000099 (v01 AMDyde EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: VFCT 0x000000007CFD3000 00B084 (v01 AMDYDE EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFD2000 0000F8 (v01 AMD    EDK2     00001000 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFCF000 0029BC (v02 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: CRAT 0x000000007CFCE000 0007E8 (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: CDIT 0x000000007CFCD000 000029 (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFCC000 000503 (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFC9000 001436 (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFC7000 0014AD (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFC1000 0051CF (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: FPDT 0x000000007CFFD000 000044 (v01 AMD    EDK2     00000002 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: BGRT 0x000000007CFC0000 000038 (v01 AMDYDE EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: WSMT 0x000000007CFBF000 000028 (v01 AMDYDE EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFBE000 00008D (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: SSDT 0x000000007CFBD000 000AE8 (v01 AMD    EDK2     00000001 ACPI 00040000)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving FACP table memory at [mem 0x7cfef000-0x7cfef10b]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving DSDT table memory at [mem 0x7cfe0000-0x7cfe8705]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving FACS table memory at [mem 0x7cef7000-0x7cef703f]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving UEFI table memory at [mem 0x7cf7e000-0x7cf7e235]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cff5000-0x7cffc236]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cff4000-0x7cff446c]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving TPM2 table memory at [mem 0x7cff3000-0x7cff304b]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving ASF! table memory at [mem 0x7cff1000-0x7cff10a4]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving BOOT table memory at [mem 0x7cff0000-0x7cff0027]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving HPET table memory at [mem 0x7cfee000-0x7cfee037]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving APIC table memory at [mem 0x7cfed000-0x7cfed137]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving MCFG table memory at [mem 0x7cfec000-0x7cfec03b]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SLIC table memory at [mem 0x7cfeb000-0x7cfeb175]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving WDAT table memory at [mem 0x7cfea000-0x7cfea17b]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving WDRT table memory at [mem 0x7cfe9000-0x7cfe9046]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfdf000-0x7cfdf098]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving VFCT table memory at [mem 0x7cfd3000-0x7cfde083]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfd2000-0x7cfd20f7]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfcf000-0x7cfd19bb]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving CRAT table memory at [mem 0x7cfce000-0x7cfce7e7]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving CDIT table memory at [mem 0x7cfcd000-0x7cfcd028]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfcc000-0x7cfcc502]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfc9000-0x7cfca435]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfc7000-0x7cfc84ac]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfc1000-0x7cfc61ce]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving FPDT table memory at [mem 0x7cffd000-0x7cffd043]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving BGRT table memory at [mem 0x7cfc0000-0x7cfc0037]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving WSMT table memory at [mem 0x7cfbf000-0x7cfbf027]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfbe000-0x7cfbe08c]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Reserving SSDT table memory at [mem 0x7cfbd000-0x7cfbdae7]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PM-Timer IO Port: 0x408
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x00] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x01] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x02] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x03] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x04] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x05] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x06] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x07] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x08] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x09] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0a] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0b] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0c] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0d] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0e] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: LAPIC_NMI (acpi_id[0x0f] high edge lint[0x1])
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 low level)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Using ACPI (MADT) for SMP configuration information
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: HPET id: 0x10228210 base: 0xfed00000
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x09b00000-0x09dfffff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x09f00000-0x09f20fff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x6b369000-0x6c568fff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x72416000-0x726b9fff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x73aa1000-0x73aa1fff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x7877f000-0x7cffefff]
+2026-10-28T01:16:05+01:00 Laco kernel: PM: hibernation: Registered nosave memory: [mem 0x7d000000-0xffffffff]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Core revision 20260408
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PM: Registering ACPI NVS region [mem 0x09f00000-0x09f20fff] (135168 bytes)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PM: Registering ACPI NVS region [mem 0x7af7f000-0x7cf7efff] (33554432 bytes)
+2026-10-28T01:16:05+01:00 Laco kernel: PM: Steam Deck quirk - no s2idle allowed!
+2026-10-28T01:16:05+01:00 Laco kernel: PM: RTC time: 00:16:02, date: 2026-10-28
+2026-10-28T01:16:05+01:00 Laco kernel: acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Added _OSI(Module Device)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Added _OSI(Processor Device)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Added _OSI(Processor Aggregator Device)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: 12 ACPI AML tables successfully acquired and loaded
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: [Firmware Bug]: BIOS _OSI(Linux) query ignored
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: EC started
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: interrupt blocked
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: EC_CMD/EC_SC=0x66, EC_DATA=0x62
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: \_SB_.PCI0.LPC0.EC0_: Boot DSDT EC used to handle transactions
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Interpreter enabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PM: (supports S0 S3 S4 S5)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Using IOAPIC for interrupt routing
+2026-10-28T01:16:05+01:00 Laco kernel: PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: Enabled 5 GPEs in block 00 to 1F
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: \_SB_.PRWL: New power resource
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0A08:00: _OSC: platform does not support [SHPCHotplug LTR DPC]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0A08:00: _OSC: OS now controls [PCIeHotplug PME AER PCIeCapability]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0A08:00: [Firmware Info]: ECAM [mem 0xf8000000-0xfbffffff] for domain 0000 [bus 00-3f] only partially covers this bridge
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKA configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKA disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKB configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKB disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKC configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKC disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKD configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKD disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKE configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKE disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKF configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKF disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKG configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKG disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKH configured for IRQ 0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: PCI: Interrupt link LNKH disabled
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: interrupt unblocked
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: event unblocked
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: EC_CMD/EC_SC=0x66, EC_DATA=0x62
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: EC: GPE=0xa
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: \_SB_.PCI0.LPC0.EC0_: Boot DSDT EC initialization complete
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: \_SB_.PCI0.LPC0.EC0_: EC: Used to handle transactions and events
+2026-10-28T01:16:05+01:00 Laco kernel: iommu: DMA domain TLB invalidation policy: lazy mode
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: bus type USB registered
+2026-10-28T01:16:05+01:00 Laco kernel: PCI: Using ACPI for IRQ routing
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:00: Could not reserve [mem 0xfec00000-0xfec01fff]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:00: Reserved [mem 0xfee00000-0xfee00fff]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:00: Reserved [mem 0xa0000000-0xa00fffff]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Skipped [io  0x0010-0x001f]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Skipped [io  0x0072-0x0073]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Skipped [io  0x0080]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Skipped [io  0x00b0-0x00b1]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Skipped [io  0x0092]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0400-0x04cf]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x04d0-0x04d1]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x04d6]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0c00-0x0c01]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0c14]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0c50-0x0c52]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0c6c]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0c6f]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:01: Reserved [io  0x0cd0-0x0cdb]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C01:00: Could not reserve [mem 0x000e0000-0x000fffff]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C01:00: Reserved [mem 0xff000000-0xffffffff]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi PNP0C02:02: Reserved [mem 0xf8000000-0xfbffffff]
+2026-10-28T01:16:05+01:00 Laco kernel: pnp: PnP ACPI init
+2026-10-28T01:16:05+01:00 Laco kernel: pnp: PnP ACPI: found 1 devices
+2026-10-28T01:16:05+01:00 Laco kernel: clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: AC: AC Adapter [ACAD] (on-line)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: button: Power Button [PWRB]
+2026-10-28T01:16:05+01:00 Laco kernel: input: Lid Switch as /devices/platform/PNP0C0D:00/input/input1
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: button: Lid Switch [LID]
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: button: Power Button [PWRF]
+2026-10-28T01:16:05+01:00 Laco kernel: acpi LNXTHERM:00: registered as thermal_zone0
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: thermal: Thermal Zone [TZ01] (63 C)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: battery: Slot [BAT1] (battery present)
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: bus type drm_connector registered
+2026-10-28T01:16:05+01:00 Laco kernel: PM:   Magic number: 14:844:254
+2026-10-28T01:16:05+01:00 Laco kernel: PM: genpd: Disabling unused power domains
+2026-10-28T01:16:05+01:00 Laco systemd[1]: Created slice Slice /system/systemd-validatefs.
+2026-10-28T01:16:05+01:00 Laco kernel: ACPI: video: Video Device [VGA] (multi-head: yes  rom: no  post: no)
+2026-10-28T01:16:05+01:00 Laco kernel: input: Video Bus as /devices/pci0000:00/0000:00:08.1/acpi.video_bus.0/input/input18
+2026-10-28T01:16:05+01:00 Laco kernel: tpm_crb_acpi MSFT0101:00: Disabling hwrng
+2026-10-28T01:16:05+01:00 Laco kernel: tpm tpm0: tpm_read_log_acpi: Failed to map ACPI memory
+2026-10-28T01:16:06+01:00 Laco systemd[1]: Starting Validate File System Mount Constraints of /home...
+2026-10-28T01:16:06+01:00 Laco systemd-validatefs[990]: File system '/home' has no validation constraints set, not valiating.
+2026-10-28T01:16:06+01:00 Laco systemd[1]: Finished Validate File System Mount Constraints of /home.
+2026-10-28T01:16:10+01:00 Laco systemd[1]: Disable invalid SD card entries in /etc/fstab skipped, unmet condition check ConditionPathExists=/var/lib/overlays/etc/upper/fstab
+2026-10-28T01:16:10+01:00 Laco steamos-manager[1094]: 2026-10-28T00:16:10.399348Z  INFO steamos_manager: Starting ds-inhibitor
+2026-10-28T01:16:10+01:00 Laco unknown: SteamOS System Info:        A       image-invalid        0
+2026-10-28T01:16:10+01:00 Laco unknown: SteamOS System Info:        B       image-invalid        0
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event6 (Logitech USB Keyboard)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event8 (Logitech USB Keyboard System Control)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event10 (Logitech G502 HERO Gaming Mouse Keyboard)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event12 (Valve Software Steam Controller)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event2 (Power Button)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event0 (Power Button)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event1 (Lid Switch)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event3 (AT Translated Set 2 keyboard)
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: New seat seat0.
+2026-10-28T01:16:10+01:00 Laco kernel: [drm] pre_validate_dsc:1746 MST_DSC dsc precompute is not needed
+2026-10-28T01:16:10+01:00 Laco systemd-logind[1104]: New session '1' of user 'deck' with class 'manager' and type 'unspecified'.
+2026-10-28T01:16:11+01:00 Laco rtkit-daemon[1558]: Handling system-suspend using logind.
+2026-10-28T01:16:11+01:00 Laco sddm[1619]: Logind interface found
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: New session '2' of user 'deck' with class 'user' and type 'wayland'.
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event3 (AT Translated Set 2 keyboard)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event1 (Lid Switch)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event2 (Power Button)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event0 (Power Button)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event12 (Valve Software Steam Controller)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event10 (Logitech G502 HERO Gaming Mouse Keyboard)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event6 (Logitech USB Keyboard)
+2026-10-28T01:16:11+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event8 (Logitech USB Keyboard System Control)
+2026-10-28T01:16:39+01:00 Laco gamescope-session[2002]: [gamescope] [Info]  wlserver: [libseat] [libseat/libseat.c:73] Seat opened with backend 'logind'
+2026-10-28T01:16:43+01:00 Laco pihole[1982]: 2026-10-28 01:16:39.481 CET [49M] INFO: 2 FTLCONF environment variables found (2 used, 0 invalid, 0 ignored)
+2026-10-28T01:16:44+01:00 Laco upowerd[2663]: The "Ignore" CriticalPowerAction setting is considered risky: abrupt power loss due to battery exhaustion may lead to data corruption. The system will perform "HybridSleep" instead. Use AllowRiskyCriticalPowerAction=true to enable support for risky settings.
+2026-10-28T01:16:45+01:00 Laco steamwebhelper[2513]: exec ./steamwebhelper -nocrashdialog -lang=en_US -cachedir=/home/deck/.local/share/Steam/config/htmlcache -steampid=2377 -buildid=1792618285 -steamid=0 -logdir=/home/deck/.local/share/Steam/logs -uimode=4 -startcount=0 -steamos3 -steamuniverse=Public -realm=Global -clientui=/home/deck/.local/share/Steam/clientui -steampath=/home/deck/.local/share/Steam/ubuntu12_32/steam -launcher=0 --valve-enable-accessibility --valve-enable-site-isolation --crl-sets-path=/home/deck/.local/share/Steam/resource/crl-set --remote-allow-origins=* --remote-debugging-address=127.0.0.1 --remote-debugging-port=8080 --enable-smooth-scrolling --no-sandbox --password-store=basic --log-file=/home/deck/.local/share/Steam/logs/cef_log.txt --disable-quick-menu --disable-component-update --gaia-url=http://disabled.invalid --enable-features=PlatformHEVCDecoderSupport --disable-features=WinRetrieveSuggestionsOnlyOnDemand,SpareRendererForSitePerProcess,BlockPromptsIfIgnoredOften,WebUsbDeviceDetection,ValveFFmpegAllowLowDelayHEVC
+2026-10-28T01:16:47+01:00 Laco steamos-manager[1094]: 2026-10-28T00:16:47.477647Z ERROR dispatch_call{msg=Msg { type: MethodCall, serial: 166, sender: UniqueName(":1.35"), path: ObjectPath("/com/steampowered/SteamOSManager1"), iface: InterfaceName("com.steampowered.SteamOSManager1.RootManager"), member: MemberName("SetManualGpuClock"), body: U32, fds: [] } hdr=Header { primary: PrimaryHeader { endian_sig: Little, msg_type: MethodCall, flags: BitFlags<Flags>(0b0), protocol_version: 1, body_len: 4, serial_num: 166 }, fields: Fields { path: Some(ObjectPath("/com/steampowered/SteamOSManager1")), interface: Some(InterfaceName("com.steampowered.SteamOSManager1.RootManager")), member: Some(MemberName("SetManualGpuClock")), error_name: None, reply_serial: None, destination: Some(BusName::WellKnown("com.steampowered.SteamOSManager1")), sender: Some(UniqueName(":1.35")), signature: U32, unix_fds: None } }}: steamos_manager::manager::root: Error setting manual GPU clock: Invalid argument (os error 22)
+2026-10-28T01:16:49+01:00 Laco steam[2192]: /usr/share/themes/Breeze-Dark/gtk-2.0/widgets/styles:36: error: invalid string constant "combobox_entry", expected valid string constant
+2026-10-28T01:16:50+01:00 Laco kernel: [drm] pre_validate_dsc:1821 MST_DSC crtc[0] needs mode_change
+2026-10-28T01:16:55+01:00 Laco steam[2192]: Proton: Prefix has an invalid version?! You may want to back up user files and delete this prefix.
+2026-10-28T01:16:59+01:00 Laco steam[2192]: Proton: Prefix has an invalid version?! You may want to back up user files and delete this prefix.
+2026-10-28T01:17:01+01:00 Laco steam[2192]: Proton: Prefix has an invalid version?! You may want to back up user files and delete this prefix.
+2026-10-28T01:53:38+01:00 Laco systemd-logind[1104]: Removed session 2.
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event0 (Power Button)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event2 (Power Button)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event1 (Lid Switch)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event3 (AT Translated Set 2 keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: New session '3' of user 'deck' with class 'user' and type 'wayland'.
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event12 (Valve Software Steam Controller)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event10 (Logitech G502 HERO Gaming Mouse Keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event8 (Logitech USB Keyboard System Control)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event6 (Logitech USB Keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event3 (AT Translated Set 2 keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event0 (Power Button)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event1 (Lid Switch)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event2 (Power Button)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event12 (Valve Software Steam Controller)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event10 (Logitech G502 HERO Gaming Mouse Keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event6 (Logitech USB Keyboard)
+2026-10-28T01:53:39+01:00 Laco systemd-logind[1104]: Watching system buttons on /dev/input/event8 (Logitech USB Keyboard System Control)
+2026-10-28T01:53:42+01:00 Laco kded6[12409]: QDBusObjectPath: invalid path "/modules/wpad-detector"
+2026-10-28T01:53:42+01:00 Laco kded6[12409]: The kded module name "wpad-detector" is invalid!
+2026-10-28T01:53:42+01:00 Laco org_kde_powerdevil[12465]: (ddci_init                     ) Calling ldbus_start_sleep_watch_thread...
+2026-10-28T01:53:42+01:00 Laco org_kde_powerdevil[12465]: [ 12465][  0.119293] (ldbus_pause_if_recent_return_from_sleep)Pausing for 467
+2026-10-28T01:53:43+01:00 Laco org_kde_powerdevil[12465]: [ 12544][  0.899223] Recheck interval: Sleeping for 200 milliseconds
+2026-10-28T01:53:49+01:00 Laco systemd[1]: efi.automount: Got automount request for /efi, triggered by 1104 (systemd-logind)
+2026-10-28T01:53:50+01:00 Laco steamwebhelper[13003]: exec ./steamwebhelper -nocrashdialog -lang=en_US -cachedir=/home/deck/.local/share/Steam/config/htmlcache -steampid=12950 -buildid=1792618285 -steamid=0 -logdir=/home/deck/.local/share/Steam/logs -uimode=7 -startcount=0 -steamuniverse=Public -realm=Global -clientui=/home/deck/.local/share/Steam/clientui -steampath=/home/deck/.local/share/Steam/ubuntu12_32/steam -launcher=0 --valve-enable-accessibility --valve-enable-site-isolation --crl-sets-path=/home/deck/.local/share/Steam/resource/crl-set --remote-allow-origins=* --remote-debugging-address=127.0.0.1 --remote-debugging-port=8080 --enable-smooth-scrolling --no-sandbox --password-store=basic --log-file=/home/deck/.local/share/Steam/logs/cef_log.txt --disable-quick-menu --disable-component-update --gaia-url=http://disabled.invalid --enable-features=PlatformHEVCDecoderSupport --disable-features=WinRetrieveSuggestionsOnlyOnDemand,SpareRendererForSitePerProcess,BlockPromptsIfIgnoredOften,WebUsbDeviceDetection,ValveFFmpegAllowLowDelayHEVC
+2026-10-28T01:53:51+01:00 Laco steamos-manager[1094]: 2026-10-28T00:53:51.717053Z ERROR dispatch_call{msg=Msg { type: MethodCall, serial: 262, sender: UniqueName(":1.35"), path: ObjectPath("/com/steampowered/SteamOSManager1"), iface: InterfaceName("com.steampowered.SteamOSManager1.RootManager"), member: MemberName("SetManualGpuClock"), body: U32, fds: [] } hdr=Header { primary: PrimaryHeader { endian_sig: Little, msg_type: MethodCall, flags: BitFlags<Flags>(0b0), protocol_version: 1, body_len: 4, serial_num: 262 }, fields: Fields { path: Some(ObjectPath("/com/steampowered/SteamOSManager1")), interface: Some(InterfaceName("com.steampowered.SteamOSManager1.RootManager")), member: Some(MemberName("SetManualGpuClock")), error_name: None, reply_serial: None, destination: Some(BusName::WellKnown("com.steampowered.SteamOSManager1")), sender: Some(UniqueName(":1.35")), signature: U32, unix_fds: None } }}: steamos_manager::manager::root: Error setting manual GPU clock: Invalid argument (os error 22)
+2026-10-28T01:53:51+01:00 Laco steamos-manager[1094]: 2026-10-28T00:53:51.720440Z ERROR dispatch_call{msg=Msg { type: MethodCall, serial: 274, sender: UniqueName(":1.35"), path: ObjectPath("/com/steampowered/SteamOSManager1"), iface: InterfaceName("com.steampowered.SteamOSManager1.RootManager"), member: MemberName("SetManualGpuClock"), body: U32, fds: [] } hdr=Header { primary: PrimaryHeader { endian_sig: Little, msg_type: MethodCall, flags: BitFlags<Flags>(0b0), protocol_version: 1, body_len: 4, serial_num: 274 }, fields: Fields { path: Some(ObjectPath("/com/steampowered/SteamOSManager1")), interface: Some(InterfaceName("com.steampowered.SteamOSManager1.RootManager")), member: Some(MemberName("SetManualGpuClock")), error_name: None, reply_serial: None, destination: Some(BusName::WellKnown("com.steampowered.SteamOSManager1")), sender: Some(UniqueName(":1.35")), signature: U32, unix_fds: None } }}: steamos_manager::manager::root: Error setting manual GPU clock: Invalid argument (os error 22)
+2026-10-28T01:53:54+01:00 Laco steam[12741]: /usr/share/themes/Breeze-Dark/gtk-2.0/widgets/styles:36: error: invalid string constant "combobox_entry", expected valid string constant
+2026-10-28T01:53:58+01:00 Laco steam[12741]: Proton: Prefix has an invalid version?! You may want to back up user files and delete this prefix.
+2026-10-28T01:53:59+01:00 Laco steam[12741]: Proton: Prefix has an invalid version?! You may want to back up user files and delete this prefix.
+2026-10-28T01:54:34+01:00 Laco systemd[1]: /usr/lib/systemd/system/iiod.service:15: Invalid environment assignment, ignoring: $IIOD_EXTRA_OPTS=
+2026-10-28T01:54:36+01:00 Laco systemd[1]: /usr/lib/systemd/system/iiod.service:15: Invalid environment assignment, ignoring: $IIOD_EXTRA_OPTS=
+2026-10-28T01:54:36+01:00 Laco systemd[1]: /usr/lib/systemd/system/iiod.service:15: Invalid environment assignment, ignoring: $IIOD_EXTRA_OPTS=
+2026-10-28T03:55:11+01:00 Laco systemd[1]: Created slice Slice /system/dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper.
+2026-10-28T03:55:11+01:00 Laco systemd[1]: Started dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@0.service.
+2026-10-28T03:55:12+01:00 Laco systemd-logind[1104]: suspend requested from client PID 12465 ('org_kde_powerde') (unit user@1000.service)...
+2026-10-28T03:55:12+01:00 Laco systemd-logind[1104]: The system will suspend now!
+2026-10-28T03:55:12+01:00 Laco org_kde_powerdevil[12465]: [ 12514][7289.279724] (ldbus_handle_message)Received dbus signal PrepareForSleep(true=prepare)
+2026-10-28T03:55:12+01:00 Laco NetworkManager[13542]: <info>  [1793156112.0388] manager: sleep: sleep requested (sleeping: no  enabled: yes)
+2026-10-28T03:55:12+01:00 Laco NetworkManager[13542]: <info>  [1793156112.0406] manager: NetworkManager state is now DISABLED (ASLEEP)
+2026-10-28T03:55:12+01:00 Laco systemd[1]: Reached target Sleep.
+2026-10-28T03:55:12+01:00 Laco systemd[1]: Starting System Suspend...
+2026-10-28T03:55:12+01:00 Laco systemd-sleep[37667]: Successfully froze unit 'user.slice'.
+2026-10-28T03:55:12+01:00 Laco systemd-sleep[37667]: Performing sleep operation 'suspend'...
+2026-10-28T03:55:12+01:00 Laco kernel: PM: suspend entry (deep)
+2026-10-28T05:07:49+01:00 Laco vpower[1205]: Info: Suspend detected, boottime jumped by 0d 1h 12m 38.14s (4358.14s) (last: 9549.60s, current: 13907.74s)
+2026-10-28T05:07:49+01:00 Laco kernel: printk: Suspending console(s) (use no_console_suspend to debug)
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: interrupt blocked
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: PM: Preparing to enter system sleep state S3
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: event blocked
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: EC stopped
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: PM: Saving platform NVS memory
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: PM: Low-level resume complete
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: EC started
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: PM: Restoring platform NVS memory
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: PM: Waking up from system sleep state S3
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: interrupt unblocked
+2026-10-28T05:07:49+01:00 Laco vpower[1205]: Info: AC Adapter status after suspend: 'Connected' at 40.05W, battery 83.69%, status: 'Full'
+2026-10-28T05:07:49+01:00 Laco kernel: ACPI: EC: event unblocked
+2026-10-28T05:07:49+01:00 Laco kernel: amdgpu 0000:04:00.0: SMU is resumed successfully!
+2026-10-28T05:07:49+01:00 Laco systemd-sleep[37667]: System returned from sleep operation 'suspend'.
+2026-10-28T05:07:49+01:00 Laco kernel: PM: suspend exit
+2026-10-28T05:07:49+01:00 Laco systemd-sleep[37667]: Successfully thawed unit 'user.slice'.
+2026-10-28T05:07:49+01:00 Laco org_kde_powerdevil[12465]: [ 12514][11646.945854] (ldbus_handle_message)Received dbus signal PrepareForSleep(false=resume)
+2026-10-28T05:07:49+01:00 Laco systemd[1]: systemd-suspend.service: Deactivated successfully.
+2026-10-28T05:07:49+01:00 Laco kwin_wayland[12291]: Failed to delay sleep: The operation inhibition has been requested for is already running
+2026-10-28T05:07:49+01:00 Laco systemd[1]: Finished System Suspend.
+2026-10-28T05:07:49+01:00 Laco systemd[1]: Stopped target Sleep.
+2026-10-28T05:07:49+01:00 Laco systemd[1]: Reached target Suspend.
+2026-10-28T05:07:49+01:00 Laco systemd[1]: Stopped target Suspend.
+2026-10-28T05:07:49+01:00 Laco systemd-logind[1104]: Operation 'suspend' finished.
+2026-10-28T05:07:49+01:00 Laco NetworkManager[13542]: <info>  [1793160469.7085] manager: sleep: wake requested (sleeping: yes  enabled: yes)
+2026-10-28T05:07:49+01:00 Laco org_kde_powerdevil[12465]: [ 12545][11646.955773] (dw_watch_display_connections) Time since last return from sleep = 9920118 ns = 10 ms
+2026-10-28T05:07:49+01:00 Laco rtkit-daemon[1558]: Resumed scheduling 5 threads.
+2026-10-28T05:07:50+01:00 Laco org_kde_powerdevil[12465]: [ 12545][11648.239628] (dw_watch_display_connections) Time since last return from sleep = 1293774685 ns = 1294 ms
+2026-10-28T05:07:50+01:00 Laco org_kde_powerdevil[12465]: [ 12545][11648.239635] (recently_resumed_from_sleep_by_clocktime) Resume from sleep detected by BOOTTIME/MONOTONIC
+2026-10-28T05:07:50+01:00 Laco org_kde_powerdevil[12465]: [ 12545][11648.239641] (dw_watch_display_connections) Recently resumed from sleep detected
+2026-10-28T05:07:59+01:00 Laco systemd[1]: dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@0.service: Deactivated successfully.
+2026-10-28T05:09:53+01:00 Laco systemd-logind[1104]: New session '4' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + flags=rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:16:14+01:00 Laco systemd-logind[1104]: New session '5' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T05:22:39+01:00 Laco systemd-logind[1104]: New session '6' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T05:23:52+01:00 Laco systemd-logind[1104]: New session '7' of user 'deck' with class 'user' and type 'tty'.
+2026-10-28T08:38:37+01:00 Laco systemd[1]: Started dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@1.service.
+2026-10-28T08:38:37+01:00 Laco systemd-logind[1104]: suspend requested from client PID 12465 ('org_kde_powerde') (unit user@1000.service)...
+2026-10-28T08:38:37+01:00 Laco systemd-logind[1104]: The system will suspend now!
+2026-10-28T08:38:37+01:00 Laco org_kde_powerdevil[12465]: [ 12514][24294.439775] (ldbus_handle_message)Received dbus signal PrepareForSleep(true=prepare)
+2026-10-28T08:38:37+01:00 Laco NetworkManager[13542]: <info>  [1793173117.1989] manager: sleep: sleep requested (sleeping: no  enabled: yes)
+2026-10-28T08:38:37+01:00 Laco NetworkManager[13542]: <info>  [1793173117.2014] manager: NetworkManager state is now DISABLED (ASLEEP)
+2026-10-28T08:38:37+01:00 Laco systemd[1]: Reached target Sleep.
+2026-10-28T08:38:37+01:00 Laco systemd[1]: Starting System Suspend...
+2026-10-28T08:38:47+01:00 Laco systemd[1]: dbus-:1.3-org.kde.powerdevil.wakeupsourcehelper@1.service: Deactivated successfully.
+2026-10-28T08:39:37+01:00 Laco systemd-sleep[108270]: Failed to freeze unit 'user.slice': Connection timed out
+2026-10-28T08:39:37+01:00 Laco systemd-sleep[108270]: Performing sleep operation 'suspend'...
+2026-10-28T08:39:37+01:00 Laco kernel: PM: suspend entry (deep)
+2026-10-28T08:39:57+01:00 Laco systemd-sleep[108270]: Failed to put system to sleep. System resumed again: Device or resource busy
+2026-10-28T08:39:57+01:00 Laco kernel: PM: suspend exit
+2026-10-28T08:39:57+01:00 Laco kernel: PM: suspend entry (s2idle)
+2026-10-28T08:39:57+01:00 Laco kernel: PM: s2idle sleep is not supported
+2026-10-28T08:39:57+01:00 Laco kernel: PM: suspend exit
+2026-10-28T08:39:57+01:00 Laco systemd-sleep[108270]: Successfully thawed unit 'user.slice'.
+2026-10-28T08:39:57+01:00 Laco systemd[1]: systemd-suspend.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-28T08:39:57+01:00 Laco systemd[1]: systemd-suspend.service: Failed with result 'exit-code'.
+2026-10-28T08:39:57+01:00 Laco systemd[1]: Failed to start System Suspend.
+2026-10-28T08:39:57+01:00 Laco systemd[1]: Dependency failed for Suspend.
+2026-10-28T08:39:57+01:00 Laco systemd[1]: suspend.target: Job suspend.target/start failed with result 'dependency'.
+2026-10-28T08:39:57+01:00 Laco systemd-logind[1104]: Operation 'suspend' finished.
+2026-10-28T08:39:57+01:00 Laco org_kde_powerdevil[12465]: [ 12514][24374.645499] (ldbus_handle_message)Received dbus signal PrepareForSleep(false=resume)
+2026-10-28T08:39:57+01:00 Laco NetworkManager[13542]: <info>  [1793173197.4048] manager: sleep: wake requested (sleeping: yes  enabled: yes)
+2026-10-28T08:39:57+01:00 Laco systemd[1]: Stopped target Sleep.
+2026-10-28T08:39:57+01:00 Laco rtkit-daemon[1558]: Resumed scheduling 5 threads.
+(deck@Laco ~)$ echo "=== SYSTEM SLEEP INHIBITORS ==="
+systemd-inhibit --list --no-pager
+
+echo
+echo "=== FAILED SYSTEMD UNITS ==="
+systemctl --failed --no-pager
+
+echo
+echo "=== RECENT SYSTEM ERRORS ==="
+sudo journalctl -p err \
+  --since "2026-10-27 18:00:00" \
+  --until "2026-10-28 10:00:00" \
+  --no-pager -o short-iso
+=== SYSTEM SLEEP INHIBITORS ===
+WHO            UID  USER PID   COMM            WHAT                                                   WHY          MODE
+NetworkManager 0    root 13542 NetworkManager  sleep                                                  NetworkMana… delay
+Realtime Kit   0    root 1558  rtkit-daemon    sleep                                                  Demote real… delay
+UPower         0    root 2663  upowerd         sleep                                                  Pause devic… delay
+PowerDevil     1000 deck 12465 org_kde_powerde handle-power-key:handle-suspend-key:handle-hibernate-… KDE handles… block
+cecd           1000 deck 1769  cecd            sleep                                                  Put TV to s… delay
+compositor     1000 deck 12291 kwin_wayland    sleep                                                  turning scr… delay
+
+6 inhibitors listed.
+
+=== FAILED SYSTEMD UNITS ===
+  UNIT                    LOAD   ACTIVE SUB    DESCRIPTION
+● plugin_loader.service   loaded failed failed SteamDeck Plugin Loader
+● systemd-suspend.service loaded failed failed System Suspend
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+2 loaded units listed.
+
+=== RECENT SYSTEM ERRORS ===
+2026-10-27T18:04:51+01:00 Laco kwin_wayland[1786]: Libinput: event9  - Logitech G502 HERO Gaming Mouse: client bug: event processing lagging behind by 22ms, your system is too slow
+2026-10-28T00:00:03+01:00 Laco pihole[2366]: tail: '/var/log/pihole/FTL.log' has been replaced;  following new file
+2026-10-28T01:15:42+01:00 Laco sshd-session[310123]: error: mm_reap: child terminated by signal 15
+2026-10-28T01:15:42+01:00 Laco sshd-session[389463]: error: mm_reap: child terminated by signal 15
+2026-10-28T01:15:42+01:00 Laco sshd-session[400881]: error: mm_reap: child terminated by signal 15
+2026-10-28T01:15:42+01:00 Laco systemd[1375]: [🡕] basic.target: Found ordering cycle: default.target/stop after drkonqi-sentry-postman.path/stop after paths.target/stop after basic.target/stop - after default.target
+2026-10-28T01:15:42+01:00 Laco systemd[1375]: [🡕] drkonqi-coredump-cleanup.timer: Found ordering cycle: timers.target/stop after drkonqi-coredump-cleanup.timer/stop - after timers.target
+2026-10-28T01:15:42+01:00 Laco dbus-broker-launch[1523]: Activation request for 'org.kde.ksystemstats1' failed.
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629454] Open failed for /dev/i2c-8, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629608] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629682]    dw_watch_display_connections
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629743]    invoke_process_screen_change_event
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629802]    process_screen_change_event
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629860]    i2c_edid_exists
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629919]    i2c_open_bus
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92886.629977]    i2c_open_bus_basic
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.022559] Open failed for /dev/i2c-8, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.022581] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023727] Open failed for /dev/i2c-9, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023736] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023742]    dw_watch_display_connections
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023747]    invoke_process_screen_change_event
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023752]    process_screen_change_event
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023756]    i2c_edid_exists
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023760]    i2c_open_bus
+2026-10-28T01:15:42+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.023765]    i2c_open_bus_basic
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.268625] Open failed for /dev/i2c-9, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.268655] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270585] Open failed for /dev/i2c-11, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270597] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270605]    dw_watch_display_connections
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270612]    invoke_process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270618]    process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270623]    i2c_edid_exists
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270629]    i2c_open_bus
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.270635]    i2c_open_bus_basic
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.515757] Open failed for /dev/i2c-11, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.515797] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628453] Open failed for /dev/i2c-8, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628476] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628483]    dw_watch_display_connections
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628488]    invoke_process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628493]    process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628497]    dw_stabilized_buses_bs
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628501]    i2c_edid_exists
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628506]    i2c_open_bus
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.628511]    i2c_open_bus_basic
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.867770] Open failed for /dev/i2c-8, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.867811] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869443] Open failed for /dev/i2c-9, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869452] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869460]    dw_watch_display_connections
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869467]    invoke_process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869471]    process_screen_change_event
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869476]    dw_stabilized_buses_bs
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869481]    i2c_edid_exists
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869485]    i2c_open_bus
+2026-10-28T01:15:43+01:00 Laco org_kde_powerdevil[2390]: [  2483][92887.869489]    i2c_open_bus_basic
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.121760] Open failed for /dev/i2c-9, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.121804] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123811] Open failed for /dev/i2c-11, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123823] Traced function stack 0x7f7a940008b0 for current thread [  2483]
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123834]    dw_watch_display_connections
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123841]    invoke_process_screen_change_event
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123847]    process_screen_change_event
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123854]    dw_stabilized_buses_bs
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123861]    i2c_edid_exists
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123867]    i2c_open_bus
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.123874]    i2c_open_bus_basic
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.375560] Open failed for /dev/i2c-11, errno=EACCES(-13): Permission denied in file i2c_bus_core.c near line 433
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483][92888.375603] open() failed with 1 EACCES errors, total retry ms = 100
+2026-10-28T01:15:44+01:00 Laco org_kde_powerdevil[2390]: [  2483] (dw_remove_display_by_businfo) No Display_Ref found for i2c bus: 9
+2026-10-28T01:15:44+01:00 Laco pihole[2366]: pihole-FTL: no process found
+2026-10-28T01:15:44+01:00 Laco kwin_wayland[1786]: Applying output configuration failed!
+-- Boot 2a56b85672d14c3a994446ab1451e826 --
+2026-10-28T01:16:05+01:00 Laco kernel: virt/tdx: TDX not supported by the host platform
+2026-10-28T01:16:05+01:00 Laco kernel: i2c_designware AMDI0010:00: i2c_dw_handle_tx_abort: lost arbitration
+2026-10-28T01:16:06+01:00 Laco kernel: Bluetooth: Received HCI_IBS_WAKE_ACK in tx state 0
+2026-10-28T01:16:06+01:00 Laco kernel: i2c_designware AMDI0010:00: i2c_dw_handle_tx_abort: lost arbitration
+2026-10-28T01:16:10+01:00 Laco bluetoothd[1069]: plugins/wake-policy.c:wake_policy_probe() Unable to load key file from /etc/bluetooth/wake-policy.conf: (No such file or directory)
+2026-10-28T01:16:10+01:00 Laco bluetoothd[1069]: Failed to set mode: Failed (0x03)
+2026-10-28T01:16:10+01:00 Laco (PluginLoader)[1421]: plugin_loader.service: Failed at step EXEC spawning /home/deck/homebrew/services/PluginLoader: No such file or directory
+2026-10-28T01:16:11+01:00 Laco (PluginLoader)[1478]: plugin_loader.service: Failed at step EXEC spawning /home/deck/homebrew/services/PluginLoader: No such file or directory
+2026-10-28T01:16:11+01:00 Laco (PluginLoader)[1532]: plugin_loader.service: Failed at step EXEC spawning /home/deck/homebrew/services/PluginLoader: No such file or directory
+2026-10-28T01:16:11+01:00 Laco (PluginLoader)[1568]: plugin_loader.service: Failed at step EXEC spawning /home/deck/homebrew/services/PluginLoader: No such file or directory
+2026-10-28T01:16:11+01:00 Laco (PluginLoader)[1592]: plugin_loader.service: Failed at step EXEC spawning /home/deck/homebrew/services/PluginLoader: No such file or directory
+2026-10-28T01:16:11+01:00 Laco systemd[1]: Failed to start SteamDeck Plugin Loader.
+2026-10-28T01:16:40+01:00 Laco steam-runtime-steam-remote[2174]: E: Steam is not running: No such device or address
+2026-10-28T01:53:43+01:00 Laco NetworkManager[3132]: <error> [1793148823.2707] audit: failed to open auditd socket: Protocol not supported
+2026-10-28T01:53:43+01:00 Laco org_kde_powerdevil[12465]: [ 12465][  0.879633] Time since library initialized:   0.879632 seconds
+2026-10-28T01:53:43+01:00 Laco org_kde_powerdevil[12465]: [ 12465][  0.879641] Extra delay starting dw_start_watch_displays: 0 millisec
+2026-10-28T01:53:44+01:00 Laco steam-runtime-steam-remote[12692]: E: Steam is not running: No such device or address
+2026-10-28T01:53:45+01:00 Laco bluetoothd[1069]: Failed to set mode: Failed (0x03)
+2026-10-28T01:53:50+01:00 Laco NetworkManager[3132]: <error> [1793148830.7529] audit: failed to open auditd socket: Protocol not supported
+2026-10-28T01:53:51+01:00 Laco NetworkManager[13542]: <error> [1793148831.9423] audit: failed to open auditd socket: Protocol not supported
+2026-10-28T01:54:32+01:00 Laco systemd[1435]: plasma-kwin_x11.service: Two services allocated for the same bus name org.kde.KWin, refusing operation.
+2026-10-28T01:54:33+01:00 Laco systemd[1435]: org.freedesktop.IBus.session.generic.service: Two services allocated for the same bus name org.freedesktop.IBus, refusing operation.
+2026-10-28T01:54:33+01:00 Laco systemd[1435]: org.freedesktop.IBus.session.GNOME.service: Two services allocated for the same bus name org.freedesktop.IBus, refusing operation.
+2026-10-28T05:07:49+01:00 Laco kwin_wayland[12291]: Libinput: event0  - Power Button: client bug: event processing lagging behind by 523ms, your system is too slow
+2026-10-28T05:07:49+01:00 Laco kwin_wayland[12291]: Libinput: event2  - Power Button: client bug: event processing lagging behind by 521ms, your system is too slow
+2026-10-28T05:07:49+01:00 Laco kwin_wayland[12291]: Libinput: event9  - Logitech G502 HERO Gaming Mouse: client bug: event processing lagging behind by 455ms, your system is too slow
+2026-10-28T05:07:49+01:00 Laco kwin_wayland[12291]: Libinput: event6  - Logitech USB Keyboard: client bug: event processing lagging behind by 451ms, your system is too slow
+2026-10-28T05:45:34+01:00 Laco kwin_wayland[12291]: Libinput: event9  - Logitech G502 HERO Gaming Mouse: client bug: event processing lagging behind by 21ms, your system is too slow
+2026-10-28T08:39:37+01:00 Laco systemd-sleep[108270]: Failed to freeze unit 'user.slice': Connection timed out
+2026-10-28T08:39:57+01:00 Laco kernel: Freezing user space processes failed after 20.005 seconds (1 tasks refusing to freeze, wq_busy=0):
+2026-10-28T08:39:57+01:00 Laco systemd-sleep[108270]: Failed to put system to sleep. System resumed again: Device or resource busy
+2026-10-28T08:39:57+01:00 Laco systemd[1]: Failed to start System Suspend.
+(deck@Laco ~)$ echo "=== SYSTEMD LOGIND ==="
+systemctl status systemd-logind --no-pager
+
+echo
+echo "=== SLEEP TARGETS ==="
+systemctl status sleep.target suspend.target \
+  hibernate.target hybrid-sleep.target --no-pager
+
+echo
+echo "=== AVAILABLE KERNEL SLEEP MODES ==="
+cat /sys/power/mem_sleep
+
+echo
+echo "=== POWER-RELATED SETTINGS ==="
+grep -RniE 'IdleAction|IdleActionSec|HandleLidSwitch|LidSwitchIgnoreInhibited' \
+  /etc/systemd/logind.conf /etc/systemd/logind.conf.d \
+  2>/dev/null
+=== SYSTEMD LOGIND ===
+● systemd-logind.service - User Login Management
+     Loaded: loaded (/usr/lib/systemd/system/systemd-logind.service; static)
+    Drop-In: /etc/systemd/system/systemd-logind.service.d
+             └─homedir-override.conf
+     Active: active (running) since Wed 2026-10-28 01:16:10 CET; 12h ago
+ Invocation: f81ce4346c844972b05b8be377a8143d
+TriggeredBy: ● systemd-logind-varlink.socket
+       Docs: man:sd-login(3)
+             man:systemd-logind.service(8)
+             man:logind.conf(5)
+             man:org.freedesktop.login1(5)
+   Main PID: 1104 (systemd-logind)
+     Status: "Processing requests..."
+      Tasks: 1 (limit: 17720)
+   FD Store: 23 (limit: 768)
+     Memory: 2.7M (peak: 6.6M)
+        CPU: 761ms
+     CGroup: /system.slice/systemd-logind.service
+             └─1104 /usr/lib/systemd/systemd-logind
+
+Oct 28 08:38:37 Laco systemd-logind[1104]: The system will suspend now!
+Oct 28 08:39:57 Laco systemd-logind[1104]: Operation 'suspend' finished.
+Oct 28 10:54:37 Laco systemd-logind[1104]: Removed session 4.
+Oct 28 10:54:37 Laco systemd-logind[1104]: Removed session 5.
+Oct 28 11:38:19 Laco systemd-logind[1104]: Removed session 6.
+Oct 28 11:38:19 Laco systemd-logind[1104]: Removed session 7.
+Oct 28 13:18:46 Laco systemd-logind[1104]: New session '8' of user 'deck' with class 'user' and type 'tty'.
+Oct 28 13:31:41 Laco systemd-logind[1104]: New session '9' of user 'deck' with class 'user' and type 'tty'.
+Oct 28 13:33:42 Laco systemd-logind[1104]: New session '10' of user 'deck' with class 'user' and type 'tty'.
+Oct 28 13:45:16 Laco systemd-logind[1104]: New session '11' of user 'deck' with class 'user' and type 'tty'.
+
+=== SLEEP TARGETS ===
+○ sleep.target - Sleep
+     Loaded: loaded (/usr/lib/systemd/system/sleep.target; static)
+     Active: inactive (dead) since Wed 2026-10-28 08:39:57 CET; 5h 9min ago
+ Invocation: b550356343cd46bbad8efcd6db64b72b
+       Docs: man:systemd.special(7)
+
+Oct 28 08:38:37 Laco systemd[1]: Reached target Sleep.
+Oct 28 08:39:57 Laco systemd[1]: Stopped target Sleep.
+
+○ suspend.target - Suspend
+     Loaded: loaded (/usr/lib/systemd/system/suspend.target; static)
+     Active: inactive (dead)
+       Docs: man:systemd.special(7)
+
+Oct 28 05:07:49 Laco systemd[1]: Reached target Suspend.
+Oct 28 05:07:49 Laco systemd[1]: Stopped target Suspend.
+Oct 28 08:39:57 Laco systemd[1]: Dependency failed for Suspend.
+Oct 28 08:39:57 Laco systemd[1]: suspend.target: Job suspend.target/start failed with result 'dependency'.
+
+○ hibernate.target - System Hibernation
+     Loaded: loaded (/usr/lib/systemd/system/hibernate.target; static)
+     Active: inactive (dead)
+       Docs: man:systemd.special(7)
+
+○ hybrid-sleep.target - Hybrid Suspend+Hibernate
+     Loaded: loaded (/usr/lib/systemd/system/hybrid-sleep.target; static)
+     Active: inactive (dead)
+       Docs: man:systemd.special(7)
+
+=== AVAILABLE KERNEL SLEEP MODES ===
+s2idle [deep]
+
+=== POWER-RELATED SETTINGS ===
+/etc/systemd/logind.conf:36:#HandleLidSwitch=suspend
+/etc/systemd/logind.conf:37:#HandleLidSwitchExternalPower=suspend
+/etc/systemd/logind.conf:38:#HandleLidSwitchDocked=ignore
+/etc/systemd/logind.conf:43:#LidSwitchIgnoreInhibited=yes
+/etc/systemd/logind.conf:46:#IdleAction=ignore
+/etc/systemd/logind.conf:47:#IdleActionSec=30min
+(deck@Laco ~)$ checkbox
+
+STEAM DECK — CHECKBOX STATUS
+------------------------------------------------------------
+PROTECTED COMPONENTS
+SSH service: [OK] active
+SSH port 22 listener: [OK] listening
+Pi-hole Podman container (pihole): [OK] running — protected
+Pi-hole Distrobox (pihole-box): exited — protected
+------------------------------------------------------------
+KNOWN PROJECT SERVICES
+Ollama: [OK] running
+Open WebUI:
+[OK] running
+Shyrka Command Center: [OK] running
+LocalAI WebUI:  http://192.168.1.161:3000/
+Shyrka Center:  http://192.168.1.161:8765/
+Stable-box: exited
+------------------------------------------------------------
+DISTROBOX INVENTORY
+ID           | NAME                 | STATUS             | IMAGE
+605228eaaac3 | pihole-box           | Exited (143) 3 days ago | docker.io/library/archlinux:latest
+0c30b0b7ac65 | Stable-box           | Exited (143) 44 hours ago | docker.io/library/ubuntu:24.04
+5488fb87912a | localai-box          | Up 9 hours         | docker.io/library/ubuntu:24.04
+------------------------------------------------------------
+PODMAN CONTAINER INVENTORY
+NAMES        STATUS                     PORTS
+pihole-box   Exited (143) 3 days ago
+pihole       Up 13 hours                192.168.1.161:53->53/tcp, 192.168.1.161:8080->80/tcp, 192.168.1.161:8443->443/tcp, 192.168.1.161:53->53/udp, 67/udp, 123/udp
+Stable-box   Exited (143) 44 hours ago
+localai-box  Up 9 hours
+------------------------------------------------------------
+Unknown boxes are displayed for visibility but are never auto-stopped.
+SSH and both Pi-hole components are excluded from shutdown actions.
+
+SHUTDOWN OPTIONS
+y = ask about eligible services and boxes one by one
+a = stop supported services, then eligible boxes
+Enter = exit without changes
+Choose [y/a/Enter]: No changes requested.
+(deck@Laco ~)$
