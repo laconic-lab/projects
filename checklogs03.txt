@@ -1,0 +1,732 @@
+(deck@Laco ~)$ echo "=== SHYRKA / LOCALAI ACTIVITY AROUND RESUME ==="
+sudo journalctl -b \
+  --since "2026-10-28 05:05:00" \
+  --until "2026-10-28 05:15:00" \
+  --no-pager -o short-iso \
+  | grep -iE 'shyrka|jarvis|AIAgent|localai|ollama|open-webui|distrobox|podman|conmon|container|8765|11434|3000'
+=== SHYRKA / LOCALAI ACTIVITY AROUND RESUME ===
+2026-10-28T05:07:49+01:00 Laco kernel: amdgpu 0000:04:00.0: [drm] DMUB hardware initialized: version=0x0300000A
+2026-10-28T05:10:45+01:00 Laco systemd[1435]: Started podman-38471.scope.
+2026-10-28T05:10:45+01:00 Laco systemd[1435]: Started podman-38554.scope.
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started podman-38568.scope.
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started podman-38583.scope.
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started libpod-conmon-5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88.scope.
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started libcrun container.
+2026-10-28T05:10:46+01:00 Laco podman[38583]: 2026-10-28 05:10:46.274394534 +0100 CET m=+0.197500667 container init 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88 (image=docker.io/library/ubuntu:24.04, name=localai-box, distrobox.unshare_groups=0, manager=distrobox, org.opencontainers.image.version=24.04)
+2026-10-28T05:10:46+01:00 Laco podman[38583]: 2026-10-28 05:10:46.284766089 +0100 CET m=+0.207872222 container start 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88 (image=docker.io/library/ubuntu:24.04, name=localai-box, manager=distrobox, org.opencontainers.image.version=24.04, distrobox.unshare_groups=0)
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /run/.distrobox.rootless ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -f /run/host/etc/locale.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -e ^LANG= /run/host/etc/locale.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed s/LANG=//
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed s/"//g
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed s/'//g
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + HOST_LOCALE=en_US.UTF-8
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + echo en_US.UTF-8
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed -n s/^[^.]*\.\(.*\)$/\1/p
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + HOST_LOCALE_ENCODING=UTF-8
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + echo en_US.UTF-8
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed -n s/^\([^.]*\)\..*$/\1/p
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started podman-38608.scope.
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + HOST_LOCALE_LANG=en_US
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -z en_US.UTF-8 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ en_US.UTF-8 = C.UTF-8 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Installing basic packages...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Installing basic packages...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + basename bash
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + shell_pkg=bash
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ bash = ash ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/bin:/sbin:/usr/bin:/usr/sbin
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v apt-get
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /usr/bin/apt-get
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v rpm
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + setup_deb_exceptions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + setup_pkg_manager_hooks
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /etc/dpkg/dpkg.cfg.d/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cat
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cat
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + chmod +x /etc/distrobox-pre-hook.sh /etc/distrobox-post-hook.sh
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /etc/dpkg/dpkg.cfg.d/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/netconfig/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /var/lib/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf path-exclude %s/*\n /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /etc/apt/apt.conf.d/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf DPkg::Pre-Invoke {/etc/distrobox-pre-hook.sh};\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf DPkg::Post-Invoke {/etc/distrobox-post-hook.sh};\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -ne 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /.containersetupdone ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v bash
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + SHELL=/usr/bin/bash
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + /usr/bin/distrobox-host-exec -Y test
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + :
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v xdg-open
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /usr/local/bin/xdg-open
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v flatpak
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /usr/bin/flatpak
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /usr/local/bin/su ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + su --version
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q util-linux
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started podman-38646.scope.
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + su --version
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + awk {printf  "%s\n%s", $4, 2.34}
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sort --check=quiet --version-sort
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up devpts mounts...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up devpts mounts...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q tty /etc/group
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount -t devpts devpts -o noexec,nosuid,newinstance,ptmxmode=0666,mode=0620,gid=tty /dev/pts/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --bind /dev/pts/ptmx /dev/ptmx
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rshared /
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up read-only mounts...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up read-only mounts...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + get_locked_mount_flags /run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + src=/run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + prev=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v findmnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + ls /run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + true
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt --noheadings --output OPTIONS --target /run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + flags=rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + break
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nodev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q noexec
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nosuid
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/etc/localtime /etc/localtime ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 3 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/etc/localtime ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + init_readlink /run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + ls -l /run/host/etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -Eo \->.*
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cut -d  -f2-
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed s|\.\./|/|g
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/usr/share/zoneinfo/Europe/Paris
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s /usr/share/zoneinfo/Europe/Paris
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q /run/host
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/usr/share/zoneinfo/Europe/Paris
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/usr/share/zoneinfo/Europe/Paris ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/usr/share/zoneinfo/Europe/Paris ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/localtime ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /etc/localtime ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/usr/share/zoneinfo/Europe/Paris ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -f /run/host/usr/share/zoneinfo/Europe/Paris ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + dirname /etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /etc ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + touch /etc/localtime
+2026-10-28T05:10:46+01:00 Laco systemd[1435]: Started podman-38691.scope.
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ro =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind -o ro /run/host/usr/share/zoneinfo/Europe/Paris /etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + get_locked_mount_flags /run/host/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + src=/run/host/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + prev=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v findmnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + ls /run/host/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + true
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt --noheadings --output OPTIONS --target /run/host/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + flags=rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n rw,relatime ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + break
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nodev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q noexec
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nosuid
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/var/lib/systemd/coredump /var/lib/systemd/coredump ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 3 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/var/lib/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/var/lib/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /var/lib/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /var/lib/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/var/lib/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ro =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind -o ro /run/host/var/lib/systemd/coredump /var/lib/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + get_locked_mount_flags /run/host/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + src=/run/host/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + prev=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v findmnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + ls /run/host/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + true
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt --noheadings --output OPTIONS --target /run/host/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + flags=rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n rw,relatime ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + break
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nodev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q noexec
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s rw,relatime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q nosuid
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + locked_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/var/log/journal /var/log/journal ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 3 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=ro
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/var/log/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/var/log/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /var/log/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + umount /var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /var/log/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/var/log/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ro =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind -o ro /run/host/var/log/journal /var/log/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up read-write mounts...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up read-write mounts...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /var/home/deck ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/etc/host.conf /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -f /run/host/etc/host.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + dirname /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /etc ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + touch /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/etc/host.conf /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /etc/host.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/etc/machine-id /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -f /run/host/etc/machine-id ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + dirname /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /etc ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + touch /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/etc/machine-id /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /etc/machine-id
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/media /media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/mnt /mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + init_readlink /run/host/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + ls -l /run/host/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -Eo \->.*
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cut -d  -f2-
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed s|\.\./|/|g
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q /run/host
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/hostvar/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/hostvar/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/hostvar/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/libvirt /run/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/run/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/media /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/media ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/media /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/media
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/netconfig/ /run/netconfig/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/netconfig/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/netconfig/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/netconfig/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/netconfig/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/run/netconfig/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/systemd/journal /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/systemd/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/systemd/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/systemd/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/systemd/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/systemd/journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/systemd/journal /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/systemd/journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/systemd/resolve/ /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/systemd/resolve/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/systemd/resolve/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/systemd/resolve/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/systemd/resolve/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/systemd/resolve/ ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/systemd/resolve/ /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/systemd/resolve/
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/systemd/seats /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/systemd/seats ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/systemd/seats ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/systemd/seats ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/systemd/seats ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/systemd/seats ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/systemd/seats /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/systemd/seats
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/systemd/sessions /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/systemd/sessions ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/systemd/sessions ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/systemd/sessions ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/systemd/sessions ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/systemd/sessions ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/systemd/sessions /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/systemd/sessions
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/systemd/users /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/systemd/users ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/systemd/users ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/systemd/users ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/systemd/users ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/systemd/users ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/systemd/users /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/systemd/users
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/run/udev /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/run/udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/run/udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/run/udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/run/udev /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /run/udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/var/lib/libvirt /var/lib/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/var/lib/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/var/lib/libvirt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/var/lib/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/var/lib/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -f /run/host/var/lib/libvirt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/var/mnt /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/var/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/var/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /var/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /var/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/var/mnt ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/var/mnt /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /var/mnt
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up host's sockets integration...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up host's sockets integration...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + find /run/host/run -xdev -path /run/host/run/media -prune -o -path /run/host/run/timeshift -prune -o -name user -prune -o -name bees -prune -o -name nscd -prune -o -name schroot -prune -o -name system_bus_socket -prune -o -name io.systemd.Multiplexer -prune -o -name io.systemd.DropIn -prune -o -name io.systemd.NameServiceSwitch -prune -o -type s -print
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + :
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + host_sockets=/run/host/run/ssh-unix-local/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/polkit/agent-helper.socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/cups/cups.sock
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/avahi-daemon/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/lvm/lvmpolld.socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/machine/io.systemd.Machine
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Login
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.sysext
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.BootControl
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Import
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.JournalAccess
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.StorageProvider/fs
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.StorageProvider/block
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/resolve/io.systemd.Resolve
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/resolve/io.systemd.Resolve.Monitor
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Repart
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.MuteConsole
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/journal/io.systemd.journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/journal/stdout
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/journal/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/journal/dev-log
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Hostname
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.FactoryReset
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Credentials
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.AskPassword
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/report/io.systemd.Manager
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.ManagedOOM
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/userdb/io.systemd.DynamicUser
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/io.systemd.Manager
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/private
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/notify
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/systemd/inaccessible/sock
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/udev/io.systemd.Udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: /run/host/run/udev/control
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/ssh-unix-local/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/ssh-unix-local/socket ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/polkit/agent-helper.socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/polkit/agent-helper.socket ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/cups/cups.sock
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/cups/cups.sock ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/avahi-daemon/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/avahi-daemon/socket ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/lvm/lvmpolld.socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/lvm/lvmpolld.socket ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/machine/io.systemd.Machine
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/machine/io.systemd.Machine ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Login
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Login ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.sysext
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.sysext ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.BootControl
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.BootControl ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Import
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Import ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.JournalAccess
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.JournalAccess ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.StorageProvider/fs
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.StorageProvider/fs ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.StorageProvider/block
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.StorageProvider/block ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/resolve/io.systemd.Resolve
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/resolve/io.systemd.Resolve ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/resolve/io.systemd.Resolve.Monitor
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/resolve/io.systemd.Resolve.Monitor ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Repart
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Repart ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.MuteConsole
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.MuteConsole ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/journal/io.systemd.journal
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/journal/io.systemd.journal ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/journal/stdout
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/journal/stdout ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/journal/socket
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/journal/socket ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/journal/dev-log
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/journal/dev-log ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Hostname
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Hostname ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.FactoryReset
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.FactoryReset ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Credentials
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Credentials ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/coredump
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/coredump ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.AskPassword
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.AskPassword ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/report/io.systemd.Manager
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/report/io.systemd.Manager ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.ManagedOOM
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.ManagedOOM ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/userdb/io.systemd.DynamicUser
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/userdb/io.systemd.DynamicUser ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/io.systemd.Manager
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/io.systemd.Manager ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/private
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/private ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/notify
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/notify ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/systemd/inaccessible/sock
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/systemd/inaccessible/sock ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/udev/io.systemd.Udev
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/udev/io.systemd.Udev ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + container_socket=/run/udev/control
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -S /run/udev/control ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 1 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Integrating host's themes, icons, fonts...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Integrating host's themes, icons, fonts...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/usr/share/themes /usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/usr/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/usr/share/themes ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/usr/share/themes ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /usr/local/share/themes ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /usr/local/share/themes ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/usr/share/themes ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/usr/share/themes /usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /usr/local/share/themes
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/usr/share/icons /usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/usr/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/usr/share/icons ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/usr/share/icons ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /usr/local/share/icons ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /usr/local/share/icons ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/usr/share/icons ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/usr/share/icons /usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /usr/local/share/icons
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_bind /run/host/usr/share/fonts /usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + source_dir=/run/host/usr/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + target_dir=/usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount_flags=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 2 -gt 2 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /run/host/usr/share/fonts ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /run/host/usr/share/fonts ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /usr/local/share/fonts ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + findmnt /usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -L /usr/local/share/fonts ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/usr/share/fonts ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [  =  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --rbind /run/host/usr/share/fonts /usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mount --make-rslave /usr/local/share/fonts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + return 0
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up distrobox profile...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up distrobox profile...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + touch /run/.toolboxenv
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -d /etc/profile.d ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cat
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/fish/config.fish ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up sudo...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up sudo...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + mkdir -p /etc/sudoers.d
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/sudoers ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + sed -i s|^Defaults targetpw.*||g /etc/sudoers
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cat
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/doas.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + command -v doas
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /etc/pam.d/su ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q pam_systemd.so /etc/pam.d/su
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 1000 -ne 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf "%s" ALL = (root) NOPASSWD:ALL\n deck
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /etc/doas.conf ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q ^deck: /etc/group
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -d /run/host/var/kerberos ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf distrobox: Setting up user's group list...\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: distrobox: Setting up user's group list...
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + additional_groups=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q ^sudo /etc/group
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + additional_groups=sudo
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 1 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf %s deck
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + tr \\ .
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + grep -q ^deck: /etc/passwd
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /etc/passwd.done ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + getent passwd deck
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + cut -d: -f6
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ /home/deck != /home/deck ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ ! -e /etc/passwd.done ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 1 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + touch /etc/passwd.done
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + chmod 0400 /etc/shadow
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + chmod 0400 /etc/gshadow
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -n  ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + HOST_WATCH=
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]:         /etc/hostname
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]:         /etc/hosts
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]:         /etc/localtime
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]:         /etc/resolv.conf
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]:
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + id=localai-box
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ -e /run/.containerenv ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + . /run/.containerenv
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + engine=podman-6.0.2
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + name=localai-box
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + id=5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + image=docker.io/library/ubuntu:24.04
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + imageid=6277ab668b2ad3c3ab851d370faa1690d324b30db29d342527f61fed28f20f36
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + rootless=1
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + graphRootMounted=1
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + [ 0 -eq 0 ]
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + printf container_setup_done\n
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: container_setup_done
+2026-10-28T05:10:46+01:00 Laco localai-box[38604]: + set +x
+2026-10-28T05:10:47+01:00 Laco systemd[1435]: Started podman-38543.scope.
+2026-10-28T05:10:47+01:00 Laco podman[38543]: 2026-10-28 05:10:47.134418323 +0100 CET m=+0.082441579 container exec 5488fb87912aada8cdaf85a126a390eb4fe77fc9ef6a64278f6a80c768c57b88 (image=docker.io/library/ubuntu:24.04, name=localai-box, distrobox.unshare_groups=0, manager=distrobox, org.opencontainers.image.version=24.04)
+(deck@Laco ~)$ echo "=== SHYRKA / LOCALAI SYSTEMD USER UNITS ==="
+systemctl --user list-unit-files --no-pager \
+  | grep -iE 'shyrka|jarvis|localai|ollama|webui|distrobox|podman' || true
+
+echo
+echo "=== ACTIVE USER TIMERS ==="
+systemctl --user list-timers --all --no-pager
+
+echo
+echo "=== ACTIVE SYSTEM TIMERS ==="
+sudo systemctl list-timers --all --no-pager
+=== SHYRKA / LOCALAI SYSTEMD USER UNITS ===
+podman-203695.scope                                                                  transient -
+podman-38583.scope                                                                   transient -
+podman-pause-4c424bba.scope                                                          transient -
+podman-auto-update.service                                                           disabled  enabled
+podman-clean-transient.service                                                       disabled  enabled
+podman-kube@.service                                                                 disabled  enabled
+podman-restart.service                                                               disabled  enabled
+podman-user-wait-network-online.service                                              static    -
+podman.service                                                                       disabled  enabled
+podman.socket                                                                        disabled  enabled
+podman-auto-update.timer                                                             disabled  enabled
+
+=== ACTIVE USER TIMERS ===
+NEXT                          LEFT LAST PASSED UNIT                           ACTIVATES
+Mon 2026-11-02 00:00:00 CET 4 days -         - drkonqi-coredump-cleanup.timer drkonqi-coredump-cleanup.service
+-                                - -         - drkonqi-sentry-postman.timer   drkonqi-sentry-postman.service
+
+2 timers listed.
+
+=== ACTIVE SYSTEM TIMERS ===
+NEXT                       LEFT LAST                        PASSED UNIT                       ACTIVATES
+Thu 2026-10-29 00:00:00 C…   9h Wed 2026-10-28 00:00:00 C…       - mandoc.timer               mandoc.service
+Thu 2026-10-29 00:00:00 C…   9h Wed 2026-10-28 00:00:00 C…       - shadow.timer               shadow.service
+Thu 2026-10-29 02:43:55 C…  12h Wed 2026-10-28 01:31:20 C… 11h ago systemd-tmpfiles-clean.ti… systemd-tmpfiles-clean.se…
+-                             - -                                - archlinux-keyring-wkd-syn… -
+
+4 timers listed.
+(deck@Laco ~)$ echo "=== SHYRKA DASHBOARD PROCESS ==="
+pgrep -af 'AIAgent|dashboard|webui|langgraph|uvicorn|8765' || true
+
+echo
+echo "=== LOCALAI / OLLAMA PROCESSES ==="
+pgrep -af 'ollama|open-webui|local-ai|pihole-FTL' || true
+
+echo
+echo "=== SHYRKA USER SERVICE DETAILS ==="
+systemctl --user status shyrka.service jarvis.service \
+  --no-pager 2>&1
+=== SHYRKA DASHBOARD PROCESS ===
+50503 /home/deck/LocalAIProject/open-webui-venv/bin/python /home/deck/LocalAIProject/open-webui-venv/bin/open-webui serve --host 192.168.1.161 --port 3000
+74273 /home/deck/LocalAIProject/AIAgent/.venv/bin/python /home/deck/LocalAIProject/AIAgent/dashboard/server.py
+
+=== LOCALAI / OLLAMA PROCESSES ===
+2085 /bin/bash -c /usr/bin/pihole-FTL no-daemon >/dev/null
+2089 /usr/bin/pihole-FTL no-daemon
+50431 /usr/local/bin/ollama serve
+50503 /home/deck/LocalAIProject/open-webui-venv/bin/python /home/deck/LocalAIProject/open-webui-venv/bin/open-webui serve --host 192.168.1.161 --port 3000
+
+=== SHYRKA USER SERVICE DETAILS ===
+Unit shyrka.service could not be found.
+Unit jarvis.service could not be found.
+(4)(deck@Laco ~)$
