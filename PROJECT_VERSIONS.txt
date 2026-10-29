@@ -237,3 +237,19 @@ Limitations and boundaries:
 - Added the detailed reference at PYTHON_VENV.readme.
 - Updated backup.sh to include the Python reference and generated-manifest entry.
 - Documentation change only: no Python packages or runtime environments changed.
+2026-10-29 — Shyrka optional cloud voice (maintenance update)
+Version: Maintenance update; existing release numbering unchanged.
+Feature/change:
+- Documented the explicitly invoked ElevenLabs cloud TTS option in the Shyrka Command Center.
+- Active voice configuration verified as Bella (voice ID hpp4J3VqNfWAUOO0d1Us), using model eleven_flash_v2_5.
+- Cloud speech uses the separate /api/cloud-speak route; the local /api/speak route remains present.
+Validation performed:
+- Python compilation passed and focused dashboard tests passed: 7/7.
+- Dashboard HTTP check returned 200 after the implementation restart.
+- User confirmed the Bella cloud-voice test succeeded and was almost instant.
+Backup identifier: /home/deck/LocalAIAgentrecovery/patch-backups/shyrka-elevenlabs/pre-bella-20261029-032216/server.py
+Known limitations / boundaries:
+- Cloud TTS is invoked only when the user explicitly selects 11Labs; it is not the default local inference path.
+- Iris was rejected because that voice required the Creator tier; Bella succeeded in the tested account configuration.
+- This records one successful voice test, not universal provider availability or latency.
+- No Scholar integration is included in this change.

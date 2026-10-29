@@ -106,3 +106,17 @@ recovery.sh restore /home/deck/LocalAIAgentrecovery/backups/Shyrka-Agent-TIMESTA
 Important limitation:
 Conversation transcripts are preserved, but hidden LangGraph state is not
 restored because the graph has no persistent checkpointer.
+
+OPTIONAL CLOUD VOICE — VERIFIED 2026-10-29
+-------------------------------------------
+- Dashboard endpoint: /api/cloud-speak.
+- Provider: ElevenLabs text-to-speech; configured model: eleven_flash_v2_5.
+- Active configured voice: Bella; voice ID hpp4J3VqNfWAUOO0d1Us.
+- Invocation: explicit user action on an assistant message; not automatic and not the default local speech route.
+- Local /api/speak route remains present.
+- API key is stored outside the project at /home/deck/.config/shyrka/elevenlabs-api-key; never include its contents in documentation or backups intended for source history.
+- Provider requests use a 30-second timeout and redirect protection; provider error messages are bounded.
+- Verification recorded: Python compilation passed, focused dashboard tests 7/7 passed, dashboard HTTP check 200 after restart, and user-confirmed successful Bella voice test.
+- Limitation: Iris was rejected because it requires the Creator tier. Bella worked in the tested account configuration.
+- This is a tested optional speech feature, not Scholar integration. No claims are made about future provider availability or latency.
+- Local-first model inference and manual-start policy remain unchanged.

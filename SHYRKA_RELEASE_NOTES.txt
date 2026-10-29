@@ -274,3 +274,25 @@ Limitations:
 - Added the Python baseline to the agent manifest and project history.
 - Added PYTHON_VENV.readme to the backup script's selected project files.
 - No Python runtime or package changes were made.
+2026-10-29 — Shyrka optional ElevenLabs cloud voice
+-----------------------------------------------------
+Changes:
+- Added an explicitly invoked cloud text-to-speech option through the dashboard's separate /api/cloud-speak route.
+- Configured Bella (voice ID hpp4J3VqNfWAUOO0d1Us) with model eleven_flash_v2_5 after Iris was rejected for requiring the Creator tier.
+- Added bounded provider-error reporting and protection against forwarding the API key through HTTP redirects.
+- The existing local /api/speak route remains present.
+- The API key is loaded from a separate configuration file; it is not recorded in project documentation.
+
+Validation:
+- Python compilation check passed.
+- Focused dashboard tests passed: 7/7.
+- Dashboard returned HTTP 200 after the implementation restart.
+- User confirmed the Bella cloud TTS test succeeded and was almost instant.
+
+Operational boundaries and limitations:
+- Cloud TTS is used only after an explicit user click; it is not an automatic or default cloud connection.
+- This feature sends the selected speech text to the external ElevenLabs service when invoked.
+- The tested Bella voice worked with the current account; Iris was unavailable at the current tier.
+- This entry does not claim that Scholar integration is implemented.
+- Manual-start policy remains unchanged. No boot auto-start was added.
+- Full backup restore testing remains a separate task.
