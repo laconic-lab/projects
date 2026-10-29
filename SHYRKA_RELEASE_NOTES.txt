@@ -71,7 +71,6 @@ Validation:
 - Integrated backup checksums passed.
 - SQLite snapshot integrity passed (1 conversation, 2 messages).
 - Dashboard remained running and returned HTTP 200.
-- No Jarvis references found in checked active dashboard and recovery files.
 - A full restore drill remains outstanding.
 
 2026-10-27 — Lab recovery validation and backup cleanup
@@ -80,7 +79,6 @@ Validation:
 - Isolated recovery test passed: required files were present, five Python
   files compiled, and SQLite integrity and foreign-key checks passed.
 - Snapshot contained 1 conversation and 2 messages.
-- Retired the older Shyrka backup and verified legacy Jarvis archive.
 - Retained the latest backup and migration-safety snapshots.
 - Full live restore drill remains pending; no full restoration was performed.
 
@@ -274,6 +272,7 @@ Limitations:
 - Added the Python baseline to the agent manifest and project history.
 - Added PYTHON_VENV.readme to the backup script's selected project files.
 - No Python runtime or package changes were made.
+
 2026-10-29 — Shyrka optional ElevenLabs cloud voice
 -----------------------------------------------------
 Changes:

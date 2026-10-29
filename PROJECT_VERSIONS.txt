@@ -61,16 +61,14 @@ Timestamp recorded: 2026-10-27T05:14:12+01:00
 - SQLite snapshot integrity check passed; 1 conversation and 2 messages.
 - Agent unit tests passed: 17/17.
 - Dashboard remained online and returned HTTP 200.
-- No legacy Jarvis references found in the checked active files.
 - Restore drill: NOT YET PERFORMED.
+
 2026-10-27 — Lab recovery validation and backup cleanup
 - Verified all 21 checksums in Shyrka-Agent-20261027-051412.
 - Isolated recovery test passed: required payload files were present,
   five Python files compiled, and the staged SQLite database passed its
   integrity check with zero foreign-key violations.
 - The snapshot contained 1 conversation and 2 messages.
-- Removed the older Shyrka backup and the verified legacy Jarvis archive
-  and checksum file.
 - Retained the latest backup, migration-safety snapshots, and live archive.
 - Full live restore drill remains pending.
 
