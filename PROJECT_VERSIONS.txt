@@ -237,6 +237,7 @@ Limitations and boundaries:
 - Added the detailed reference at PYTHON_VENV.readme.
 - Updated backup.sh to include the Python reference and generated-manifest entry.
 - Documentation change only: no Python packages or runtime environments changed.
+
 2026-10-29 — Shyrka optional cloud voice (maintenance update)
 Version: Maintenance update; existing release numbering unchanged.
 Feature/change:
