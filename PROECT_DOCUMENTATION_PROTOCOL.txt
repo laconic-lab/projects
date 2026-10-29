@@ -1,0 +1,99 @@
+# MANDATORY PROJECT DOCUMENTATION PROTOCOL — CURRENT PROJECT
+
+## 1. SCOPE LOCK — NON-NEGOTIABLE
+
+Document only the project and completed work addressed in the current conversation.
+
+- Establish the target from the current task, verified project path, files changed, and conversation handover.
+- Treat the identified project root as the exclusive search boundary.
+- Reuse paths and findings already established in this conversation, but verify the target and relevant files on disk before writing.
+- Do not scan unrelated projects, Distroboxes, services, recovery folders, or the entire filesystem.
+- If the target project or its canonical path remains ambiguous, ask one focused clarification question before modifying anything.
+
+## 2. TARGETED DOCUMENT DISCOVERY — MANDATORY
+
+Within the confirmed project scope:
+
+1. Inspect the project root and its established documentation locations.
+2. Locate and verify the authoritative version history, release notes, and manifest or inventory.
+3. Confirm their exact filenames, prefixes, paths, formats, and relevant existing entries.
+4. Exclude backups, archived copies, generated duplicates, and patches from active editing unless explicitly designated as authoritative.
+5. Reuse the existing documentation set. Do not create replacement files or introduce a new naming convention without justification and authorization.
+6. If a required file is missing or multiple candidates appear authoritative, investigate only within the current project and stop for clarification if unresolved.
+
+Expected documentation roles:
+
+- `XXX_versions.txt` — historical version entries.
+- `XXX_release_notes.txt` — historical release descriptions.
+- `XXX_manifest.txt` — current inventory, unless its established format explicitly defines another role.
+
+The `XXX` prefix and actual spelling must be discovered from the filesystem, never assumed.
+
+## 3. EVIDENCE AND VERSION ACCURACY
+
+Record only facts supported by the current conversation, completed work, or verified project evidence.
+
+- Identify what was implemented, what was tested, and what was independently verified.
+- Preserve the established versioning scheme. Do not invent version increments, dates, test results, component versions, or paths.
+- Include only changes belonging to the selected project and release.
+- If the version or release significance is unclear, resolve it from existing project conventions or ask before recording it.
+- Do not describe planned features as implemented.
+
+## 4. BACKUP BEFORE WRITING
+
+Before changing documentation:
+
+1. Read the current contents and identify the precise changes required.
+2. Create timestamped pre-update copies of every target file in the project's established documentation-backup location.
+3. If no backup location is established, select a safe location within the current project's designated backup area; if that cannot be identified, stop and ask.
+4. Verify that every backup exists, is readable, and matches its original file before modification. Never overwrite an existing backup.
+5. Prepare the smallest necessary changes while preserving encoding, line endings, formatting, and existing history.
+
+Do not modify application code, configuration, dependencies, databases, services, or unrelated files.
+
+## 5. UPDATE THE THREE DOCUMENTS
+
+Update the verified documentation set consistently.
+
+- **Versions:** add the completed change using the existing historical entry format.
+- **Release notes:** add a concise, factual description of the change, relevant fixes, and any verified limitations or migration requirements.
+- **Manifest:** reconcile the current inventory with the actual resulting project state. Append only if the established manifest format is historical or append-oriented.
+
+Avoid duplicate entries, unnecessary rewrites, and unrelated changes.
+
+If any target changes unexpectedly, a write fails, or the actual project state contradicts the intended documentation, stop and report the issue.
+
+## 6. READ-BACK AND INTEGRITY VERIFICATION — MANDATORY
+
+After writing:
+
+1. Read back every modified document.
+2. Confirm the intended entries or inventory changes appear correctly and only once.
+3. Verify that previous history and unrelated content remain intact.
+4. Check file sizes or line counts and calculate SHA-256 hashes where practical.
+5. Verify that all pre-update backups remain readable and match the original files.
+6. Confirm consistency across the three documents.
+
+If verification fails, do not claim success. Restore from a verified pre-update copy only when the failure and safe restoration target are unambiguous; then verify the restoration and report the outcome.
+
+## 7. COMPLETION REPORT
+
+Provide a concise audit containing:
+
+- Project name and verified canonical path.
+- Exact paths of the three documentation files.
+- Version recorded and summary of changes.
+- Backup paths and backup verification results.
+- Read-back, consistency, and integrity check results.
+- Any unresolved issue or skipped check.
+- Confirmation that unrelated projects and application files were not modified.
+
+Clearly distinguish completed checks from checks that were not performed.
+
+## 8. STOP CONDITION
+
+Finish when the selected documentation has been updated and verified, or when a blocking issue requires clarification.
+
+Do not expand into cleanup, code changes, installations, service restarts, or cross-project maintenance.
+
+**OPERATING PRINCIPLE: Reuse known context, verify narrowly, back up before writing, document only proven changes, validate every result, and leave everything outside the current project untouched.**
