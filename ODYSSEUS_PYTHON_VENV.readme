@@ -1,0 +1,186 @@
+# ODYSSEUS_PYTHON_VENV.readme
+
+## Purpose
+
+This document is the reference for Python execution in the Odysseus
+project. It records the verified interpreter and virtual-environment
+configuration, and the commands that must be used for routine Python
+inspection and execution.
+
+The reference project used to establish these conventions was LocalAI /
+Shyrka. The values below are verified specifically for Odysseus and must
+not be copied from another project's environment.
+
+## Verified Odysseus environment
+
+  -----------------------------------------------------------------------------------
+  Setting                             Verified value
+  ----------------------------------- -----------------------------------------------
+  Distrobox                           `odysseus-box`
+
+  Project root                        `/home/deck/OdysseusProject`
+
+  Python version                      `3.12.3`
+
+  Python executable                   `/home/deck/OdysseusProject/.venv/bin/python`
+
+  Virtual environment                 `/home/deck/OdysseusProject/.venv`
+
+  `sys.prefix`                        `/home/deck/OdysseusProject/.venv`
+
+  `sys.base_prefix`                   `/usr`
+
+  Runtime working directory           `/home/deck/OdysseusProject`
+
+  Application data directory          `/home/deck/OdysseusProject/data`
+
+  Application encryption key path     `/home/deck/OdysseusProject/data/.app_key`
+  -----------------------------------------------------------------------------------
+
+These values were obtained by running the project's own
+virtual-environment interpreter from the project root inside
+`odysseus-box`.
+
+## Non-negotiable execution rules
+
+1.  Run Odysseus Python commands inside `odysseus-box`.
+2.  Use the project's interpreter:
+    `/home/deck/OdysseusProject/.venv/bin/python`.
+3.  Change to `/home/deck/OdysseusProject` before importing project
+    modules, especially modules under `src`.
+4.  Do not substitute the Steam Deck host's `/usr/bin/python3`.
+5.  Do not use another project's virtual environment, including LocalAI
+    / Shyrka's environment.
+6.  Do not install, upgrade, remove, or otherwise change Python packages
+    unless the user explicitly authorizes that operation.
+7.  Do not recreate or replace `.venv` as a troubleshooting shortcut.
+8.  Do not assume that activating a virtual environment is necessary.
+    Calling its interpreter by its explicit path is the preferred
+    deterministic method.
+9.  Do not assume that a host path is visible inside the container;
+    verify container visibility before relying on it.
+10. Inspect before modifying. Preserve existing local project changes.
+
+## Standard command pattern
+
+Run from the Steam Deck host:
+
+``` bash
+distrobox enter odysseus-box -- bash -lc '
+cd /home/deck/OdysseusProject || exit 1
+./.venv/bin/python -c "import sys; print(sys.version); print(sys.executable)"
+'
+```
+
+For project imports:
+
+``` bash
+distrobox enter odysseus-box -- bash -lc '
+cd /home/deck/OdysseusProject || exit 1
+./.venv/bin/python -c "from src.constants import DATA_DIR, APP_KEY_FILE; print(DATA_DIR); print(APP_KEY_FILE)"
+'
+```
+
+For an interactive Python session:
+
+``` bash
+distrobox enter odysseus-box -- bash -lc '
+cd /home/deck/OdysseusProject || exit 1
+exec ./.venv/bin/python
+'
+```
+
+## Why the working directory matters
+
+Using the absolute path to the virtual-environment interpreter does not
+automatically change the shell's current directory or add the project
+root to Python's import path.
+
+This command can therefore fail when run from the home directory:
+
+``` bash
+/home/deck/OdysseusProject/.venv/bin/python -c "from src.constants import DATA_DIR"
+```
+
+The expected pattern is to enter the container, change to the project
+root, and then invoke `./.venv/bin/python`.
+
+A `ModuleNotFoundError: No module named 'src'` in the former situation
+does not, by itself, prove that the virtual environment or source tree
+is broken.
+
+## Host Python is separate
+
+The Steam Deck host previously reported Python `3.14.6`. That is not the
+Odysseus application interpreter. Odysseus runs under the container's
+project virtual environment, which reported Python `3.12.3`.
+
+Do not use host Python to install Odysseus dependencies or run project
+modules.
+
+## Data and encryption paths
+
+The project runtime resolves:
+
+-   `DATA_DIR`: `/home/deck/OdysseusProject/data`
+-   `APP_KEY_FILE`: `/home/deck/OdysseusProject/data/.app_key`
+
+The `.app_key` file was not present during the read-only inspection
+recorded for this reference. Do not create it manually as part of a
+Python check. Application encryption code may create it when encryption
+is first invoked; that behavior must be considered before running code
+that could initialize application state.
+
+The database file `data/app.db` was present. The host and container both
+saw the same project data directory and database.
+
+## Verification command
+
+Use this read-only check if the environment needs to be reconfirmed:
+
+``` bash
+distrobox enter odysseus-box -- bash -lc '
+cd /home/deck/OdysseusProject || exit 1
+echo "Working directory: $PWD"
+./.venv/bin/python -c "
+import sys
+from src.constants import DATA_DIR, APP_KEY_FILE
+print(\"Python:\", sys.version)
+print(\"Executable:\", sys.executable)
+print(\"Prefix:\", sys.prefix)
+print(\"Base prefix:\", sys.base_prefix)
+print(\"DATA_DIR:\", DATA_DIR)
+print(\"APP_KEY_FILE:\", APP_KEY_FILE)
+"
+'
+```
+
+This command imports the constants module and prints resolved paths. It
+does not intentionally create, rotate, or display encryption keys.
+
+## Change control
+
+Treat the interpreter path, Python version, and virtual-environment
+location above as the established Odysseus baseline. If a future project
+update changes them, inspect the startup script, live process, Distrobox
+configuration, and virtual environment before updating this document.
+
+Never silently switch interpreters or rebuild the environment. Record
+and verify any authorized change before treating it as the new baseline.
+
+## Verification record
+
+Verified from the live Odysseus environment during the Groq provider
+integration discovery:
+
+-   Container: `odysseus-box`
+-   Project root: `/home/deck/OdysseusProject`
+-   Python: `3.12.3`
+-   Executable: `/home/deck/OdysseusProject/.venv/bin/python`
+-   Virtual environment prefix: `/home/deck/OdysseusProject/.venv`
+-   Base prefix: `/usr`
+-   Data directory: `/home/deck/OdysseusProject/data`
+-   Encryption key path: `/home/deck/OdysseusProject/data/.app_key`
+
+This document records the inspected state; it is not a guarantee that
+future updates will leave the environment unchanged.
