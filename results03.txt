@@ -1,0 +1,1096 @@
+📦[deck@odysseus-box ~/OdysseusProject]$ cd /home/deck/OdysseusProject || exit 1
+
+echo "===== 1. SESSION HEADER STORAGE AND RESTORE ====="
+grep -RIn -B 8 -A 14 \
+  -E 'headers.*=.*|headers.*get\(|headers.*JSON|headers.*json' \
+  src core routes | head -n 260
+
+echo
+echo "===== 2. SESSION MANAGER LOAD / SAVE ====="
+grep -RIn -B 8 -A 20 \
+  -E 'def (load_sessions|save_sessions|create_session)|endpoint_id|headers' \
+  src/session* core | head -n 280
+
+echo
+echo "===== 3. MAIN CHAT REQUEST CREDENTIAL RESOLUTION ====="
+grep -RIn -B 10 -A 22 \
+  -E 'resolve_endpoint\(|fallback_headers|session\.headers|sess\.headers' \
+  routes/chat_routes.py src | head -n 300
+
+echo
+echo "===== 4. ENDPOINT RESOLVER FULL ENTRY POINT ====="
+grep -n -B 8 -A 55 \
+  '^def resolve_endpoint_runtime\|^def resolve_endpoint\|^def build_headers' \
+  src/endpoint_resolver.py
+
+echo
+echo "===== END OF STEP 44 ====="
+===== 1. SESSION HEADER STORAGE AND RESTORE =====
+src/clean_agent_preview.py-5159-        # Server-only provenance guides trimming, not the model's wire schema.
+src/clean_agent_preview.py-5160-        provider_request = {
+src/clean_agent_preview.py-5161-            **request,
+src/clean_agent_preview.py-5162-            'messages': provider_wire_messages(request['messages']),
+src/clean_agent_preview.py-5163-        }
+src/clean_agent_preview.py-5164-        response_started = False
+src/clean_agent_preview.py-5165-        try:
+src/clean_agent_preview.py-5166-            async with client.stream(
+src/clean_agent_preview.py:5167:                'POST', endpoint_url, headers=headers or {}, json=provider_request,
+src/clean_agent_preview.py-5168-            ) as response:
+src/clean_agent_preview.py-5169-                if (getattr(response, 'status_code', 200) in (400, 413)
+src/clean_agent_preview.py-5170-                        and recovery.get('attempts', 0) < 2):
+src/clean_agent_preview.py-5171-                    await response.aread()
+src/clean_agent_preview.py-5172-                    logging.getLogger(__name__).warning(
+src/clean_agent_preview.py-5173-                        'Provider rejected clean preview request status=%s detail=%s',
+src/clean_agent_preview.py-5174-                        response.status_code,
+src/clean_agent_preview.py-5175-                        response.text[:1000].replace('\n', ' '),
+src/clean_agent_preview.py-5176-                    )
+src/clean_agent_preview.py-5177-                    plan = plan_context_recovery(
+src/clean_agent_preview.py-5178-                        response.text, request['max_tokens'], request['messages'], request.get('tools'))
+src/clean_agent_preview.py-5179-                    if plan is not None:
+src/clean_agent_preview.py-5180-                        recovery['attempts'] = recovery.get('attempts', 0) + 1
+src/clean_agent_preview.py-5181-                        recovery['context_limit'] = plan.context_limit
+--
+src/clean_agent_preview.py-5512-    # Resolve the effective window once, before any model request, so the
+src/clean_agent_preview.py-5513-    # turn budgets against it and metrics report exactly what it ran under.
+src/clean_agent_preview.py-5514-    # The chat route prepares it; only callers arriving without one (or with
+src/clean_agent_preview.py-5515-    # one for a different route) resolve here. Terminal metrics must never
+src/clean_agent_preview.py-5516-    # start this discovery themselves.
+src/clean_agent_preview.py-5517-    if context_resolution is None or not context_resolution.applies_to(endpoint_url, model):
+src/clean_agent_preview.py-5518-        from src.agent_runtime.context_resolution import resolve_effective_context
+src/clean_agent_preview.py-5519-        context_resolution = await resolve_effective_context(
+src/clean_agent_preview.py:5520:            endpoint_url, model, headers=headers,
+src/clean_agent_preview.py-5521-            client_runtime_context=client_runtime_context,
+src/clean_agent_preview.py-5522-        )
+src/clean_agent_preview.py-5523-    context_recovery = {'budget_limit': context_resolution.budget_limit}
+src/clean_agent_preview.py-5524-    successful_write = False
+src/clean_agent_preview.py-5525-    editor_batch_pending = False
+src/clean_agent_preview.py-5526-    editor_suggested_finds = []
+src/clean_agent_preview.py-5527-    editor_partial_pending = False
+src/clean_agent_preview.py-5528-    editor_partial_remaining = 0
+src/clean_agent_preview.py-5529-    editor_partial_applied = 0
+src/clean_agent_preview.py-5530-    successful_editor_writer = None
+src/clean_agent_preview.py-5531-    successful_artifact_write = False
+src/clean_agent_preview.py-5532-    artifact_recovery_attempts = 0
+src/clean_agent_preview.py-5533-    artifact_body_handoff_attempts = 0
+src/clean_agent_preview.py-5534-    artifact_body_handoff_tool_violations = 0
+--
+src/clean_agent_preview.py-5632-            if (any(canonical(s['function']['name']) in {
+src/clean_agent_preview.py-5633-                    'list_emails', 'search_emails', 'read_email', 'draft_email',
+src/clean_agent_preview.py-5634-                    'draft_email_reply', 'send_email', 'reply_email', 'list_email_accounts',
+src/clean_agent_preview.py-5635-                } for s in offered)
+src/clean_agent_preview.py-5636-                    and is_odysseus_merged_tools_model(model) and not native_workspace_enabled):
+src/clean_agent_preview.py-5637-                from src.email_task_intent import classify_email_task, scope_email_tools
+src/clean_agent_preview.py-5638-                try:
+src/clean_agent_preview.py-5639-                    intent = await classify_email_task(
+src/clean_agent_preview.py:5640:                        client, endpoint_url=endpoint_url, headers=headers, model=model,
+src/clean_agent_preview.py-5641-                        history=conversation(history_session, messages, owner=owner),
+src/clean_agent_preview.py-5642-                        supplied_context={
+src/clean_agent_preview.py-5643-                            'active_editor': getattr(active_document, 'current_content', None),
+src/clean_agent_preview.py-5644-                            'active_email': active_email_context_message(active_email),
+src/clean_agent_preview.py-5645-                        },
+src/clean_agent_preview.py-5646-                        accounting=intent_accounting,
+src/clean_agent_preview.py-5647-                    )
+src/clean_agent_preview.py-5648-                except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+src/clean_agent_preview.py-5649-                    # No tool execution on unknown scope; still finish the turn
+src/clean_agent_preview.py-5650-                    # protocol and account for a provider response, if received.
+src/clean_agent_preview.py-5651-                    intent_scope_failed = True
+src/clean_agent_preview.py-5652-                    answer = 'I could not determine the task scope. No action was taken. Please try again with the task and any draft text together.'
+src/clean_agent_preview.py-5653-                    history.append({'role': 'assistant', 'content': answer})
+src/clean_agent_preview.py-5654-                    yield event({'type': 'final_response', 'content': answer})
+--
+src/context_compactor.py-471-    return result
+src/context_compactor.py-472-
+src/context_compactor.py-473-
+src/context_compactor.py-474-async def maybe_compact(
+src/context_compactor.py-475-    session,
+src/context_compactor.py-476-    endpoint_url: str,
+src/context_compactor.py-477-    model: str,
+src/context_compactor.py-478-    messages: List[Dict],
+src/context_compactor.py:479:    headers: Optional[Dict] = None,
+src/context_compactor.py-480-    owner: Optional[str] = None,
+src/context_compactor.py-481-    *,
+src/context_compactor.py-482-    persist: bool = True,
+src/context_compactor.py-483-    compaction_state: Optional[Dict[str, Any]] = None,
+src/context_compactor.py-484-    deterministic: bool = False,
+src/context_compactor.py-485-    context_length: Optional[int] = None,
+src/context_compactor.py-486-) -> tuple:
+src/context_compactor.py-487-    """Check context usage and compact if above threshold.
+src/context_compactor.py-488-
+src/context_compactor.py-489-    ``context_length`` lets a caller that already resolved the turn's window
+src/context_compactor.py-490-    supply it, so this helper does not query the endpoint a second time.
+src/context_compactor.py-491-
+src/context_compactor.py-492-    Returns (messages, context_length, was_compacted).
+src/context_compactor.py-493-    """
+--
+src/context_compactor.py-552-
+src/context_compactor.py-553-    # Count prior compactions from existing summary messages
+src/context_compactor.py-554-    compaction_count = sum(
+src/context_compactor.py-555-        1 for m in system_msgs
+src/context_compactor.py-556-        if "[Conversation summary" in m.get("content", "")
+src/context_compactor.py-557-    )
+src/context_compactor.py-558-
+src/context_compactor.py-559-    # Use utility model if configured, otherwise fall back to session model
+src/context_compactor.py:560:    util_url, util_model, util_headers = resolve_endpoint(
+src/context_compactor.py-561-        "utility",
+src/context_compactor.py-562-        fallback_url=endpoint_url,
+src/context_compactor.py-563-        fallback_model=model,
+src/context_compactor.py:564:        fallback_headers=headers,
+src/context_compactor.py-565-        owner=owner,
+src/context_compactor.py-566-    )
+src/context_compactor.py-567-    compact_url = util_url or endpoint_url
+src/context_compactor.py-568-    compact_model = util_model or model
+src/context_compactor.py:569:    compact_headers = util_headers if util_url else headers
+src/context_compactor.py-570-
+src/context_compactor.py-571-    prompt = SELF_SUMMARY_SYSTEM_PROMPT.replace(
+src/context_compactor.py-572-        "{count}", str(len(older))
+src/context_compactor.py-573-    ).replace(
+src/context_compactor.py-574-        "{n}", str(compaction_count + 1)
+src/context_compactor.py-575-    )
+src/context_compactor.py-576-    summary_messages = [
+src/context_compactor.py-577-        {"role": "system", "content": prompt},
+src/context_compactor.py-578-        {"role": "user", "content": convo_text},
+src/context_compactor.py-579-    ]
+src/context_compactor.py-580-
+src/context_compactor.py-581-    try:
+src/context_compactor.py-582-        summary = await llm_call_async(
+src/context_compactor.py-583-            compact_url,
+src/context_compactor.py-584-            compact_model,
+src/context_compactor.py-585-            summary_messages,
+src/context_compactor.py-586-            temperature=0.2,
+src/context_compactor.py-587-            max_tokens=SUMMARY_MAX_TOKENS,
+src/context_compactor.py:588:            headers=compact_headers,
+src/context_compactor.py-589-            timeout=30,
+src/context_compactor.py-590-            reasoning_effort=effort_for_call(compact_url, compact_model, owner, session),
+src/context_compactor.py-591-        )
+src/context_compactor.py-592-    except Exception as e:
+src/context_compactor.py-593-        logger.error(f"Compaction summary failed: {e}")
+src/context_compactor.py-594-        # Degrade gracefully: keep the conversation intact rather than
+src/context_compactor.py-595-        # silently dropping the older half. was_compacted=False signals the
+src/context_compactor.py-596-        # caller nothing was summarized; trim_for_context handles length.
+src/context_compactor.py-597-        return messages, context_length, False
+src/context_compactor.py-598-    summary = normalize_compaction_summary(summary)
+src/context_compactor.py-599-
+src/context_compactor.py-600-    summary_msg = {
+src/context_compactor.py-601-        "role": "system",
+src/context_compactor.py-602-        "content": f"[Conversation summary — earlier messages were compacted]\n{summary}",
+--
+src/task_endpoint.py-4-    resolve_endpoint,
+src/task_endpoint.py-5-    resolve_utility_fallback_candidates,
+src/task_endpoint.py-6-    same_endpoint_base as _same_endpoint_base,
+src/task_endpoint.py-7-)
+src/task_endpoint.py-8-from src.llm_core import llm_call_async_with_fallback
+src/task_endpoint.py-9-from src.interactive_gate import wait_for_interactive_quiet
+src/task_endpoint.py-10-
+src/task_endpoint.py-11-
+src/task_endpoint.py:12:def resolve_task_endpoint(fallback_url=None, fallback_model=None, fallback_headers=None, owner=None):
+src/task_endpoint.py-13-    """Return (endpoint_url, model, headers) for background tasks.
+src/task_endpoint.py-14-
+src/task_endpoint.py-15-    Reads task_endpoint_id / task_model from admin settings.
+src/task_endpoint.py-16-    Falls back to the provided values when the setting is empty or the
+src/task_endpoint.py-17-    endpoint cannot be resolved.
+src/task_endpoint.py-18-    """
+src/task_endpoint.py:19:    return resolve_endpoint("task", fallback_url, fallback_model, fallback_headers, owner=owner)
+src/task_endpoint.py-20-
+src/task_endpoint.py-21-
+src/task_endpoint.py-22-def resolve_task_candidates(
+src/task_endpoint.py-23-    fallback_url=None,
+src/task_endpoint.py-24-    fallback_model=None,
+src/task_endpoint.py:25:    fallback_headers=None,
+src/task_endpoint.py-26-    override_url=None,
+src/task_endpoint.py-27-    override_model=None,
+src/task_endpoint.py:28:    override_headers=None,
+src/task_endpoint.py-29-    owner=None,
+src/task_endpoint.py-30-):
+src/task_endpoint.py-31-    """Return ordered background-task LLM candidates.
+src/task_endpoint.py-32-
+src/task_endpoint.py-33-    Order:
+src/task_endpoint.py-34-    1. configured Background Tasks endpoint/model, or caller fallback
+src/task_endpoint.py-35-    2. Utility endpoint/model
+src/task_endpoint.py-36-    3. Default endpoint/model
+src/task_endpoint.py-37-    4. Utility fallback chain
+src/task_endpoint.py-38-    """
+src/task_endpoint.py-39-    candidates = []
+src/task_endpoint.py-40-
+src/task_endpoint.py-41-    def _append(url, model, headers):
+src/task_endpoint.py-42-        if not url or not model:
+src/task_endpoint.py-43-            return
+src/task_endpoint.py-44-        key = (url, model)
+src/task_endpoint.py-45-        if any((u, m) == key for u, m, _ in candidates):
+src/task_endpoint.py-46-            return
+src/task_endpoint.py-47-        candidates.append((url, model, headers or {}))
+src/task_endpoint.py-48-
+src/task_endpoint.py-49-    if override_url and override_model:
+src/task_endpoint.py:50:        headers = override_headers or {}
+src/task_endpoint.py-51-        try:
+src/task_endpoint.py-52-            from src.database import ModelEndpoint, SessionLocal
+src/task_endpoint.py-53-            from src.endpoint_resolver import normalize_base, resolve_endpoint_runtime, build_headers
+src/task_endpoint.py-54-            db = SessionLocal()
+src/task_endpoint.py-55-            try:
+src/task_endpoint.py-56-                from src.auth_helpers import owner_filter
+src/task_endpoint.py-57-                query = db.query(ModelEndpoint).filter(ModelEndpoint.is_enabled == True)
+src/task_endpoint.py-58-                for ep in owner_filter(query, ModelEndpoint, owner).all():
+src/task_endpoint.py-59-                    base = normalize_base(getattr(ep, "base_url", "") or "")
+src/task_endpoint.py-60-                    if _same_endpoint_base(override_url, base):
+src/task_endpoint.py-61-                        runtime_base, api_key = resolve_endpoint_runtime(ep, owner=owner)
+src/task_endpoint.py:62:                        headers = build_headers(api_key, runtime_base or base)
+src/task_endpoint.py-63-                        break
+src/task_endpoint.py-64-            finally:
+src/task_endpoint.py-65-                db.close()
+src/task_endpoint.py-66-        except Exception:
+src/task_endpoint.py-67-            pass
+src/task_endpoint.py-68-        _append(override_url, override_model, headers)
+src/task_endpoint.py:69:    _append(*resolve_task_endpoint(fallback_url, fallback_model, fallback_headers, owner=owner))
+src/task_endpoint.py-70-    _append(*resolve_endpoint("utility", owner=owner))
+src/task_endpoint.py-71-    _append(*resolve_endpoint("default", owner=owner))
+src/task_endpoint.py:72:    for url, model, headers in resolve_utility_fallback_candidates(owner=owner):
+src/task_endpoint.py-73-        _append(url, model, headers)
+src/task_endpoint.py-74-    return candidates
+src/task_endpoint.py-75-
+src/task_endpoint.py-76-
+src/task_endpoint.py-77-async def task_llm_call_async(
+src/task_endpoint.py-78-    messages,
+src/task_endpoint.py-79-    *,
+src/task_endpoint.py-80-    fallback_url=None,
+src/task_endpoint.py-81-    fallback_model=None,
+src/task_endpoint.py:82:    fallback_headers=None,
+src/task_endpoint.py-83-    override_url=None,
+src/task_endpoint.py-84-    override_model=None,
+src/task_endpoint.py:85:    override_headers=None,
+src/task_endpoint.py-86-    owner=None,
+src/task_endpoint.py-87-    **kwargs,
+src/task_endpoint.py-88-):
+src/task_endpoint.py-89-    """Call the shared background-task LLM candidate chain."""
+src/task_endpoint.py-90-    resolver_kwargs = {
+src/task_endpoint.py-91-        "fallback_url": fallback_url,
+src/task_endpoint.py-92-        "fallback_model": fallback_model,
+src/task_endpoint.py-93-        "fallback_headers": fallback_headers,
+src/task_endpoint.py-94-        "owner": owner,
+src/task_endpoint.py-95-    }
+src/task_endpoint.py-96-    if override_url is not None:
+src/task_endpoint.py-97-        resolver_kwargs["override_url"] = override_url
+src/task_endpoint.py-98-    if override_model is not None:
+src/task_endpoint.py-99-        resolver_kwargs["override_model"] = override_model
+src/task_endpoint.py-100-    if override_headers is not None:
+src/task_endpoint.py:101:        resolver_kwargs["override_headers"] = override_headers
+src/task_endpoint.py-102-    candidates = resolve_task_candidates(
+src/task_endpoint.py-103-        **resolver_kwargs,
+src/task_endpoint.py-104-    )
+src/task_endpoint.py-105-    if not candidates:
+src/task_endpoint.py-106-        raise RuntimeError("No LLM endpoint available for background task")
+src/task_endpoint.py-107-    await wait_for_interactive_quiet("background task LLM")
+src/task_endpoint.py-108-    kwargs.setdefault("workload", "background")
+src/task_endpoint.py-109-    if kwargs.get("reasoning_effort") is None:
+src/task_endpoint.py-110-        kwargs.pop("reasoning_effort", None)
+src/task_endpoint.py-111-        from src.utility_effort import candidate_effort_factory
+src/task_endpoint.py-112-
+src/task_endpoint.py-113-        factory = candidate_effort_factory(owner)
+src/task_endpoint.py-114-        if factory is not None:
+src/task_endpoint.py-115-            kwargs.setdefault("candidate_request_factory", factory)
+
+===== 2. SESSION MANAGER LOAD / SAVE =====
+src/session_actions.py-158-
+src/session_actions.py-159-        if len(session_list) < 2:
+src/session_actions.py-160-            return f"Cleaned {deleted_empty + deleted_throwaway} sessions. Too few remaining to sort."
+src/session_actions.py-161-
+src/session_actions.py-162-        # Background built-in sweep skips folder-sort to stay pure infra.
+src/session_actions.py-163-        if skip_llm:
+src/session_actions.py-164-            return f"Cleaned {deleted_empty + deleted_throwaway} sessions (folder sort skipped)."
+src/session_actions.py-165-
+src/session_actions.py:166:        url, model, headers = resolve_task_endpoint(owner=owner or None)
+src/session_actions.py-167-        if not url:
+src/session_actions.py-168-            return f"Cleaned {deleted_empty + deleted_throwaway} sessions. No model endpoint available for sorting."
+src/session_actions.py-169-
+src/session_actions.py-170-        names_text = "\n".join(f'  "{s["id"][:8]}": "{s["name"]}"' for s in session_list)
+src/session_actions.py-171-        prompt = (
+src/session_actions.py-172-            "You are a session organizer. Group these chat sessions into folders by topic.\n\n"
+src/session_actions.py-173-            "Rules:\n"
+src/session_actions.py-174-            "- Be aggressive about grouping — put EVERY session in a folder\n"
+src/session_actions.py-175-            "- Use short folder names (2-4 words max)\n"
+src/session_actions.py-176-            "- Use the 8-char ID prefixes exactly as given\n"
+src/session_actions.py-177-            "- Output ONLY raw JSON, no markdown fences, no explanation\n\n"
+src/session_actions.py-178-            "Required JSON format:\n"
+src/session_actions.py-179-            '{"folders": {"Folder Name": ["id_prefix1", "id_prefix2"], "Other Folder": ["id_prefix3"]}}\n\n'
+src/session_actions.py-180-            f"Sessions (id_prefix: name):\n{{\n{names_text}\n}}"
+src/session_actions.py-181-        )
+src/session_actions.py-182-
+src/session_actions.py-183-        try:
+src/session_actions.py-184-            # 16384 (was 4096): large folder JSON + reasoning-model thinking
+src/session_actions.py-185-            # overflowed 4096 and truncated the JSON, so it never parsed.
+src/session_actions.py-186-            raw = await llm_call_async(url, model, [{"role": "user", "content": prompt}],
+src/session_actions.py:187:                                       temperature=0.3, max_tokens=16384, headers=headers, timeout=120)
+src/session_actions.py-188-        except Exception as e:
+src/session_actions.py-189-            logger.warning(f"Auto-sort LLM call failed: {e}")
+src/session_actions.py-190-            return f"Cleaned {deleted_empty + deleted_throwaway} sessions. Folder sort skipped (model unreachable)."
+src/session_actions.py-191-
+src/session_actions.py-192-        # Parse JSON from response
+src/session_actions.py-193-        text = raw.strip()
+src/session_actions.py-194-        result = None
+src/session_actions.py-195-        try:
+src/session_actions.py-196-            result = json.loads(text)
+src/session_actions.py-197-        except json.JSONDecodeError:
+src/session_actions.py-198-            pass
+src/session_actions.py-199-        if result is None:
+src/session_actions.py-200-            fence_match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)```', text)
+src/session_actions.py-201-            if fence_match:
+src/session_actions.py-202-                try:
+src/session_actions.py-203-                    result = json.loads(fence_match.group(1).strip())
+src/session_actions.py-204-                except json.JSONDecodeError:
+src/session_actions.py-205-                    pass
+src/session_actions.py-206-        if result is None:
+src/session_actions.py-207-            brace_start = text.find('{')
+--
+core/session_manager.py-78-        self.sessions: Dict[str, Session] = {}
+core/session_manager.py-79-        self.upload_handler = None
+core/session_manager.py-80-        self.load_sessions()
+core/session_manager.py-81-
+core/session_manager.py-82-    # ------------------------------------------------------------------
+core/session_manager.py-83-    # Loading
+core/session_manager.py-84-    # ------------------------------------------------------------------
+core/session_manager.py-85-
+core/session_manager.py:86:    def load_sessions(self):
+core/session_manager.py-87-        """Load recent session METADATA from the database — messages are
+core/session_manager.py-88-        hydrated on demand by `get_session`. Previously this walked every
+core/session_manager.py-89-        message of every session into RAM at boot, which on a long-running
+core/session_manager.py-90-        personal-server box could be tens of thousands of rows held forever
+core/session_manager.py-91-        in `self.sessions`.
+core/session_manager.py-92-        """
+core/session_manager.py-93-        db = SessionLocal()
+core/session_manager.py-94-        try:
+core/session_manager.py-95-            db_sessions = db.query(DbSession).filter(
+core/session_manager.py-96-                DbSession.archived == False,
+core/session_manager.py-97-                DbSession.messages.any(),
+core/session_manager.py-98-            ).order_by(DbSession.last_accessed.desc()).limit(100).all()
+core/session_manager.py-99-
+core/session_manager.py-100-            # message_count is derived metadata and can drift after interrupted
+core/session_manager.py-101-            # or legacy writes. Count only the bounded discovery set so startup
+core/session_manager.py-102-            # remains metadata-only while lazy hydration sees an authoritative
+core/session_manager.py-103-            # positive count for every discovered non-empty session.
+core/session_manager.py-104-            message_counts = {}
+core/session_manager.py-105-            if db_sessions:
+core/session_manager.py-106-                message_counts = dict(
+--
+core/session_manager.py-128-            logger.error(f"Error loading sessions: {e}")
+core/session_manager.py-129-            self.sessions = {}
+core/session_manager.py-130-        finally:
+core/session_manager.py-131-            db.close()
+core/session_manager.py-132-
+core/session_manager.py-133-    def _db_to_session_meta(self, db_session: DbSession) -> Optional[Session]:
+core/session_manager.py-134-        """Build a Session with empty history. `get_session` will hydrate
+core/session_manager.py-135-        messages from the DB on first read."""
+core/session_manager.py:136:        headers = db_session.headers
+core/session_manager.py:137:        if isinstance(headers, str):
+core/session_manager.py-138-            try:
+core/session_manager.py:139:                headers = json.loads(headers)
+core/session_manager.py-140-            except json.JSONDecodeError:
+core/session_manager.py:141:                headers = {}
+core/session_manager.py-142-        session = Session(
+core/session_manager.py-143-            id=db_session.id,
+core/session_manager.py-144-            name=db_session.name,
+core/session_manager.py-145-            endpoint_url=db_session.endpoint_url,
+core/session_manager.py-146-            model=db_session.model,
+core/session_manager.py-147-            rag=db_session.rag,
+core/session_manager.py-148-            archived=db_session.archived,
+core/session_manager.py:149:            headers=headers,
+core/session_manager.py-150-            history=[],
+core/session_manager.py-151-            owner=getattr(db_session, "owner", None),
+core/session_manager.py-152-            is_important=getattr(db_session, "is_important", False) or False,
+core/session_manager.py-153-            memory_extraction_enabled=getattr(db_session, "memory_extraction_enabled", True) is not False,
+core/session_manager.py-154-            memory_injection_enabled=getattr(db_session, "memory_injection_enabled", True) is not False,
+core/session_manager.py-155-            skill_injection_enabled=getattr(db_session, "skill_injection_enabled", True) is not False,
+core/session_manager.py-156-            thinking_mode=getattr(db_session, "thinking_mode", "") or "off",
+core/session_manager.py-157-            temperature_override=getattr(db_session, "temperature_override", None),
+core/session_manager.py-158-            max_tokens_override=getattr(db_session, "max_tokens_override", None),
+core/session_manager.py-159-            cwd=getattr(db_session, "cwd", None) or None,
+core/session_manager.py:160:            endpoint_id=getattr(db_session, "endpoint_id", None) or None,
+core/session_manager.py-161-        )
+core/session_manager.py-162-        session.message_count = getattr(db_session, "message_count", 0) or 0
+core/session_manager.py-163-        return session
+core/session_manager.py-164-
+core/session_manager.py-165-    def _db_to_session(self, db_session: DbSession, db) -> Optional[Session]:
+core/session_manager.py-166-        """Convert a database session to a Session object."""
+core/session_manager.py-167-        history = []
+core/session_manager.py-168-
+core/session_manager.py-169-        # Try relationship first, then direct query
+core/session_manager.py-170-        if db_session.messages:
+core/session_manager.py-171-            for db_msg in db_session.messages:
+core/session_manager.py-172-                meta = json.loads(db_msg.meta_data) if db_msg.meta_data else {}
+core/session_manager.py-173-                if meta is None: meta = {}
+core/session_manager.py-174-                meta['_db_id'] = db_msg.id
+core/session_manager.py-175-                meta.setdefault('timestamp', _message_timestamp_iso(db_msg.timestamp))
+core/session_manager.py-176-                history.append(ChatMessage(
+core/session_manager.py-177-                    role=db_msg.role,
+core/session_manager.py-178-                    content=_parse_msg_content(db_msg.content),
+core/session_manager.py-179-                    metadata=meta,
+core/session_manager.py-180-                ))
+--
+core/session_manager.py-192-                    role=db_msg.role,
+core/session_manager.py-193-                    content=_parse_msg_content(db_msg.content),
+core/session_manager.py-194-                    metadata=meta,
+core/session_manager.py-195-                ))
+core/session_manager.py-196-
+core/session_manager.py-197-        if not history:
+core/session_manager.py-198-            return None
+core/session_manager.py-199-
+core/session_manager.py:200:        # Parse headers
+core/session_manager.py:201:        headers = db_session.headers
+core/session_manager.py:202:        if isinstance(headers, str):
+core/session_manager.py-203-            try:
+core/session_manager.py:204:                headers = json.loads(headers)
+core/session_manager.py-205-            except json.JSONDecodeError:
+core/session_manager.py:206:                headers = {}
+core/session_manager.py-207-
+core/session_manager.py-208-        session = Session(
+core/session_manager.py-209-            id=db_session.id,
+core/session_manager.py-210-            name=db_session.name,
+core/session_manager.py-211-            endpoint_url=db_session.endpoint_url,
+core/session_manager.py-212-            model=db_session.model,
+core/session_manager.py-213-            rag=db_session.rag,
+core/session_manager.py-214-            archived=db_session.archived,
+core/session_manager.py:215:            headers=headers,
+core/session_manager.py-216-            history=history,
+core/session_manager.py-217-            owner=getattr(db_session, 'owner', None),
+core/session_manager.py-218-            is_important=getattr(db_session, 'is_important', False) or False,
+core/session_manager.py-219-            memory_extraction_enabled=getattr(db_session, 'memory_extraction_enabled', True) is not False,
+core/session_manager.py-220-            memory_injection_enabled=getattr(db_session, 'memory_injection_enabled', True) is not False,
+core/session_manager.py-221-            skill_injection_enabled=getattr(db_session, 'skill_injection_enabled', True) is not False,
+core/session_manager.py-222-            thinking_mode=getattr(db_session, "thinking_mode", "") or "off",
+core/session_manager.py-223-            temperature_override=getattr(db_session, "temperature_override", None),
+core/session_manager.py-224-            max_tokens_override=getattr(db_session, "max_tokens_override", None),
+core/session_manager.py-225-            cwd=getattr(db_session, "cwd", None) or None,
+core/session_manager.py:226:            endpoint_id=getattr(db_session, "endpoint_id", None) or None,
+core/session_manager.py-227-        )
+core/session_manager.py-228-
+core/session_manager.py-229-        # The rows just loaded are the whole transcript, so they — not the
+core/session_manager.py-230-        # denormalized sessions.message_count column — are the truth for this
+core/session_manager.py-231-        # cached object. get_session's hydration gate compares against this
+core/session_manager.py-232-        # number; seeding it from a drifted column would ask for a reload that
+core/session_manager.py-233-        # can never close the gap.
+core/session_manager.py-234-        session.message_count = len(history)
+core/session_manager.py-235-        return session
+core/session_manager.py-236-
+core/session_manager.py-237-    # ------------------------------------------------------------------
+core/session_manager.py-238-    # Message operations
+core/session_manager.py-239-    # ------------------------------------------------------------------
+core/session_manager.py-240-
+core/session_manager.py-241-    def add_message(self, session_id: str, message: ChatMessage):
+core/session_manager.py-242-        """
+core/session_manager.py-243-        Add a message to a session and persist to database.
+core/session_manager.py-244-
+core/session_manager.py-245-        Updates the authoritative history list and persists through this
+core/session_manager.py-246-        manager directly so tests and temporary managers do not depend on the
+--
+core/session_manager.py-482-        session = self.sessions.get(session_id)
+core/session_manager.py-483-        if session is None:
+core/session_manager.py-484-            return False
+core/session_manager.py-485-        db = SessionLocal()
+core/session_manager.py-486-        try:
+core/session_manager.py-487-            db_session = db.query(DbSession).filter(DbSession.id == session_id).first()
+core/session_manager.py-488-            if db_session is None:
+core/session_manager.py-489-                return False
+core/session_manager.py:490:            headers = db_session.headers
+core/session_manager.py:491:            if isinstance(headers, str):
+core/session_manager.py-492-                try:
+core/session_manager.py:493:                    headers = json.loads(headers)
+core/session_manager.py-494-                except json.JSONDecodeError:
+core/session_manager.py:495:                    headers = {}
+core/session_manager.py-496-            session.name = db_session.name
+core/session_manager.py-497-            session.endpoint_url = db_session.endpoint_url or ""
+core/session_manager.py:498:            session.endpoint_id = getattr(db_session, "endpoint_id", None) or None
+core/session_manager.py-499-            session.model = db_session.model or ""
+core/session_manager.py:500:            session.headers = headers or {}
+core/session_manager.py-501-            session.rag = db_session.rag
+core/session_manager.py-502-            session.archived = db_session.archived
+core/session_manager.py-503-            session.owner = getattr(db_session, "owner", None)
+core/session_manager.py-504-            session.is_important = getattr(db_session, "is_important", False) or False
+core/session_manager.py-505-            session.cwd = getattr(db_session, "cwd", None) or None
+core/session_manager.py-506-            session.message_count = (
+core/session_manager.py-507-                db.query(DbChatMessage)
+core/session_manager.py-508-                .filter(DbChatMessage.session_id == session_id)
+core/session_manager.py-509-                .count()
+core/session_manager.py-510-            )
+core/session_manager.py-511-            return True
+core/session_manager.py-512-        except Exception as e:
+core/session_manager.py-513-            logger.error(f"Error syncing session metadata {session_id}: {e}")
+core/session_manager.py-514-            return False
+core/session_manager.py-515-        finally:
+core/session_manager.py-516-            db.close()
+core/session_manager.py-517-
+core/session_manager.py-518-    def _load_session_from_db(self, session_id: str):
+core/session_manager.py-519-        """Hydrate a single session (with messages) from the database."""
+core/session_manager.py-520-        db = SessionLocal()
+--
+core/session_manager.py-551-                db_session.last_accessed = datetime.now(timezone.utc)
+core/session_manager.py-552-                db.commit()
+core/session_manager.py-553-        except Exception as e:
+core/session_manager.py-554-            logger.error(f"Error updating last_accessed: {e}")
+core/session_manager.py-555-            db.rollback()
+core/session_manager.py-556-        finally:
+core/session_manager.py-557-            db.close()
+core/session_manager.py-558-
+core/session_manager.py:559:    def create_session(
+core/session_manager.py-560-        self,
+core/session_manager.py-561-        session_id: str,
+core/session_manager.py-562-        name: str,
+core/session_manager.py-563-        endpoint_url: str,
+core/session_manager.py-564-        model: str,
+core/session_manager.py-565-        rag: bool = False,
+core/session_manager.py-566-        owner: str = None,
+core/session_manager.py-567-        cwd: str = None,
+core/session_manager.py:568:        headers: Optional[Dict[str, str]] = None,
+core/session_manager.py:569:        endpoint_id: Optional[str] = None,
+core/session_manager.py-570-    ) -> Session:
+core/session_manager.py-571-        """Create a new session and save to database."""
+core/session_manager.py-572-        from src.chatgpt_subscription import is_chatgpt_subscription_base
+core/session_manager.py:573:        session_headers = {} if is_chatgpt_subscription_base(endpoint_url) else dict(headers or {})
+core/session_manager.py:574:        endpoint_id = (endpoint_id or "").strip() or None
+core/session_manager.py-575-        db = SessionLocal()
+core/session_manager.py-576-        try:
+core/session_manager.py-577-            db_session = DbSession(
+core/session_manager.py-578-                id=session_id,
+core/session_manager.py-579-                name=name,
+core/session_manager.py-580-                endpoint_url=endpoint_url,
+core/session_manager.py-581-                model=model,
+core/session_manager.py-582-                rag=rag,
+core/session_manager.py:583:                headers=session_headers,
+core/session_manager.py-584-                owner=owner,
+core/session_manager.py-585-                cwd=cwd or None,
+core/session_manager.py:586:                endpoint_id=endpoint_id,
+core/session_manager.py-587-                created_at=datetime.now(timezone.utc),
+core/session_manager.py-588-                updated_at=datetime.now(timezone.utc)
+core/session_manager.py-589-            )
+core/session_manager.py-590-            db.add(db_session)
+core/session_manager.py-591-            db.commit()
+core/session_manager.py-592-
+core/session_manager.py-593-            session = Session(
+core/session_manager.py-594-                id=session_id,
+core/session_manager.py-595-                name=name,
+core/session_manager.py-596-                endpoint_url=endpoint_url,
+core/session_manager.py-597-                model=model,
+core/session_manager.py-598-                rag=rag,
+core/session_manager.py:599:                headers=session_headers,
+
+===== 3. MAIN CHAT REQUEST CREDENTIAL RESOLUTION =====
+routes/chat_routes.py-1778-        endpoints = q.all()
+routes/chat_routes.py-1779-        bound_id = getattr(sess, "endpoint_id", None)
+routes/chat_routes.py-1780-        for ep in endpoints:
+routes/chat_routes.py-1781-            if bound_id and ep.id != bound_id:
+routes/chat_routes.py-1782-                continue
+routes/chat_routes.py-1783-            if _session_url_matches_endpoint(sess.endpoint_url or "", ep.base_url or ""):
+routes/chat_routes.py-1784-                return False
+routes/chat_routes.py-1785-        if bound_id:
+routes/chat_routes.py-1786-            # Keep the identity so re-enabling/reconnecting A can recover A.
+routes/chat_routes.py-1787-            # Returning True stops chat; B must never replace a missing A.
+routes/chat_routes.py:1788:            sess.headers = {}
+routes/chat_routes.py-1789-            stored = db.query(DBSession).filter(DBSession.id == sess.id, DBSession.owner == owner).first()
+routes/chat_routes.py-1790-            if stored is not None:
+routes/chat_routes.py-1791-                stored.headers = {}
+routes/chat_routes.py-1792-                db.commit()
+routes/chat_routes.py-1793-            return True
+routes/chat_routes.py-1794-        db_session = db.query(DBSession).filter(DBSession.id == sess.id).first()
+routes/chat_routes.py-1795-        if db_session:
+routes/chat_routes.py-1796-            db_session.endpoint_url = ""
+routes/chat_routes.py-1797-            db_session.model = ""
+routes/chat_routes.py-1798-            db_session.updated_at = datetime.utcnow()
+routes/chat_routes.py-1799-            db.commit()
+routes/chat_routes.py-1800-        sess.endpoint_url = ""
+routes/chat_routes.py-1801-        sess.model = ""
+routes/chat_routes.py:1802:        sess.headers = {}
+routes/chat_routes.py-1803-        return True
+routes/chat_routes.py-1804-    except Exception as e:
+routes/chat_routes.py-1805-        logger.warning("Failed to clear orphaned session endpoint", exc_info=e)
+routes/chat_routes.py-1806-        db.rollback()
+routes/chat_routes.py-1807-        return False
+routes/chat_routes.py-1808-    finally:
+routes/chat_routes.py-1809-        db.close()
+routes/chat_routes.py-1810-
+routes/chat_routes.py-1811-
+routes/chat_routes.py-1812-def _endpoint_cache_contains_model(endpoint, model: str) -> bool:
+routes/chat_routes.py-1813-    """Return True when a populated endpoint model cache includes ``model``.
+routes/chat_routes.py-1814-
+routes/chat_routes.py-1815-    Empty/malformed caches are treated as unknown rather than a negative match
+routes/chat_routes.py-1816-    so older image endpoints without cached models still work.
+routes/chat_routes.py-1817-    """
+routes/chat_routes.py-1818-    raw = getattr(endpoint, "cached_models", None)
+routes/chat_routes.py-1819-    if not raw:
+routes/chat_routes.py-1820-        return True
+routes/chat_routes.py-1821-    try:
+routes/chat_routes.py-1822-        models = json.loads(raw) if isinstance(raw, str) else raw
+routes/chat_routes.py-1823-    except Exception as e:
+routes/chat_routes.py-1824-        logger.warning("Failed to parse cached models list, treating as containing model", exc_info=e)
+--
+routes/chat_routes.py-2090-    headers_changed = dict(getattr(sess, "headers", None) or {}) != dict(headers or {})
+routes/chat_routes.py-2091-    binding_changed = bool(
+routes/chat_routes.py-2092-        resolved_endpoint_id
+routes/chat_routes.py-2093-        and resolved_endpoint_id != (getattr(sess, "endpoint_id", None) or None)
+routes/chat_routes.py-2094-    )
+routes/chat_routes.py-2095-    if not route_changed and not headers_changed and not binding_changed:
+routes/chat_routes.py-2096-        return False
+routes/chat_routes.py-2097-
+routes/chat_routes.py-2098-    sess.model = selected_model
+routes/chat_routes.py-2099-    sess.endpoint_url = endpoint_url
+routes/chat_routes.py:2100:    sess.headers = headers or {}
+routes/chat_routes.py-2101-    if resolved_endpoint_id:
+routes/chat_routes.py-2102-        sess.endpoint_id = resolved_endpoint_id
+routes/chat_routes.py-2103-    elif route_changed:
+routes/chat_routes.py-2104-        # The route moved without an explicit endpoint id: drop a stale binding
+routes/chat_routes.py-2105-        # rather than keep pointing at an endpoint the session no longer uses.
+routes/chat_routes.py-2106-        sess.endpoint_id = None
+routes/chat_routes.py-2107-    db = SessionLocal()
+routes/chat_routes.py-2108-    try:
+routes/chat_routes.py-2109-        db_session = db.query(DBSession).filter(DBSession.id == session_id).first()
+routes/chat_routes.py-2110-        if db_session:
+routes/chat_routes.py-2111-            db_session.model = selected_model
+routes/chat_routes.py-2112-            db_session.endpoint_url = endpoint_url
+routes/chat_routes.py-2113-            db_session.endpoint_id = getattr(sess, "endpoint_id", None) or None
+routes/chat_routes.py:2114:            db_session.headers = sess.headers or {}
+routes/chat_routes.py-2115-            db_session.updated_at = datetime.utcnow()
+routes/chat_routes.py-2116-            db.commit()
+routes/chat_routes.py-2117-    finally:
+routes/chat_routes.py-2118-        db.close()
+routes/chat_routes.py-2119-    logger.info(
+routes/chat_routes.py-2120-        "Reconciled selected route for %s: model=%r endpoint=%s route_changed=%s headers_changed=%s",
+routes/chat_routes.py-2121-        session_id,
+routes/chat_routes.py-2122-        selected_model,
+routes/chat_routes.py-2123-        redact_url(endpoint_url),
+routes/chat_routes.py-2124-        route_changed,
+routes/chat_routes.py-2125-        headers_changed,
+routes/chat_routes.py-2126-    )
+routes/chat_routes.py-2127-    return True
+routes/chat_routes.py-2128-
+routes/chat_routes.py-2129-
+routes/chat_routes.py-2130-def _set_user_time_from_request(request: Request) -> None:
+routes/chat_routes.py-2131-    """Copy browser timezone headers into the per-request context.
+routes/chat_routes.py-2132-
+routes/chat_routes.py-2133-    This is intentionally ephemeral: it is used only while building prompts
+routes/chat_routes.py-2134-    and running tools for this request. It is not persisted or logged.
+routes/chat_routes.py-2135-    """
+routes/chat_routes.py-2136-    try:
+--
+routes/chat_routes.py-2359-                    getattr(ctx, "route_messages", ctx.messages).insert(
+routes/chat_routes.py-2360-                        len(ctx.preface),
+routes/chat_routes.py-2361-                        research_message,
+routes/chat_routes.py-2362-                    )
+routes/chat_routes.py-2363-            except Exception as e:
+routes/chat_routes.py-2364-                logger.error(f"Research failed: {e}")
+routes/chat_routes.py-2365-
+routes/chat_routes.py-2366-        foreground_candidates = build_foreground_model_candidates(
+routes/chat_routes.py-2367-            sess.endpoint_url,
+routes/chat_routes.py-2368-            sess.model,
+routes/chat_routes.py:2369:            sess.headers,
+routes/chat_routes.py-2370-            owner=owner,
+routes/chat_routes.py-2371-            policy=foreground_policy,
+routes/chat_routes.py-2372-        )
+routes/chat_routes.py-2373-        route_descriptors = build_foreground_route_descriptors(
+routes/chat_routes.py-2374-            sess.endpoint_url,
+routes/chat_routes.py-2375-            sess.model,
+routes/chat_routes.py:2376:            sess.headers,
+routes/chat_routes.py-2377-            owner=owner,
+routes/chat_routes.py-2378-            policy=foreground_policy,
+routes/chat_routes.py-2379-            selected_endpoint_id=chat_request.selected_endpoint_id or getattr(sess, "endpoint_id", None),
+routes/chat_routes.py-2380-        )
+routes/chat_routes.py-2381-        candidate_request_factory = None
+routes/chat_routes.py-2382-        selected_context_length = getattr(ctx, "context_length", 0)
+routes/chat_routes.py-2383-        candidate_request_state = {
+routes/chat_routes.py-2384-            "context_lengths": {0: selected_context_length},
+routes/chat_routes.py-2385-            "requests": {0: ctx.messages},
+routes/chat_routes.py-2386-            "trim_stats": {},
+routes/chat_routes.py-2387-        }
+routes/chat_routes.py-2388-        request_messages = ctx.messages
+routes/chat_routes.py-2389-        if foreground_policy.enabled:
+routes/chat_routes.py-2390-            request_messages = getattr(ctx, "route_messages", ctx.messages)
+routes/chat_routes.py-2391-            candidate_request_factory, candidate_request_state = _chat_candidate_request_factory(
+routes/chat_routes.py-2392-                request_messages,
+routes/chat_routes.py-2393-                selected_context_length,
+routes/chat_routes.py-2394-                session=sess,
+routes/chat_routes.py-2395-                owner=owner,
+routes/chat_routes.py-2396-            )
+routes/chat_routes.py-2397-        requested_model = sess.model
+routes/chat_routes.py-2398-        reply, actual_candidate, actual_model = await llm_call_async_with_route_fallback(
+--
+routes/chat_routes.py-3065-            image_generation=image_generation_session,
+routes/chat_routes.py-3066-        )
+routes/chat_routes.py-3067-        # A compact turn resolves its typed context window once, here, with
+routes/chat_routes.py-3068-        # the session's provider credentials. History shaping below and the
+routes/chat_routes.py-3069-        # compact runtime both reuse this exact object, so the turn neither
+routes/chat_routes.py-3070-        # probes twice nor mixes the legacy untyped lookup into it.
+routes/chat_routes.py-3071-        _compact_context_resolution = None
+routes/chat_routes.py-3072-        if _compact_preview_turn:
+routes/chat_routes.py-3073-            from src.agent_runtime.context_resolution import resolve_effective_context
+routes/chat_routes.py-3074-            _compact_context_resolution = await resolve_effective_context(
+routes/chat_routes.py:3075:                sess.endpoint_url, sess.model, headers=sess.headers,
+routes/chat_routes.py-3076-                client_runtime_context=client_runtime_context,
+routes/chat_routes.py-3077-            )
+routes/chat_routes.py-3078-
+routes/chat_routes.py-3079-        # Build shared context (stream path uses enhanced_message for context preface)
+routes/chat_routes.py-3080-        ctx = await build_chat_context(
+routes/chat_routes.py-3081-            sess, request, chat_handler, chat_processor,
+routes/chat_routes.py-3082-            message=message,
+routes/chat_routes.py-3083-            session_id=session,
+routes/chat_routes.py-3084-            selected_notes_context=selected_notes_context,
+routes/chat_routes.py-3085-            preset_id=preset_id,
+routes/chat_routes.py-3086-            att_ids=att_ids,
+routes/chat_routes.py-3087-            use_web=use_web,
+routes/chat_routes.py-3088-            use_rag=use_rag,
+routes/chat_routes.py-3089-            time_filter=time_filter,
+routes/chat_routes.py-3090-            incognito=incognito,
+routes/chat_routes.py-3091-            no_memory=no_memory,
+routes/chat_routes.py-3092-            search_context=search_context,
+routes/chat_routes.py-3093-            compare_mode=compare_mode,
+routes/chat_routes.py-3094-            webhook_manager=webhook_manager,
+routes/chat_routes.py-3095-            use_enhanced_message=True,
+routes/chat_routes.py-3096-            # Skills index only ships when the model can actually call
+routes/chat_routes.py-3097-            # manage_skills (agent mode). In plain chat or incognito the
+--
+routes/chat_routes.py-3871-                yield f"data: {json.dumps({'type': 'web_sources', 'data': web_sources})}\n\n"
+routes/chat_routes.py-3872-
+routes/chat_routes.py-3873-            # Emit which memories were injected into context (captured before stream)
+routes/chat_routes.py-3874-            if ctx.used_memories:
+routes/chat_routes.py-3875-                yield f"data: {json.dumps({'type': 'memories_used', 'data': ctx.used_memories})}\n\n"
+routes/chat_routes.py-3876-
+routes/chat_routes.py-3877-            # Run research as a background task (survives page refresh)
+routes/chat_routes.py-3878-            if effective_do_research:
+routes/chat_routes.py-3879-                _r_ep, _r_model, _r_headers = _resolve_research_endpoint(sess)
+routes/chat_routes.py-3880-                _auth_keys = list(_r_headers.keys()) if _r_headers else []
+routes/chat_routes.py:3881:                logger.info(f"Research endpoint resolved: model={_r_model}, endpoint={redact_url(_r_ep)}, auth_keys={_auth_keys}, sess_headers_keys={list(sess.headers.keys()) if isinstance(sess.headers, dict) else type(sess.headers)}")
+routes/chat_routes.py-3882-
+routes/chat_routes.py-3883-                # Clarification round: only for very short/vague queries on first research message.
+routes/chat_routes.py-3884-                # Skip in compare mode — each pane is a fresh session, so every one would
+routes/chat_routes.py-3885-                # ask clarifying questions and the user would have to answer each pane
+routes/chat_routes.py-3886-                # separately, breaking the parallel comparison.
+routes/chat_routes.py-3887-                _prior_json = research_handler._get_session_json(session)
+routes/chat_routes.py-3888-                _history_len = len(sess.history) if hasattr(sess, 'history') else 0
+routes/chat_routes.py-3889-                _is_first_research = not _prior_json and _history_len <= 2 and not compare_mode
+routes/chat_routes.py-3890-
+routes/chat_routes.py-3891-                if _is_first_research:
+routes/chat_routes.py-3892-                    logger.info(f"First research message — asking clarifying questions for: {message[:60]}")
+routes/chat_routes.py-3893-                    yield f'data: {json.dumps({"type": "model_info", "model": sess.model, "suffix": "Research"})}\n\n'
+routes/chat_routes.py-3894-                    # Set DB mode to research_pending so the NEXT message auto-triggers research
+routes/chat_routes.py-3895-                    set_session_mode(session, "research_pending")
+routes/chat_routes.py-3896-                    ctx.messages.insert(0, {"role": "system", "content":
+routes/chat_routes.py-3897-                        "The user wants to start deep web research. Before searching, ask 2-3 brief "
+routes/chat_routes.py-3898-                        "clarifying questions to understand exactly what they want to know. For example: "
+routes/chat_routes.py-3899-                        "what aspects matter most, are they comparing to something, what's their context "
+routes/chat_routes.py-3900-                        "(moving, traveling, curiosity). Be conversational. Keep it short."
+routes/chat_routes.py-3901-                    })
+routes/chat_routes.py-3902-                    if foreground_policy.enabled:
+routes/chat_routes.py-3903-                        getattr(ctx, "route_messages", ctx.messages).insert(0, dict(ctx.messages[0]))
+--
+routes/chat_routes.py-4018-            _render_state = _AgentRenderState()
+routes/chat_routes.py-4019-            thinking_response = ""
+routes/chat_routes.py-4020-            last_metrics = None
+routes/chat_routes.py-4021-
+routes/chat_routes.py-4022-            # Foreground Chat and Agent requests share one explicit owner-aware
+routes/chat_routes.py-4023-            # policy. Strict mode is the default; legacy values are unrelated.
+routes/chat_routes.py-4024-            _foreground_policy = foreground_policy
+routes/chat_routes.py-4025-            _foreground_candidates = build_foreground_model_candidates(
+routes/chat_routes.py-4026-                sess.endpoint_url,
+routes/chat_routes.py-4027-                sess.model,
+routes/chat_routes.py:4028:                sess.headers,
+routes/chat_routes.py-4029-                owner=_user,
+routes/chat_routes.py-4030-                policy=_foreground_policy,
+routes/chat_routes.py-4031-            )
+routes/chat_routes.py-4032-            _foreground_route_descriptors = build_foreground_route_descriptors(
+routes/chat_routes.py-4033-                sess.endpoint_url,
+routes/chat_routes.py-4034-                sess.model,
+routes/chat_routes.py:4035:                sess.headers,
+routes/chat_routes.py-4036-                owner=_user,
+routes/chat_routes.py-4037-                policy=_foreground_policy,
+routes/chat_routes.py-4038-                selected_endpoint_id=selected_endpoint_id or getattr(sess, "endpoint_id", None),
+routes/chat_routes.py-4039-            )
+routes/chat_routes.py-4040-            _chat_request_factory = None
+routes/chat_routes.py-4041-            _selected_context_length = getattr(ctx, "context_length", 0)
+routes/chat_routes.py-4042-            _chat_request_state = {
+routes/chat_routes.py-4043-                "context_lengths": {0: _selected_context_length},
+routes/chat_routes.py-4044-                "requests": {0: messages},
+routes/chat_routes.py-4045-                "trim_stats": {},
+routes/chat_routes.py-4046-            }
+routes/chat_routes.py-4047-            if _foreground_policy.enabled:
+routes/chat_routes.py-4048-                _chat_request_factory, _chat_request_state = _chat_candidate_request_factory(
+routes/chat_routes.py-4049-                    messages,
+routes/chat_routes.py-4050-                    _selected_context_length,
+routes/chat_routes.py-4051-                    session=sess,
+routes/chat_routes.py-4052-                    owner=_user,
+routes/chat_routes.py-4053-                )
+routes/chat_routes.py-4054-
+routes/chat_routes.py-4055-            # Send model name early so the frontend can show it during streaming
+routes/chat_routes.py-4056-            _model_suffix = "Research" if effective_do_research else None
+routes/chat_routes.py-4057-            _selected_route = _foreground_route_descriptors[0]
+--
+routes/chat_routes.py-4607-                            # OCR/write/read workflow).
+routes/chat_routes.py-4608-                            _forced_tools = set(_explicit_selected_tools)
+routes/chat_routes.py-4609-                    if _turn_contract is not None:
+routes/chat_routes.py-4610-                        _forced_tools = set(_turn_contract.offered)
+routes/chat_routes.py-4611-
+routes/chat_routes.py-4612-                    async for chunk in _stream_agent_with_execution_bridge(
+routes/chat_routes.py-4613-                        _external_execution_bridge(client_runtime_context),
+routes/chat_routes.py-4614-                        sess.endpoint_url,
+routes/chat_routes.py-4615-                        sess.model,
+routes/chat_routes.py-4616-                        messages,
+routes/chat_routes.py:4617:                        headers=sess.headers,
+routes/chat_routes.py-4618-                        temperature=(temperature_override if temperature_override is not None else 1.0),
+routes/chat_routes.py-4619-                        max_tokens=_max_tokens,
+routes/chat_routes.py-4620-                        prompt_type=preset_id,
+routes/chat_routes.py-4621-                        max_tool_calls=_tool_budget,
+routes/chat_routes.py-4622-                        max_rounds=_max_rounds,
+routes/chat_routes.py-4623-                        context_length=_selected_context_length,
+routes/chat_routes.py-4624-                        active_document=active_doc,
+routes/chat_routes.py-4625-                        active_email=active_email_ctx,
+routes/chat_routes.py-4626-                        session_id=session,
+routes/chat_routes.py-4627-                        history_session=sess,
+routes/chat_routes.py-4628-                        disabled_tools=disabled_tools if disabled_tools else None,
+routes/chat_routes.py-4629-                        tool_policy=tool_policy,
+routes/chat_routes.py-4630-                        owner=_user,
+routes/chat_routes.py-4631-                        fallbacks=_foreground_candidates[1:],
+routes/chat_routes.py-4632-                        route_descriptors=_foreground_route_descriptors,
+routes/chat_routes.py-4633-                        fallback_statuses=_foreground_policy.eligible_statuses,
+routes/chat_routes.py-4634-                        fallback_on_empty=_foreground_policy.fallback_on_empty,
+routes/chat_routes.py-4635-                        plan_mode=plan_mode,
+routes/chat_routes.py-4636-                        approved_plan=approved_plan or None,
+routes/chat_routes.py-4637-                        workspace=workspace or None,
+routes/chat_routes.py-4638-                        relevant_tools=(
+routes/chat_routes.py-4639-                            set(pending_tool_approval.selected_tools)
+--
+routes/chat_routes.py-5139-            )},
+routes/chat_routes.py-5140-        ]
+routes/chat_routes.py-5141-
+routes/chat_routes.py-5142-        async def stream_rewrite() -> AsyncGenerator[str, None]:
+routes/chat_routes.py-5143-            full_response = ""
+routes/chat_routes.py-5144-            try:
+routes/chat_routes.py-5145-                async for chunk in stream_llm(
+routes/chat_routes.py-5146-                    sess.endpoint_url,
+routes/chat_routes.py-5147-                    sess.model,
+routes/chat_routes.py-5148-                    messages,
+routes/chat_routes.py:5149:                    headers=sess.headers,
+routes/chat_routes.py-5150-                    temperature=0.7,
+routes/chat_routes.py-5151-                    # 0 = let the server decide (no cap). A hardcoded 4096 made
+routes/chat_routes.py-5152-                    # local reasoning models (Qwen3 / R1) burn the whole budget
+routes/chat_routes.py-5153-                    # inside <think> and emit no rewrite — the bubble just hung
+routes/chat_routes.py-5154-                    # on "Rewriting...". Same fix as the chat max_tokens cap.
+routes/chat_routes.py-5155-                    max_tokens=0,
+routes/chat_routes.py-5156-                    tools=None,
+routes/chat_routes.py-5157-                ):
+routes/chat_routes.py-5158-                    if chunk.startswith("data: ") and not chunk.startswith("data: [DONE]"):
+
+===== 4. ENDPOINT RESOLVER FULL ENTRY POINT =====
+163-        if not isinstance(m, str) or not m or m in seen:
+164-            continue
+165-        seen.add(m)
+166-        merged.append(m)
+167-    merged = _filter_mlx_deepseek_v4_repo_when_shimmed(merged)
+168-    return [m for m in merged if m not in hidden]
+169-
+170-
+171:def resolve_endpoint_runtime(ep, owner: Optional[str] = None) -> Tuple[str, Optional[str]]:
+172-    """Resolve a ModelEndpoint row to its runtime base URL and bearer/API key.
+173-
+174-    Static-key providers use ``ModelEndpoint.api_key``. Session-backed providers
+175-    store refreshable credentials in ProviderAuthSession and must resolve a
+176-    current access token at call time.
+177-    """
+178-    base = _rewrite_docker_host_for_native_runtime(
+179-        normalize_base(getattr(ep, "base_url", "") or "")
+180-    )
+181-    api_key = getattr(ep, "api_key", None)
+182-    auth_id = getattr(ep, "provider_auth_id", None)
+183-    if auth_id:
+184-        from src.chatgpt_subscription import resolve_runtime_credentials
+185-
+186-        creds = resolve_runtime_credentials(auth_id, owner=owner)
+187-        base = _rewrite_docker_host_for_native_runtime(
+188-            normalize_base(creds.get("base_url") or base)
+189-        )
+190-        api_key = creds.get("api_key")
+191-    return base, api_key
+192-
+193-
+194-# Cache for Tailscale hostname → IP resolution
+195-_tailscale_cache: Dict[str, Optional[str]] = {}
+196-
+197-
+198-def _resolve_tailscale_host(hostname: str) -> Optional[str]:
+199-    """Try to resolve a hostname via 'tailscale status' if DNS fails."""
+200-    if hostname in _tailscale_cache:
+201-        return _tailscale_cache[hostname]
+202-
+203-    # First check if normal DNS works
+204-    try:
+205-        socket.getaddrinfo(hostname, None, socket.AF_INET)
+206-        _tailscale_cache[hostname] = None  # DNS works, no override needed
+207-        return None
+208-    except socket.gaierror:
+209-        pass
+210-
+211-    # DNS failed — try tailscale
+212-    try:
+213-        result = subprocess.run(
+214-            ["tailscale", "status", "--json"],
+215-            capture_output=True, text=True, timeout=5
+216-        )
+217-        if result.returncode == 0:
+218-            import json as _json
+219-            data = _json.loads(result.stdout)
+220-            peers = data.get("Peer", {})
+221-            for _id, peer in peers.items():
+222-                peer_name = (peer.get("HostName") or "").lower()
+223-                dns_name = (peer.get("DNSName") or "").split(".")[0].lower()
+224-                if peer_name == hostname.lower() or dns_name == hostname.lower():
+225-                    addrs = peer.get("TailscaleIPs", [])
+226-                    if addrs:
+--
+407-    host = (parsed.hostname or "").lower()
+408-    is_local = host in {"localhost", "127.0.0.1", "::1", "host.docker.internal"}
+409-    uses_v1_models_by_default = is_local or host in {"api.deepseek.com", "api.openai.com"}
+410-    if not parsed.path and uses_v1_models_by_default:
+411-        base = _append_endpoint_path(base, "/v1")
+412-    return _append_endpoint_path(base, "/models")
+413-
+414-
+415:def build_headers(api_key: Optional[str], base: str) -> Dict[str, str]:
+416-    """Build auth headers for an endpoint."""
+417-    provider = _detect_provider(base)
+418-    headers: Dict[str, str] = {}
+419-    if provider == "anthropic":
+420-        if api_key:
+421-            headers["x-api-key"] = api_key
+422-        headers["anthropic-version"] = "2023-06-01"
+423-        return headers
+424-    if provider == "copilot":
+425-        from src.copilot import copilot_headers
+426-        return copilot_headers(api_key)
+427-    if provider == "chatgpt-subscription":
+428-        from src.chatgpt_subscription import chatgpt_headers
+429-        return chatgpt_headers(api_key)
+430-    if api_key:
+431-        headers["Authorization"] = f"Bearer {api_key}"
+432-    if provider == "openrouter":
+433-        headers.setdefault("HTTP-Referer", "https://github.com/odysseus-dev/odysseus")
+434-        headers.setdefault("X-OpenRouter-Title", "Odysseus")
+435-    if _is_kimi_code_url(base):
+436-        headers.setdefault("User-Agent", KIMI_CODE_USER_AGENT)
+437-    return headers
+438-
+439-
+440:def resolve_endpoint(
+441-    setting_prefix: str,
+442-    fallback_url: Optional[str] = None,
+443-    fallback_model: Optional[str] = None,
+444-    fallback_headers: Optional[Dict] = None,
+445-    owner: Optional[str] = None,
+446-) -> Tuple[Optional[str], Optional[str], Optional[Dict]]:
+447-    """Resolve an endpoint/model from settings, with fallback.
+448-
+449-    Args:
+450-        setting_prefix: Settings key prefix, e.g. "research", "task", "utility", "default".
+451-                       Reads ``{prefix}_endpoint_id`` and ``{prefix}_model`` from settings.
+452-        fallback_url:    URL to use if settings are empty or endpoint missing.
+453-        fallback_model:  Model to use if settings are empty.
+454-        fallback_headers: Headers to use if using fallback.
+455-
+456-    Returns:
+457-        (endpoint_url, model, headers) — resolved or fallback values.
+458-    """
+459-    try:
+460-        from src.settings import get_user_setting, load_settings
+461-        settings = load_settings()
+462-    except Exception:
+463-        return fallback_url, fallback_model, fallback_headers
+464-
+465-    owner_str = owner or ""
+466-    def _stg(key: str) -> str:
+467-        return (get_user_setting(key, owner_str, settings.get(key, "")) or "").strip()
+468-
+469-    ep_id = _stg(f"{setting_prefix}_endpoint_id")
+470-    model = _stg(f"{setting_prefix}_model")
+471-
+472-    # Fall back to utility model for task/research/auto-naming if not specifically configured.
+473-    if not ep_id and setting_prefix not in ("utility", "default"):
+474-        ep_id = _stg("utility_endpoint_id")
+475-        model = _stg("utility_model")
+476-
+477-    # If the endpoint is STILL not configured, but the caller provided a
+478-    # valid fallback (e.g. the active session model), use that immediately.
+479-    # This prevents background tasks from jumping to the global default_model
+480-    # when the user is mid-conversation with a different model.
+481-    if not ep_id and fallback_url and fallback_model:
+482-        return fallback_url, fallback_model, fallback_headers
+483-
+484-    # Unset Utility (or anything else that didn't have a fallback) means "same as Default Chat Model".
+485-    if not ep_id:
+486-        ep_id = _stg("default_endpoint_id")
+487-        model = _stg("default_model")
+488-
+489-    if not ep_id:
+490-        return fallback_url, fallback_model, fallback_headers
+491-
+492-    db = SessionLocal()
+493-    try:
+494-        ep = db.query(ModelEndpoint).filter(
+495-            ModelEndpoint.id == ep_id,
+--
+595-        )
+596-    except Exception as e:
+597-        logger.debug(f"Could not resolve endpoint {ep_id}: {e}")
+598-        return None
+599-    finally:
+600-        db.close()
+601-
+602-
+603:def resolve_endpoint_by_id(
+604-    ep_id: str,
+605-    model: Optional[str] = None,
+606-    owner: Optional[str] = None,
+607-    *,
+608-    require_exact_model: bool = False,
+609-) -> Optional[Tuple[str, str, Dict]]:
+610-    """Resolve a specific endpoint id (+ optional model) to its runtime route."""
+611-
+612-    resolved = _resolve_endpoint_by_id_with_descriptor(
+613-        ep_id,
+614-        model,
+615-        owner=owner,
+616-        require_exact_model=require_exact_model,
+617-    )
+618-    return resolved[0] if resolved else None
+619-
+620-
+621-def resolve_route_descriptor(
+622-    endpoint_url: str,
+623-    model: str,
+624-    headers: Optional[Dict] = None,
+625-    owner: Optional[str] = None,
+626-) -> dict:
+627-    """Return the visible endpoint identity for an already-resolved route.
+628-
+629-    Headers are compared only inside the process so two endpoints using the
+630-    same provider URL/model but different credentials remain distinguishable.
+631-    No credential material is returned or logged.
+632-    """
+633-
+634-    if not endpoint_url or not model:
+635-        return {
+636-            "endpoint_id": None,
+637-            "endpoint_label": "Selected route",
+638-            "endpoint_cost_tracked": endpoint_cost_tracked(endpoint_url),
+639-        }
+640-    db = SessionLocal()
+641-    try:
+642-        q = db.query(ModelEndpoint).filter(ModelEndpoint.is_enabled == True)
+643-        if owner:
+644-            from src.auth_helpers import owner_filter
+645-            q = owner_filter(q, ModelEndpoint, owner)
+646-        expected = (endpoint_url.rstrip("/"), model, headers or {})
+647-        for ep in q.all():
+648-            resolved = _resolve_endpoint_by_id_with_descriptor(
+649-                ep.id,
+650-                model,
+651-                owner=owner,
+652-                require_exact_model=True,
+653-            )
+654-            if not resolved:
+655-                continue
+656-            candidate, descriptor = resolved
+657-            actual = (candidate[0].rstrip("/"), candidate[1], candidate[2] or {})
+658-            if actual == expected:
+
+===== END OF STEP 44 =====
+📦[deck@odysseus-box ~/OdysseusProject]$
