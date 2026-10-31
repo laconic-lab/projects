@@ -1,0 +1,278 @@
+# ODYSSEUS — Phase 2.2.1
+
+## Read-only SteamOS feasibility examination
+
+Architecture approved
+
+Read-only examination
+
+No implementation
+
+Excellent. The Phase 2.2 architecture is now our approved design baseline.
+
+Our objective is to determine whether the Steam Deck can support the proposed rootless Podman security model without compromising SteamOS or the existing projects.
+
+We will inspect five areas:
+
+1. Host identity and subordinate UID/GID mappings.
+2. Podman rootless capabilities and storage.
+3. Kernel namespaces, seccomp and cgroups.
+4. Network and firewall capabilities.
+5. Available resources and existing runtime state.
+
+Strict examination rules
+
+- No installation or updates.
+- No configuration changes.
+- No file or directory creation.
+- No container creation, launch or deletion.
+- No changes to existing Distroboxes or Podman containers.
+- No provider credential access.
+- No commands requiring `sudo`.
+
+All commands below are inspection commands. Run them on the Steam Deck host, not inside `odysseus-box`.
+
+## Examination 1 — Host identity and UID/GID
+
+Purpose: identity isolation
+
+STEAM DECK — Konsole / SSH
+
+This identifies the actual host user, subordinate ID ranges and current identity mappings.
+
+```
+echo "===== HOST IDENTITY ====="
+id
+getent passwd deck
+
+echo
+echo "===== SUBORDINATE UID ====="
+if [ -r /etc/subuid ]; then
+    grep -E '^deck:' /etc/subuid || echo "No deck entry"
+else
+    echo "/etc/subuid unavailable"
+fi
+
+echo
+echo "===== SUBORDINATE GID ====="
+if [ -r /etc/subgid ]; then
+    grep -E '^deck:' /etc/subgid || echo "No deck entry"
+else
+    echo "/etc/subgid unavailable"
+fi
+
+echo
+echo "===== CURRENT USER NAMESPACE ====="
+cat /proc/self/uid_map
+cat /proc/self/gid_map
+
+echo
+echo "===== USER NAMESPACE LIMITS ====="
+for f in \
+    /proc/sys/user/max_user_namespaces \
+    /proc/sys/kernel/unprivileged_userns_clone
+do
+    if [ -r "$f" ]; then
+        printf '%s = ' "$f"
+        cat "$f"
+    else
+        echo "$f unavailable"
+    fi
+done
+```
+
+What we need to establish:
+
+- Whether `deck` has subordinate UID/GID ranges.
+- Whether unprivileged user namespaces are available.
+- Whether `auto` or `nomap` can realistically be used.
+- Whether the proposed identity separation is feasible without host changes.
+
+## Examination 2 — Podman capabilities
+
+Purpose: rootless runtime feasibility
+
+STEAM DECK — Konsole / SSH
+
+```
+echo "===== PODMAN VERSION ====="
+podman --version
+
+echo
+echo "===== PODMAN INFO ====="
+podman info --debug
+
+echo
+echo "===== PODMAN CONTAINERS ====="
+podman ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+
+echo
+echo "===== DISTROBOX VERSION ====="
+distrobox --version
+
+echo
+echo "===== AVAILABLE RUNTIME TOOLS ====="
+for cmd in podman distrobox crun runc conmon newuidmap newgidmap slirp4netns pasta netavark aardvark-dns jq; do
+    printf '%-16s' "$cmd"
+    command -v "$cmd" || echo "not found"
+done
+```
+
+What we need to establish:
+
+- Rootless Podman configuration.
+- OCI runtime and network backend.
+- Storage driver and filesystem compatibility.
+- Whether subordinate-ID helpers are available.
+- Existing container state, without interacting with those containers.
+
+Do not worry if some tools are missing. Missing components are findings, not instructions to install them.
+
+## Examination 3 — Kernel and isolation capabilities
+
+Purpose: container hardening
+
+STEAM DECK — Konsole / SSH
+
+```
+echo "===== STEAMOS AND KERNEL ====="
+cat /etc/os-release
+uname -a
+
+echo
+echo "===== CGROUP VERSION ====="
+stat -fc %T /sys/fs/cgroup
+
+echo
+echo "===== CGROUP CONTROLLERS ====="
+if [ -r /sys/fs/cgroup/cgroup.controllers ]; then
+    cat /sys/fs/cgroup/cgroup.controllers
+else
+    echo "cgroup.controllers unavailable"
+fi
+
+echo
+echo "===== CURRENT PROCESS SECCOMP ====="
+grep -E '^(NoNewPrivs|Seccomp|Seccomp_filters):' /proc/self/status
+
+echo
+echo "===== NAMESPACE SUPPORT ====="
+ls -l /proc/self/ns/
+
+echo
+echo "===== SECURITY FRAMEWORKS ====="
+for cmd in getenforce aa-status; do
+    printf '%-16s' "$cmd"
+    command -v "$cmd" || echo "not found"
+done
+```
+
+What we need to establish:
+
+- cgroup v2 availability.
+- CPU, memory and process-limit enforcement capabilities.
+- Seccomp support.
+- Namespace availability.
+- Existing security framework constraints.
+
+## Examination 4 — Network and firewall capabilities
+
+Purpose: controlled egress feasibility
+
+STEAM DECK — Konsole / SSH
+
+```
+echo "===== NETWORK INTERFACES ====="
+ip -brief address
+
+echo
+echo "===== ROUTING ====="
+ip route
+
+echo
+echo "===== IPV6 ROUTING ====="
+ip -6 route
+
+echo
+echo "===== FIREWALL STATUS ====="
+if command -v firewall-cmd >/dev/null 2>&1; then
+    firewall-cmd --state
+    firewall-cmd --get-active-zones
+else
+    echo "firewalld command unavailable"
+fi
+
+echo
+echo "===== NFTABLES AVAILABILITY ====="
+if command -v nft >/dev/null 2>&1; then
+    nft --version
+else
+    echo "nft unavailable"
+fi
+
+echo
+echo "===== PODMAN NETWORK CONFIGURATION ====="
+podman network ls
+
+echo
+echo "===== NETWORK BACKEND ====="
+podman info --debug | grep -i -E 'networkBackend|network backend|rootlessNetworkCmd|rootless network'
+```
+
+What we need to establish:
+
+- Current network and firewall framework.
+- Rootless network backend.
+- Whether we can implement controlled outbound access.
+- Whether host and LAN isolation can be enforced without interfering with existing networking.
+
+We will not alter firewall rules or network configuration.
+
+## Examination 5 — Resource and storage headroom
+
+Purpose: safe runtime sizing
+
+STEAM DECK — Konsole / SSH
+
+```
+echo "===== MEMORY ====="
+free -h
+
+echo
+echo "===== CPU ====="
+nproc
+lscpu | grep -E 'Model name|CPU\(s\)|Thread|Core|Socket'
+
+echo
+echo "===== FILESYSTEM CAPACITY ====="
+df -h /home /var /tmp
+
+echo
+echo "===== STORAGE FILESYSTEM TYPES ====="
+findmnt -T /home
+findmnt -T /var
+findmnt -T /tmp
+
+echo
+echo "===== CURRENT USER STORAGE ====="
+du -sh ~/.local/share/containers 2>/dev/null || echo "No rootless container storage directory"
+```
+
+This is enough to begin estimating safe CPU, memory and storage ceilings without making assumptions about how much headroom the Deck should retain for games.
+
+## What happens after you send the results?
+
+Phase 2.2.1 — Evaluation checklist
+
+1. Identity: select a viable UID/GID mapping strategy.
+2. Runtime: determine whether rootless Podman is feasible with the existing host configuration.
+3. Isolation: verify namespace, seccomp and cgroup capabilities.
+4. Networking: select a safe egress architecture that does not expose the LAN.
+5. Resources: establish conservative resource limits.
+6. Decision: publish a SteamOS-specific feasibility report, including blockers and unresolved risks.
+
+Please send the five examination outputs. You can send them together or one examination at a time.
+
+I will assess the actual results before proposing any runtime configuration. If a requirement cannot be achieved safely with the existing SteamOS environment, we will identify that limitation rather than work around it by weakening the approved architecture.
+
+No implementation begins until the feasibility report is complete and you approve the next phase.

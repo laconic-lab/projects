@@ -1,0 +1,185 @@
+⚓ ODYSSEUS — Installation baseline approved
+
+Decision locked
+ Phase 2 — Security architecture
+
+Confirmed. The installation baseline is now pinned to:
+
+Repository: odysseus-dev/odysseus
+Branch: dev
+Commit: 03d25943ee4a35f6f0535112976123a721cff5cb
+
+We will install from that exact revision—not from a moving dev branch and not from the older odysseus-current snapshot.
+
+This is approval of the source baseline, not approval to install or launch anything yet. Phase 1 remains read-only; we now move into Phase 2 and design the security boundary before touching the Steam Deck.
+Phase 2 — Security architecture, first design
+I have also retrieved and reviewed your Global Engineering & Security Standard. It is now a governing reference for this design.
+
+Three rules are especially important:
+1. Distrobox is an environment boundary, not automatically a security boundary.
+2. A host credential with 600 permissions is not protected from a process running under the same host UID.
+3. Every important modification requires inspection, authorization and verification.
+Your existing Odysseus-specific modifications are also protected:
+- src/builtin_mcp.py
+- decktools/
+- requirements-odysseus.txt
+We must inspect and preserve them when we reach implementation.
+1. Proposed trust architecture
+Windows PC
+
+Browser interface · authorized user
+
+
+Application boundary
+Odysseus ordinary Agent
+
+Non-admin identity · server-side default-deny policy
+
+Chat
+
+Allowed
+
+Research
+
+Controlled
+
+Project inspection
+
+Read-only broker
+
+Memory
+
+Restricted
+
+
+
+Narrow authenticated interfaces only
+
+Host service A
+Provider broker
+
+Credential resolution and authenticated requests
+
+Host service B
+Project inspector
+
+Fixed approved roots · read-only
+
+
+
+Host-side protected resources
+
+Provider keys · approved project files · audit records
+
+
+The two host-side services are proposed architectural components, not existing services. Their communication mechanism and isolation must be verified before implementation.
+2. Ordinary Agent permission matrix
+This is our initial policy proposal.
+Capability	Initial policy
+Normal chat	Allow
+Manually selected provider	Allow
+Controlled browser/research	Allow
+Read approved project files	Allow
+Inspect project health	Allow
+Arbitrary filesystem access	Deny
+Arbitrary Bash / Python	Deny
+File writes / deletion	Deny
+MCP tools and servers	Deny
+Email and messaging	Deny
+Credential management	Deny
+Admin settings	Deny
+SSH / host administration	Deny
+Background or scheduled autonomy	Deny
+Automatic provider switching	Deny
+Automatic paid API fallback	Deny
+Unknown or newly introduced tools	Deny
+
+Human approval must be enforced at the execution layer, not merely presented in the interface.
+3. Provider architecture
+The seven-provider framework remains shared and independent:
+Provider selection
+
+One manually selected provider per conversation
+
+Groq
+
+Cloudflare
+
+OpenAI
+
+Gemini
+
+Mistral
+
+Cerebras
+
+OpenRouter
+
+
+
+Shared provider interface
+
+Selection · request validation · diagnostics
+
+
+Credential broker
+
+Resolve key privately · authenticate request · never return raw key
+
+
+Selected provider API
+
+
+Credential storage convention
+
+/home/deck/.config/odysseus/providers/<provider>/odysseus-<provider>.key
+- Directories: 700
+- Key files: 600
+- Owner: deck:deck
+- No keys in Git, application environment variables, database session headers, logs, chat or UI.
+- No broad host .config or home-directory mounts.
+Provider health must distinguish:
+State	Meaning
+ONLINE	Authenticated request succeeded
+DEGRADED	Service responds, but a capability or operation is impaired
+OFFLINE	Provider unavailable
+AUTH ERROR	Credential or authentication rejected
+NOT TESTED	No successful validation yet
+
+Model discovery does not prove authentication. Authentication does not prove that research, search or grounding works.
+
+Groq is first. No paid test or provider activation is authorized yet.
+4. Two architectural blockers to resolve
+Blocker A — Actual container isolation
+
+We must establish whether odysseus-box can operate without exposing /home/deck, sharing sensitive host identity access, or inheriting unnecessary host mounts.
+
+We will inspect actual UID/GID mappings, mounts, capabilities and access paths. If the Distrobox arrangement cannot satisfy the security requirements, we must not pretend that Distrobox alone solves isolation.
+
+Blocker B — Broker interfaces
+
+The provider broker and project inspector must have narrow authenticated interfaces, fixed permissions, bounded inputs and outputs, and no arbitrary command execution.
+
+The Agent must not be able to turn either service into a general-purpose host access mechanism.
+
+5. Phase 2 work sequence
+1. Freeze the ordinary-Agent capability policy
+   
+   Define the exact allowed and denied tools, including server-side enforcement and unknown-tool behavior.
+2. Design the host/container boundary
+   
+   Determine the actual isolation mechanism before choosing the final runtime configuration.
+3. Design the provider broker
+   
+   Define its request contract, credential handling, authentication and diagnostic behavior.
+4. Design read-only project inspection
+   
+   Define the approved roots and the limits on file access.
+5. Create the security validation plan
+   
+   Every security requirement must have a test that can demonstrate whether it is enforced.
+Next action: I will begin with the ordinary-Agent tool inventory and map every upstream tool to this permission matrix. That gives us a concrete allow/deny list before we design the host services.
+
+No installation, Steam Deck commands, provider connections or modifications yet.
+
+LET'S GO.

@@ -1,0 +1,318 @@
+Continuing against `odysseus-dev/odysseus-current`, branch `dev` only. The separate `odysseus-dev/odysseus` repository is not being used as evidence.
+
+One important distinction has emerged: the generic internal API bridge has a meaningful blocklist, and the shell route has its own admin check. The security question is whether the bridge's own filtering and the internal-token identity preserve the intended owner and permissions all the way to each route.
+
+Everything below remains a source audit. I have not run the application, called its APIs, or changed anything.
+
+## 1. API-token authority and scope enforcement
+
+Confirmed source-level security gap
+
+### What the source establishes
+
+The API-token system defines a genuine scope model:
+
+- `routes/api_token_routes.py` defines allowed scopes, including `chat`, `email:read`, `documents:read`, and `cookbook:launch`.
+- New tokens default to `chat`.
+- Token profiles and scope normalization are implemented.
+- `app.py` authenticates bearer tokens and stores the token owner and scopes in request state:
+  - `request.state.current_user = "api"`
+  - `request.state.api_token_owner = matched_owner`
+  - `request.state.api_token_scopes = matched_scopes`
+
+The critical issue is what happens after authentication.
+
+The chat route resolves the effective user from the token owner. The Agent execution policy then evaluates that owner, including whether the owner is an administrator. I found no corresponding chat-scope check in the chat route, and no global scope enforcement in the middleware reviewed.
+
+### Consequence
+
+A token restricted to `chat` can enter the general Agent chat execution path. If its owner is an administrator, the Agent's owner-based authorization can treat the request as administrator-authorized.
+
+That is a mismatch between two different concepts:
+
+- Token scope: what the token was explicitly granted.
+- Owner authority: what the account that created the token is allowed to do.
+
+The current flow appears to substitute the second for the first.
+
+A `chat` scope should not silently become administrator-level Agent authority simply because the token belongs to an administrator.
+
+### Audit record
+
+| Test  | Objective                                                | Result                                      | Assessment |
+| ----- | -------------------------------------------------------- | ------------------------------------------- | ---------- |
+| AT-01 | Token scopes defined and validated                       | Yes                                         | Pass       |
+| AT-02 | Token identity and owner propagated                      | Yes                                         | Pass       |
+| AT-03 | Chat route checks required `chat` scope                  | No check found                              | Fail       |
+| AT-04 | Agent tools constrained by token scopes                  | No scope-aware dispatcher enforcement found | Fail       |
+| AT-05 | Admin owner cannot lend full authority to a narrow token | Not enforced in reviewed path               | Fail       |
+
+Required design correction
+
+Token scopes must be enforced at the execution boundary, not merely during token creation or authentication.
+
+The effective authority should be the intersection of:
+
+`token scopes ∩ owner permissions ∩ tool policy`
+
+This must apply to both native function calls and fenced tool calls, including MCP dispatch and internal API operations. A token with `chat` should receive chat access, not every capability available to its owner.
+
+Sources:
+
+- [API-token routes](https://github.com/odysseus-dev/odysseus-current/blob/dev/routes/api_token_routes.py?utm_source=chatgpt.com) — SHA `cbc828731bc7b752557ffb5197c5e154aa15375a`
+- [Authentication middleware](https://github.com/odysseus-dev/odysseus-current/blob/dev/app.py?utm_source=chatgpt.com) — SHA `e740ad5180043dc751a8e868ae29e18603bf594f`
+- [Tool security policy](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_security.py?utm_source=chatgpt.com) — SHA `fe61f0afea8f66ce875e367e5f95d819c20829be`
+- [Tool dispatcher](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_execution.py?utm_source=chatgpt.com) — SHA `44001ad69cf094db5459053c3219c4c2880a1fa0`
+
+## 2. Internal API bridge and route-level permissions
+
+Broad privileged capability surface
+
+The internal API bridge is `app_api`, implemented in `src/tools/system.py`.
+
+It is effectively an HTTP client inside Odysseus that allows the Agent to call internal application endpoints.
+
+### How it works
+
+There are two actions:
+
+- `endpoints`: retrieves `/openapi.json`, filters the listed routes and returns endpoint descriptions.
+- `call`: sends a request to an internal endpoint.
+
+The call action supports:
+
+- `GET`
+- `POST`
+- `PUT`
+- `PATCH`
+- `DELETE`
+
+It accepts a path, query parameters and a JSON body.
+
+The dispatcher passes the Agent's owner to `do_app_api()`. The bridge then builds internal headers using `_internal_headers(owner=owner)`.
+
+That matters because the internal authentication middleware can attribute the request to that owner.
+
+### The internal-token mechanism
+
+`core/middleware.py` defines a per-process internal token.
+
+`app.py` accepts that token only when the request comes from a trusted loopback connection. The trusted-loopback check rejects requests carrying proxy-forwarding headers.
+
+When accepted:
+
+- `X-Odysseus-Owner` can attribute the request to an existing user.
+- Without a valid owner, the request receives the pseudo-identity `internal-tool`.
+- The request is marked as not being an API-token request.
+
+The internal identity is trusted by `require_admin()`.
+
+This is an intentional mechanism for internal Agent tools to call routes that normally require administrator authentication.
+
+The important security distinction: the internal token is an application-level privileged credential. Owner attribution does not independently establish authorization. It identifies the user to which the operation is attributed.
+
+### What the bridge blocks
+
+The current bridge has a useful blocklist.
+
+| Blocked area             | Rule                         |
+| ------------------------ | ---------------------------- |
+| Authentication           | `/api/auth` prefix           |
+| User administration      | `/api/users` prefix          |
+| API-token administration | `/api/tokens` prefix         |
+| Admin endpoints          | `/api/admin` prefix          |
+| Shell endpoints          | `/api/shell` prefix          |
+| Backup restore           | `/api/backup/restore` prefix |
+
+It also blocks selected method/path combinations, including:
+
+- Cookbook state overwrite.
+- Cookbook package installation.
+- Engine rebuild.
+- Process signalling.
+- Direct model download and serve endpoints.
+- Direct research start.
+- Search endpoints.
+- Note and calendar event mutations.
+
+This is considerably better than an unrestricted internal HTTP proxy.
+
+### The remaining problem
+
+The bridge is still a generic route executor.
+
+The method-specific blocklist is selective, not a comprehensive list of every endpoint with side effects. The remaining routes can be called using the supported HTTP methods.
+
+The `endpoints` action also discovers routes from OpenAPI, applying the same filters. This means the Agent can discover a substantial portion of the internal API surface without a named tool wrapper.
+
+The bridge is restricted to administrator-authorized Agent use by the dispatcher, but that does not make it a narrow capability. An administrator's Agent session can potentially reach many application operations through a single generic tool.
+
+The risk is especially relevant to prompt injection: an Agent does not need a dedicated tool for a dangerous operation if it can discover and call the corresponding route through `app_api`.
+
+### Audit record
+
+| Test  | Objective                                           | Result                | Assessment            |
+| ----- | --------------------------------------------------- | --------------------- | --------------------- |
+| AP-01 | Generic HTTP methods supported                      | Five methods          | Confirmed             |
+| AP-02 | Sensitive route prefixes blocked                    | Yes                   | Pass                  |
+| AP-03 | Selected destructive methods blocked                | Yes                   | Pass                  |
+| AP-04 | All state-changing routes explicitly classified     | No                    | Fail                  |
+| AP-05 | Owner attribution propagated                        | Yes                   | Pass                  |
+| AP-06 | Internal token grants admin-equivalent route access | Yes                   | Confirmed design      |
+| AP-07 | Route permissions independently enforced            | Depends on each route | Inconclusive globally |
+
+Required design correction
+
+I would not make the bridge the Agent's general-purpose API tool.
+
+Instead:
+
+1. Define an explicit route allowlist for Agent access.
+2. Define permitted methods for each route, not just blocked methods.
+3. Classify routes by read, write, external side effect, and privileged host operation.
+4. Enforce the same authorization policy inside the route layer.
+5. Make owner attribution and authorization separate, explicit checks.
+6. Apply token scopes to the bridge as well as native tools.
+7. Keep OpenAPI discovery limited to routes the current Agent principal is actually allowed to call.
+
+The current blocklist should be treated as a useful mitigation, not as the final security boundary.
+
+Sources:
+
+- [Internal API bridge and blocklists](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tools/system.py?utm_source=chatgpt.com) — SHA `813d57df222c51fc8ca61ae7e66a758d85359267`
+- [Internal headers](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tools/_common.py?utm_source=chatgpt.com) — SHA `a7ae6c7985b0e984b0199be97f5f8c76ee0d7711`
+- [Internal authentication middleware](https://github.com/odysseus-dev/odysseus-current/blob/dev/core/middleware.py?utm_source=chatgpt.com) — SHA `0e164e35a5af2583caa50e85adb73d98a33e4edd`
+- [Application authentication middleware](https://github.com/odysseus-dev/odysseus-current/blob/dev/app.py?utm_source=chatgpt.com) — SHA `e740ad5180043dc751a8e868ae29e18603bf594f`
+
+## 3. Host shell, shell routes and TUI bridge
+
+This area needs a distinction between three different execution mechanisms.
+
+### A. Application shell routes
+
+`routes/shell_routes.py` exposes:
+
+- `POST /api/shell/exec`
+- `POST /api/shell/stream`
+
+Both routes call `_require_admin()`.
+
+The check permits:
+
+- An authenticated administrator.
+- The internal-tool identity, which the middleware sets after validating the internal token and trusted loopback.
+- The no-auth development case when no authentication manager exists.
+
+The endpoints execute the supplied command through the application process's shell.
+
+The stream endpoint can also use PTY or tmux execution paths, including a tmux session that survives browser disconnection.
+
+Route-level admin check confirmed
+
+This is an appropriate route-level restriction for a powerful shell endpoint, but the internal-token bypass means internal tools can still reach it.
+
+The bridge's `/api/shell` blocklist prevents `app_api` from calling it. That is good.
+
+It does not prevent a separately registered native tool from calling the endpoint directly.
+
+### B. `tail_serve_output` — a specific privileged shell operation
+
+This is the important exception found during the audit.
+
+`src/tools/cookbook.py` implements `do_tail_serve_output()`.
+
+It:
+
+1. Requires a session ID.
+2. Validates the ID against `[a-zA-Z0-9_-]+`.
+3. Restricts the requested tail length to 20–4000 lines.
+4. Builds a fixed command to read a log file or capture a tmux pane.
+5. Optionally connects to a validated remote SSH target.
+6. Calls `/api/shell/exec` using the internal token.
+
+The command is not supplied directly by the model. The model supplies a session ID and optional remote target; the code constructs the command.
+
+That is a meaningful restriction. This is not equivalent to arbitrary shell execution.
+
+However, there is a permission issue:
+
+- `tail_serve_output` is not in `NON_ADMIN_BLOCKED_TOOLS`.
+- It is not in the reviewed `_ADMIN_TOOLS` set.
+- The dispatcher passes the owner to the function, but the function does not use that owner when making its internal API request.
+- It calls `_internal_headers()` without an owner.
+- Consequently, the shell route sees the internal-tool identity and permits the request through its admin-equivalent bypass.
+
+This means the route's admin check does not independently restrict this particular operation to administrators.
+
+There is also an ownership question: the tool validates the session ID format, but I did not find an owner-bound check tying the requested session ID to the caller before reading the log or pane.
+
+Privileged-operation exposure; impact not fully established
+
+The practical risk is limited by the fixed command and session-ID validation. But if a non-admin Agent can invoke this tool and obtain or guess another user's session ID, it may be able to read that session's serving output.
+
+I would classify this as a potential cross-user information disclosure, not a confirmed leak.
+
+There is a second inconsistency: `tail_serve_output` has a function schema and a dispatcher branch, but it is absent from `TOOL_TAGS`. That is a schema/parser consistency defect and may make some invocation formats behave differently. It does not remove the need to fix its authorization.
+
+Required correction:
+
+- Add explicit administrator authorization if this is intended to be admin-only; or
+- Enforce session ownership before reading output, if regular users should be able to inspect only their own sessions.
+- Pass the owner explicitly when making internal requests where attribution is required.
+- Keep the fixed-command construction and strict session validation.
+- Make the tool schema, parser tags and execution policy agree.
+
+Sources:
+
+- [Cookbook tool](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tools/cookbook.py?utm_source=chatgpt.com) — SHA `c542c6b8cf8fe968e7e456e8693fd9ef62cd63cb`
+- [Shell routes](https://github.com/odysseus-dev/odysseus-current/blob/dev/routes/shell_routes.py?utm_source=chatgpt.com) — SHA `58258cebbea381536ad5338575e8228f5dba10de`
+- [Tool security policy](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_security.py?utm_source=chatgpt.com) — SHA `fe61f0afea8f66ce875e367e5f95d819c20829be`
+- [Tool registry](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/agent_tools/__init__.py?utm_source=chatgpt.com) — SHA `85585a6c3fe78d14705bc2c426a279c8ec331ba2`
+
+### C. Separate TUI / host-shell bridge
+
+I searched the current repository's relevant execution files for a separate TUI host-shell bridge:
+
+- `src/agent_tools/subprocess_tools.py`
+- `src/tool_execution.py`
+- `src/agent_tools/__init__.py`
+
+I did not find the `host_shell_bridge` / TUI bridge client mechanism in this repository branch.
+
+The inspected `subprocess_tools.py` contains local `BashTool` and `PythonTool` execution:
+
+- Bash uses `asyncio.create_subprocess_shell()`.
+- Python uses the Python interpreter with `-I`.
+- Both run in the Agent's execution environment, with the configured working directory and environment.
+
+These are not OS sandboxes. Python's `-I` isolates Python's import/environment behavior; it does not prevent filesystem or network access.
+
+I am deliberately not importing TUI bridge details from the newer `odysseus` repository. That would mix two different codebases and produce an invalid audit.
+
+Assessment: No separate TUI host-shell bridge was established in the reviewed current-repository source. That is a repository-specific finding, not a claim that no external client or untracked local component exists.
+
+## Combined result — three areas
+
+| Area                      | Finding                                                                                                      | Severity / priority               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| API-token scopes          | Narrow token can enter Agent chat without scope enforcement; owner admin authority can influence tool access | Critical — P0                     |
+| Internal API bridge       | Generic privileged route executor; blocklist is not a complete route capability policy                       | High — P1                         |
+| Shell route authorization | Admin check exists; internal-token bypass is intentional                                                     | Controlled design, but privileged |
+| `tail_serve_output`       | Internal shell call without its own admin or session-owner enforcement                                       | High — P1                         |
+| Separate TUI host bridge  | Not found in inspected current-repo execution code                                                           | Unknown / not established         |
+| Bash/Python               | Direct process execution, not OS-isolated                                                                    | High — P1, deployment-dependent   |
+
+## What I would carry into the implementation requirements
+
+The three areas should be corrected in this order:
+
+1. P0 — Token authority: enforce scopes at chat entry and again at every tool/API execution boundary. Never allow a narrow token to inherit its owner's complete authority.
+2. P1 — Internal API bridge: replace the broad method-plus-blocklist approach with a route/method allowlist and explicit capability checks.
+3. P1 — Cookbook shell helper: enforce session ownership or administrator authority before accessing local or remote logs.
+4. P1 — Internal identity: retain the internal-token mechanism for trusted internal calls, but make privileged operations declare exactly which internal capability they require.
+5. P2 — Registry consistency: reconcile tool schemas, parser tags, dispatcher branches and permission classifications.
+6. P1 — Process isolation: treat Bash and Python as arbitrary code execution within the app's operating-system permissions. The deployment boundary must constrain that authority.
+
+Audit boundary: these are findings from the `dev` branch source fetched during this audit. The source files have individual blob SHAs listed above; I have not established a single immutable repository HEAD for this inspection. No runtime tests or live permission tests were performed. Therefore, none of these findings should be presented as runtime-confirmed exploitability.
+
+My recommendation is to close these three inspection areas as source-audited, with outstanding defects, then consolidate the full Agent authority matrix before implementation. That gives us a clean security baseline instead of patching one permission path while another quietly keeps the keys to the kingdom.

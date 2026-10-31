@@ -1,0 +1,102 @@
+Absolutely. 😂 We'll keep this disciplined: one source path at a time, exact evidence, no assumptions, and strictly read-only.
+
+We’re continuing against `odysseus-current`, branch `dev` — not the newer `odysseus` repository. The next objective is to build the native-tool authority matrix: what tools exist, how they are registered, where execution is dispatched, and which checks actually prevent a tool from running.
+
+I’ll mark findings as source-verified, runtime-verified, or unconfirmed. No implementation or environment changes.
+
+The current `dev` source confirms an important architectural detail: the old monolithic tool layer has been split into a dispatcher, a security-policy module, and a tool-implementation facade. So we must audit the whole registration-to-execution chain, not just one file.
+
+I’ve also confirmed that `src/agent_tools.py` is not present at that path on this branch. The implementation facade is `src/tool_implementations.py`; the package-level registry needs to be located rather than guessed.## First confirmed registry and execution findings
+
+The native registry is explicitly defined in `src/agent_tools/__init__.py`:
+
+- `TOOL_HANDLERS` maps tool names to handler methods.
+- `TOOL_TAGS` is a separate set controlling which fenced tool names are parsed.
+- `FUNCTION_TOOL_SCHEMAS` is maintained separately in `src/tool_schemas.py`.
+- `src/tool_execution.py` contains additional direct dispatch branches beyond the registry.
+
+That means there are at least three distinct inventories to reconcile: parsed tool tags, model-facing function schemas, and executable dispatch routes. A tool missing from one inventory is not necessarily unreachable through the others.
+
+One correction to our earlier audit: the current branch has a `plan_mode_blocked_mcp()` method that computes both hidden MCP tools and qualified names for runtime rejection. I have not yet found proof that the dispatcher actually consumes that qualified-name set. The method’s existence alone does not establish enforcement.
+
+## Agent audit ledger — updated
+
+| ID     | Objective                                     | Current source assessment                                                                                                                                                                                                                                                                                                         | Consequence                                                                                                                                              |
+| ------ | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AG-01a | Plan-mode MCP write blocking                  | Source-verified enforcement path exists: `agent_loop.py` adds qualified blocked MCP names to `disabled_tools`; the dispatcher checks that set before dispatch.                                                                                                                                                                    | Plan-mode MCP rejection is stronger than the earlier partial review suggested.                                                                           |
+| AG-01b | User-configured per-server disabled MCP tools | Potential execution-control gap, now strongly indicated: `_load_mcp_disabled_map()` supplies the per-server map to prompt/schema construction, but the dispatcher’s runtime gate checks `disabled_tools`, not that per-server map. `McpManager.call_tool()` also does not check a disabled-tool policy before calling the server. | A disabled MCP tool may be hidden from the model but still callable if a qualified name reaches the dispatcher. Needs targeted test/source confirmation. |
+| AG-02  | Auth-disabled single-user authority           | Source-verified: `AUTH_ENABLED=false` is deliberately treated as admin/single-user mode.                                                                                                                                                                                                                                          | This is a full-trust operating mode, not a restricted Agent mode.                                                                                        |
+| AG-03  | Bash/Python isolation                         | Source-verified: registry handlers execute Bash/Python as subprocesses; `-I` on Python is interpreter isolation, not an OS security boundary.                                                                                                                                                                                     | Container/OS containment remains essential.                                                                                                              |
+
+A key distinction: plan mode’s runtime MCP block and the ordinary per-server “disabled tools” setting are separate mechanisms. I won’t conflate them.
+
+## Confirmed MCP disabled-tool gap
+
+The source now lets us make a stronger finding:
+
+1. `routes/mcp_routes.py` persists per-server disabled tool names in `McpServer.disabled_tools`.
+2. `agent_loop.py` loads those names into `_mcp_disabled_map`.
+3. `_build_system_prompt()` passes that map to `get_all_openai_schemas()`, which omits the disabled tools from the model-facing schema list.
+4. But `execute_tool_block()` does not receive that per-server map. Its runtime denylist is `disabled_tools`.
+5. `McpManager.call_tool()` parses the qualified name and calls the MCP server without checking the server’s disabled-tool list.
+
+So the per-server toggle is presently a visibility filter, not a proven execution barrier. This is a real policy-enforcement defect in the current source, not merely a theoretical concern. The separate global tool toggle is different: its names are added to the execution denylist, including qualified aliases for built-in email tools.
+
+This is now a high-priority Agent audit finding. I am not changing anything; the next useful check is to reconcile the complete native registry and identify which tools bypass the registry through explicit dispatcher branches.
+
+## Native registry inventory
+
+I compared the three source inventories on `dev`:
+
+| Inventory                            | Count | What it controls                                                           |
+| ------------------------------------ | ----- | -------------------------------------------------------------------------- |
+| Explicit `TOOL_TAGS` entries         | 61    | Fenced-block parsing; plus the built-in email set                          |
+| Native `FUNCTION_TOOL_SCHEMAS` names | 71    | Tools advertised for native function calling                               |
+| `TOOL_HANDLERS` entries              | 28    | Registry-backed native handlers, plus 5 admin handlers appended separately |
+
+The counts are not expected to match exactly: several tools are dispatched directly, and some are MCP-backed. But they demonstrate why checking only the registry would miss execution paths.
+
+### Additional finding: schema/tag mismatch
+
+Confirmed source inconsistency
+
+`tail_serve_output` has a native function schema and a direct dispatcher branch, but it is absent from `TOOL_TAGS`. `function_call_to_tool_block()` rejects names not in `TOOL_TAGS`, so this tool appears to be advertised to function-calling models but rejected during conversion.
+
+That is a functionality/registry consistency defect rather than a privilege-escalation finding.
+
+### Source map for the audit record
+
+- [Native registry and tool tags](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/agent_tools/__init__.py?utm_source=chatgpt.com)
+- [Function schemas and conversion](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_schemas.py?utm_source=chatgpt.com)
+- [Execution dispatcher](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_execution.py?utm_source=chatgpt.com)
+- [Security policy](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_security.py?utm_source=chatgpt.com)
+- [MCP manager](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/mcp_manager.py?utm_source=chatgpt.com)
+- [Per-server MCP tool settings](https://github.com/odysseus-dev/odysseus-current/blob/dev/routes/mcp_routes.py?utm_source=chatgpt.com)
+
+## Updated audit priorities
+
+| ID     | Finding                                                        | Assessment                           |
+| ------ | -------------------------------------------------------------- | ------------------------------------ |
+| AG-01a | Plan-mode MCP runtime blocking                                 | Source-verified enforcement path     |
+| AG-01b | Per-server disabled MCP tools only hidden, not runtime-blocked | Confirmed source-level policy gap    |
+| AG-02  | Auth disabled grants single-user/admin authority               | Source-verified design               |
+| AG-03  | Bash/Python lack OS-level isolation                            | Source-verified                      |
+| AG-04  | MCP failure can fall back to native handlers                   | Source-verified                      |
+| AG-05  | Detached Bash and automatic Agent continuation                 | Source-verified                      |
+| AG-06  | Built-in MCP auto-reconnection                                 | Source-verified                      |
+| AG-07  | Scheduled shell/SSH execution                                  | Source-verified                      |
+| AG-10  | Generic internal API bridge                                    | Requires endpoint-by-endpoint review |
+| AG-13  | `tail_serve_output` schema/tag mismatch                        | Confirmed source inconsistency       |
+
+Important limitation: all findings above are source-level. We have not run the current application or its tests, so none should be labelled runtime-verified.
+
+## Next audit segment
+
+The next thing to examine is authorization propagation and bypasses in the direct dispatcher. In particular:
+
+- Does every privileged handler receive the correct owner identity?
+- Are there direct execution branches that rely only on the front-door gate?
+- Can a tool call reach an internal API or another integration without the expected route-level permission check?
+- Do API-token requests receive the same restrictions as ordinary user sessions?
+
+This is the right next step before we decide which parts of the Agent can be retained, which need hardening, and which should be removed from the Odysseus restart design.

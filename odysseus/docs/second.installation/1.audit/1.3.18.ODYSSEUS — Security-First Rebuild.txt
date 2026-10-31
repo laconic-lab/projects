@@ -1,0 +1,95 @@
+## Authorization audit — first results
+
+I’ve verified the current branch’s central execution gate and traced how the chat route supplies the Agent’s owner identity.
+
+A useful distinction: the dispatcher does have real execution-time checks. It is not simply trusting the model-facing tool list:
+
+- User-disabled tools are rejected before dispatch.
+- Guide-only policy restrictions are checked before dispatch.
+- Admin-only tool names are checked against `owner_is_admin_or_single_user()`.
+- A separate public-user restriction set is also enforced before dispatch.
+
+However, those checks depend on the correct identity and complete classification of every tool name. The next question is whether every sensitive tool is classified and whether bearer API tokens inherit privileges they should not have.
+
+## High-priority finding: API-token scopes are not enforced on the Agent chat route
+
+Confirmed source-level security gap
+
+The current branch has scoped API tokens, but the chat endpoint does not appear to enforce those scopes:
+
+1. `app.py` authenticates a bearer token and attaches its owner and scopes to the request.
+2. `routes/api_token_routes.py` defines scopes such as `chat`, `documents:read`, `email:read`, and `cookbook:read`.
+3. `routes/chat_routes.py` accepts the request and resolves `owner = effective_user(request)`.
+4. `effective_user()` returns the real token owner, not the restricted pseudo-user `api`.
+5. The Agent dispatcher then checks whether that owner is an admin. If the token belongs to an admin, the owner check succeeds.
+
+I found no `api_token_scopes` check anywhere in `routes/chat_routes.py`. In contrast, other API routes explicitly check scopes before allowing bearer-token access.
+
+Why this matters: a token intended for a narrow integration may be able to enter the general Agent chat/agent execution path and inherit the owner's admin authority. The intended token scope is therefore not demonstrably limiting Agent capabilities.
+
+This is more serious than a missing UI restriction. It is a potential privilege-boundary failure. It remains a source-level finding until tested against the running application.
+
+## Second authorization issue: a tool reaches the privileged shell API
+
+I found another path worth treating separately from the general `app_api` bridge.
+
+`tail_serve_output` is not in the non-admin blocked-tool set, and it is not in the dispatcher's admin-only set. Yet its implementation:
+
+- Accepts a caller-supplied `session_id`.
+- Builds a local `tail` or `tmux capture-pane` command.
+- Calls `/api/shell/exec` using the internal Odysseus token.
+- That internal token is explicitly trusted by `require_admin()` for loopback tool calls.
+
+The session ID is format-validated and the command is constructed rather than accepted as arbitrary shell text, so I am not calling this unrestricted shell access. But the tool does cross into a privileged host-shell route without an explicit owner/admin gate at its own entry point.
+
+The outstanding question is whether a non-admin can use it to read another user's task output or local tmux session output. The code path makes that plausible; ownership enforcement has not been demonstrated. I’m recording it as a privileged-operation exposure requiring targeted verification, not claiming arbitrary command execution.
+
+## Updated authorization findings
+
+| ID    | Finding                                                                                    | Assessment                                                            | Priority |
+| ----- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- | -------- |
+| AG-02 | Explicitly disabling authentication grants single-user/admin tool authority                | Confirmed design                                                      | High     |
+| AG-09 | API-token scopes are not checked by `chat_stream`                                          | Confirmed source-level gap                                            | Critical |
+| AG-10 | Generic `app_api` reaches internal routes using a privileged loopback identity             | Confirmed capability; route-level restrictions vary                   | High     |
+| AG-14 | `tail_serve_output` invokes the privileged shell endpoint without its own admin/owner gate | Confirmed privileged-operation exposure; cross-user impact unverified | High     |
+
+### Why AG-09 deserves particular attention
+
+The token-management code explicitly supports narrow profiles and scopes. For example, a token may be created with only `documents:read`.
+
+But the general chat route has no corresponding scope check. The route resolves the token's real owner, and the execution gate evaluates that owner's privileges.
+
+That creates an important distinction:
+
+- Token authentication: confirmed.
+- Token ownership attribution: confirmed.
+- Token scope enforcement on general Agent chat: not present in the reviewed route.
+- Agent privilege restriction based on token scope: not demonstrated.
+
+The existence of scopes elsewhere does not make them global permissions. Each route must enforce the scopes it requires.
+
+### Relevant current-repository source
+
+All references below are from `odysseus-current`, branch `dev`.
+
+- [API token definitions and creation](https://github.com/odysseus-dev/odysseus-current/blob/dev/routes/api_token_routes.py?utm_source=chatgpt.com)
+- [Bearer authentication middleware](https://github.com/odysseus-dev/odysseus-current/blob/dev/app.py?utm_source=chatgpt.com)
+- [Effective user resolution](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/auth_helpers.py?utm_source=chatgpt.com)
+- [Chat and Agent route](https://github.com/odysseus-dev/odysseus-current/blob/dev/routes/chat_routes.py?utm_source=chatgpt.com)
+- [Agent security policy](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_security.py?utm_source=chatgpt.com)
+- [Tool dispatcher](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tool_execution.py?utm_source=chatgpt.com)
+- [Cookbook output reader](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tools/cookbook.py?utm_source=chatgpt.com)
+- [Internal API bridge](https://github.com/odysseus-dev/odysseus-current/blob/dev/src/tools/system.py?utm_source=chatgpt.com)
+- [Internal authentication](https://github.com/odysseus-dev/odysseus-current/blob/dev/core/middleware.py?utm_source=chatgpt.com)
+
+## What I recommend examining next
+
+Before we close the Agent audit, I want to complete three connected areas:
+
+1. API-token authority: trace every route that accepts bearer tokens and determine whether scope restrictions are consistently enforced, particularly when the token owner is an administrator.
+2. Internal API bridge: inventory reachable routes and determine which operations are protected by route-level authorization versus relying on the bridge's blocklist.
+3. Host-shell bridge: inspect the TUI bridge and other shell entry points, including whether their execution identity and restrictions differ from the normal Agent dispatcher.
+
+Then we can produce the final Agent authority matrix and a prioritized list of defects and design requirements.
+
+Still read-only. No fixes, no installations, no runtime changes. We have found enough significant issues that I would not authorize a deployment based on the current security design yet.
