@@ -1,0 +1,100 @@
+# ODYSSEUS — Phase 2.2.1
+
+## Updated assessment: Python, ChromaDB and the existing runtime
+
+That clarification is important. I understand now that the previous installation was stopped because of the security requirements, not because Podman or ChromaDB failed to work. And your Pi-hole setup demonstrates that you already operate a Distrobox environment alongside a separate Podman container successfully.
+
+I've retrieved and reviewed the two engineering documents and the available `decktools` scripts you linked.
+
+- [Global Engineering & Security Standard](https://github.com/laconic-lab/projects/blob/main/docs/GLOBAL%20ENGINEERING%20%26%20SECURITY%20STANDARD.readme?utm_source=chatgpt.com)
+- [Odysseus Python virtual environment reference](https://github.com/laconic-lab/projects/blob/main/odysseus/docs/ODYSSEUS_PYTHON_VENV.readme?utm_source=chatgpt.com)
+- [Odysseus decktools](https://github.com/laconic-lab/projects/tree/main/odysseus/decktools?utm_source=chatgpt.com)
+- [Odysseus START script](https://github.com/laconic-lab/projects/blob/main/odysseus/decktools/odysseus_start.sh?utm_source=chatgpt.com)
+- [Odysseus STATUS script](https://github.com/laconic-lab/projects/blob/main/odysseus/decktools/odysseus_status.sh?utm_source=chatgpt.com)
+- [Odysseus STOP script](https://github.com/laconic-lab/projects/blob/main/odysseus/decktools/odysseus_stop.sh?utm_source=chatgpt.com)
+
+These documents establish an important principle: the existing project environment and its validated dependencies are assets to preserve, not disposable installation artefacts.
+
+## 1. The Python `.venv` is a first-class requirement
+
+Your documented baseline is:
+
+| Component                    | Established value                             |
+| ---------------------------- | --------------------------------------------- |
+| Existing project environment | `odysseus-box`                                |
+| Project root                 | `/home/deck/OdysseusProject`                  |
+| Python version               | 3.12.3                                        |
+| Project interpreter          | `/home/deck/OdysseusProject/.venv/bin/python` |
+| Virtual environment          | `/home/deck/OdysseusProject/.venv`            |
+| Application data             | `/home/deck/OdysseusProject/data`             |
+| ChromaDB container           | `odysseus-chromadb`                           |
+| ChromaDB health endpoint     | `http://127.0.0.1:8100/api/v2/heartbeat`      |
+| Odysseus web port            | 7011                                          |
+
+The Python reference explicitly requires the project interpreter, the correct working directory, and preservation of the current environment. It also warns against casually recreating `.venv` or changing dependencies.
+
+Our design must preserve that exact Python baseline unless a separate, justified migration is approved. A new container must not silently substitute host Python, another project's virtual environment, or a newly assembled dependency set.
+
+## 2. What the scripts tell us about ChromaDB
+
+The scripts confirm that the architecture was already split into two runtime layers:
+
+`odysseus-box` — Distrobox
+
+Odysseus application · Python 3.12.3 · project `.venv`
+
+Application health: port 7011
+
+Local HTTP communication
+
+`odysseus-chromadb` — separate Podman container
+
+Vector database service
+
+Health endpoint: 127.0.0.1:8100
+
+The START and STOP scripts manage the ChromaDB container through `distrobox-host-exec podman`. They record whether Odysseus started ChromaDB and only stop it when the ownership marker confirms that relationship.
+
+That ownership behaviour is worth preserving. The scripts avoid starting duplicate application processes and avoid stopping ChromaDB if Odysseus did not start it. Those are useful operational safeguards.
+
+However, these scripts do not prove that ChromaDB is securely isolated. We still need to inspect its actual container configuration, especially its mounts, port publishing, network mode, user mapping and persistence paths.
+
+## 3. The important architecture distinction
+
+We should not confuse two separate decisions:
+
+- Where ChromaDB runs: a dedicated rootless Podman container.
+- Where Odysseus and its Python `.venv` run: currently the documented `odysseus-box` environment.
+
+Moving ChromaDB to Podman does not require moving Python into a different container. Conversely, moving the application into a hardened container introduces a separate Python environment migration question.
+
+My recommendation is to preserve the existing `.venv` as the reference baseline while we design the secure runtime. We should not recreate it just to satisfy a container architecture decision.
+
+If the final security boundary requires the application itself to move into a dedicated Podman container, we must first decide how to preserve its interpreter and dependencies reproducibly. A virtual environment generally contains interpreter paths and assumptions about its original environment; it should not simply be copied into an arbitrary new container and presumed portable.
+
+## 4. A correction to the network proposal
+
+The current scripts use `127.0.0.1:8100` for ChromaDB health checks. That establishes the address the script expects to reach, but it does not establish how the container publishes that port or whether the endpoint is accessible from other interfaces.
+
+Before deciding whether Odysseus should have no direct network access, we need to establish how the application communicates with ChromaDB and which other network capabilities the application actually requires.
+
+A no-network application container could still be feasible, but only if its required services are accessible through explicitly approved IPC or another carefully constrained mechanism. We must not break ChromaDB or the application merely to achieve a theoretical boundary.
+
+## 5. Next step — read-only configuration review
+
+I recommend we finish the feasibility examination by inspecting the existing ChromaDB container and the project dependency manifests. This remains read-only; do not install, start, stop, recreate or modify anything.
+
+The relevant items to establish are:
+
+1. The existing ChromaDB image and version.
+2. Its mounts and persistent data location.
+3. Its network mode and published ports.
+4. Its user and security configuration.
+5. The existing Python dependency manifests, without changing them.
+6. Whether the application expects ChromaDB on localhost or through another configured endpoint.
+
+The linked `decktools` directory did not contain the ChromaDB container definition itself, so I cannot yet establish its exact creation-time configuration from those scripts alone.
+
+My position: keep the current Python `.venv` as a protected project asset, preserve the separate ChromaDB container model where compatible with the approved security design, and make no migration decision until we have the actual container configuration and dependency requirements.
+
+That lets us solve the security problem without repeating the previous installation or unnecessarily destabilizing a working design.

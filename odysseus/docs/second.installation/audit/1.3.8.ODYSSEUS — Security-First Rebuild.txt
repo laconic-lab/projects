@@ -1,0 +1,498 @@
+ODYSSEUS — Phase 2.2
+Container and host-boundary architecture specification
+Specification phase
+No implementation authorized yet
+
+Decision: We will design Odysseus around a dedicated rootless Podman container, rather than using odysseus-box / Distrobox as the security boundary.
+
+The existing odysseus-box remains untouched. This is an architecture specification, not an instruction to install Podman components, create a replacement container, alter host configuration, or move project files.
+
+The central principle is:
+Odysseus may use approved capabilities. It must not inherit the Steam Deck host's capabilities simply because it runs on that host.
+
+1. Security objective and threat model
+The design must assume that any of the following could happen:
+- The Agent receives malicious instructions in a prompt or retrieved content.
+- A model produces unsafe tool requests.
+- A dependency or integration is compromised.
+- An attacker exploits an application-level vulnerability inside Odysseus.
+- An Agent attempts to inspect host files, access credentials, execute commands, or reach unrelated services.
+The container boundary should limit what a compromised Odysseus process can reach.
+
+Out of scope for this design: a complete defence against a Linux kernel compromise, a malicious host administrator, or physical access to the Steam Deck. Rootless Podman shares the host kernel; it is not equivalent to a virtual machine.
+Security boundary diagram
+STEAM DECK HOST — trusted boundary
+
+Host-owned credentials · approved project data · host administration
+
+Provider broker
+Narrow access
+Uses host-held API keys internally. Returns provider responses, never key material.
+
+
+Project inspector
+Read only
+Fixed project roots, approved files, bounded logs and health information.
+
+
+
+Constrained, authenticated interfaces only
+
+ODYSSEUS RUNTIME
+Rootless Podman
+
+Private namespaces · no host home mount · no host sockets · no direct key access
+
+Odysseus Agent / Orchestrator
+
+Policy-controlled dispatch · manually selected provider · approved tools only
+
+Application data
+
+Dedicated writable paths
+
+
+Logs
+
+Bounded, redacted, controlled
+
+
+
+
+Explicitly unavailable to the Agent
+
+Host shell · host home · host root · SSH keys · provider key files · Docker/Podman socket · desktop/session sockets · unrelated containers · host administration services
+
+
+2. Runtime decision
+Option	Decision	Reason
+Existing Distrobox	Retain, not trust as boundary	Its host integration is too broad for this security objective.
+Dedicated rootless Podman	Preferred	More explicit control over namespaces, mounts, capabilities and lifecycle.
+Dedicated VM	Stronger isolation alternative	Separate guest kernel, but more resource and operational overhead.
+
+Podman is a better fit for the next design iteration, but it is not automatically secure. Its configuration must be deliberately restrictive.
+
+Important distinction: the replacement runtime is not a new Distrobox with a different name. It is a separately configured container with an explicit security policy.
+3. User namespace and identity mapping
+This is a critical design decision because the existing environment runs application processes as UID/GID 1000, which corresponds to the host deck identity.
+
+The new container must not accidentally gain the host user's file permissions through an identity mapping.
+Required design
+- Rootless Podman only.
+- No privileged container.
+- No host deck identity exposed as a general-purpose identity inside the container.
+- Dedicated container identity for the Odysseus application.
+- Explicit UID/GID mapping, verified against the actual SteamOS subordinate-ID configuration.
+- No assumptions that auto, nomap, or keep-id are interchangeable.
+Mapping approach	Initial assessment
+keep-id	Not preferred: it intentionally maps the invoking user's identity into the container.
+auto	Candidate: requires validation of subordinate-ID availability and bind-mount behaviour.
+nomap	Candidate: must verify actual ownership and access semantics.
+Default mapping	Not accepted without an explicit mapping audit.
+
+Must be validated on SteamOS
+We must inspect the actual UID/GID and subordinate-ID support before choosing the final mapping. We will not assume that a standard Ubuntu or Arch configuration applies to SteamOS.
+
+Acceptance condition: a process inside Odysseus cannot read or modify host files merely because it runs under a mapped identity that owns those files.
+4. Filesystem boundary — explicit mount allowlist
+This is the most important correction to the current environment.
+
+The previous inspection confirmed that odysseus-box had access to the host home directory and host filesystem through /run/host. It could also reach the Groq key file. That is incompatible with the intended security model.
+
+The replacement must have no broad host filesystem integration.
+4.1 Mount policy
+Host resource	New runtime policy
+/home/deck	Forbidden
+/ or /run/host	Forbidden
+/home/deck/.config/odysseus/providers	Forbidden
+/run/user/1000	Forbidden
+SSH configuration and keys	Forbidden
+Docker / Podman sockets	Forbidden
+Desktop, Wayland, PulseAudio sockets	Forbidden
+/dev	No broad host device exposure
+/sys	No broad host sysfs exposure
+/tmp	Container-private temporary storage
+Application data	Dedicated, explicitly approved writable directory
+Application logs	Dedicated, bounded writable directory
+Project source	No direct mount; access through inspector
+Provider credentials	Broker only; never mounted
+
+4.2 Container filesystem layout
+The following is a proposed layout inside the new runtime, not a claim that these paths already exist:
+/opt/odysseus/
+    application/
+    runtime/
+    .venv/
+
+/var/lib/odysseus/
+    data/
+    state/
+
+/var/log/odysseus/
+    application/
+    providers/
+
+/tmp/
+    container-private/
+
+
+The application filesystem should be read-only at runtime wherever practical. Only explicitly designated data, state and log locations should be writable.
+
+The container must not receive a writable mount of the repository simply to make development convenient. Development access and runtime access are separate concerns.
+4.3 Symlinks and path traversal
+The filesystem policy must also defend against indirect access:
+- Resolve paths against a fixed approved root.
+- Reject .. traversal.
+- Reject paths that resolve outside the approved root.
+- Reject symlinks that escape the root.
+- Reject device nodes, sockets, FIFOs and other special files.
+- Avoid following unexpected mount points.
+- Apply file-size and directory-depth limits to inspection operations.
+Acceptance condition: neither a malicious prompt nor a compromised application component can turn an approved path into access to an unapproved host path.
+5. Network boundary and egress policy
+A private network namespace is necessary, but it is not sufficient.
+
+A container on a normal bridge network may still be able to reach host or LAN services through routing and gateway arrangements. We must explicitly control that traffic.
+5.1 Required network policy
+Network target	Policy
+Host management services	Deny
+Steam Deck SSH	Deny
+Pi-hole administration	Deny
+LocalAI / Ollama	Deny by default
+Stable Diffusion	Deny by default
+Other LAN devices	Deny by default
+Host gateway	No general-purpose access
+Approved provider endpoints	Allow through controlled egress
+Approved research endpoints	Allow through controlled egress
+Arbitrary internet destinations	Deny by default
+
+This preserves the separation between Odysseus and the other projects on the Steam Deck.
+5.2 Recommended egress architecture
+Odysseus container
+
+Cannot directly choose arbitrary destinations
+
+
+Controlled egress gateway
+
+Destination allowlist · protocol restrictions · request limits · audit logging
+
+
+Approved providers
+
+Groq and later explicitly approved integrations
+
+
+Approved research
+
+Search and retrieval destinations, when enabled
+
+
+
+Host and LAN administration remain inaccessible
+
+
+The gateway is a proposed component. Its exact implementation remains undecided.
+
+Provider APIs can use changing infrastructure, domains and CDN addresses. A simplistic static IP allowlist could break legitimate requests or become dangerously broad. The design therefore needs a destination-aware proxy or gateway that validates approved hostnames and TLS destinations, blocks private and link-local address ranges, and prevents DNS rebinding and proxy bypass.
+
+The container must not be able to bypass this gateway with direct DNS, direct IP connections, alternate proxies or arbitrary HTTP clients.
+
+Acceptance condition: an approved provider request works, while requests to the host, LAN, private address ranges and unapproved internet destinations fail closed.
+6. Provider broker — credential isolation
+The host retains the provider keys. The Agent never receives them.
+
+The existing Groq key remains at:
+/home/deck/.config/odysseus/providers/groq/odysseus-groq.key
+
+
+The key must remain host-owned with restrictive permissions. No key contents are to be inspected, copied, printed, mounted into the container or included in logs.
+6.1 Broker responsibilities
+The broker is a host-side, narrowly scoped service. It:
+1. Identifies the caller and validates the request.
+2. Checks that the requested provider is registered and enabled.
+3. Checks that the requested operation is allowed.
+4. Resolves the key internally.
+5. Constructs the provider authentication headers itself.
+6. Sends the request only to the registered endpoint.
+7. Returns the provider response, not the credential.
+8. Records a redacted audit event.
+6.2 Proposed request protocol
+The Agent should send a structured request rather than raw HTTP instructions.
+
+Illustrative protocol:
+{
+  "provider": "groq",
+  "operation": "chat_completion",
+  "model": "approved-model-id",
+  "request_id": "unique-request-id",
+  "payload": {
+    "messages": [],
+    "temperature": 0.3
+  }
+}
+
+
+This is an example of the proposed protocol, not a live API call or an approved provider configuration.
+
+The Agent must not be allowed to supply:
+- Arbitrary URLs or hostnames.
+- Authentication headers.
+- API keys or bearer tokens.
+- Arbitrary HTTP methods.
+- Arbitrary provider API paths.
+- Arbitrary redirect destinations.
+The broker constructs the final outbound request from its own provider registry.
+6.3 Provider registry
+Provider	Initial status
+Groq	First integration target
+Cloudflare	Planned
+OpenAI	Planned
+Gemini	Planned
+Mistral	Planned
+Cerebras	Planned
+OpenRouter	Planned
+
+Only a provider explicitly enabled by the user should be callable. A planned provider is not an enabled provider.
+6.4 Provider-selection rule
+One explicitly selected provider per conversation.
+- No automatic provider switching.
+- No automatic fallback.
+- No hidden retries against another provider.
+- No silent migration to a paid service.
+- No provider activation merely because a model requests it.
+If the selected provider is unavailable, Odysseus reports the failure. It does not choose another provider.
+6.5 Broker authentication and transport
+This is an important engineering issue: a mounted Unix socket does not automatically provide secure authorization.
+
+The broker must verify that requests originate from the approved runtime and must not trust a caller-supplied identity field. Socket ownership, permissions, namespace UID mapping and peer authentication must be tested together.
+
+If a secure Unix-socket arrangement cannot be achieved with the selected rootless mapping, we should choose a different narrowly scoped authenticated transport rather than weakening the permissions.
+
+Acceptance condition: the Agent can request an approved operation but cannot retrieve, infer through an API, or exfiltrate the raw provider key.
+7. Read-only project inspector
+The Agent needs visibility into its own project state, but it does not need general access to the host filesystem.
+
+The inspector will be a separate, narrow host-side interface.
+7.1 Approved operations
+Operation	Permission
+List approved project files	Allow
+Read approved configuration	Allow
+Read bounded application logs	Allow
+Inspect project health	Allow
+Read approved recovery manifest metadata	Allow, if required
+Write or edit files	Deny
+Delete files	Deny
+Execute shell commands	Deny
+Read arbitrary host paths	Deny
+Browse other Distrobox projects	Deny
+
+The inspector's initial root is:
+
+/home/deck/OdysseusProject
+
+The recovery directory is not automatically included. Any access to /home/deck/OdysseusRecovery requires its own explicit allowlist and purpose.
+7.2 Inspector request protocol
+Illustrative request:
+{
+  "operation": "read_approved_log",
+  "resource": "odysseus_application",
+  "max_bytes": 16384
+}
+
+
+The caller requests a known operation against a known resource. It does not submit an arbitrary filesystem path or shell command.
+7.3 Inspector protections
+- Fixed root directories.
+- Explicit file allowlist.
+- No write or delete operations.
+- No arbitrary path arguments.
+- Symlink escape prevention.
+- Special-file rejection.
+- Maximum response size.
+- Bounded log reads.
+- Sensitive-value redaction.
+- No environment-variable dumps.
+- No provider-key reads.
+- No access to SSH recovery material.
+Acceptance condition: the inspector can provide useful project diagnostics without becoming a general-purpose host file browser.
+8. Container hardening
+The following controls are mandatory design requirements.
+Control	Required configuration
+Runtime	Rootless Podman
+Privileged mode	Never
+Linux capabilities	Drop all unless a documented exception is approved
+Process namespace	Private
+Network namespace	Private
+IPC namespace	Private
+Host PID namespace	Never
+Host network	Never
+Host devices	No unnecessary devices
+Docker/Podman socket	Never mounted
+Seccomp	Retain restrictive default profile; investigate further restrictions
+App filesystem	Read-only wherever practical
+Writable paths	Explicit allowlist only
+Host home	Never mounted
+Automatic restart	Disabled
+Automatic startup	Disabled
+
+8.1 Resource limits
+The Steam Deck must retain priority for gaming and its other services.
+
+We should introduce explicit limits for:
+- CPU consumption.
+- Memory consumption.
+- Maximum process count.
+- Container storage growth.
+- Log storage growth.
+- Individual request and response sizes.
+- Provider request duration.
+- Provider request frequency.
+I am deliberately not specifying arbitrary CPU or RAM numbers yet. We should measure the actual runtime footprint and choose limits that leave adequate headroom for SteamOS and games.
+
+The limits must be enforced by the runtime, not merely requested by the Agent.
+9. Lifecycle and autonomy
+Odysseus remains a manually operated application.
+START — user initiated
+
+Start the approved runtime and its required components only.
+
+RUN — controlled
+
+Agent operates under its approved capability profile and explicit provider selection.
+
+STOP — user initiated
+
+Stop the application, broker session and runtime components cleanly.
+
+The following remain disabled unless separately authorized:
+- Boot autostart.
+- Container restart policies.
+- Background schedulers.
+- Email pollers.
+- Background task workers.
+- Autonomous provider selection.
+- Unattended agent execution.
+- Persistent jobs surviving a normal session.
+- Automatic recovery that launches services without user action.
+A clean shutdown must also handle outstanding provider requests, child processes and temporary state.
+10. Security acceptance tests
+We should not consider the new runtime ready merely because Odysseus starts and answers a chat.
+
+It must pass a security test suite.
+ID	Test	Expected result
+S01	Read /home/deck from container	Denied
+S02	Read /run/host	Not present / denied
+S03	Access Groq key file	Denied
+S04	Access SSH keys	Denied
+S05	Access Docker/Podman socket	Denied
+S06	Access host user session sockets	Denied
+S07	Access Pi-hole administration	Denied
+S08	Access LocalAI / Ollama	Denied by default
+S09	Access Stable Diffusion	Denied by default
+S10	Reach an approved provider through broker	Allowed
+S11	Ask broker for raw API key	Denied
+S12	Supply arbitrary URL to broker	Denied
+S13	Request arbitrary project path from inspector	Denied
+S14	Attempt inspector write/delete	Denied
+S15	Attempt symlink escape	Denied
+S16	Attempt arbitrary shell execution through inspector	Denied
+S17	Attempt direct network egress bypass	Denied
+S18	Exceed configured resource limits	Enforced
+S19	Restart or autostart after shutdown	Disabled
+S20	Request unapproved provider fallback	Denied
+
+Fail-closed rules
+Any of these results blocks acceptance:
+- Host home is unexpectedly mounted.
+- Host credentials become readable.
+- The broker accepts arbitrary destinations.
+- The inspector permits arbitrary paths.
+- Network policy can be bypassed.
+- The container receives an unexpected host socket.
+- A disabled capability remains executable through another dispatcher.
+- A security test cannot be reproduced or its result is ambiguous.
+We fix the architecture rather than weakening the test.
+11. Transition and rollback plan
+The current environment is preserved throughout this phase.
+1. Approve this specification
+   
+   No system changes.
+2. Verify SteamOS prerequisites
+   
+   Inspect rootless Podman support, subordinate UID/GID configuration, networking capabilities and storage constraints. Read-only inspection first.
+3. Design the replacement runtime
+   
+   Finalize the UID mapping, mount policy, network gateway and broker transport before building anything.
+4. Build a separate test runtime
+   
+   Keep the current odysseus-box intact. Do not move or delete the existing project.
+5. Run acceptance tests
+   
+   Test isolation before introducing provider credentials or enabling cloud calls.
+6. Review and authorize migration
+   
+   Only after passing the tests should we consider moving the application to the new runtime.
+Protected assets
+These remain outside the scope of Phase 2.2 implementation:
+- /home/deck/OdysseusProject
+- /home/deck/OdysseusRecovery
+- /home/deck/.config/odysseus/providers/
+- Existing odysseus-box
+- pihole-box
+- localai-box
+- Stable-box
+- SteamOS SSH configuration and recovery
+- .cache, .var, Android_Waydroid
+No cleanup, deletion, replacement or recreation is part of this specification.
+
+12. Final architecture decisions and open points
+Decisions recommended for approval
+Rootless Podman runtime
+Recommended
+
+No broad host filesystem mounts
+Mandatory
+
+Host-side provider broker
+Mandatory
+
+Read-only project inspector
+Mandatory
+
+Controlled network egress
+Mandatory
+
+Manual lifecycle only
+Mandatory
+
+
+Technical questions requiring verification
+1. Which UID/GID mapping works safely on this SteamOS installation?
+2. Can the broker authenticate the rootless container reliably without exposing host identity or credentials?
+3. Which egress gateway can enforce the required destination policy without disrupting approved provider APIs?
+4. What CPU, RAM and storage limits are appropriate for the Deck?
+5. Does the selected container configuration support the required read-only filesystem and seccomp restrictions?
+
+13. My recommendation
+I recommend keeping the architecture as specified, with one important qualification:
+
+Do not treat rootless Podman as the security solution by itself. The security comes from the combination of identity mapping, filesystem isolation, restricted network egress, capability restrictions, broker authorization and the independent tool-dispatch policy established in Phase 2.1.
+
+The provider broker and project inspector are particularly important. They give Odysseus useful access to the host without giving it general host access.
+
+The architecture should be accepted only after the SteamOS-specific feasibility checks have been completed.
+
+Phase 2.2 — review gate
+No implementation has started.
+How would you like to proceed?
+
+Approve Phase 2.2 specification as the design baseline
+
+Request modifications before approval
+
+Discuss the remaining technical questions first
+
+
+Confirm review decision
+If approved, our next activity is Phase 2.2.1 — read-only SteamOS feasibility examination. We will verify the actual host capabilities before selecting exact Podman settings. No installation or configuration changes at that stage.

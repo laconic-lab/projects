@@ -1,0 +1,225 @@
+⚓ ODYSSEUS — Phase 1 continues
+
+Repository authority approved
+ Read-only audit
+
+Confirmed. From this point forward, our authoritative implementation reference is:
+
+odysseus-dev/odysseus — dev branch
+
+The smaller odysseus-current repository is retained only as a historical reference for the original handover. We will not mix its older implementation with the canonical project's current code.
+
+Our audit remains strictly read-only: no Steam Deck commands, installation, container launch, configuration changes, or provider calls.
+Step 1 — Canonical source pinned
+Verified Git commit · 31 October 2026 audit snapshot
+
+The canonical dev branch currently resolves to this full commit:
+
+03d25943ee4a35f6f0535112976123a721cff5cb
+
+This is the exact source revision for our audit—not a floating reference to “latest”.
+First important security finding
+The upstream threat model itself explicitly says Odysseus has no shell or filesystem sandbox. Its bash, read_file and write_file tools run as the application process user, without filesystem confinement or network-egress filtering.
+
+The new tool-approval gate is described as a compensating control, not a sandbox. The threat model also acknowledges that request-level authority can be broader than the user's exact requested action: for example, a request to read email may admit both send_email and delete_email. That is a significant distinction for our least-privilege design.
+
+Source: Canonical threat model.
+Step 2 — The security gate is real, but it is not the whole boundary
+The code contains a deterministic capability registry. It classifies tools by effects—reading private data, writing, executing code, network egress, external side effects, administration and destructive actions. Unknown tools are deliberately classified as high-impact and untrusted.
+
+After untrusted content is introduced, the run-security context blocks high-impact effects unless an approval path is satisfied. Importantly, the implementation also distinguishes a real server-issued approval from a client merely editing chat metadata: chat-session approvals are HMAC-signed and bound to the session and approval ID.
+
+That is meaningful security engineering. But it does not make every approval equally narrow: task and chat-session approval scopes can extend beyond a single action. We need to understand exactly how the approval card seals the first action, what later calls a session grant permits, and how current policy is rechecked.
+
+Sources: tool capability registry, approval-scope implementation.
+Correction after checking the implementation, not just the threat-model prose
+I found an important documentation/code mismatch, so I am correcting the earlier broad statement.
+
+The current implementation has evolved beyond the older threat-model description:
+- Native agent filesystem tools have canonical path confinement, workspace/resource binding, and sensitive-path checks.
+- Native model-controlled Bash/Python execution uses an enforcing containment layer. Its required dimensions are filesystem scope, process-tree control and wall-clock limits. If those required controls cannot be established, execution is refused.
+- Network isolation is not part of that required baseline: the containment documentation says networking is inherited unless explicitly requested. Memory and process-count limits are also not universally guaranteed.
+- The TUI host-shell bridge is a separate execution route. Its containment grant describes an external execution environment; Odysseus cannot enforce that grant locally.
+So the accurate conclusion is not “there is no containment”. It is: native execution has real, fail-closed containment, but it is not a complete network-isolated sandbox, and external host execution has a different trust boundary.
+
+The older THREAT_MODEL.md is therefore stale on this point. The newer implementation map in specs/auth-security.md and src/containment.py is more accurate for the current commit.
+Step 3 — Runtime and deployment risks
+The source audit has exposed several defaults that conflict with our intended manual-start, local-only, low-autonomy deployment.
+Upstream default	Why it matters to Odysseus
+Compose restart: unless-stopped	Containers can return after a host or Docker restart. Conflicts with manual lifecycle.
+In-process task scheduler enabled	Scheduled tasks can run unless explicitly disabled.
+Built-in MCP registration at startup	Several MCP subprocesses are started automatically.
+Browser MCP uses npx -y @playwright/mcp@latest	The first startup can fetch and run a floating npm package version.
+Host gateway added to the app container	The container can reach host-side services; this is not an isolated network boundary.
+
+There is a subtle but important MCP detail: ODYSSEUS_DISABLE_MCP=1 disables the built-in MCP registrations, but startup separately calls connect_all_enabled() for user-configured MCP servers. So that flag alone is not a universal MCP kill switch. A fresh database with no enabled user servers, plus disabled MCP administration and verified dispatch restrictions, is the safer initial posture.
+
+The positive findings are equally important: the default Compose file does not mount the Docker socket, and it does not mount the host's entire home directory. Its normal mounts are application data, logs, and app-specific SSH/cache/local directories. We should preserve that narrow boundary.
+
+Source files: Compose, built-in MCP registration, application startup.
+Step 4 — The ordinary-user boundary
+The role split in the source is clear:
+- Admin: full privileges. The admin is not a safe everyday Agent identity.
+- Non-admin: shell, Python, host shell, native file tools, email, MCP, memory-management tools, settings, integrations and other privileged tools are blocked server-side.
+- The non-admin defaults still permit several features, including Agent, browser, research, documents and image generation. can_manage_memory also defaults to true, although the direct manage_memory tool is separately blocked for non-admin users. We should explicitly tighten that privilege rather than rely on the tool block alone.
+One requirement needs a deliberate architecture solution: the built-in non-admin cannot inspect project files, because read_file, grep, glob, ls and get_workspace are all in the non-admin blocklist.
+
+I will not work around that by granting general filesystem access. The right design is a dedicated, read-only project-inspection capability with a fixed approved root, bounded output, no path escape, no writes, and no shell. We must verify its server-side enforcement before exposing it to the ordinary Agent.
+
+The encouraging part: upstream now enforces the global disabled-tool denylist again at execution time, not merely when building the model's tool list. Its manage_settings chat tool can disable tools, but cannot re-enable tools that an admin disabled; re-enabling is reserved for the human Settings interface.
+
+Sources: non-admin tool policy, tool execution enforcement, admin tool controls.
+Step 5 — Steam Deck compatibility boundary
+One important distinction from the earlier project decisions: we are auditing upstream dev, not agreeing to deploy its Docker Compose stack unchanged.
+
+The intended Steam Deck environment remains:
+- Independent Ubuntu 24.04 Distrobox: odysseus-box.
+- Project: /home/deck/OdysseusProject.
+- Recovery: /home/deck/OdysseusRecovery.
+- Steam Deck is the server; the Windows PC is the client.
+- Manual start/stop through project scripts in decktools/; no automatic startup.
+- No dependency on LocalAI or Ollama.
+- Provider credentials remain on the Steam Deck host, outside Git and outside the container/project. The existing Groq key remains at its approved host-side location with restrictive permissions.
+This means upstream's Compose restart policy, container startup behavior, MCP auto-registration and host-gateway assumptions are audit findings, not deployment instructions. We will adapt the required upstream application components to the independent Distrobox and preserve the project's manual lifecycle.
+
+Also, the approval to audit canonical dev does not silently cancel the earlier preference for a curated deployment. I will treat dev as our current security-audit source, then compare it with main before selecting the actual installation revision.
+Step 6 — main versus dev: a substantial difference
+The comparison confirms that dev is not just a few security patches ahead:
+Branch	Commit
+Curated main	9d0d3720f4ca181d87bef94da826d730acc6d483
+Audited dev	03d25943ee4a35f6f0535112976123a721cff5cb
+
+dev is 193 commits ahead of main, with no commits behind it. The difference touches core Agent execution, authentication, MCP, provider routing, the editor, and many other areas.
+
+That makes branch selection a real engineering decision. I will compare the security-critical changes—not simply assume that the newest branch is the safest deployment. Our current security audit remains pinned to the exact dev commit above.
+Step 7 — Security comparison: what dev fixes
+The comparison uncovered several concrete improvements in dev that are absent from curated main.
+Security area	main	dev
+Agent can re-enable admin-disabled tools through chat	Possible	Blocked
+Non-admin access to sensitive Cookbook inspection tools	Incomplete blocklist	Blocked
+Non-admin access to certain editor/admin tools	Incomplete blocklist	Blocked
+Default workspace authority when no workspace is selected	Less strict	Sealed
+Native execution containment	Present	Present
+Post-external-content approval gate	Present	Present
+Approval task/session scopes	Present	Present
+
+The most important fix is the first one. In main, the Agent's manage_settings tool can re-enable tools that an administrator disabled. In dev, the Agent can disable tools but cannot re-enable them; that action is reserved for the human through Settings.
+
+Other relevant changes are in:
+- Admin tool controls
+- Non-admin tool security
+- Execution authority
+My security recommendation is not to deploy the unmodified main snapshot. It would reintroduce gaps that dev has already fixed.
+Step 8 — Remaining blockers before a safe deployment
+Must resolve before installation
+1. Distrobox host-home exposure
+
+This is particularly important on the Steam Deck. The normal Distrobox arrangement exposes the host home directory read/write. The container process also runs with the host user's UID.
+
+That means a host key protected by mode 600 is still readable by an Odysseus process running as the same user if the key's directory is mounted into the container.
+
+Our rule must be stronger than file permissions:
+- No /home/deck mount.
+- No broad host filesystem mount.
+- No host .config mount.
+- No privileged container or host networking.
+- Verify the actual UID/GID, mounts and security profile.
+We must prove the odysseus-box runtime meets those conditions before starting the application. Distrobox isolation cannot simply be assumed.
+
+2. Provider credential architecture
+
+Upstream stores model endpoint API keys encrypted in its database. That protects stored data at rest, but the running application can decrypt those keys.
+
+That is not the architecture we established.
+
+The Groq key must remain host-side:
+
+/home/deck/.config/odysseus/providers/groq/odysseus-groq.key
+
+The app must use a narrow provider-broker interface. It must never receive the raw key, and we must not put it in DbSession.headers, session metadata, logs, browser state or source files.
+
+Groq remains the first provider. The other six remain future integrations. Manual selection only; no automatic switching, fallback or paid API usage without explicit authorization.
+
+3. Approval scope
+
+The approval implementation cryptographically seals the exact first action. However, the chat approval choices can grant continuation for the resumed task or the whole chat session.
+
+That is broader than approving one operation and nothing else. We will keep high-impact capabilities disabled initially. Before enabling them later, we must decide whether to modify the approval flow to provide a strict single-action choice.
+
+4. Read-only project inspection
+
+The normal non-admin Agent cannot use upstream's filesystem tools. We need a separate, fixed-root project-inspection interface.
+
+It must have:
+- A fixed approved project root.
+- Read-only access.
+- No arbitrary paths or path traversal.
+- Bounded file sizes and output.
+- No shell, Python, writes or deletes.
+- Explicit server-side capability classification and tests.
+I prefer a narrow host-side inspection interface over exposing the host filesystem to the application container.
+
+Proposed architecture for the next design stage
+Client
+Windows PC
+
+Browser / Odysseus interface
+
+Restricted LAN access
+
+Steam Deck host
+Host security boundary
+Provider credential store
+
+Host-only key files · permissions 700/600
+
+Provider broker
+
+Authenticated requests · no raw key returned
+
+Read-only project inspection
+
+Fixed approved scope · no general filesystem access
+
+
+Independent runtime
+odysseus-box
+
+Ubuntu 24.04 · isolated · rootless · manual lifecycle
+
+Odysseus application
+
+Ordinary non-admin Agent · restricted tools · one selected provider
+
+
+Provider broker sends authorized model requests
+
+Cloud provider
+Groq first
+
+Only after explicit authorization
+
+
+Where we stand
+1. Phase 1 — Upstream identity and security audit
+   Baseline established
+   Canonical repository, exact revision, branch differences, security controls and deployment conflicts identified. This is not yet a full security certification.
+2. Phase 2 — Security architecture and permission matrix
+   Next
+   Define the ordinary Agent's exact capabilities, host isolation, project inspection, credential broker, approval policy and prohibited operations.
+3. Phase 3 — Provider architecture adaptation
+   
+   Seven providers, Groq first, host-side secrets, no fallback.
+4. Phase 4 — Fresh installation
+   
+   Only after the runtime isolation and security design are validated.
+One decision before we lock the installation revision
+Your earlier preference was to use curated main, but the audit shows that main lacks important security fixes now present in dev.
+
+Should we use the audited dev commit 03d25943ee4a35f6f0535112976123a721cff5cb as the installation baseline, pinned to that exact revision?
+
+My recommendation is yes. We can still keep the installation reproducible and manually controlled rather than following a moving branch.
+
+No Steam Deck commands have been run. No files, containers, keys or existing projects have been touched.
+
+LET'S GO — one verified step at a time.

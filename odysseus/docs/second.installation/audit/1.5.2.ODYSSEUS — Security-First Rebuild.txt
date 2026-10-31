@@ -1,0 +1,315 @@
+# Odysseus — Agent Authority Matrix
+
+Agent Smith reporting for duty. 😄
+
+This is the consolidation phase: we will map every meaningful execution path, identify who can invoke it, what it can reach, and whether it can continue acting without a live user turn.
+
+Scope is locked: `odysseus-dev/odysseus-current`, branch `dev`, verified HEAD `142b93ad86073efb24981df385423f58fe5376b1`.
+
+This remains a source audit. No runtime execution, credential access, provider calls, or modifications. I’ll distinguish confirmed source behavior from deployment-dependent behavior and unresolved questions.
+
+## 1. Authority model — how privilege is actually decided
+
+The important distinction is between the user identity, the Agent's available tools, and the process permissions behind those tools.
+
+| Layer                             | What it decides                                                  | Security significance                                      |
+| --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------- |
+| Authentication middleware         | Whether a request is authenticated and which identity it carries | Establishes the caller                                     |
+| `effective_user()`                | Resolves bearer-token owner or logged-in user                    | Determines whose authority is applied                      |
+| `owner_is_admin_or_single_user()` | Whether the owner receives admin-level tool privileges           | Major privilege boundary                                   |
+| Tool schema / registry            | What the model is invited to call                                | Visibility and discoverability, not sufficient enforcement |
+| `execute_tool_block()`            | Applies disabled-tool, plan-mode, admin and public-user gates    | Main execution-time control                                |
+| Handler / dispatcher              | Performs the actual operation                                    | Determines real capabilities                               |
+| OS process identity and mounts    | What the application and its children can access                 | Actual containment boundary                                |
+
+Critical rule: the Agent inherits the application's effective operating-system authority wherever a handler executes directly in that process or starts a child process without a stronger isolation boundary.
+
+The model's prompt, a hidden schema entry, or a restricted working directory does not independently reduce that authority.
+
+### Identity and privilege classes
+
+| Caller / mode                     | Effective authority                                       | Assessment                                          |
+| --------------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| Authenticated admin               | Admin tool policy                                         | Broad authority                                     |
+| Authenticated non-admin           | Public-user denylist and admin gates                      | Restricted, but not a separate OS security boundary |
+| `AUTH_ENABLED=false`              | Treated as single-user/admin                              | Full tool authority by design                       |
+| API token with resolved owner     | Owner's authority through `effective_user()`              | Chat route scope gap remains AG-09                  |
+| Internal application token        | Trusted internal identity; can satisfy admin route checks | Privileged application-to-application capability    |
+| Unauthenticated pre-setup request | Not intended to receive admin authority                   | Middleware and tool gate provide defense in depth   |
+
+A crucial qualification: `AUTH_ENABLED=false` is not a safe restricted mode. It means the application deliberately treats its local operator as fully privileged.
+
+## 2. Agent authority matrix
+
+The matrix below distinguishes the intended policy from the effective source-level capability.
+
+| Execution surface                             | Who can invoke it?                                             | Effective capability                                                                  | Autonomous / persistent?                           | Finding                                            |
+| --------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------- |
+| Native Bash                                   | Admin / single-user; denied to public users                    | Application-identity shell access                                                     | Yes, detached execution supported                  | Critical boundary                                  |
+| Native Python                                 | Admin / single-user; denied to public users                    | Python execution under application identity; `-I` is not a sandbox                    | Can run as a tool call                             | Critical boundary                                  |
+| Filesystem read                               | Tool policy permits read-only tools to public users            | Reads within configured resolver roots, with sensitive-path filtering                 | No independent loop                                | Restricted application-level access                |
+| Filesystem write/edit/patch                   | Admin / single-user; plan mode blocks                          | Changes files within resolver policy                                                  | No independent loop                                | Privileged mutation                                |
+| Code navigation (`ls`, `glob`, `grep`)        | Public-user policy permits these                               | Search/list within resolved roots                                                     | No                                                 | Restricted read capability                         |
+| Internal API bridge (`app_api`)               | Admin / single-user                                            | Generic internal HTTP API access, including methods with side effects                 | No independent loop                                | High-risk privileged bridge                        |
+| External integration API (`api_call`)         | Admin / single-user                                            | Arbitrary method/path against configured integration, with response returned to Agent | No independent loop                                | High-risk external capability                      |
+| MCP tools                                     | Admin / single-user under public-tool policy                   | Whatever connected MCP servers expose                                                 | Server connections persist while app runs          | High-risk extension boundary                       |
+| MCP management                                | Admin                                                          | Registers/configures external processes and tools                                     | Server can reconnect/start at app startup          | Host execution trust boundary                      |
+| Email tools                                   | Admin / single-user; most blocked in plan mode                 | Read, draft, send, archive, delete and other mail operations                          | Poller can act independently                       | High-risk external side effects                    |
+| Vault tools                                   | Admin / single-user                                            | Search/get/unlock operations against stored secrets                                   | No autonomous loop identified                      | Sensitive-data boundary                            |
+| Background jobs                               | Admin / single-user                                            | Detached commands continue beyond chat request                                        | Yes; monitor re-invokes Agent                      | Critical autonomy boundary                         |
+| Scheduled tasks                               | Depends on task ownership and scheduler controls               | Local or remote actions, including shell and SSH                                      | Yes; scheduler runs independently                  | Critical autonomy boundary                         |
+| Model download/serve                          | Admin / single-user                                            | Download, start, stop and adopt model services                                        | Scheduler or task actions may interact             | Host resource/service authority                    |
+| Browser MCP                                   | Admin / single-user                                            | Browser automation against web content and reachable network destinations             | Server starts in background                        | High-risk untrusted-content boundary               |
+| Document / memory / skills / notes / calendar | Varies by tool and route policy; mutators generally privileged | Persistent application data changes                                                   | Nightly skill audit can mutate                     | Data integrity boundary                            |
+| Session tools                                 | Depends on tool and session ownership checks                   | Create/list/send/manage session operations                                            | Agent can interact across sessions where permitted | Ownership checks need route-level verification     |
+| Web search / fetch                            | Public-user policy permits these                               | Outbound information retrieval                                                        | No independent loop                                | Network access; SSRF controls need per-tool review |
+| Contact resolution                            | Public-user policy permits `resolve_contact`                   | Contact lookup                                                                        | No independent loop                                | Data exposure depends on owner filtering           |
+| Generic internal shell routes                 | Admin-gated, but internal-token callers can satisfy gate       | Shell command execution and PTY/tmux access                                           | Can support long-running processes                 | Internal-token trust boundary                      |
+
+Interpretation: public-user restrictions are meaningful, but an admin Agent is not a sandboxed assistant. It is an orchestration layer with access to application-level and potentially host-level capabilities.
+
+## 3. Execution-path detail
+
+### A. Native execution
+
+Critical trust boundary
+
+Bash and Python
+
+- Registered as native handlers.
+- Execution reaches local subprocess implementations.
+- Bash uses `asyncio.create_subprocess_shell()`.
+- Python uses interpreter isolation mode `-I`, which does not isolate filesystem, network, UID or kernel access.
+- The working directory and file resolver restrictions do not confine arbitrary shell commands.
+- Detached Bash can outlive the chat request.
+
+Conclusion: the Agent can exercise the permissions of the Odysseus application process. A restricted tool schema does not change that.
+
+### B. Filesystem tools
+
+Application-level confinement
+
+There are meaningful protections:
+
+- Resolved search roots.
+- Configurable additional roots.
+- Sensitive-path filtering.
+- Symlink-aware path containment.
+- Dedicated file tools instead of requiring shell for ordinary file operations.
+
+However, these protections apply to the dedicated file tools. They do not constrain Bash or Python.
+
+Conclusion: retain the dedicated file tools and their path restrictions, but do not treat them as the application's filesystem security boundary.
+
+### C. Internal API and shell
+
+Privileged internal bridge
+
+There are two related routes:
+
+1. `app_api` uses an internal token to call application routes.
+2. `/api/shell/exec` and `/api/shell/stream` are admin-gated shell execution endpoints.
+
+The internal token is trusted by the application middleware. Consequently, a caller that possesses it can obtain authority that an ordinary user would not receive.
+
+The internal API bridge has a blocklist, not a comprehensive endpoint allowlist. Some side-effecting endpoints remain potentially reachable, subject to their individual route behavior.
+
+Conclusion: the internal token must be treated as a high-value capability, not merely an authentication convenience.
+
+### D. MCP execution
+
+Critical extension boundary
+
+| Property                | Source-level behavior                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| Registration            | Admin-controlled                                               |
+| Transport               | Includes stdio subprocesses                                    |
+| Environment             | Can inherit the entire application environment                 |
+| Startup                 | Built-ins and enabled user servers connect in background       |
+| Reconnection            | Automatic reconnection is implemented                          |
+| Global disable          | Does not necessarily disable user-configured servers           |
+| Per-server tool disable | Schema visibility restriction; runtime enforcement gap remains |
+| Child isolation         | No independent OS sandbox established by reviewed source       |
+
+This means an MCP server is not just a plugin with a limited tool list. A stdio server is an executable child process running under the application's operating-system identity.
+
+### E. External integrations
+
+High-risk network capability
+
+`api_call` is effectively a generic HTTP client for configured integrations.
+
+The integration store's encryption at rest is useful, but the runtime must decrypt credentials to use them. The API-call tool can send arbitrary methods and paths, and responses are returned to the Agent.
+
+The combination of:
+
+- Broad endpoint access.
+- LAN/private network access by default.
+- Potentially sensitive integration responses.
+- No general response redaction.
+
+means an integration must be treated as a privileged network capability.
+
+### F. Autonomous execution
+
+Critical autonomy boundary
+
+| Mechanism           | Trigger                             | What happens                                    |
+| ------------------- | ----------------------------------- | ----------------------------------------------- |
+| Detached Bash       | Agent requests background execution | Command continues independently                 |
+| Background monitor  | Five-second polling                 | Agent is automatically invoked with job output  |
+| Scheduled tasks     | Scheduler fires due task            | Local/remote action executes                    |
+| Email poller        | Poll interval / due message         | Pending email can be delivered                  |
+| MCP reconnect       | Server call failure                 | Connection is retried                           |
+| Nightly skill audit | Scheduled time                      | Skills can be audited and automatically changed |
+| Lifecycle monitor   | Periodic loop                       | Expired cookbook serves can be stopped          |
+
+This is important for Odysseus's intended operating philosophy: stopping the chat interface is not necessarily equivalent to stopping the Agent's activity.
+
+## 4. Authority classification
+
+The following is the practical classification I recommend using as the foundation for the security redesign.
+
+Tier 0 — Observation
+
+Lowest risk
+
+Read-only status, bounded logs, approved project inspection, model listing and basic metadata.
+
+Tier 1 — Controlled local read
+
+Low risk
+
+Approved filesystem reads, bounded search, selected document and application-data retrieval.
+
+Tier 2 — Controlled mutation
+
+Approval required
+
+Project file changes, document updates, memory changes, settings changes and model management.
+
+Tier 3 — External authority
+
+Strict control
+
+Provider API calls, integration HTTP requests, email sending, browser automation, MCP tools and remote SSH actions.
+
+Tier 4 — Execution authority
+
+Highest risk
+
+Arbitrary shell, arbitrary Python, internal shell API, unrestricted MCP process execution and detached autonomous execution.
+
+This is a proposed Odysseus security classification, not an existing project feature.
+
+My recommendation is that the default Agent should operate at Tier 0–1. Higher tiers should require explicit, narrowly scoped authorization. Tier 4 should not be available to the ordinary conversational Agent.
+
+## 5. Consolidated defect register — current ranking
+
+This ranking reflects security consequence and architectural importance, not demonstrated exploitability.
+
+| Priority | ID     | Defect / concern                                                                              | Required architectural response                                        |
+| -------- | ------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| P0       | AG-15  | MCP child processes inherit application environment                                           | Explicit minimal child environment; no inherited provider secrets      |
+| P0       | AG-09  | Scoped API token can reach general Agent chat without matching scope enforcement              | Enforce token scopes before Agent execution and again at tool dispatch |
+| P0       | AG-10  | Internal API bridge has broad authority and blocklist-based restrictions                      | Replace with explicit route/method capability allowlist                |
+| P0       | AG-14  | `tail_serve_output` uses privileged internal shell route without explicit owner authorization | Enforce session ownership and least privilege                          |
+| P1       | AG-01b | Per-server disabled MCP tools are not enforced at runtime                                     | Runtime check in MCP dispatch                                          |
+| P1       | AG-16  | MCP environment values stored as plaintext configuration                                      | Secret references, redaction and restricted configuration responses    |
+| P1       | AG-17  | Built-in MCP disable does not disable user-configured MCP                                     | One global MCP execution switch                                        |
+| P1       | AG-18  | Generic external integration HTTP authority                                                   | Per-integration capabilities and endpoint allowlists                   |
+| P1       | AG-19  | Integration responses lack general secret redaction                                           | Structured response filtering and sensitive-field handling             |
+| P1       | AG-20  | Browser MCP defaults to no sandbox and floating package install                               | Pinned, preinstalled package and isolated browser process              |
+| P1       | AG-21  | Background autonomy enabled by default                                                        | Explicit autonomy policy; manual operation by default                  |
+| P1       | AG-03  | Bash/Python execute without OS sandbox                                                        | Separate execution boundary or remove from conversational Agent        |
+| P1       | AG-05  | Background jobs automatically resume Agent                                                    | Explicit approval or constrained continuation policy                   |
+| P1       | AG-07  | Scheduled actions can independently execute local/remote commands                             | Separate scheduler authority and approval model                        |
+| P2       | AG-02  | Auth-disabled mode receives full privileges                                                   | Explicit single-user security warning and deployment safeguards        |
+| P2       | AG-06  | MCP automatic reconnection                                                                    | Make reconnection subject to server trust and global policy            |
+| P2       | AG-08  | Browser package installation can occur on startup                                             | Offline/preinstalled dependency policy                                 |
+| P2       | AG-13  | `tail_serve_output` schema/tag mismatch                                                       | Registry consistency tests                                             |
+| P2       | AG-22  | Credential-file permission handling needs verification                                        | Explicit restrictive modes and permission checks                       |
+
+Some defects overlap. For example, AG-15, AG-16 and AG-17 should be solved as one coherent MCP trust-boundary redesign, not as three unrelated patches.
+
+## 6. What we have not established
+
+The matrix is source-based. These questions remain open and should not be represented as proven vulnerabilities:
+
+| Unverified question                                                 | Why it matters                                              |
+| ------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Actual process UID, groups and capabilities                         | Determines effective OS authority                           |
+| Actual container mounts and host access                             | Determines whether the process can access host files        |
+| Effective network namespace and firewall                            | Determines reachable services                               |
+| Actual permissions of `.app_key`, integrations and OAuth files      | Determines at-rest exposure                                 |
+| Whether provider secrets are present in the application environment | Determines real-world impact of MCP environment inheritance |
+| Whether a particular MCP server is enabled                          | Determines actual exposure                                  |
+| Whether background pollers are active in deployment                 | Determines current autonomy                                 |
+| Whether API-token scope bypass is exploitable end-to-end            | Requires controlled runtime verification                    |
+| Whether DNS rebinding can defeat the integration URL guard          | Requires controlled network testing                         |
+
+No exploit has been demonstrated by this audit. These are source-established weaknesses, potential impacts or unresolved deployment facts.
+
+## 7. The proposed Odysseus target architecture
+
+The security design should separate the conversational Agent from execution authority.
+
+User / Chat Interface
+
+Authentication · token scope · explicit approvals
+
+Odysseus Agent
+
+Reasoning · planning · orchestration · read-only default
+
+Policy Enforcement Gateway
+
+Identity · capability checks · approval · audit logging
+
+Read-only Inspector
+
+Fixed project roots · bounded reads · no shell
+
+Execution Broker
+
+Approved scripts · isolated execution · resource limits
+
+Provider Broker
+
+Host-held keys · explicit provider permissions
+
+MCP Gateway
+
+Allowlisted servers · minimal environment · controlled tools
+
+Isolated Runtime Boundaries
+
+Rootless containers · dedicated data · no broad host mounts · no implicit autonomy
+
+This is the proposed target, not a diagram of the current implementation.
+
+The essential architectural principle is that the Agent should request a capability from a broker; it should not directly inherit the authority of the machine running it.
+
+## 8. Audit checkpoint
+
+Authority Matrix consolidated
+
+| Deliverable                          | Status                               |
+| ------------------------------------ | ------------------------------------ |
+| Current repository identity and HEAD | Verified                             |
+| Native execution paths               | Source-inspected                     |
+| MCP authority                        | Source-inspected                     |
+| API and integration authority        | Source-inspected                     |
+| Authentication and token authority   | Source-inspected; runtime unresolved |
+| Background autonomy                  | Source-inspected                     |
+| Filesystem boundary                  | Source-inspected                     |
+| Authority tiers                      | Proposed                             |
+| Defect register                      | Consolidated                         |
+| Runtime acceptance tests             | Not performed                        |
+| Implementation                       | Not started                          |
+
+My recommendation: freeze the source audit here and prepare the implementation handover as a separate artifact. That handover should carry the verified commit, this matrix, the defect register, the unresolved runtime questions, and the strict deployment requirements. Then start a fresh implementation chat with the audit as its controlling reference.
+
+We should not begin fixing individual files yet. The biggest danger would be patching one tool while leaving another route that grants the same authority untouched.
+
+The next logical task is to turn this matrix into the Odysseus Security Implementation Blueprint, with ordered phases, dependencies, acceptance tests and rollback criteria.
