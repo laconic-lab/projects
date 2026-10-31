@@ -1,0 +1,138 @@
+Phase 2 — Ordinary-Agent capability inventory
+Let's continue from the agreed security architecture. The next task is to establish exactly which tools Odysseus can expose, what each one can do, and where access is actually enforced.
+
+The governing rule remains: default deny. We will not treat a hidden button, omitted tool description, or disabled UI entry as a security boundary. We need to verify the backend dispatch path as well.
+
+The audit remains pinned to commit 03d25943ee4a35f6f0535112976123a721cff5cb. No installation, Steam Deck commands, provider connections, or repository modifications.
+First concrete finding: tool exposure is broader than the intended policy
+The upstream tool index has an ALWAYS_AVAILABLE set that includes bash, python, filesystem inspection tools, and manage_memory. It also has a separate, much broader set for scheduled assistant tasks, including email operations and api_call.
+
+That does not prove those tools can execute for an ordinary Agent—the runtime policy may block them later. But it confirms we must audit both exposure and execution enforcement, and must separately disable scheduled-task pathways rather than assume the ordinary chat allowlist covers them.
+1. What the upstream actually exposes
+At the pinned commit, the native function-schema catalogue contains 80+ named tools, before counting dynamically supplied MCP tools. They fall into these groups:
+Capability group	Examples	Proposed ordinary-Agent policy
+Shell and code	bash, python, host_shell, manage_bg_jobs	DENY
+General filesystem	read_file, grep, glob, ls, get_workspace	DENY  — replace with a restricted project inspector
+Filesystem mutation	write_file, edit_file, apply_patch	DENY
+Web research	web_search, web_fetch, pdf_extract, youtube_tool, get_weather	CANDIDATE  — controlled, bounded access
+Browser automation	private_browser, browser MCP tools	DENY  initially
+Media inspection	inspect_media, extract_text, transcribe_media	DENY  initially
+Documents and personal data	documents, memory, notes, contacts, calendar, sessions	DENY
+Provider and model administration	endpoints, model discovery, settings, tokens, MCP	DENY
+Cookbook and model serving	download, serve, stop, inspect running models	DENY
+Email and external messaging	read, search, draft, send, delete, archive	DENY
+Integrations	api_call, app_api, webhooks	DENY
+UI and editor control	ui_control, editor commands, image editing	DENY
+Background automation	scheduled tasks, background jobs, research jobs	DENY
+
+The candidate web tools are not approved yet. Their URL restrictions, request limits, redirect handling, and network reach still need their own review.
+2. What the security code already does well
+There are several useful protections in the audited revision:
+- tool_security.py has a non-admin blocklist covering shell, Python, general filesystem access, email, memory, administrative tools, integrations, and model-serving operations.
+- tool_execution.py requires server-owned request authority before executing a tool. A model's proposed tool call does not itself grant permission.
+- tool_capabilities.py classifies tool effects. Unknown tools receive a high-impact classification rather than being treated as harmless.
+- The execution path checks the effective turn policy and the request authority before dispatch.
+- Workspace filesystem operations use sealed resource roots and resource identity checks.
+These are valuable foundations. They are not yet the complete Odysseus policy we want.
+
+Sources: tool_security.py · tool_execution.py · tool_capabilities.py
+3. Important gaps for our particular deployment
+A. Single-user mode can bypass the non-admin boundary
+Critical design issue
+
+The upstream considers authentication-disabled single-user mode equivalent to an administrator for its public-user tool policy.
+
+That is reasonable for a conventional personal installation, but it is not sufficient for our design. We want an ordinary Agent with restricted capabilities even though the Steam Deck owner is the administrator.
+
+Required solution: a separate, server-enforced Odysseus Agent profile that remains restricted regardless of AUTH_ENABLED, owner identity, or admin status.
+
+B. MCP is not disabled by one switch
+Critical design issue
+
+ODYSSEUS_DISABLE_MCP=1 stops built-in MCP registration. Startup separately invokes connect_all_enabled() for user-configured MCP servers.
+
+We must disable both registration paths and verify that the dispatcher refuses MCP calls even if a tool name is supplied directly.
+
+C. Scheduled work starts by default
+Critical deployment issue
+
+ODYSSEUS_INPROCESS_TASKS defaults to enabled. The email poller has its own separate switch, ODYSSEUS_INPROCESS_POLLERS.
+
+Our manual-only lifecycle requires both disabled, plus a check of other startup background work. Disabling scheduled tasks alone does not disable every background process.
+
+D. MCP disabled-tool settings are not a complete execution barrier
+Needs hardening
+
+The upstream specs/shell-mcp.md explicitly documents that per-server disabled MCP tools can be hidden from prompts while a qualified tool name may still reach execution.
+
+Our policy must enforce the decision at dispatch, not merely at tool discovery or prompt construction.
+
+E. Generic file inspection is too broad
+Needs replacement
+
+The native file tools are workspace-confined, but the default workspace is not automatically the Odysseus project root. We must not grant access to the whole project, host home, or arbitrary paths merely because the native tools have path protections.
+
+Sources: tool_security.py · builtin_mcp.py · shell-mcp specification
+4. Proposed final ordinary-Agent allowlist
+This is the policy I recommend we design around. It is a project-specific policy, not an assertion that the upstream currently implements it.
+Permitted capabilities
+
+- Normal conversation using the one manually selected provider.
+- Controlled web search and retrieval, subject to the separate network policy.
+- Ask the user for clarification or approval.
+- Update the current task plan.
+- Read-only inspection of specifically approved Odysseus project files, through a custom restricted inspector.
+- Read-only project health information, through explicitly defined status checks.
+  
+  Everything else denied
+- Shell, Python, arbitrary filesystem access and filesystem mutation.
+- MCP, email, integrations, external messaging and webhooks.
+- Memory, contacts, documents, notes, calendars and session administration.
+- Provider credentials, endpoint administration and model-serving controls.
+- Background jobs, scheduled tasks, automatic follow-ups and autonomous actions.
+- Automatic provider switching, fallback, or unapproved paid API usage.
+- Unknown tools, newly introduced tools and tools supplied dynamically by MCP.
+
+Important distinction: provider selection belongs to the human-controlled application interface. The provider broker is an internal application component, not a general-purpose Agent tool. The Agent should never receive a raw API key or be allowed to select arbitrary endpoints or headers.
+5. How I propose to enforce it
+Human-controlled interface
+
+Select provider · Start conversation · Approve permitted operations
+
+
+Ordinary Odysseus Agent
+Restricted profile
+Chat · controlled research · approved read-only inspection
+
+
+Server-side capability enforcement
+
+Explicit allowlist · exact operation checks · default deny · MCP rejection
+
+
+Provider broker
+
+Host-side credential resolution · selected provider only
+
+
+Project inspector
+
+Fixed project root · read-only · bounded output
+
+
+
+
+The enforcement layer must be independent of the model, prompt, UI, and user's administrator status. A tool added in a future upstream revision must remain denied until we explicitly classify and authorize it.
+6. Next audit steps
+I suggest we complete the inventory in this order:
+1. Tool dispatch and authority: map every native tool and dynamic MCP route to its actual execution gate. Check that direct calls cannot bypass the profile.
+2. Background execution: inspect scheduler, email pollers, background jobs, research jobs, and startup tasks. Establish a complete manual-only policy.
+3. Browser and research: identify the minimum safe web-research implementation, including network boundaries.
+4. Project inspector: define its exact permitted paths, operations, output limits, and symlink/path-escape protections.
+5. Provider broker: define the internal request contract, authentication, key resolution and error handling.
+6. Validation: create tests proving that every denied tool stays denied, including unknown and newly added tools.
+My recommendation: do not start changing upstream files yet. First finish the read-only audit and turn this policy into a concrete security specification. Then we can implement against that specification without accidentally inheriting upstream's broader personal-assistant permissions.
+
+The next item is the dispatch and authority audit, including native tools, MCP-qualified tools, and alternate execution routes. That is the part we need to prove before trusting the allowlist.
+
+LET'S GO.

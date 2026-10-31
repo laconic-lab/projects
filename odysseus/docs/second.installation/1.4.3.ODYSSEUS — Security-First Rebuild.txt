@@ -1,0 +1,167 @@
+Yes. We have a solid architectural baseline for Odysseus, and I would keep it: a dedicated rootless Podman container as the application boundary, with narrowly controlled host-side services for provider access and project inspection.
+
+The important distinction is that we are not trying merely to make Odysseus run on SteamOS. We are trying to make it run while preventing the Agent from inheriting the Steam Deck host's broad authority.
+
+I would preserve the decisions already established:
+
+- No broad `/home/deck` or `/run/host` mounts.
+- No provider credentials inside the application container.
+- No general host shell, unrestricted filesystem access, or MCP execution for the ordinary Agent.
+- No automatic startup, restart, provider fallback, or background autonomy.
+- Existing projects, recovery data, and the current Python environment remain protected.
+
+I would not start installation yet. A few implementation-critical details still need verification before we can responsibly freeze the design.
+
+## What the source review has clarified
+
+There is one important architectural issue to resolve before implementation.
+
+The current upstream `dev` branch has evolved beyond the earlier Odysseus installation we examined. Its standard Docker Compose deployment now includes the application, ChromaDB and SearXNG; it also enables `restart: unless-stopped` and defaults to in-process pollers and scheduled tasks. The application listens on container port `7000`, with the usual host mapping to `7011`.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+That standard deployment is not suitable to adopt unchanged under your requirements. In particular:
+
+- We must explicitly disable pollers and scheduled-task execution.
+- We must not inherit automatic restart behaviour.
+- We must not mount the host Docker/Podman socket.
+- We must not expose the host workspace or provider keys.
+- We must decide whether SearXNG and ChromaDB belong in separate containers, and how Odysseus can reach them without host-network access.
+
+The previous ChromaDB arrangement is still a useful, verified reference: host loopback `127.0.0.1:8100` mapped to container port `8000`, with persistent data under the Odysseus project. But that historical setup is not automatically the best network arrangement for a new isolated application container.
+
+I also checked your Odysseus Python environment reference. It records Python `3.12.3`, the existing `.venv`, and the application data and database paths. That environment is a protected asset; I would not rebuild it or assume it can simply be transplanted into a different container model.
+
+## One positive finding: our approved source baseline is still current
+
+I checked the upstream `dev` branch against the previously approved commit:
+
+`03d25943ee4a35f6f0535112976123a721cff5cb`
+
+They match exactly. So we can continue using that commit as our source baseline rather than silently moving to a newer revision. That is important for reproducibility.
+
+## Proposed implementation direction
+
+## Odysseus — proposed architecture
+
+Windows PC — browser
+
+192.168.1.169 · access to UI only
+
+Steam Deck host — controlled entry
+
+Firewall restricted to the PC · manual lifecycle
+
+Dedicated rootless Podman application container
+
+Odysseus UI, Agent and application runtime
+
+- No host home mount
+- No host Podman socket
+- No provider keys
+- No unrestricted shell or MCP
+- No automatic restart
+- Restricted network access
+
+Provider broker
+
+Host-controlled credential use; explicit provider selection and bounded operations
+
+Project inspector
+
+Read-only, fixed-root access to approved project information
+
+ChromaDB
+
+Separate service, private network, persistent data
+
+Search service
+
+Separate, restricted service if required by the selected features
+
+This is the design direction, not a claim that the isolation has already been implemented or tested.
+
+## Next: confirm the actual Steam Deck state
+
+Before choosing the exact container networking, mount layout and migration strategy, I need a fresh read-only snapshot. The earlier inventory is useful, but it is not proof of today's state.
+
+STEAM DECK — Konsole/SSH
+
+This command only inspects. It does not start containers, enter Distrobox, modify files, or read `.env` or credential files.
+
+```
+echo "===== ODYSSEUS — READ-ONLY INSPECTION ====="
+
+echo
+echo "===== 1. DISTROBOX INVENTORY ====="
+distrobox list
+
+echo
+echo "===== 2. PODMAN CONTAINER INVENTORY ====="
+podman ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+echo
+echo "===== 3. CHROMADB CONTAINER CONFIGURATION ====="
+if podman container exists odysseus-chromadb; then
+    podman inspect odysseus-chromadb --format \
+'Name: {{.Name}}
+Image: {{.ImageName}}
+User: {{.Config.User}}
+Privileged: {{.HostConfig.Privileged}}
+Network: {{.HostConfig.NetworkMode}}
+Restart: {{.HostConfig.RestartPolicy.Name}}
+Ports: {{json .HostConfig.PortBindings}}
+Mounts: {{json .Mounts}}'
+else
+    echo "odysseus-chromadb does not exist in this Podman inventory."
+fi
+
+echo
+echo "===== 4. PODMAN NETWORKS ====="
+podman network ls
+
+echo
+echo "===== 5. PROJECT GIT BASELINE ====="
+git -C /home/deck/OdysseusProject rev-parse --show-toplevel
+git -C /home/deck/OdysseusProject rev-parse HEAD
+git -C /home/deck/OdysseusProject status --short --branch
+
+echo
+echo "===== 6. PROJECT DIRECTORY METADATA ====="
+ls -ld \
+    /home/deck/OdysseusProject \
+    /home/deck/OdysseusProject/.venv \
+    /home/deck/OdysseusProject/data \
+    /home/deck/OdysseusRecovery 2>&1
+
+echo
+echo "===== 7. PYTHON ENVIRONMENT IDENTITY ====="
+if [ -x /home/deck/OdysseusProject/.venv/bin/python ]; then
+    /home/deck/OdysseusProject/.venv/bin/python --version
+    /home/deck/OdysseusProject/.venv/bin/python -c \
+'import sys; print("Executable:", sys.executable); print("Prefix:", sys.prefix)'
+else
+    echo "Project virtual-environment interpreter not found."
+fi
+
+echo
+echo "===== INSPECTION COMPLETE ====="
+```
+
+Please paste the complete output.
+
+### What I will establish from it
+
+1. Whether an existing Odysseus environment or ChromaDB container needs to be preserved.
+2. Whether the existing ChromaDB data and port mapping can be retained without migration.
+3. Whether the approved Python environment is still present and consistent.
+4. Whether the current local Git checkout matches the approved upstream baseline, and whether it contains uncommitted changes.
+5. Whether the proposed Podman isolation can be implemented without disturbing the existing Steam Deck projects.
+
+My recommendation: preserve the working application data and Python environment wherever technically possible. Build the security boundary around them, rather than treating a clean reinstall as the default solution.
+
+Once this inspection is complete, I can produce the final implementation specification, including the exact network topology, mounts, UID mapping, security controls, service lifecycle and acceptance tests. Only then should we move to installation, with your explicit approval.
