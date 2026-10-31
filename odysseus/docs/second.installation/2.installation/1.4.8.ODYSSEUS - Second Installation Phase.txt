@@ -1,0 +1,589 @@
+Agreed. We should now freeze the installation architecture before touching the Steam Deck.
+
+My recommendation is to make Odysseus a controlled orchestration platform, not a privileged application running inside a container and hoping its configuration is safe.
+
+The distinction matters: container isolation, application permissions, and execution authorization must each provide an independent security boundary.
+
+Below is the proposed specification. I have marked decisions that can be frozen now separately from details that still require technical validation.
+
+# ODYSSEUS — INSTALLATION ARCHITECTURE SPECIFICATION
+
+## Phase 1.4 — Second Installation
+
+**Revision:** 1.0 — Proposed Architecture\
+**Repository:** `odysseus-dev/odysseus-current`\
+**Branch:** `dev`\
+**Pinned commit:** `142b93ad86073efb24981df385423f58fe5376b1`\
+**Target host:** Steam Deck OLED — SteamOS\
+**Installation status:** Not started
+
+---
+
+## 1. Architectural objective
+
+Build a local-first AI orchestration environment on the Steam Deck, using Odysseus as its conversational interface and orchestration foundation.
+
+The installation must enforce these principles:
+
+1. The Agent does not inherit the human administrator's authority.
+2. No unrestricted host shell, Python, filesystem, SSH, Docker or MCP access.
+3. Every privileged operation requires an explicit authorization decision.
+4. Provider credentials remain outside the application and repository.
+5. No autonomous background activity by default.
+6. No automatic startup at boot.
+7. No cloud provider requests unless explicitly authorized.
+8. No modification of existing Steam Deck projects or services.
+9. Installation and runtime must be reproducible and recoverable.
+10. Security must be demonstrated through tests, not inferred from configuration.
+
+Odysseus is an application foundation, not a security boundary.
+
+## 2. Deployment architecture
+
+### 2.1 Components
+
+**A. Odysseus Application**
+
+Purpose:
+
+- Web interface and conversational experience.
+- Session and conversation management.
+- Model selection and orchestration.
+- Presentation of approved tools and results.
+
+Restrictions:
+
+- No unrestricted shell or Python execution.
+- No unrestricted filesystem access.
+- No direct host Docker access.
+- No SSH execution.
+- No arbitrary MCP subprocesses.
+- No provider credentials in its general environment.
+- No autonomous background execution.
+
+**B. Policy Enforcement Gateway**
+
+Purpose:
+
+- Central authorization point for Agent tool requests.
+- Validate tool identity, arguments, target and permission.
+- Enforce execution-time authorization.
+- Record approved and rejected actions.
+- Reject unrecognized or unsupported operations.
+
+The gateway must not trust a permission decision made solely by the conversational model or frontend.
+
+**C. Read-only Project Inspector**
+
+Purpose:
+
+- Inspect approved project directories.
+- Read selected configuration, manifests and logs.
+- Report project status and diagnostics.
+- Produce bounded, structured results.
+
+Restrictions:
+
+- No write, delete, rename, chmod or ownership changes.
+- No arbitrary path traversal.
+- No symlink escape from approved roots.
+- No shell execution.
+- No access to unrelated projects or credentials.
+
+**D. Provider Broker**
+
+Purpose:
+
+- Receive an approved provider request.
+- Retrieve the required host-held credential.
+- Make the external API request.
+- Return a bounded response.
+
+Restrictions:
+
+- Never expose the raw key to the Agent.
+- Never pass the complete host environment to another process.
+- No arbitrary provider selection or endpoint.
+- No unapproved provider calls.
+- No credential or authorization-header logging.
+
+**E. Isolated Execution Environment**
+
+Purpose:
+
+- Future controlled execution of specifically approved operations.
+
+Initial state:
+
+- Disabled.
+- No execution tools exposed.
+- No host filesystem mounts beyond explicitly approved data.
+- No Docker socket.
+- No SSH credentials.
+- No unrestricted network access.
+
+This component is not required for the first read-only installation.
+
+### 2.2 Communication
+
+All privileged requests must pass through the Policy Enforcement Gateway.
+
+The application must not be able to bypass the gateway by calling an upstream execution endpoint directly.
+
+A gateway is not sufficient if an unrestricted shell endpoint remains reachable inside the application. Such endpoints must be removed, disabled or blocked at the application layer and tested independently.
+
+## 3. Host and container isolation
+
+### 3.1 Runtime decision
+
+Use rootless Podman as the container runtime.
+
+Do not treat Distrobox as a security sandbox.
+
+A normal Distrobox environment is designed for integration with the host and may expose host paths and host-user authority. It is not an acceptable isolation boundary by itself.
+
+The proposed `odysseus-box` may be retained as a project/runtime management environment only if its actual privileges are reviewed. It must not be considered the security boundary.
+
+### 3.2 Container separation
+
+Use separate containers for independently trusted functions:
+
+- Odysseus application.
+- Policy Enforcement Gateway.
+- Provider Broker, when implemented.
+- Read-only Inspector, when implemented.
+
+Do not combine the conversational Agent and privileged execution broker into one unrestricted process.
+
+No container receives the Podman socket.
+
+No container runs privileged.
+
+No container uses host networking by default.
+
+### 3.3 User namespace
+
+Before deployment, verify the actual rootless Podman UID/GID mapping.
+
+Do not assume that container UID 1000 is isolated from host UID 1000.
+
+Do not reuse the upstream entrypoint's recursive ownership-repair behavior against existing host directories.
+
+Use dedicated directories with explicitly established ownership and permissions.
+
+### 3.4 Host mounts
+
+Only dedicated Odysseus directories may be mounted.
+
+No broad mounts of:
+
+- `/home/deck`
+- `/home`
+- `/etc`
+- `/run`
+- `/var`
+- Existing project directories
+- Provider credential directories
+- SSH configuration or private keys
+- Other application data
+
+The Inspector receives only explicitly approved project paths, read-only.
+
+No access to:
+
+- `pihole-box`
+- `Stable-box`
+- `localai-box` internal data
+- Pi-hole data
+- LocalAI recovery data
+- Stable Diffusion data
+- SSH recovery data
+
+Existing projects remain outside Odysseus's authority.
+
+## 4. Host directory layout
+
+Proposed canonical paths:
+
+**Project**\
+`/home/deck/OdysseusProject`
+
+**Recovery**\
+`/home/deck/OdysseusRecovery`
+
+**Provider credentials**\
+`/home/deck/.config/odysseus/providers/<provider>/odysseus-<provider>.key`
+
+**Dedicated runtime data**\
+`/home/deck/OdysseusProject/data`
+
+**Dedicated logs**\
+`/home/deck/OdysseusProject/logs`
+
+**Dedicated container configuration**\
+`/home/deck/OdysseusProject/config`
+
+**Dedicated manifests**\
+`/home/deck/OdysseusRecovery/manifests`
+
+The existing provider credential location is preserved. Its contents must never be printed, copied into the project or included in backups.
+
+The historical recovery files are evidence and reference material, not an installation source to execute blindly.
+
+No existing files or directories are to be deleted as part of establishing this layout.
+
+## 5. Credential architecture
+
+### 5.1 Provider keys
+
+Provider keys remain on the Steam Deck host, outside the repository and application data.
+
+The Provider Broker is the only component permitted to retrieve them.
+
+### 5.2 Credential flow
+
+1. Agent requests an external provider operation.
+2. Gateway validates the operation and authorization.
+3. Broker accepts only an approved provider and operation.
+4. Broker retrieves the relevant credential.
+5. Broker performs the request.
+6. Broker returns a sanitized response.
+7. Logs contain operation metadata, never raw credentials.
+
+### 5.3 Restrictions
+
+- No provider key in `.env`.
+- No provider key in Compose files.
+- No provider key in the Agent prompt or context.
+- No raw key in application logs.
+- No credential directory mount into the Odysseus UI container.
+- No arbitrary URL supplied by the Agent.
+- No silent fallback to a cloud provider.
+
+The existing Groq key must remain untouched until an explicitly authorized provider integration test is scheduled.
+
+## 6. Network policy
+
+### 6.1 Initial network permissions
+
+| Destination                  | Initial policy                          |
+| ---------------------------- | --------------------------------------- |
+| Odysseus UI from trusted LAN | Allow                                   |
+| Policy Gateway               | Internal container network only         |
+| Inspector                    | Internal container network only         |
+| Provider Broker              | Disabled until approved                 |
+| Local model endpoint         | Allow only through approved local route |
+| Public Internet              | Deny by default for Agent execution     |
+| Arbitrary LAN destinations   | Deny                                    |
+| SSH                          | Deny                                    |
+| Host Docker API              | Deny                                    |
+| MCP servers                  | Deny                                    |
+
+The UI's LAN exposure must be restricted to the intended private network and protected by authentication.
+
+### 6.2 Local model access
+
+The intended local model backend is the existing Ollama installation in `localai-box`.
+
+Odysseus must not start, stop or modify LocalAI.
+
+LocalAI remains manually operated under its existing lifecycle scripts.
+
+When it is running, Odysseus may access only the approved Ollama API endpoint through a deliberately configured route.
+
+No automatic cloud fallback.
+
+### 6.3 Network verification
+
+Before accepting the installation, verify:
+
+- Container-to-container communication.
+- Container-to-host reachability.
+- Internet reachability.
+- Private LAN reachability.
+- Access to unrelated host services.
+- Whether the Agent can bypass the gateway.
+
+A configured network policy is not proof that the policy is enforced.
+
+## 7. Agent authority matrix
+
+| Capability                     | Initial authority         |
+| ------------------------------ | ------------------------- |
+| Conversational reasoning       | Allowed                   |
+| Read own sessions              | Allowed                   |
+| Read approved project metadata | Through Inspector         |
+| Read approved project files    | Through Inspector         |
+| Read approved logs             | Through Inspector         |
+| Write project files            | Denied                    |
+| Delete files                   | Denied                    |
+| Shell                          | Denied                    |
+| Python execution               | Denied                    |
+| Arbitrary filesystem           | Denied                    |
+| SSH                            | Denied                    |
+| Docker / Podman                | Denied                    |
+| MCP                            | Denied                    |
+| Email                          | Denied                    |
+| Browser automation             | Denied                    |
+| Downloads                      | Denied                    |
+| Scheduled tasks                | Denied                    |
+| Background jobs                | Denied                    |
+| Provider API calls             | Disabled until authorized |
+| Host administration            | Denied                    |
+
+The human administrator retains control of the application and host outside the Agent's authority.
+
+Administrator status must not automatically grant the Agent unrestricted tool execution.
+
+## 8. Background activity and lifecycle
+
+The initial installation must be manually operated.
+
+Disable or prevent:
+
+- Email pollers.
+- Scheduled task execution.
+- Automatic task reconciliation that can activate execution.
+- Background-job continuation.
+- Nightly audits.
+- Autonomous monitoring loops.
+- MCP startup and reconnection.
+- Cookbook model-serving lifecycle.
+- Automatic dependency downloads.
+- Autonomous Agent continuation.
+
+These controls must be checked in source and verified at runtime.
+
+Setting only `ODYSSEUS_INPROCESS_POLLERS=0` and `ODYSSEUS_INPROCESS_TASKS=0` is not sufficient.
+
+### Manual operations
+
+Provide independent operational scripts:
+
+- START
+- STOP
+- STATUS
+- CHECK
+- LOGS
+- BACKUP
+
+Requirements:
+
+- No boot autostart.
+- No persistent service enabled by default.
+- No duplicate application instances.
+- Graceful shutdown.
+- Explicit ownership checks before stopping supporting containers.
+- Never stop protected projects or services.
+- No broad process-killing commands.
+- Status and logs must be read-only.
+
+## 9. Resource policy
+
+The Steam Deck is also a gaming device.
+
+Odysseus must not consume resources indiscriminately.
+
+Initial policy:
+
+- No model inference unless explicitly requested.
+- No background model downloads.
+- No unattended compilation.
+- No large embedding or indexing jobs.
+- No unnecessary always-running containers.
+- No autonomous browser or research jobs.
+
+Set and verify CPU, memory and storage limits before enabling any additional service.
+
+The resource budget must be measured under actual SteamOS conditions rather than guessed.
+
+## 10. Dependency and supply-chain policy
+
+The pinned repository commit is the source baseline.
+
+Before installation:
+
+- Review the base image and resolve it to an immutable digest.
+- Pin all supporting container images.
+- Lock Python dependencies.
+- Pin npm/MCP packages if ever introduced.
+- Review build-time downloads.
+- Disable runtime package installation.
+- Record image digests and dependency versions.
+- Generate a deployment manifest.
+
+Do not use floating `latest` tags.
+
+Do not install browser MCP or other optional integrations in the initial profile.
+
+The unsigned upstream commit must be treated as a pinned source snapshot, not as a cryptographically authenticated release.
+
+## 11. Installation sequence
+
+Installation must proceed through explicit gates.
+
+**Gate A — Architecture validation**
+
+- Confirm rootless Podman user mappings.
+- Confirm storage and mount behavior.
+- Confirm network isolation options.
+- Confirm UID/GID and permission behavior.
+- Confirm the selected deployment approach.
+
+**Gate B — Source preparation**
+
+- Pin source SHA.
+- Prepare a reviewed deployment configuration.
+- Remove or disable unnecessary application capabilities.
+- Lock dependencies.
+- Review every patch.
+
+**Gate C — Isolation foundation**
+
+- Create dedicated directories.
+- Create restricted container networks.
+- Establish dedicated data ownership.
+- Build containers without starting autonomous services.
+
+**Gate D — Application installation**
+
+- Install the restricted UI.
+- Keep the Gateway and privileged components disabled.
+- Do not configure external providers.
+- Do not enable MCP.
+
+**Gate E — Security configuration**
+
+- Enforce authentication.
+- Disable shell, Python, filesystem modification and background execution.
+- Enforce the Agent's restricted tool policy.
+- Confirm no direct bypass paths.
+
+**Gate F — Acceptance testing**
+
+- Verify allowed operations.
+- Verify denied operations.
+- Verify network boundaries.
+- Verify credential isolation.
+- Verify manual lifecycle.
+- Verify recovery.
+
+**Gate G — Operational handover**
+
+- Produce final START/STOP/STATUS/CHECK/LOGS/BACKUP scripts.
+- Record exact versions and hashes.
+- Document known limitations.
+- Freeze the installation baseline.
+
+No gate may be silently skipped.
+
+## 12. Acceptance criteria
+
+The installation is not considered secure until all relevant tests pass.
+
+Required negative tests include:
+
+1. Agent cannot execute shell commands.
+2. Agent cannot execute Python.
+3. Agent cannot write or delete files.
+4. Agent cannot traverse outside approved Inspector paths.
+5. Agent cannot read provider keys.
+6. Agent cannot access the Podman socket.
+7. Agent cannot initiate SSH connections.
+8. Agent cannot start MCP subprocesses.
+9. Agent cannot schedule or resume background tasks.
+10. Agent cannot make unapproved external requests.
+11. Agent cannot access protected project data.
+12. Stopping Odysseus leaves protected projects unchanged.
+
+Required operational tests include:
+
+- START creates only expected containers.
+- Duplicate START does not create duplicate instances.
+- STOP terminates only Odysseus-owned resources.
+- STATUS performs no modifications.
+- CHECK reports actual state.
+- LOGS do not expose credentials.
+- BACKUP captures required state without provider secrets.
+- A SteamOS reboot does not automatically start Odysseus.
+
+Any failed security test blocks acceptance.
+
+## 13. Recovery and backup
+
+Recovery must include:
+
+- Pinned source revision.
+- Deployment configuration.
+- Container image manifest.
+- Dependency manifest.
+- Application data backup.
+- Operational scripts.
+- Integrity hashes.
+- Restoration instructions.
+
+Never include:
+
+- Raw provider keys.
+- Private SSH keys.
+- Unnecessary host configuration.
+- Protected project data.
+
+Recovery must be independently testable.
+
+## 14. Explicit non-goals for the first installation
+
+The first installation is not intended to provide:
+
+- Autonomous host administration.
+- Autonomous coding or execution.
+- Email reading or polling.
+- Browser automation.
+- MCP integrations.
+- Remote SSH administration.
+- Host Docker control.
+- Automatic model downloads.
+- Scheduled tasks.
+- Persistent background agents.
+- Automatic cloud provider fallback.
+
+These may be considered later as separate, explicitly authorized engineering stages.
+
+## 15. Final architecture principle
+
+**Odysseus may reason broadly, but it must act narrowly.**
+
+The Agent can propose actions and explain their consequences. It cannot grant itself authority.
+
+The Policy Enforcement Gateway decides what is permitted. The Inspector reads only approved data. The Provider Broker handles credentials. The execution environment remains disabled until a specific capability has been designed, authorized and tested.
+
+Installation is permitted only after the isolation foundation and all relevant acceptance tests have been validated.
+
+## Decisions I recommend freezing now
+
+Recommended baseline
+
+1. Rootless Podman, not Distrobox, as the security boundary. Distrobox may still be useful for development or maintenance, but not as proof of isolation.
+2. Separate UI, Gateway, Inspector and Provider Broker. No privileged service shares the Agent's unrestricted process context.
+3. Read-only first installation. The execution environment stays disabled.
+4. No provider integration during installation. Even Groq remains untouched.
+5. No MCP, SSH, Docker socket or background autonomy.
+6. Dedicated data directories only. No broad host mounts and no reuse of existing project data.
+
+## Three technical questions still requiring validation
+
+These are not reasons to delay the architecture; they are checks that determine how we implement it.
+
+| Question                                                                                                           | Why it matters                                                               |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Can rootless Podman provide the required UID, mount and network isolation on this SteamOS release?                 | Determines the actual security boundary.                                     |
+| Can the upstream application be restricted without leaving reachable shell, Python or background execution routes? | Determines whether we can safely adapt it or must remove more functionality. |
+| Can the local Ollama endpoint be exposed narrowly without granting general host-network access?                    | Determines the safe local-model connection.                                  |
+
+## Next gate
+
+I suggest we start with Gate A — Architecture validation, strictly read-only.
+
+The first task will be to inspect the Deck's rootless Podman user-namespace mappings, subuid/subgid configuration, network backend, and supported security options. We will not create containers, networks, directories or configuration files yet.
+
+That gives us the evidence needed to select the correct runtime architecture instead of assuming that a container automatically provides isolation.

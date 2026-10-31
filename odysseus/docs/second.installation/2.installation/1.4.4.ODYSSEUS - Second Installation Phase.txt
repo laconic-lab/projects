@@ -1,0 +1,94 @@
+Phase 1.4 — Stage 1.3 review: Recovery scripts
+The output is useful. We now have the complete contents of the four recovered operational scripts, their hashes, the legacy desktop launcher, and the Odysseus-related portions of CheckBox.
+
+Conclusion: the recovery scripts contain some sound operational ideas, but none should be adopted as the new installation's implementation without redesign and retesting. They are historical evidence, not a trusted deployment.
+1. Findings by script
+Component	Assessment
+odysseus_start.sh	Not reusable as-is
+odysseus_stop.sh	Not reusable as-is
+odysseus_status.sh	Historical reference
+odysseus_logs.sh	Historical reference
+Desktop launcher	Unsafe — do not execute
+CheckBox integration	Further review required
+
+odysseus_start.sh
+Good design ideas:
+- Checks for an existing process before launching another.
+- Checks the recorded PID against the process command line.
+- Starts only the specifically named ChromaDB container.
+- Records whether it started ChromaDB, so a later stop can distinguish owned from pre-existing services.
+- Uses a bounded health-check period.
+Important problems:
+- It launches Uvicorn on 0.0.0.0:7011, exposing the application on every available interface. That is not an acceptable default for an unverified application.
+- distrobox-host-exec podman gives the application environment a route to host Podman control. This is a significant authority boundary, not merely a convenience.
+- Its PID-file and process checks are useful operational safeguards, but they are not a security boundary.
+- The script assumes the old project directory, Python virtual environment, and ChromaDB container exist. They do not currently exist in the inspected environment.
+odysseus_stop.sh
+Good design ideas:
+- Sends TERM, not an immediate force-kill.
+- Refuses to stop ChromaDB while an Odysseus process is detected.
+- Stops ChromaDB only when its ownership marker exists.
+- Retains the marker when shutdown cannot be verified.
+Limitations:
+- The ownership marker is a local file, not an independently verified ownership record. It can become stale or be inconsistent with the container's actual history.
+- The process identity check relies on matching command-line text and a PID. It does not establish a robust process identity across restarts.
+- It depends on the same host-Podman access described above.
+odysseus_status.sh and odysseus_logs.sh
+These are useful examples of separating status and log inspection from lifecycle operations.
+
+One caution: the log viewer prints raw application logs. Logs can contain sensitive information, including credentials or request data. We should not automatically display or export them without reviewing the logging policy.
+Legacy desktop launcher
+This is the clearest rejection.
+
+It uses:
+pkill -9 -f "uvicorn app:app"
+pkill -9 -f "chromadb.cli.cli"
+pkill -9 -f "chroma run"
+
+
+Those are broad pattern-based, forceful process kills. They are not restricted to an Odysseus-owned process. They could terminate unrelated applications.
+
+It also references an old ai-box container, an old project path, and an old port arrangement. Do not run or reuse this launcher.
+2. CheckBox integration
+The inspected sections show a more careful approach than the desktop launcher:
+- It checks the Odysseus container state.
+- It checks the expected process arguments against the PID file.
+- It distinguishes absent, verified, and unknown states.
+- It tries to verify ChromaDB ownership before shutdown.
+- It intends to keep the container running when shutdown cannot be verified.
+That is a valuable operational pattern. However, CheckBox can invoke Odysseus's stop script and stop its Distrobox. It therefore needs a complete review before we can trust it as a shutdown authority.
+3. Recovery integrity record
+The four script hashes are now recorded in this conversation:
+File	SHA-256
+odysseus_logs.sh	ca5f927a03d8f51ea46b3a471c2630ec019fd3e21fc4a42384f757aad07b3149
+odysseus_start.sh	ac5d524d78440dcb712bc9062ab1b4e0a57599dff561d066bc14f91af636426f
+odysseus_status.sh	007a5b8cebeb1c63c64ada0a4cddeaf0b8345493a4468eb1e95cf57edd46d904
+odysseus_stop.sh	e532645750c2ed59504e71d30758b752f987ef9a78bf8ea9d0c992d5758bfb7a
+
+These identify the inspected copies. They do not establish that the scripts are safe or match any upstream version.
+4. Remaining read-only checks
+Before closing the recovery audit, two things remain:
+1. CheckBox: inspect its complete shutdown logic and supporting functions, not just the matching Odysseus lines.
+2. Architecture document: verify whether the copy in Documents is byte-identical to the recovery copy. We have only inspected the recovery copy's headings so far.
+STEAM DECK — Konsole / SSH
+Run this read-only block:
+echo "=== 1. ARCHITECTURE DOCUMENT COPY HASHES ==="
+sha256sum \
+  /home/deck/OdysseusRecovery/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md \
+  /home/deck/Documents/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md
+
+echo
+echo "=== 2. CHECKBOX — FUNCTIONS AND STATUS ==="
+nl -ba /home/deck/CheckBoxStatus.odysseus-integrated.sh | sed -n '1,360p'
+
+echo
+echo "=== 3. CHECKBOX — SHUTDOWN SEQUENCE ==="
+nl -ba /home/deck/CheckBoxStatus.odysseus-integrated.sh | sed -n '360,680p'
+
+echo
+echo "=== END OF RECOVERY REVIEW ==="
+
+
+No scripts will be executed, no containers touched, and no files changed.
+
+After that, we can close the recovery-material review and move to the repository verification gate. The next installation decision must be based on the audited odysseus-current source at the exact commit recorded in Phase 1.3—not on these historical scripts.

@@ -1,0 +1,55 @@
+## Gate A — Initial findings
+
+Rootless foundation present
+
+The first inspection is encouraging: this SteamOS host has the basic prerequisites for a rootless Podman deployment.
+
+| Area               | Evidence                            | Assessment                                    |
+| ------------------ | ----------------------------------- | --------------------------------------------- |
+| Host identity      | `deck` UID/GID 1000                 | Confirmed                                     |
+| Subordinate IDs    | UID and GID ranges `100000:65536`   | Present                                       |
+| User namespaces    | `user.max_user_namespaces = 59068`  | Namespace capacity available                  |
+| Mapping helpers    | `newuidmap`, `newgidmap`            | Present                                       |
+| Podman             | 6.0.2, rootless                     | Confirmed                                     |
+| Network            | Netavark, Pasta                     | Available                                     |
+| Storage            | Overlay, `fuse-overlayfs` available | Present                                       |
+| Security           | Seccomp enabled                     | Confirmed                                     |
+| AppArmor / SELinux | Both reported disabled              | No protection from these mechanisms currently |
+
+Two details matter:
+
+1. The missing `kernel.unprivileged_userns_clone` and AppArmor sysctl entries are not automatically faults. Those controls are kernel-configuration dependent; their absence does not establish that user namespaces are unavailable.
+2. The `podman network inspect --all` command is unsupported by this Podman version. It did not change anything. We can inspect the existing network using the supported syntax.
+
+Not yet established: the actual UID/GID mapping inside a rootless user namespace. That is essential. We must not assume container root or container UID 1000 maps to a suitably unprivileged host identity.
+
+## A4 — Verify real UID/GID mappings and network definition
+
+STEAM DECK — Konsole / existing SSH session
+
+This next check opens a temporary rootless user namespace for reading its mappings. It does not create a container or alter Podman configuration.
+
+```
+echo "=== ROOTLESS UID MAPPING ==="
+podman unshare cat /proc/self/uid_map
+
+echo
+echo "=== ROOTLESS GID MAPPING ==="
+podman unshare cat /proc/self/gid_map
+
+echo
+echo "=== PODMAN ID MAPPING DETAILS ==="
+podman info --debug 2>&1 | sed -n '/idMappings:/,/networkBackend:/p'
+
+echo
+echo "=== EXISTING PODMAN NETWORK ==="
+podman network inspect podman
+```
+
+### What we need from this
+
+- Confirm how host UID/GID 1000 and subordinate IDs are represented inside the namespace.
+- Establish whether the existing `podman` bridge has configuration that we should avoid reusing for Odysseus.
+- Identify whether we can give Odysseus its own network without exposing unrelated host services.
+
+Once you provide this output, I'll close the UID/GID and network-baseline checks, or identify precisely what remains unresolved. Gate A remains open; no installation or configuration changes are authorized or planned yet.

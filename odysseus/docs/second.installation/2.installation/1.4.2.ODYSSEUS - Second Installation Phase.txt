@@ -1,0 +1,185 @@
+# ⚓ ODYSSEUS 1.4 — STAGE 1.1: AUDIT RESULTS
+
+Excellent. We have our first reliable picture of the machine.
+
+The Steam Deck is in good condition for the rebuild. More importantly, the previous installation has not left behind an Odysseus container running in Podman.
+
+There are, however, several findings we need to address before creating the new environment.
+
+## 1. Environment assessment
+
+SteamOS host
+
+PASS
+
+- SteamOS, kernel `7.2.7-valve2-2-neptune-72`
+- AMD Custom APU 0932
+- 8 CPUs
+- 14 GiB RAM
+- 10 GiB currently available
+- 546 GB available on `/home`
+
+Container infrastructure
+
+PASS
+
+- Distrobox 1.8.2.5
+- Podman 6.0.2
+- Rootless Podman confirmed
+- Existing containers identified
+
+Odysseus installation
+
+PASS
+
+- No `OdysseusProject` directory
+- No Odysseus container
+- No Odysseus user service
+- Existing recovery material preserved
+
+Host utilities
+
+REVIEW
+
+- `hostname` unavailable
+- `rpm-ostree` unavailable
+
+These are diagnostic command limitations, not evidence of a damaged SteamOS installation.
+
+## 2. Important findings
+
+### A. Pi-hole is running
+
+PROTECTED — DO NOT TOUCH
+
+Your Podman output shows:
+
+- `pihole-box`: exited.
+- `pihole`: running, uptime approximately two hours.
+- DNS bound to `192.168.1.161:53`.
+- Administration interface on port `8080`.
+
+This is consistent with the protected Pi-hole installation, not Odysseus.
+
+We will not stop, restart, inspect internally, modify or recreate it during this installation.
+
+### B. Groq credentials survived the reset
+
+PRESERVED
+
+The credential metadata confirms:
+
+```
+-rw------- deck:deck 56 bytes
+/home/deck/.config/odysseus/providers/groq/odysseus-groq.key
+```
+
+This is exactly the intended host-side location and restrictive file permission.
+
+Important: we will preserve this file. We will not read its contents or regenerate the key.
+
+### C. Recovery material survived
+
+The following are still present:
+
+- `OdysseusRecovery`
+- `ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md`
+- `Odysseus_manifest.txt`
+- `Odysseus_versions.txt`
+- `Odysseus_release_notes.txt`
+- `ODYSSEUS_PYTHON_VENV.readme`
+- Desktop launcher `start-odysseus.sh`
+- `CheckBoxStatus.odysseus-integrated.sh`
+
+These files are potentially valuable evidence of the previous installation.
+
+We must inspect them before deciding what to reuse. Nothing gets deleted.
+
+## 3. Correction to my previous repository assessment
+
+I have now checked the actual exported 1.3 document and both referenced Git commits.
+
+I need to correct my earlier conclusion: the two commits do not represent an unresolved final Authority Matrix conflict.
+
+The audit evolved during Phase 1.3:
+
+- `odysseus-dev/odysseus`, commit `03d25943...` was used during an earlier inspection.
+- The final audit migrated to `odysseus-dev/odysseus-current`.
+- Its formal closing record explicitly locks `dev` at `142b93ad86073efb24981df385423f58fe5376b1`.
+
+Both commit references exist on GitHub. The second is identified as the initial public snapshot.
+
+FINAL AUDIT SOURCE IDENTIFIED
+
+Our authoritative installation reference is therefore:
+
+[Odysseus — current upstream dev branch](https://github.com/odysseus-dev/odysseus-current/tree/dev?utm_source=chatgpt.com)
+
+Pinned audit commit:
+
+`142b93ad86073efb24981df385423f58fe5376b1`
+
+We will retain that exact SHA as the audit baseline and independently verify the branch and source before installation.
+
+Good catch opportunity avoided: we must not accidentally revert to the earlier repository.
+
+## 4. Stage 1.2 — Recovery and host verification
+
+Before proceeding, I want to establish exactly what survived the reset and whether any historical configuration is worth retaining.
+
+STEAM DECK — KONSOLE / SSH · READ-ONLY
+
+```
+echo "=== 1. STEAMOS HOST UTILITIES ==="
+cat /etc/hostname 2>/dev/null || true
+command -v hostnamectl || true
+command -v steamos-readonly || true
+steamos-readonly status 2>/dev/null || true
+
+echo
+echo "=== 2. RECOVERY INVENTORY ==="
+find /home/deck/OdysseusRecovery -maxdepth 2 -type f \
+    -printf '%M %s bytes %p\n' 2>/dev/null
+
+echo
+echo "=== 3. HISTORICAL MANIFEST ==="
+cat /home/deck/OdysseusRecovery/Odysseus_manifest.txt
+
+echo
+echo "=== 4. HISTORICAL VERSIONS ==="
+cat /home/deck/OdysseusRecovery/Odysseus_versions.txt
+
+echo
+echo "=== 5. HISTORICAL RELEASE NOTES ==="
+cat /home/deck/OdysseusRecovery/Odysseus_release_notes.txt
+
+echo
+echo "=== 6. PYTHON ENVIRONMENT REFERENCE ==="
+cat /home/deck/OdysseusRecovery/ODYSSEUS_PYTHON_VENV.readme
+
+echo
+echo "=== 7. PROVIDER ARCHITECTURE METADATA ==="
+stat /home/deck/OdysseusRecovery/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md
+wc -l /home/deck/OdysseusRecovery/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md
+sha256sum /home/deck/OdysseusRecovery/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md
+
+echo
+echo "=== 8. LEGACY SCRIPT METADATA ==="
+stat /home/deck/Desktop/start-odysseus.sh
+stat /home/deck/CheckBoxStatus.odysseus-integrated.sh
+
+echo
+echo "=== END OF STAGE 1.2 ==="
+```
+
+### What I will do with the results
+
+1. Identify historical configuration that is still relevant.
+2. Separate reusable documentation from obsolete installation instructions.
+3. Preserve the provider architecture for its planned revision.
+4. Establish whether the old launcher and status script have any useful operational logic.
+5. Close Stage 1 with a verified environment baseline.
+
+No cleanup. No installation. No changes to the Steam Deck.
+
+We're building on evidence, not assumptions. ⚓

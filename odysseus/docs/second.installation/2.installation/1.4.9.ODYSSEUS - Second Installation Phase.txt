@@ -1,0 +1,116 @@
+
+
+Gate A — Started
+
+&#x20;Architecture validation: read-only inspection
+
+
+
+We will establish what SteamOS and rootless Podman actually support before choosing the isolation design.
+
+Scope for this first inspection:
+
+- Rootless Podman identity and UID/GID mappings.
+- Subordinate UID/GID allocation.
+- User-namespace support.
+- Container networking backend and available helpers.
+- Security mechanisms and storage driver.
+- Existing Podman network definitions.
+
+No installation, container creation, network creation, directory changes, service changes or package installation. We will not inspect or interact with Pi-hole's internal state.
+
+## A1 — Host and user-namespace capabilities
+
+STEAM DECK — Konsole / existing SSH session
+
+Run this complete block:
+
+```
+echo "=== HOST IDENTITY ==="
+id
+cat /etc/os-release | grep -E '^(NAME|VERSION|ID)='
+uname -r
+
+echo
+echo "=== SUBORDINATE UID/GID CONFIGURATION ==="
+for f in /etc/subuid /etc/subgid; do
+    echo "--- $f ---"
+    if [ -r "$f" ]; then
+        grep -E '^deck:' "$f" || echo "No deck entry"
+    else
+        echo "Not present or not readable"
+    fi
+done
+
+echo
+echo "=== USER NAMESPACE SUPPORT ==="
+for key in \
+    user.max_user_namespaces \
+    kernel.unprivileged_userns_clone \
+    kernel.apparmor_restrict_unprivileged_userns
+do
+    sysctl "$key" 2>&1
+done
+
+echo
+echo "=== UID/GID HELPER AVAILABILITY ==="
+for cmd in newuidmap newgidmap; do
+    command -v "$cmd" || echo "$cmd: not found"
+done
+```
+
+## A2 — Rootless Podman capabilities
+
+STEAM DECK — Konsole / existing SSH session
+
+```
+echo "=== PODMAN VERSION ==="
+podman --version
+
+echo
+echo "=== PODMAN HOST CONFIGURATION ==="
+podman info --debug 2>&1 | grep -iE \
+'rootless|uidmap|gidmap|idMappings|graphRoot|runRoot|graphDriver|networkBackend|cgroupManager|cgroupVersion|ociRuntime|seccomp|apparmor|selinux|pasta|slirp|netavark|aardvark|conmon|remoteSocket|eventsLogger'
+
+echo
+echo "=== CONTAINER NETWORK HELPERS ==="
+for cmd in pasta slirp4netns netavark aardvark-dns; do
+    command -v "$cmd" || echo "$cmd: not found"
+done
+
+echo
+echo "=== STORAGE AND SECURITY EXECUTABLES ==="
+for cmd in fuse-overlayfs crun runc getenforce aa-status; do
+    command -v "$cmd" || echo "$cmd: not found"
+done
+```
+
+## A3 — Existing network definitions
+
+This reads network metadata only. It does not inspect container contents or change network configuration.
+
+STEAM DECK — Konsole / existing SSH session
+
+```
+echo "=== PODMAN NETWORK LIST ==="
+podman network ls
+
+echo
+echo "=== PODMAN NETWORK CONFIGURATION ==="
+podman network inspect --all 2>&1
+```
+
+## What I will evaluate
+
+| Area             | What we need to establish                                                    |
+| ---------------- | ---------------------------------------------------------------------------- |
+| UID/GID mappings | Whether container identities can be separated from host `deck`               |
+| Subordinate IDs  | Whether rootless user namespaces have usable ID ranges                       |
+| User namespaces  | Whether SteamOS permits the required namespace operations                    |
+| Network backend  | Whether isolated container networks and controlled egress are practical      |
+| Security profile | Which seccomp, AppArmor or other protections are actually available          |
+| Storage          | Whether dedicated data mounts can be isolated without ownership side effects |
+
+Important: rootless Podman being enabled is not, by itself, proof that the application will be isolated from the host.
+
+Paste the outputs of A1, A2 and A3. I'll assess the evidence, identify any missing capability, and then decide whether we can proceed to the next Gate A inspection. We will not make changes based on assumptions.

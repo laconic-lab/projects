@@ -1,0 +1,195 @@
+Next inspection — host boundary and credential handling
+The first results expose an especially important installation risk: the upstream container entrypoint deliberately changes ownership of writable bind-mounted directories. Its default UID/GID are both 1000, which match the Steam Deck account.
+
+That is not a harmless detail on this host. Before choosing the deployment method, we need to establish exactly which mounted paths it changes and whether the container's user namespace actually isolates it from host files.
+1. Container entrypoint and filesystem ownership
+High installation risk
+The entrypoint starts as root, prepares the application account, recursively repairs ownership, and then drops privileges before starting Uvicorn.
+
+The relevant behavior is:
+Path inside container	Host backing path	Entrypoint behavior
+/app/data	APP_DATA_DIR	Recursive ownership repair
+/app/logs	APP_LOGS_DIR	Recursive ownership repair
+/app/.ssh	APP_DATA_DIR/ssh	Recursive ownership repair
+/app/.cache/huggingface	APP_DATA_DIR/huggingface	Recursive ownership repair
+/app/.local	APP_DATA_DIR/local	Recursive ownership repair
+
+The default identity is 1000:1000, matching deck.
+
+The entrypoint skips recursive repair when a mount resolves to a broad host root such as /home, but it still attempts to change the mount directory's ownership.
+
+My assessment: We should not use this entrypoint unchanged against any existing host directory. Even though the default UID matches the Deck account, it can change ownership of files that belong to other users or services.
+
+For Odysseus, the correct approach is a new, dedicated data directory, with explicit ownership and permissions established before container creation. No mounts to existing project directories.
+
+Source: docker/entrypoint.sh
+2. Provider credentials and secret storage
+Encrypted at rest, not isolated from the application
+There are several distinct credential mechanisms.
+Credential type	Storage	Protection
+Provider API keys	api_keys.json + .key	Fernet encryption
+Integration API keys	integrations.json + .app_key	Fernet encryption
+Email passwords	SQLite database	Encrypted field
+MCP OAuth tokens	SQLite database	Encrypted field
+HuggingFace token	Cookbook state or environment	Encrypted state value; environment fallback
+
+The API-key manager restricts its encryption key to mode 0600. The integration manager similarly encrypts stored API keys and restricts the integration file.
+
+The application's .app_key is also created with mode 0600.
+
+There is an important limitation, documented by the upstream developers themselves: these encryption mechanisms protect against someone obtaining the database or encrypted files without the key. They do not protect against a compromised application process that can read the key or access decrypted secrets.
+
+There is also an important distinction between MCP configuration and MCP OAuth tokens:
+- oauth_tokens uses an encrypted database field.
+- MCP env, args, and command configuration are stored as ordinary text fields.
+- The MCP subprocess can inherit the application's environment.
+That means encrypted OAuth storage does not solve the subprocess credential exposure problem.
+
+Required design for Odysseus:
+1. Keep provider keys outside the repository and application data directory.
+2. Use a host-side provider broker to supply only the credential required for an approved request.
+3. Never pass the complete host environment to the Agent or MCP processes.
+4. Keep provider keys out of command-line arguments, logs and Agent-visible responses.
+5. Do not mount the host credential directory into the application container.
+This aligns with the existing provider architecture we established before the reset.
+
+Sources: src/api_key_manager.py, src/secret_storage.py, core/database.py.
+3. Host-facing capabilities
+This is where the upstream application becomes much more powerful than our intended initial installation.
+Capability	What I verified	Initial policy
+Local Ollama	Compose exposes host gateway; Cookbook can connect to host services	Allow only approved local endpoint
+Host Docker	Socket not mounted by default; separate overlay mounts it	Prohibit
+SSH	Remote Cookbook workflows and persistent SSH identity	Prohibit initially
+Model downloads	Cookbook can download models and install dependencies	Prohibit initially
+Model serving	Cookbook can launch and stop local or remote processes	Prohibit initially
+MCP	Configurable external processes and network connections	Prohibit initially
+HTTP integrations	Configurable outbound requests; private LAN destinations allowed by default	Prohibit initially
+
+Two particularly important observations
+Host Docker
+
+The default Compose file does not mount /var/run/docker.sock. That is good.
+
+However, the Docker CLI is included in the image, and the separate docker/host-docker.yml overlay mounts the host socket. The upstream documentation correctly identifies this as high-trust access.
+
+We must never enable that overlay for the initial Odysseus installation.
+
+SSH host verification
+
+Some Cookbook SSH operations explicitly use:
+-o StrictHostKeyChecking=no
+
+
+This disables normal host-key verification for those connections. Other SSH helper paths support strict verification, but the Cookbook does not consistently enforce it.
+
+That is unacceptable for an automated execution component. Any future SSH integration must use pinned/verified host keys and an explicit host allowlist.
+
+Sources: docker/host-docker.yml, routes/cookbook_routes.py, core/platform_compat.py.
+4. Installation dependencies and supply chain
+Not reproducible enough for a trusted installation
+The Docker build uses Python 3.14 slim, installs system packages through apt, and installs Python dependencies from requirements.txt.
+
+The dependency situation:
+Component	Version control
+Python base image	Floating tag, not digest-pinned
+Debian system packages	Not individually version-pinned
+Docker CLI	Pinned to 29.6.2
+Python requirements	Mostly unpinned
+python-magic	Pinned to 0.4.27
+Optional MarkItDown	Pinned to 0.1.6
+ChromaDB image	latest
+SearXNG image	Pinned
+ntfy image	Floating tag
+Browser MCP	'@playwright/mcp@latest
+
+The Cookbook also supports runtime dependency installation, including large model-serving packages, and can build software such as llama.cpp.
+
+This means the initial installation is not simply a fixed application image. It contains mechanisms for acquiring and installing more software later.
+
+For a reproducible installation, we need:
+- Immutable image references, preferably digests.
+- A reviewed Python dependency lock.
+- Explicitly pinned npm/MCP packages.
+- No runtime dependency downloads in the initial profile.
+- No Cookbook package installation.
+- A recorded manifest of all installed components.
+Source: Dockerfile, requirements.txt, docker-compose.yml.
+
+5. Consolidated installation assessment
+Upstream deployment vs. Odysseus requirements
+Requirement	Upstream default
+Local-first model access	Supported
+Manual-only lifecycle	Not satisfied
+Agent without host authority	Not satisfied
+No background autonomy	Not satisfied
+No MCP subprocesses	Not satisfied
+Credential isolation	Not satisfied
+Dedicated persistent data	Supported
+Reproducible dependencies	Incomplete
+Host Docker disabled by default	Supported
+Verified SSH host identity	Inconsistent
+
+
+My deployment recommendation
+I recommend not installing the upstream Compose stack unchanged.
+
+Instead, we should retain the upstream application as the UI and orchestration foundation, while designing a restricted runtime around it:
+Human operator
+
+Explicit approval and administrative control
+
+
+Odysseus UI and conversational Agent
+
+No unrestricted host authority
+
+
+Policy Enforcement Gateway
+
+Explicit permissions, validation and execution-time authorization
+
+
+Read-only inspector
+
+Approved project paths only
+
+
+Provider broker
+
+Host-held credentials, narrow requests
+
+
+
+
+Isolated execution environment
+
+Disabled by default; separately authorized later
+
+
+This is a target architecture, not something the current upstream code already guarantees.
+6. Inspection gate status
+Stage	Status
+Host and recovery inventory	Complete
+Repository identity	Complete
+Application execution authority	Inspected
+Background activity	Inspected
+MCP startup and isolation	Inspected
+Filesystem and ownership	Inspected
+Credential handling	Inspected
+Host integrations	Inspected
+Dependency and image supply chain	Inspected
+Runtime validation	Pending
+Installation	Not started
+
+One important limitation: this remains a static source inspection. We have not executed the application, built an image, tested the container's actual namespace boundaries, or verified runtime behavior.
+Next logical stage: installation architecture specification
+Before creating odysseus-box, I recommend one final design stage: define the exact deployment boundary for SteamOS and rootless Podman.
+
+That stage should settle:
+1. Whether we can adapt the upstream application container safely or need a separate execution container.
+2. Which exact host paths may be mounted, and with what access.
+3. How the UI communicates with the Policy Gateway without exposing its internal token.
+4. How the provider broker supplies credentials without exposing the host environment.
+5. How to disable every autonomous mechanism, not merely the scheduler and email pollers.
+6. How START, STOP, STATUS, CHECK, LOGS and BACKUP will work without boot autostart.
+My recommendation is to complete that specification before the first installation command. Nothing has been changed on the Steam Deck during this inspection.

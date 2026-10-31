@@ -1,0 +1,99 @@
+## Gate A — UID/GID and network baseline assessed
+
+
+
+UID/GID mappings confirmed
+
+Isolation not yet proven
+
+
+
+The mappings are now explicit:
+
+| Container identity | Host identity     |
+| ------------------ | ----------------- |
+| UID 0              | `deck` — UID 1000 |
+| UID 1              | UID 100000        |
+| UID 2              | UID 100001        |
+| …                  | …                 |
+| UID 65536          | UID 165535        |
+
+The same mapping applies to GIDs.
+
+### Important security consequence
+
+Root inside a default rootless container maps to the Steam Deck user `deck`.
+
+It is not host root, which is good, but it is not an independent unprivileged host identity either. If a container process running as root receives a bind mount containing files accessible to `deck`, it may be able to read or modify those files according to the host permissions.
+
+This is especially important for Odysseus:
+
+- The UI container must never receive the provider-key directory.
+- A read-only mount prevents writes through that mount, but does not prevent reading.
+- Separate containers alone do not prove that their host-side access is separated.
+- We must validate whether alternative user mappings can provide a stronger boundary before finalizing the design.
+
+The existing subordinate ID range gives us options to investigate, but we have not yet demonstrated that a suitable mapping works for this deployment.
+
+### Existing Podman network
+
+The existing `podman` bridge is:
+
+- Subnet: `10.88.0.0/16`
+- Driver: bridge
+- `internal: false`
+- IPv6: disabled
+- DNS: disabled
+- Attached containers: none
+
+It is a default, non-internal network. We will not reuse it as Odysseus's security boundary. A dedicated network topology will need to be evaluated.
+
+## A5 — Check cgroup delegation and runtime security support
+
+Before choosing container resource limits and isolation options, we need to establish what SteamOS delegates to the rootless user session.
+
+STEAM DECK — Konsole / existing SSH session
+
+```
+echo "=== CGROUP V2 CONTROLLERS ==="
+cat /sys/fs/cgroup/cgroup.controllers 2>&1
+
+echo
+echo "=== USER SESSION CGROUP ==="
+systemctl show "user@$(id -u).service" \
+    -p ControlGroup -p Delegate -p ActiveState 2>&1
+
+echo
+echo "=== USER CGROUP CONTROLLERS ==="
+USER_CG="$(systemctl show "user@$(id -u).service" -p ControlGroup --value 2>/dev/null)"
+if [ -n "$USER_CG" ] && [ -r "/sys/fs/cgroup${USER_CG}/cgroup.controllers" ]; then
+    cat "/sys/fs/cgroup${USER_CG}/cgroup.controllers"
+else
+    echo "User cgroup controller file unavailable"
+fi
+
+echo
+echo "=== PODMAN RUNTIME AND SECURITY SUMMARY ==="
+podman info --debug 2>&1 | grep -iE \
+'ociRuntime|runtime|cgroupManager|cgroupVersion|seccomp|apparmor|selinux|rootless|pasta|networkBackend'
+
+echo
+echo "=== PODMAN CONFIGURATION FILES (METADATA ONLY) ==="
+for f in \
+    /usr/share/containers/containers.conf \
+    /etc/containers/containers.conf \
+    "$HOME/.config/containers/containers.conf"
+do
+    if [ -r "$f" ]; then
+        ls -l "$f"
+    else
+        echo "$f: absent or not readable"
+    fi
+done
+```
+
+This is read-only. It does not start containers, change cgroups, or modify configuration.
+
+What remains open in Gate A: cgroup resource-control feasibility, stronger container identity mapping, and the practical network boundary between the UI, gateway, inspector, provider broker and local Ollama.
+
+Once we have this output, we can decide whether the proposed architecture is feasible on this SteamOS installation, or whether one of its security boundaries needs redesign.

@@ -1,0 +1,33 @@
+# Gate A.2 — UID/GID isolation feasibility
+
+Authorized test phase
+
+We'll validate whether Odysseus can run with container root mapped to subordinate host IDs, rather than directly to `deck`.
+
+The test will be isolated from existing projects:
+
+- No Odysseus image or project files.
+- No provider credentials or host-directory mounts.
+- No network access required.
+- No changes to existing containers or networks.
+- No image downloads.
+- Temporary test container only, followed by removal after verification.
+
+## A2.1 — Identify an existing local test image
+
+First, let's see which images are already cached. This is a read-only inventory; it does not start or modify anything.
+
+STEAM DECK — Konsole / existing SSH session
+
+```
+echo "=== LOCAL PODMAN IMAGES ==="
+podman images --no-trunc
+
+echo
+echo "=== USERNS AUTO OPTION ==="
+podman run --help 2>&1 | grep -i -A4 -B2 'userns'
+```
+
+Send me the output. I'll select a suitable image already present, if one exists. If there isn't a suitable local image, we'll stop and ask before considering any download.
+
+The test's success criterion: container UID 0 maps to a subordinate host UID, while the host `deck` identity remains outside that container's root mapping.

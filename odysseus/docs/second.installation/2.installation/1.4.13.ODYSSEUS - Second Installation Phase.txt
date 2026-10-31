@@ -1,0 +1,74 @@
+Gate A — Architecture validation report
+
+Foundation assessment complete
+ Runtime isolation proof pending
+
+The read-only inspection establishes that the Steam Deck has a viable technical foundation for the proposed Odysseus architecture. It does not yet prove that the resulting containers will be isolated securely.
+1. Capability assessment
+Requirement	Result	Evidence
+Rootless Podman	PASS	Podman 6.0.2, rootless
+Subordinate UID/GID	PASS	65,536 IDs available
+User namespaces	PASS	Actual mappings successfully created
+Separate container identity	CONDITIONAL	Default root maps to host deck; alternative mapping not tested
+Cgroup v2	PASS	Unified hierarchy
+Resource delegation	PASS	CPU, memory, PIDs and dmem delegated
+Seccomp	PASS	Enabled, profile present
+AppArmor / SELinux	UNAVAILABLE	Both disabled
+Dedicated internal networks	PASS	Netavark supports --internal
+Controlled container connectivity	CONDITIONAL	Options available; enforcement not tested
+OCI runtime	PASS	crun 1.28
+Storage isolation	CONDITIONAL	Overlay available; mount permissions not tested
+
+2. Important architectural conclusions
+A. Container identity
+
+The default mapping is insufficient as our preferred security configuration:
+Container UID 0  → Host UID 1000 (deck)
+Container UID 1  → Host UID 100000
+...
+
+
+We should investigate --userns=auto or an explicit mapping so container root can map to a subordinate UID.
+
+We must also verify how application UID 1000 behaves under that mapping. This matters because the upstream Odysseus entrypoint expects to manage an application account with PUID/PGID defaults of 1000.
+
+B. Network separation
+
+The installed Podman version supports internal networks. This gives us a practical design option:
+- UI: access only to the required gateway.
+- Gateway: access to approved internal components.
+- Inspector: read-only access to explicitly approved project paths.
+- Provider Broker: isolated, disabled until separately authorized.
+- No general-purpose host networking or Docker socket.
+However, an internal network is not sufficient by itself. We must also prevent unintended access through published ports, host services, and additional network attachments.
+
+C. Resource limits
+
+The delegated CPU, memory and process controllers are present. We can design explicit limits without assuming that Odysseus is entitled to consume resources needed by SteamOS or games.
+
+D. Security mechanisms
+
+Seccomp is active, but AppArmor and SELinux are not. We must therefore avoid presenting this as equivalent to a system with active mandatory access control.
+
+3. Gate A decision
+CONDITIONAL PASS
+The host supports the proposed rootless Podman architecture at the capability level.
+
+Approved to proceed: architecture design and isolated validation planning.
+
+Not approved: installation, image downloads, container creation, network creation, filesystem changes or provider integration.
+
+The unresolved issues are specific:
+1. Alternative UID/GID mapping must be tested.
+2. Container mount permissions must be validated.
+3. Network isolation and outbound-access restrictions must be tested.
+4. The upstream application must be examined for execution routes that bypass the proposed gateway.
+5. Local Ollama connectivity must be evaluated without granting broad host access.
+4. Next phase — Gate A.2: isolation feasibility
+I recommend we now test the most important unknown: can Podman run an Odysseus-style application container with container root mapped to subordinate host IDs, while preserving the required application ownership model?
+
+This requires a temporary test container. It would not use the Odysseus image, mount any existing project, access provider keys, or interact with protected services. It would use a minimal image only if already available locally; otherwise we would stop rather than download anything.
+
+No test container will be created until you explicitly authorize that step.
+
+My recommendation: keep the installation specification frozen at Revision 1.0 for now. Record Gate A as conditionally passed, then validate UID mapping before making any architecture changes.

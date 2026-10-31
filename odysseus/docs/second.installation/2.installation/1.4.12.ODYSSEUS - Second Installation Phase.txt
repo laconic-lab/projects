@@ -1,0 +1,80 @@
+## Gate A — Cgroup and runtime findings
+
+Cgroup v2 delegation confirmed
+
+This is another positive result.
+
+| Capability              | Result                          | Meaning                                                 |
+| ----------------------- | ------------------------------- | ------------------------------------------------------- |
+| Cgroup version          | v2                              | Modern unified resource-control hierarchy               |
+| User service delegation | `Delegate=yes`                  | systemd delegates cgroup management to the user session |
+| User controllers        | `cpu`, `memory`, `pids`, `dmem` | Useful controls are available                           |
+| Podman manager          | systemd                         | Compatible with the delegated user session              |
+| Seccomp                 | Enabled                         | Container syscall filtering is active                   |
+| AppArmor                | Disabled                        | No active AppArmor enforcement reported                 |
+| SELinux                 | Disabled                        | No SELinux enforcement reported                         |
+
+Practical consequence: CPU, memory and process-count limits appear feasible for Odysseus containers. We still need to verify actual container-level enforcement before relying on those limits.
+
+One distinction: the runtime binary advertises AppArmor and SELinux support, but the host reports both disabled. Runtime capability does not mean host enforcement is active.
+
+### Architecture decision so far
+
+The host can support the basic rootless container model, but I would refine the original specification in one important way:
+
+Do not use the default rootless UID mapping for Odysseus application containers without further validation.
+
+We should investigate Podman's `auto` user-namespace mapping, which may allow container root to map to a subordinate host UID rather than directly to `deck`. If supported and operationally compatible, this is a better starting point for separating application processes from the host account.
+
+This is a design candidate, not yet an approved configuration.
+
+## A6 — Verify available isolation controls
+
+This final static inspection checks whether the installed Podman version exposes the controls we need. It does not create or start a container.
+
+STEAM DECK — Konsole / existing SSH session
+
+```
+echo "=== USER CGROUP DELEGATION DETAILS ==="
+USER_CG="$(systemctl show "user@$(id -u).service" -p ControlGroup --value)"
+for f in \
+    "/sys/fs/cgroup${USER_CG}/cgroup.controllers" \
+    "/sys/fs/cgroup${USER_CG}/cgroup.subtree_control"
+do
+    echo "--- $f ---"
+    cat "$f" 2>&1
+done
+
+echo
+echo "=== PODMAN USER NAMESPACE OPTIONS ==="
+podman create --help 2>&1 | grep -i -A3 -B2 'userns\|uidmap\|gidmap'
+
+echo
+echo "=== PODMAN NETWORK ISOLATION OPTIONS ==="
+podman network create --help 2>&1 | grep -i -A3 -B2 'internal\|disable-dns\|subnet\|interface'
+
+echo
+echo "=== PODMAN CONTAINER NETWORK OPTIONS ==="
+podman create --help 2>&1 | grep -i -A3 -B2 'network\|dns\|publish'
+
+echo
+echo "=== OCI RUNTIME VERSION ==="
+crun --version 2>&1 | head -n 3
+
+echo
+echo "=== SECCOMP PROFILE METADATA ==="
+ls -l /usr/share/containers/seccomp.json 2>&1
+```
+
+### Gate A completion criteria
+
+With A6, we should be able to make a documented decision on:
+
+1. Whether subordinate-ID user namespaces can separate container root from host `deck`.
+2. Whether the delegated cgroup controllers are sufficient for resource limits.
+3. Whether dedicated internal networks and controlled connectivity are supported.
+4. Whether the available runtime and seccomp profile provide the minimum security foundation.
+
+One limitation will remain: static capability checks cannot prove actual isolation. Any later proof requiring a test container must be proposed as a separate, explicitly authorized validation step.
+
+Send the output and I will produce the Gate A assessment, including a clear PASS / CONDITIONAL / BLOCKED result for each architecture requirement.

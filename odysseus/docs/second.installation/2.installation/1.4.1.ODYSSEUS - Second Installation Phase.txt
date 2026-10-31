@@ -1,0 +1,148 @@
+# ⚓ ODYSSEUS 1.4 — STAGE 1: ENVIRONMENT INSPECTION
+
+
+
+READ-ONLY PHASE
+
+No modifications
+
+
+
+Let's begin properly.
+
+Execution environment: Windows PowerShell, connected to your Steam Deck through your existing SSH session.
+
+We will perform one consolidated diagnostic pass. It will not install, update, create, delete, start or stop anything.
+
+I will also preserve the distinction between:
+
+- SteamOS host.
+- Existing Distrobox containers.
+- Podman runtime.
+- Odysseus project and recovery directories.
+- Provider credentials.
+
+No credential contents will be read.
+
+## 🔎 Diagnostic command — Stage 1.0
+
+Copy and execute this entire block in your existing Steam Deck SSH session.
+
+STEAM DECK — KONSOLE / SSH · READ-ONLY
+
+```
+echo "=================================================="
+echo " ODYSSEUS 1.4 — STAGE 1 ENVIRONMENT AUDIT"
+echo " READ-ONLY DIAGNOSTICS"
+echo "=================================================="
+
+echo
+echo "=== 1. STEAMOS HOST ==="
+cat /etc/os-release | grep -E '^(NAME|VERSION|ID)='
+uname -r
+id
+hostname
+
+echo
+echo "=== 2. HARDWARE AND STORAGE ==="
+lscpu | grep -E '^(Architecture|CPU\(s\)|Model name):'
+free -h
+df -h /home
+
+echo
+echo "=== 3. RPM-OSTREE STATUS ==="
+rpm-ostree status
+
+echo
+echo "=== 4. DISTROBOX ==="
+command -v distrobox
+distrobox --version
+distrobox list
+
+echo
+echo "=== 5. PODMAN ==="
+command -v podman
+podman --version
+podman info --format 'Rootless={{.Host.Security.Rootless}} GraphRoot={{.Store.GraphRoot}}'
+podman ps -a --format "table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
+echo
+echo "=== 6. ODYSSEUS REMNANTS ==="
+find /home/deck -maxdepth 2 -iname '*odysseus*' \
+    -printf '%y %m %u:%g %p\n' 2>/dev/null
+
+echo
+echo "=== 7. EXPECTED PROJECT DIRECTORIES ==="
+for p in \
+    /home/deck/OdysseusProject \
+    /home/deck/OdysseusRecovery \
+    /home/deck/.config/odysseus \
+    /home/deck/.config/odysseus/providers
+do
+    if [ -e "$p" ]; then
+        stat -c '%A %a %U:%G %n' "$p"
+    else
+        echo "ABSENT: $p"
+    fi
+done
+
+echo
+echo "=== 8. PROVIDER CREDENTIAL METADATA ==="
+if [ -d /home/deck/.config/odysseus/providers ]; then
+    find /home/deck/.config/odysseus/providers \
+        -maxdepth 3 -type f \
+        -printf '%M %u:%g %s bytes %p\n'
+else
+    echo "Provider directory absent."
+fi
+
+echo
+echo "=== 9. EXISTING ODYSSEUS USER SERVICES ==="
+systemctl --user list-unit-files --no-pager 2>/dev/null \
+    | grep -i odysseus || echo "No matching user service units."
+
+echo
+echo "=================================================="
+echo " END OF READ-ONLY AUDIT"
+echo "=================================================="
+```
+
+## What happens next?
+
+Please paste the complete output here.
+
+I will classify the findings into:
+
+-
+
+  PASS
+
+  &#x20;Verified and acceptable.
+
+
+-
+
+  REVIEW
+
+  &#x20;Requires further investigation.
+
+
+-
+
+  BLOCK
+
+  &#x20;Must be resolved before installation.
+
+
+
+One architectural reminder: Distrobox normally shares significant host resources and filesystem access. Its existence alone does not establish isolation.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub+1
+
+
+
+We will not create `odysseus-box` until the host inspection is complete and the repository discrepancy has been resolved.
+
+Let's build this properly. ⚓

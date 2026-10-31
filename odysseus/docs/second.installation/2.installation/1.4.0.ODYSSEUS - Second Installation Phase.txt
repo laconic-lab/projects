@@ -1,0 +1,233 @@
+# 1.4 Odysseus — Second Installation
+
+
+
+Audit document successfully retrieved
+
+Installation preparation
+
+
+
+The document is accessible, and I've started examining it.
+
+My initial assessment: we are not simply reinstalling Odysseus. We are rebuilding it around a security architecture that limits what the Agent can actually do, independently of what the model is instructed to do.
+
+That distinction is fundamental to this installation.
+
+The previous installation was removed because its container had excessive host privileges, including root execution, host filesystem access, host networking and an unconfined AppArmor profile.
+
+The audit establishes an important principle:
+
+> Odysseus must not be trusted with capabilities simply because its model is instructed to behave responsibly.
+
+Security must be enforced at the operating-system, application and tool-execution boundaries.
+
+## 1. What the audit establishes
+
+I have identified six architectural decisions that should govern the installation.
+
+| Area            | Decision                                                    |
+| --------------- | ----------------------------------------------------------- |
+| Upstream source | Pin a verified commit, never install from a floating branch |
+| Runtime         | Independent Ubuntu 24.04 `odysseus-box`                     |
+| Agent identity  | Ordinary non-admin Agent, separate administrator            |
+| Permissions     | Default deny; unknown tools denied                          |
+| Credentials     | Host-side storage, isolated provider broker                 |
+| Lifecycle       | Manual start/stop, no autonomous background operation       |
+
+The intended project structure remains:
+
+```
+/home/deck/
+├── OdysseusProject/
+├── OdysseusRecovery/
+└── .config/
+    └── odysseus/
+        └── providers/
+            └── groq/
+                └── odysseus-groq.key
+```
+
+The existing Groq key must remain untouched. Its contents must never be displayed, copied into the project, or exposed to the Agent.
+
+### The most important security findings
+
+1\. Administrator is not the everyday Agent.
+
+An administrator has extensive authority. Even an authentication-disabled installation can receive full privileges. We must retain authentication and use a separate restricted Agent identity.
+
+2\. Distrobox is not automatically a security sandbox.
+
+The normal Distrobox arrangement can expose the host home directory and use the host user's UID. File permissions such as `600` do not protect a key against another process running under the same UID.
+
+3\. MCP is a significant execution boundary.
+
+Disabling built-in MCP registration does not necessarily disable user-configured MCP servers. MCP subprocesses can inherit application environment variables and execute with the application's OS identity.
+
+4\. Background autonomy must be eliminated initially.
+
+Scheduled tasks, background jobs, email pollers, automatic reconnection and other startup mechanisms require individual inspection and control.
+
+5\. The Agent must not inherit provider credentials.
+
+The proposed credential broker must authenticate requests without returning raw API keys to the Agent.
+
+6\. Security must be tested at execution time.
+
+A tool disappearing from the interface is not proof that its execution is blocked.
+
+These are the right foundations for Odysseus.
+
+## 2. The critical issue I found in the handover
+
+There is one important inconsistency that I do not want to carry into installation.
+
+The audit initially approves:
+
+- Repository: `odysseus-dev/odysseus`
+- Branch: `dev`
+- Commit: `03d25943ee4a35f6f0535112976123a721cff5cb`
+
+However, the final Authority Matrix suddenly identifies:
+
+- Repository: `odysseus-dev/odysseus-current`
+- Branch: `dev`
+- Commit: `142b93ad86073efb24981df385423f58fe5376b1`
+
+Those are different repositories and different commits.
+
+The final conclusion repeats the second identity. This is a source-of-truth discrepancy, not something we should silently overlook.
+
+### Why this matters
+
+The Authority Matrix is the most important security deliverable of 1.3. If it was audited against a different source revision, we cannot confidently apply its findings to the previously approved installation commit.
+
+My recommendation: freeze both commit references as historical evidence, then independently inspect the two Git repositories and establish which source revision contains the security behavior documented in the final matrix.
+
+We must not install either revision until that reconciliation is complete.
+
+## 3. Additional architectural decisions before implementation
+
+I see three areas that deserve particular attention.
+
+A. The security brokers are designs, not existing components.
+
+The following are proposed components:
+
+- Policy Enforcement Gateway
+- Read-only Project Inspector
+- Execution Broker
+- Provider Broker
+- MCP Gateway
+
+We cannot assume these exist simply because the architecture diagram contains them. Each needs an implementation specification, authentication model and acceptance tests.
+
+B. Local AI needs a precise definition.
+
+The final mission describes local models as the default reasoning option, while earlier decisions explicitly reject dependency on the existing LocalAI/Ollama projects.
+
+We should establish whether Odysseus will use an independent local inference runtime or another supported local endpoint. We must not silently introduce dependencies into protected projects.
+
+C. The provider architecture documentation remains outstanding.
+
+The existing seven-provider architecture needs revision before Groq integration.
+
+Groq should be the first provider, with manual selection and no automatic fallback. Its credential broker must be designed and tested before any provider key is exposed to an application component.
+
+## 4. What must be achieved in 1.4
+
+I recommend retaining the eight installation gates from the final handover, with one important rule: each stage has its own acceptance criteria.
+
+1. Environment inspection
+
+   Inspect SteamOS, Distrobox, Podman, storage, existing remnants and protected project boundaries.
+2. Repository verification
+
+   Resolve the repository discrepancy, verify the commit and inspect installation dependencies.
+3. Isolation foundation
+
+   Establish rootless execution, restricted mounts, UID/GID boundaries and network restrictions.
+4. Credential foundation
+
+   Preserve host-side provider secrets and establish a secure broker design.
+5. Core installation
+
+   Install pinned dependencies and the minimum required application components.
+6. Security configuration
+
+   Separate administrator and Agent identities; disable MCP, shell, Python and unwanted autonomous mechanisms initially.
+7. Acceptance testing
+
+   Test filesystem boundaries, credentials, network access, authorization, background activity and prompt injection.
+8. Recovery and operations
+
+   Establish verified backup, rollback, manual START/STOP/STATUS/LOGS procedures.
+
+The final acceptance criteria are particularly important: a working web interface is not proof of a secure installation.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://raw.githubusercontent.com\&sz=32)
+
+GitHub+1
+
+
+
+## 5. My verdict
+
+1.3 — CLOSED
+
+1.4 — READY TO BEGIN
+
+The audit is substantial and provides a very good foundation. I agree with its final direction.
+
+However, I would distinguish three things:
+
+- Security architecture: defined sufficiently to guide the rebuild.
+- Implementation: not yet performed.
+- Runtime security: not yet demonstrated.
+
+We must not confuse those three.
+
+### Our rules for this new installation
+
+I will follow these throughout 1.4:
+
+1. Diagnosis before modification.
+2. No assumptions about the current Steam Deck environment.
+3. No commands that modify or delete anything without inspection and authorization.
+4. One implementation stage at a time.
+5. Verify every security boundary independently.
+6. Never expose credentials.
+7. Never touch Pi-hole, LocalAI, Stable Diffusion, SSH recovery or other protected projects.
+8. No automatic startup, background autonomy or unexpected API consumption.
+9. No security downgrade to make installation easier.
+10. Document every meaningful change.
+
+## 6. Let's begin: Stage 1
+
+NEXT ACTION — READ-ONLY
+
+Our first task is not installing Odysseus.
+
+It is establishing the actual condition of the Steam Deck following the complete removal documented in 1.3.
+
+I want to inspect:
+
+- SteamOS and kernel version.
+- Distrobox availability and existing containers.
+- Podman and Compose availability.
+- Existing Odysseus directories and remnants.
+- Storage availability.
+- Existing credential directory metadata, without reading credentials.
+- Existing protected project boundaries.
+
+No installation, package updates, container creation or cleanup.
+
+One final point: the repository discrepancy must be resolved before Stage 2, and certainly before downloading or installing upstream code.
+
+Welcome to 1.4.
+
+The objective is ambitious: build a capable AI orchestrator without giving it unrestricted authority over the machine hosting it.
+
+We have done the homework. Now we build it properly.
+
+⚓ ODYSSEUS — LET'S GO.

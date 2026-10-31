@@ -1,0 +1,206 @@
+## Source inspection — pinned revision confirmed
+
+The repository check is now independently confirmed:
+
+- Repository: `odysseus-dev/odysseus-current`
+- Branch: `dev`
+- Branch HEAD: `142b93ad86073efb24981df385423f58fe5376b1`
+- Commit: `Initial public snapshot`
+- Branch protection: not enabled
+- Commit signature: unsigned
+
+The branch still points to the exact commit used in the Phase 1.3 audit. We can therefore continue examining the audited source without silently switching revisions.
+
+One important detail has emerged: email pollers and scheduled tasks have separate in-process startup controls, and both default to enabled. We need to verify exactly where those controls are applied and whether disabling them also prevents other background activity.
+
+## Source inspection — findings from the runtime and execution paths
+
+I have now followed the startup sequence, agent tool dispatcher, shell and Python execution, MCP manager, authentication checks, and Compose configuration.
+
+The central finding is that the application has several independent mechanisms for executing code and performing background work. Disabling one feature does not disable the others.
+
+### 1. Agent execution authority
+
+Critical architectural conflict
+
+The source confirms:
+
+- `bash` executes commands through `asyncio.create_subprocess_shell()`.
+- `python` executes arbitrary Python code through a subprocess.
+- The active workspace changes the working directory, but does not sandbox shell execution.
+- File tools have a separate path allowlist and sensitive-file denylist. Those restrictions do not constrain shell commands.
+- Detached `#!bg` commands can survive the originating request and trigger automatic agent continuation.
+
+The relevant files are:
+
+- [`src/agent_tools/subprocess_tools.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/agent_tools/subprocess_tools.py?utm_source=chatgpt.com)
+- [`src/tool_execution.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/tool_execution.py?utm_source=chatgpt.com)
+- [`src/bg_jobs.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/bg_jobs.py?utm_source=chatgpt.com)
+
+The default non-admin policy blocks shell, Python and filesystem modification tools. However, administrators receive full privileges regardless of stored privilege values.
+
+That is not sufficient for our First Steward model. We need a separate execution policy that restricts the Agent even when the human operator is an administrator.
+
+### 2. Background activity
+
+Critical architectural conflict
+
+The startup sequence launches more than the two configurable schedulers.
+
+| Mechanism                     | Current behavior                             |
+| ----------------------------- | -------------------------------------------- |
+| Email pollers                 | Enabled by default                           |
+| Scheduled task runner         | Enabled by default                           |
+| Background-job monitor        | Started unconditionally                      |
+| Null-owner sweep              | Hourly background loop                       |
+| Nightly skill audit           | Background loop; setting defaults to enabled |
+| Cookbook serve lifecycle      | Background loop                              |
+| MCP connection initialization | Started asynchronously after startup         |
+
+Two configuration variables are useful:
+
+```
+ODYSSEUS_INPROCESS_POLLERS=0
+ODYSSEUS_INPROCESS_TASKS=0
+```
+
+But they do not disable the other mechanisms. Also, the application still reconciles default scheduled tasks during startup even when the in-process scheduler is disabled.
+
+The background-job monitor is particularly important: it automatically resumes an Agent turn when a detached command finishes.
+
+Conclusion: We need an explicit background-activity inventory and a genuine manual-only operating mode. Two environment variables are not a complete solution.
+
+### 3. MCP and subprocess environment
+
+Critical architectural conflict
+
+I verified two separate problems.
+
+First: `ODYSSEUS_DISABLE_MCP=1` disables built-in MCP registration, but the startup sequence still calls:
+
+```
+await mcp_manager.connect_all_enabled()
+```
+
+That means previously configured user MCP servers can still connect.
+
+Second: the stdio MCP manager constructs its subprocess environment using:
+
+```
+env={**os.environ, **env} if env else None
+```
+
+Consequently, an MCP subprocess can inherit the application's environment, including credentials passed into the application container.
+
+The browser MCP configuration also uses:
+
+```
+npx -y @playwright/mcp@latest
+```
+
+The browser package can therefore be installed dynamically during startup.
+
+Relevant source:
+
+- [`src/builtin_mcp.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/builtin_mcp.py?utm_source=chatgpt.com)
+- [`src/mcp_manager.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/mcp_manager.py?utm_source=chatgpt.com)
+
+For our first installation, I recommend no MCP subprocesses at all, including built-in ones, until we have a reviewed allowlist and a sanitized environment boundary.
+
+### 4. Authentication and administrator authority
+
+The application defaults to authentication enabled in Compose, and its first configured account is created as an administrator.
+
+The threat model explicitly describes an administrator as someone who can execute shell commands, read and write files, send email and control model serving.
+
+This is an intentional design choice in the upstream project, not an accidental permission leak.
+
+However, it creates an important architectural distinction:
+
+- Human administrator: should retain administrative control of Odysseus.
+- Conversational Agent: should not inherit that administrator's unrestricted authority.
+
+The current model does not provide that separation by default.
+
+Relevant source:
+
+- [`core/auth.py`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/core/auth.py?utm_source=chatgpt.com)
+- [`THREAT_MODEL.md`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/THREAT_MODEL.md?utm_source=chatgpt.com)
+
+### 5. Integration and network access
+
+There are some positive protections:
+
+- The default Compose configuration does not mount the Docker socket.
+- Its published application, ChromaDB and other service ports default to loopback.
+- The explicit host-Docker overlay is separate.
+- The integration API includes outbound URL validation, including protection against cloud metadata addresses.
+
+But private and loopback IP destinations are intentionally allowed by default for integrations. The tests explicitly confirm that behavior.
+
+The Compose configuration also provides `host.docker.internal`, allowing the application to reach services on the host. This is useful for local Ollama, but it means the container is not isolated from host-side network services.
+
+The Dockerfile also includes SSH, Node/npm, Chromium, tmux, Git and build tools. These are application capabilities, not necessities for our initial restricted Agent.
+
+### 6. Deployment lifecycle and storage
+
+The default Compose configuration has several additional concerns:
+
+- `restart: unless-stopped` conflicts with our strict manual lifecycle preference.
+- ChromaDB uses the floating `latest` image tag.
+- The application mounts a dedicated SSH directory under its data directory.
+- Its entrypoint performs ownership and permission preparation on writable mounts.
+- The container's default `PUID` and `PGID` are both 1000.
+
+We must inspect the exact ownership and user-namespace behavior before using this deployment with rootless Podman. I do not want the installation to make assumptions about host ownership or inadvertently change permissions on project data.
+
+## 7. Updated assessment
+
+What the source review establishes
+
+Source identity and revision
+
+Verified
+
+Shell/Python authority
+
+Unrestricted for admin
+
+Background activity
+
+Multiple automatic mechanisms
+
+MCP isolation
+
+Insufficient
+
+Credential isolation
+
+Requires redesign
+
+Network isolation
+
+Requires tightening
+
+Manual-only lifecycle
+
+Not default
+
+Ready for installation
+
+No
+
+This does not mean the upstream project is unusable. It means we must treat it as an application to adapt, not a secure orchestrator that can simply be installed and trusted.
+
+## 8. Next inspection: installation boundary and host isolation
+
+I want to finish by examining four remaining areas:
+
+1. Container entrypoint and filesystem ownership: exactly which directories are changed, how the process UID maps under rootless Podman, and what host files the application can access.
+2. Provider and integration credentials: where secrets are stored, how they are decrypted, and which processes can receive them.
+3. Host-facing capabilities: SSH, model serving, Cookbook, API integrations and Docker access.
+4. Installation dependencies: image tags, Python dependencies, npm packages, build-time downloads and runtime downloads.
+
+After that, we can make a defensible deployment decision: adapt the upstream Compose deployment, build a much smaller dedicated runtime, or separate the trusted UI from the restricted Agent execution environment.
+
+No files have been modified, no containers created, and no installation or provider API calls have been made.

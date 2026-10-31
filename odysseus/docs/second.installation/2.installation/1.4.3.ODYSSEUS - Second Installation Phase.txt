@@ -1,0 +1,127 @@
+⚓ ODYSSEUS 1.4 — STAGE 1.2: RECOVERY ANALYSIS
+This is a very useful result. We have discovered something important: the reset removed the old project installation, but preserved much of its operational engineering.
+
+That gives us historical material to learn from without inheriting the previous deployment.
+1. Recovery inventory assessment
+Recovery documentation
+PRESERVE
+
+- Provider integration architecture (27,457 bytes).
+- Python virtual-environment reference.
+- Historical release notes.
+- Version history.
+- Installation manifest.
+
+Operational scripts
+INSPECT FIRST
+
+- odysseus_start.sh
+- odysseus_stop.sh
+- odysseus_status.sh
+- odysseus_logs.sh
+- Previous start script backup.
+
+Old installation
+NOT REUSABLE AS-IS
+
+- Previous Distrobox: absent.
+- Previous project directory: absent.
+- Previous ChromaDB container: absent from current inventory.
+- Previous Python environment: not verified to exist.
+
+Important distinction
+The old manifest describes the October 30 operational deployment, not the current machine state.
+
+For example, it references:
+- odysseus-box
+- /home/deck/OdysseusProject
+- ChromaDB ownership markers
+- Existing application logs
+Those are historical references. We must not treat them as currently available.
+2. SteamOS findings
+Two observations:
+
+steamos-readonly status: enabled
+
+This is the expected immutable-root configuration. We should not disable it to install Odysseus. The new architecture should use the existing user-space capabilities wherever possible.
+
+hostnamectl is available
+
+The earlier missing hostname command was just a missing utility, not a host problem. The hostname file confirms Laco.
+3. What I want to preserve from the previous engineering
+There are useful ideas in the recovery material:
+- Separate START, STOP, STATUS and LOGS operations.
+- Explicit container ownership checks.
+- Graceful shutdown rather than indiscriminate container termination.
+- Read-only log inspection.
+- Separate provider architecture documentation.
+- Explicit Python interpreter selection.
+These operational principles are worth carrying forward.
+
+However, the previous scripts must be reviewed against the new isolation architecture before any reuse.
+4. Stage 1.3 — Inspect the surviving operational code
+Before closing Stage 1, I want to inspect the old scripts for hidden assumptions and host-level privileges.
+
+This is especially important because the old CheckBox integration could stop containers, and we must ensure the new Odysseus integration cannot accidentally affect Pi-hole, LocalAI or Stable Diffusion.
+READ-ONLY CODE INSPECTION
+STEAM DECK — KONSOLE / SSH
+echo "=== 1. RECOVERY SCRIPT HASHES ==="
+sha256sum /home/deck/OdysseusRecovery/decktools/*.sh
+
+echo
+echo "=== 2. START SCRIPT ==="
+nl -ba /home/deck/OdysseusRecovery/decktools/odysseus_start.sh
+
+echo
+echo "=== 3. STOP SCRIPT ==="
+nl -ba /home/deck/OdysseusRecovery/decktools/odysseus_stop.sh
+
+echo
+echo "=== 4. STATUS SCRIPT ==="
+nl -ba /home/deck/OdysseusRecovery/decktools/odysseus_status.sh
+
+echo
+echo "=== 5. LOGS SCRIPT ==="
+nl -ba /home/deck/OdysseusRecovery/decktools/odysseus_logs.sh
+
+echo
+echo "=== 6. DESKTOP LAUNCHER ==="
+nl -ba /home/deck/Desktop/start-odysseus.sh
+
+echo
+echo "=== 7. CHECKBOX ODYSSEUS INTEGRATION ==="
+grep -ni -C 8 'odysseus' \
+    /home/deck/CheckBoxStatus.odysseus-integrated.sh
+
+echo
+echo "=== 8. PROVIDER ARCHITECTURE HEADINGS ==="
+grep -nE '^#{1,4} |^[A-Z][A-Z0-9 /&_-]{5,}$' \
+    /home/deck/OdysseusRecovery/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md
+
+echo
+echo "=== END OF STAGE 1.3 ==="
+
+
+What we are looking for
+1. Whether the old scripts assume unrestricted Distrobox host integration.
+2. Whether they invoke Podman directly or indirectly.
+3. Whether they expose application credentials.
+4. Whether shutdown is correctly restricted to Odysseus-owned resources.
+5. Whether the CheckBox integration can be adapted safely.
+6. Whether the provider architecture needs structural changes or only targeted revisions.
+No scripts will be executed. No files will be modified.
+
+5. Stage 1 closure criteria
+We are approaching the end of environment discovery.
+Stage	Status
+1.0 Host and runtime inspection	COMPLETE
+1.1 Initial environment assessment	COMPLETE
+1.2 Recovery inventory	COMPLETE
+1.3 Historical code inspection	IN PROGRESS
+1.4 Final environment baseline	Pending
+
+After that, we move to the repository and dependency verification gate.
+
+One principle remains absolute: we will establish the security boundary before installing the application.
+
+⚓

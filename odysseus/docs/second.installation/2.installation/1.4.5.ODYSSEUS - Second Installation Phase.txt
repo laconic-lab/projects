@@ -1,0 +1,157 @@
+# Phase 1.4 — Recovery review: completed
+
+The two architecture documents have identical SHA-256 hashes:
+
+`5d63ae68906c413cd85e5c6b2e953685f4d86a646657fdb3597dae690253a9cc`
+
+That confirms the copies in `OdysseusRecovery` and `Documents` are byte-for-byte identical. We can treat them as one historical architecture record rather than two conflicting versions.
+
+## 1. CheckBox — assessment
+
+The full script confirms that CheckBox was designed with several good operational safeguards:
+
+- SSH and both Pi-hole components are explicitly protected.
+- It distinguishes verified-running, verified-absent, and unknown states.
+- It uses project-specific stop scripts before stopping Distroboxes.
+- It attempts post-stop verification before shutting down a box.
+- It avoids force-killing processes.
+- It requires explicit user input before shutdown operations.
+
+This is substantially better than the old desktop launcher. However, there are important limitations.
+
+### Issues to carry forward
+
+A. Process detection can mistake an incomplete scan for absence.
+
+In `process_state()` and `stable_process_state()`, unreadable `/proc` entries are skipped. If the scan cannot see a process, it can still report `ABSENT`. A reliable safety check must distinguish a complete negative result from an incomplete inspection.
+
+B. Odysseus state is not fully independent of the container.
+
+When `odysseus-box` is stopped, `odysseus_process_state()` immediately returns `ABSENT`. It does not independently verify the host-visible PID file or the ChromaDB ownership marker. This is not sufficient evidence to conclude that all Odysseus-owned resources are stopped.
+
+C. ChromaDB ownership is only checked while the Distrobox is running.
+
+When the box is stopped, CheckBox treats the marker state as absent. The ChromaDB container is a separate Podman resource, so its lifecycle cannot safely be inferred from the Distrobox state.
+
+D. The host dashboard has container-management authority.
+
+CheckBox uses host Podman and Distrobox commands. That is acceptable for a deliberately trusted host administration tool, but it is not a permission model that should be inherited by the Odysseus conversational Agent.
+
+E. The displayed Odysseus URL is historical.
+
+The script advertises `http://192.168.1.161:7011/`, and the old start script binds to `0.0.0.0`. Neither should become the new application's network exposure policy by default.
+
+## 2. Recovery review decision
+
+Review complete
+
+| Recovery material            | Decision                          |
+| ---------------------------- | --------------------------------- |
+| Provider architecture copies | Preserve; identical               |
+| START / STOP scripts         | Preserve as historical references |
+| STATUS / LOGS scripts        | Preserve as historical references |
+| Desktop launcher             | Reject; never execute             |
+| CheckBox integration         | Preserve; redesign before reuse   |
+| Existing Groq key            | Preserve untouched                |
+
+Nothing in this review authorizes installation, migration, cleanup, or deletion.
+
+# Phase 1.4 — Stage 2: Repository identity verified
+
+The live GitHub branch check confirms the Phase 1.3 reference is still exact:
+
+Repository
+
+Matched
+
+`odysseus-dev/odysseus-current`
+
+Branch: `dev`
+
+Current branch HEAD:\
+`142b93ad86073efb24981df385423f58fe5376b1`
+
+Commit message: `Initial public snapshot`
+
+Commit date: 2026-07-23
+
+The `dev` branch currently points to the exact commit recorded in the audit. This removes the risk of accidentally treating a different repository or branch as the audited source.
+
+Two qualifications matter before installation:
+
+- GitHub reports this commit as unsigned.
+- The `dev` branch is not protected, and required status checks are not enforced.
+
+Therefore, the SHA is a stable source pin, but the branch itself is not a protected release channel. We must install from the exact SHA, never from a floating `dev` checkout.
+
+## 3. Source inspection — first installation blockers
+
+I also inspected the repository tree and its installation files at the pinned SHA. The repository contains 1,450 tracked tree entries.
+
+The installation path documented by the project is Docker Compose:
+
+```
+cp .env.example .env
+docker compose up -d --build
+```
+
+That is important: this is not simply a Python application to place inside a Distrobox. It is a multi-container deployment.
+
+The initial inspection reveals several conflicts with our intended operating model.
+
+| Source finding                                | Implication for Odysseus                              |
+| --------------------------------------------- | ----------------------------------------------------- |
+| `restart: unless-stopped` on services         | Conflicts with manual-only lifecycle                  |
+| Email pollers default to enabled              | Background email activity must be disabled            |
+| Scheduled tasks default to enabled            | Autonomous task execution must be disabled            |
+| Built-in MCP servers register during startup  | MCP must be explicitly controlled                     |
+| Browser MCP uses `@playwright/mcp@latest`     | Floating package version and startup download risk    |
+| MCP stdio inherits application environment    | Potential credential exposure to subprocesses         |
+| Dockerfile includes SSH client and Docker CLI | More capabilities than the initial installation needs |
+| Compose exposes `host.docker.internal`        | Application has a route to host-side services         |
+| ChromaDB uses `latest`                        | Unpinned dependency                                   |
+| ntfy has no explicit image version            | Unpinned dependency                                   |
+
+The good news is that the base Compose configuration does default the Odysseus web interface and several supporting services to loopback bindings. It also does not mount the Docker socket by default. The separate host-Docker overlay explicitly opts into that high-trust capability.
+
+However, these positive defaults do not neutralize the other capabilities.
+
+### Important distinction: installation versus security configuration
+
+The repository's `SECURITY.md` itself describes shell, Python, filesystem, email, MCP, task management and model-serving features as privileged functionality.
+
+That is consistent with our audit conclusion: Odysseus is a powerful self-hosted workspace, not a restricted local assistant by default.
+
+Our installation must therefore begin with a deliberately reduced capability set. We should not install the full application and then assume that hiding buttons or disabling MCP registration has removed the underlying authority.
+
+## 4. Current gate status
+
+- Stage 1 — Host and recovery inspection
+
+  Complete
+- Stage 2 — Repository identity
+
+  Complete
+
+  Repository, branch, current HEAD and pinned commit match the audit.
+- Stage 2 — Installation and capability review
+
+  In progress
+- Installation
+
+  Not started
+
+## 5. What I propose to inspect next
+
+Before choosing Docker Compose, Distrobox, or another deployment arrangement, I want to examine the actual application startup and authority paths:
+
+1. Application startup sequence and background-task registration.
+2. Authentication defaults and admin privilege enforcement.
+3. Shell, Python and filesystem tool registration and execution.
+4. MCP configuration, registration, and connection lifecycle.
+5. Scheduled tasks and email poller activation.
+6. Host-facing integration paths, including SSH and Docker access.
+
+This will let us distinguish capabilities that can be safely disabled through configuration from those that require code-level restrictions or architectural isolation.
+
+No installation command yet. The next decision should be based on what the source actually does at runtime, not just what the configuration claims to disable.
