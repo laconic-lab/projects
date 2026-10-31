@@ -1,0 +1,121 @@
+😂 Right. 1.3 — Odysseus Agent Authority Audit it is.
+
+We’ll treat the Agent as the most sensitive part of the system: not just what tools it knows about, but what it can actually make happen when a model requests an action.
+
+Audit mode remains strictly read-only. We will inspect source code and execution paths; no installation, configuration changes, container operations, provider calls, or credential access.
+
+The key principle for this audit: a tool being hidden from the model does not mean it is blocked from execution. We need to follow each action from registration, through dispatch and authorization, to the function that actually performs it.
+
+The first important discovery is that the upstream project now has a much more explicit Agent security architecture than the older installation history suggests. Its current development documentation describes separate layers for request authority, tool policy, exact approvals, resource binding and execution dispatch. That is promising—but documentation is not proof that every path enforces those controls.
+
+One issue is already worth flagging: the upstream Shell/MCP specification says per-server disabled MCP tools are hidden from schemas and listings, but that alone is not a complete execution-time block if a disabled tool name reaches the dispatcher. We’ll verify the actual implementation before deciding how serious that is for our deployment. 
+
+GitHub+1
+
+I’ve found an important source-control distinction before going deeper: the newer security specifications surfaced by search belong to odysseus-dev/odysseus, whereas the repository you designated for this audit is odysseus-dev/odysseus-current. They are not interchangeable evidence. I’ve switched back to the designated odysseus-current branch for the actual code review.
+
+In that designated repository, the dispatcher we fetched is a 1,042-line implementation and does not match the newer architecture described in those other specifications. So I’m not going to credit this installation with newer safeguards until we find them in its own source.
+Agent audit — first findings
+
+Potential critical boundary gap
+ A qualified MCP tool can reach dispatch without the per-server disabled-tool check.
+In src/agent_loop.py, per-server disabled MCP tools are loaded and used while preparing tool schemas. But in the odysseus-current dispatcher, src/tool_execution.py, the hard checks we have verified cover the global disabled set, the turn policy and admin/public restrictions. The qualified mcp__... dispatch branch then calls mcp.call_tool(...); I have not found a corresponding check against the per-server disabled map there.
+
+That means hiding an MCP tool from the model's advertised schema is not, by itself, a reliable execution barrier. An admin-level model turn that emits the qualified tool name directly may still reach it. This needs a focused confirmation test before implementation, but it is already a design blocker for treating the MCP disabled setting as a security control.
+
+Other capabilities confirmed in the designated source:
+- Admin and single-user privilege: the dispatcher explicitly checks admin-only tools and the public-user blocklist. The exact single-user semantics depend on owner_is_admin_or_single_user() and the authentication configuration; we still need to inspect and test that path.
+- Shell and Python: bash and python are MCP-backed tools, with direct native fallback paths. We must audit both paths; disabling MCP alone does not establish that shell execution is disabled.
+- Detached execution: a Bash block with the background marker can launch a detached job. The code says the Agent will be automatically invoked again when that job finishes.
+- MCP recovery: the MCP manager can automatically reconnect built-in servers after a failed call.
+- Scheduled scripts: the scheduler's action layer includes local shell execution and SSH execution. This is a separate authority path from the interactive chat Agent.
+These are not hypothetical features inferred from prompts: the relevant implementations are present in the designated repository. We still need to determine which are enabled by default and which can be disabled reliably. 
+Detailed authority findings
+ID	Finding	Assessment
+AG-01	Per-server MCP disablement is not visibly enforced at the final qualified-name dispatch boundary.	Potential blocker
+AG-02	AUTH_ENABLED=false deliberately grants full admin/single-user privileges, including shell-related tools.	High impact
+AG-03	Bash uses asyncio.create_subprocess_shell(); Python launches the interpreter with -I. Neither is an OS security sandbox.	Critical boundary
+AG-04	If MCP is unavailable or a mapped server is disconnected, native fallback can execute the tool directly.	High impact
+AG-05	Background Bash jobs detach and can trigger automatic Agent continuation.	Autonomy
+AG-06	Built-in MCP servers can reconnect automatically after failures.	Autonomy
+AG-07	Scheduled tasks have a recurring scheduler loop and separate action execution.	Autonomy
+AG-08	The browser MCP startup path can use npx -y to install its package when it is not cached.	Network activity
+
+AG-02 — What single-user mode really means
+The code is explicit:
+
+owner_is_admin_or_single_user() returns true when authentication is deliberately disabled through AUTH_ENABLED=false. This is not a restricted local mode. It is an intentional full-privilege mode.
+
+That is an important distinction for our Steam Deck deployment. Even if the UI is reachable only from your Windows PC, the Agent still has whatever permissions the Odysseus process has inside its execution environment.
+
+Source: src/tool_security.py
+AG-03 — Bash and Python are the real boundary
+The Bash implementation launches a shell with the application's environment and working directory. The Python implementation launches the Python interpreter with isolated Python flags, but -I does not restrict operating-system permissions.
+
+Neither implementation establishes:
+- A filesystem sandbox at the kernel level.
+- Network restrictions.
+- A separate unprivileged operating-system identity.
+- Protection from accessing files mounted into the execution environment.
+- A limit on what the process can do with its existing permissions.
+The working directory being data/ is not a security boundary. A process can access other permitted paths regardless of its current directory.
+
+Source: src/agent_tools/subprocess_tools.py
+AG-04 — Disabling MCP is insufficient
+The legacy tool dispatcher has a direct fallback when the MCP manager is missing, and another when a mapped server is not connected.
+
+Consequently, setting ODYSSEUS_DISABLE_MCP=1 does not prove that Bash, Python or other mapped tools cannot execute. The fallback implementation must be considered part of the security boundary.
+
+Source: src/tool_execution.py
+AG-05 to AG-07 — Background autonomy
+Three distinct mechanisms deserve separate treatment:
+1. Background Bash: detached execution followed by automatic Agent continuation.
+2. MCP reconnection: the manager can restart a failed built-in MCP connection and retry the call.
+3. Scheduled tasks: a recurring loop checks due tasks and dispatches them independently of a new interactive user message.
+We have verified that these mechanisms exist in the source. We have not yet established which are started automatically in the intended deployment, which settings disable them, or whether every execution route obeys those settings.
+
+Sources: src/bg_monitor.py, src/mcp_manager.py, src/task_scheduler.py.
+
+What this means for our Odysseus design
+I would not try to solve these issues by merely hiding tools from the prompt or removing them from the model's schema.
+
+For our initial deployment, I recommend this authority profile:
+Odysseus — Initial Agent Authority Profile
+Interactive chat
+Allowed
+
+Read-only project inspection
+Allowed
+
+Provider requests through approved broker
+Explicit approval
+
+Arbitrary Bash / Python
+Blocked
+
+Filesystem writes and deletion
+Blocked
+
+Arbitrary MCP servers
+Blocked
+
+Background jobs and scheduled actions
+Blocked
+
+Automatic browser/package installation
+Blocked
+
+
+This is our proposed deployment policy, not a claim that upstream already enforces it.
+
+The Agent should initially be an intelligent orchestrator, not an unrestricted operator of the Steam Deck.
+Next audit checkpoint
+Before moving to the container boundary, I want to finish the Agent's execution map:
+1. Trace every registered native tool to its implementation.
+2. Establish whether MCP-qualified calls can bypass per-server disablement.
+3. Trace authentication and API-token authorization into Agent execution.
+4. Identify every scheduler, poller, startup task and auto-continuation path.
+5. Determine whether the host-shell bridge and SSH execution can be reached by the Agent.
+One important rule for the next export: retain the distinction between the designated odysseus-current source and the newer odysseus repository. We must never silently combine their security features or assume one has inherited the other's fixes.
+
+My recommendation is to finish this execution map before making any installation decision. We are finding exactly the kind of architectural details that justify this second audit. 😂
