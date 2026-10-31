@@ -1,0 +1,182 @@
+## Final inspection sweep — read-only
+
+I’ll keep this confined to `odysseus-dev/odysseus-current`, branch `dev`. No provider calls, credential reads, runtime tests, or repository changes.
+
+The sweep will trace what the Agent can actually execute, not just what appears in its model-facing tool list. I’m starting with external API calls, integration credentials, and the security classifications that govern them; then I’ll check MCP registration, startup autonomy, browser tooling, and filesystem access.
+
+### First finding: the public-user tool boundary is deliberately broad — but it is a denylist
+
+The current `src/tool_security.py` source explicitly blocks `api_call`, `app_api`, shell/Python, filesystem mutation, MCP management, credentials-related administration, and other privileged tools for non-admin users. It also treats any `mcp__…` tool as blocked for public users.
+
+That is a useful default boundary, but it does not establish that every API-call route is safe: the next checks are whether the dispatcher enforces that classification on every invocation path, whether the `api_call` implementation can reach arbitrary integrations, and whether credentials can leak through responses or logs. This is source evidence, not a runtime test.
+
+### External `api_call`: a second privileged integration surface
+
+The `api_call` implementation resolves a saved integration by ID or name, then forwards the model-supplied method, path, query parameters, body, and extra headers to `execute_api_call()`. It does not itself apply a per-integration method/path allowlist or pass an owner identity.
+
+The public-user denylist includes `api_call`, so this is intended to be admin-only. The important remaining question is what `execute_api_call()` does with the stored base URL and credentials — particularly whether caller-supplied headers can override or expose authentication material. I’m tracing that implementation before rating the risk.
+
+### Integration credentials: encrypted at rest, but available in plaintext to the application process
+
+The integration store encrypts saved API keys before writing `data/integrations.json`, uses atomic writes, and applies file mode `0600`. Runtime loading decrypts the credentials for use. The encryption key is held by the application under its data directory, so this protects against a copied integrations file without the key, not against a compromised application process or an attacker who can read both files.
+
+There are two important boundaries here:
+
+- `api_call` can direct an authenticated request to the configured integration, including write and delete methods. The implementation has an outbound URL safety check, but private/LAN destinations are allowed by default — intentionally useful for services such as Home Assistant, but still a powerful network capability.
+- The API response is returned to the Agent as content, up to a size limit. There is no general secret-redaction pass over response JSON or text. If an integration endpoint returns credentials or other sensitive data, the model can receive them.
+
+The existing SSRF regression tests specifically verify metadata-address rejection and the default allowance of private LAN addresses. They are useful evidence of the intended policy, but they do not test the full integration authorization or data-exposure boundary.
+
+### MCP subprocesses: the most consequential new finding
+
+The current MCP manager constructs stdio subprocess environments as:
+
+```
+env={**os.environ, **env} if env else None
+```
+
+This is more than passing the variables an MCP server needs. Whenever a custom environment is supplied, it explicitly copies the entire Odysseus process environment into the child, then overlays the custom values. The built-in Python MCP servers also supply a non-empty environment (`PYTHONPATH`), so they take this same path.
+
+Assessment: confirmed source-level credential-isolation weakness. A configured stdio MCP process can therefore read application-process environment variables that were not intended for it — potentially including provider/API credentials and internal application secrets. Admin-only server registration limits who can introduce such a process, but it does not make broad environment inheritance a sound isolation boundary. This is a stronger concern than merely having an arbitrary executable registration feature.
+
+The MCP registration route itself is admin-gated and explicitly recognizes that registering a stdio server is equivalent to executing a binary on the host. That is an honest warning, but the child-process environment still needs its own least-privilege boundary.
+
+### Startup autonomy and browser tooling
+
+The startup path is not passive by default. Source shows several independently started mechanisms:
+
+- The background-job monitor starts unconditionally and can resume an Agent turn after a detached job completes.
+- Enabled user MCP servers and built-in MCP servers are connected in a background startup task.
+- The scheduled-task runner starts unless `ODYSSEUS_INPROCESS_TASKS` is disabled.
+- The scheduled-email poller starts unless `ODYSSEUS_INPROCESS_POLLERS` is disabled; it checks every 30 seconds and can deliver pending mail.
+- Additional loops run the hourly null-owner sweep, nightly skill audit, and cookbook serve lifecycle monitor.
+
+The browser MCP has two notable defaults: it launches `npx -y @playwright/mcp@latest` (so a missing package can be downloaded during startup), and `ODYSSEUS_BROWSER_NO_SANDBOX` defaults to enabled, which adds Chromium's `--no-sandbox` flag. `--isolated` gives it a separate browser profile; it is not an operating-system security sandbox.
+
+These are source-verified autonomy and isolation characteristics, not proof that each feature is active in a particular installation. The environment flags and stored enabled-server settings determine actual behavior.
+
+## Final sweep — audit findings
+
+Source sweep completed
+
+Runtime unverified
+
+Read-only
+
+Repository: odysseus-dev/odysseus-current · branch dev · HEAD verified: `142b93ad86073efb24981df385423f58fe5376b1`
+
+### 1. New findings added to the register
+
+| ID    | Finding                                                                                                                                                                           | Assessment                                                           | Priority |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------- |
+| AG-15 | Stdio MCP processes inherit the application's entire environment                                                                                                                  | Confirmed source-level credential-isolation weakness                 | Critical |
+| AG-16 | MCP environment configuration is stored as plaintext JSON in the database and returned by the admin server-list endpoint                                                          | Confirmed source-level storage/exposure characteristic               | High     |
+| AG-17 | `ODYSSEUS_DISABLE_MCP=1` disables built-in registration, but startup still connects enabled user-configured MCP servers                                                           | Confirmed configuration-boundary gap                                 | High     |
+| AG-18 | Generic `api_call` can invoke arbitrary methods and paths on a configured integration; private/LAN targets are allowed by default                                                 | Confirmed broad capability; impact depends on integration and caller | High     |
+| AG-19 | Integration responses are returned to the Agent without general credential redaction                                                                                              | Confirmed source-level exposure path                                 | High     |
+| AG-20 | Browser MCP defaults to `--no-sandbox` and can download the floating `@playwright/mcp@latest` package at startup                                                                  | Confirmed source-level isolation and supply-chain concerns           | High     |
+| AG-21 | Multiple autonomous background mechanisms start by default                                                                                                                        | Confirmed source-level autonomy; deployment-dependent                | High     |
+| AG-22 | Existing `.app_key` permissions are not explicitly repaired when the key is read; MCP OAuth credential-file writes also lack an explicit restrictive chmod in the inspected route | Conditional permissions concern; actual modes unknown                | Medium   |
+
+AG-15 deserves particular attention. The manager's environment construction is explicit:
+
+```
+env={**os.environ, **env} if env else None
+```
+
+This means the custom MCP server is not limited to its declared credentials. It receives the application's environment too. The built-in Python MCP servers also pass a non-empty environment, so they follow that path. The browser server passes a custom cache environment and follows it as well.
+
+AG-16 compounds this. The MCP management route serializes configured environment values into the database and returns them in its server-list response. The route is admin-only, but the credentials are not encrypted at this storage boundary.
+
+AG-17 is an important operational distinction. The startup sequence calls `register_builtin_servers()` and then calls `connect_all_enabled()` regardless of the built-in disable flag. Disabling built-in MCP does not disable user-configured MCP servers.
+
+### 2. External integration API — detailed assessment
+
+The integration layer has some sound protections:
+
+- Base URLs are restricted to HTTP(S).
+- Link-local metadata addresses are rejected.
+- Integration secrets are encrypted at rest.
+- The integrations file is written atomically and assigned mode `0600`.
+- The UI's integration management endpoints are admin-only.
+- The API response size is bounded.
+
+But the Agent's API tool remains a powerful capability:
+
+- The model supplies the HTTP method, path, query, body and optional headers.
+- There is no general integration-specific method/path allowlist.
+- Private addresses are allowed unless `INTEGRATION_API_BLOCK_PRIVATE_IPS=true`.
+- The returned response can contain sensitive information.
+- The URL check resolves a hostname before the HTTP request, but the inspected code does not pin the resolved address for the subsequent connection. This leaves a potential DNS-rebinding/TOCTOU concern; exploitation has not been demonstrated.
+
+This should become a capability-based integration broker, rather than allowing the Agent unrestricted access to every endpoint exposed by a saved integration.
+
+### 3. MCP and browser authority
+
+The current source has several separate controls, and they must not be confused:
+
+- MCP registration is admin-only.
+- Global tool disabling has an execution-time gate.
+- Plan-mode MCP blocking has a separate runtime enforcement path.
+- Per-server disabled MCP tools are still only hidden from the model-facing schema, not reliably blocked at execution time — the previously recorded AG-01b remains open.
+- MCP automatic reconnection can restore a built-in server after a failure.
+- `ODYSSEUS_DISABLE_MCP` is not a universal MCP kill switch.
+
+The browser's `--isolated` flag isolates its browser profile, not its operating-system privileges. Combined with the default `--no-sandbox` and broad inherited environment, this is not an appropriate security boundary for a browser that consumes untrusted web content.
+
+### 4. Filesystem boundary
+
+The native file tools do have meaningful confinement:
+
+- Default roots are the application data directory and temporary directories.
+- Additional roots are opt-in through `tool_path_extra_roots`.
+- Sensitive paths such as `.ssh`, `.gnupg`, `.env` and common SSH key files are explicitly rejected.
+- Resolved paths are checked for containment, including symlink resolution.
+- The code-navigation tools use a constrained search root and skip sensitive paths.
+
+That is a useful application-level restriction. It is not an OS sandbox: Bash and Python still run with the application process's operating-system permissions. Any extra root configured by an administrator also broadens the file-tool boundary.
+
+### 5. Autonomy inventory
+
+| Mechanism                          | Default source behavior            | Can perform actions?               |
+| ---------------------------------- | ---------------------------------- | ---------------------------------- |
+| Detached Bash + Agent continuation | Available                          | Yes                                |
+| Background-job monitor             | Starts unconditionally             | Yes — resumes Agent turns          |
+| Scheduled task runner              | Starts unless disabled             | Yes                                |
+| Scheduled email poller             | Starts unless disabled             | Yes — delivers pending email       |
+| Built-in and enabled user MCP      | Connects during startup            | Depends on server tools            |
+| Hourly null-owner sweep            | Starts unconditionally             | Yes — changes ownership metadata   |
+| Nightly skill audit                | Starts; enabled by default setting | Yes — can auto-fix/escalate skills |
+| Cookbook serve lifecycle           | Starts unconditionally             | Yes — can stop expired serves      |
+
+The email poller is particularly important: it is not merely checking status. Its scheduled-email pass sends due pending messages. `ODYSSEUS_INPROCESS_POLLERS=0` disables that in-process poller, but does not disable the separate scheduled-task runner.
+
+## Sweep conclusion
+
+The source review now supports a much clearer security picture:
+
+1. The Agent's authority is broader than its visible tool list. Native fallbacks, generic API bridges, MCP, background jobs and scheduled actions all matter.
+2. MCP is a major trust boundary. Environment inheritance, plaintext configured environment values, automatic startup and incomplete disable semantics need to be addressed together.
+3. The application still has considerable autonomous behavior by default. This conflicts with a deliberately manual, tightly controlled deployment model.
+4. The existing controls are not worthless. There are real protections in the path resolver, public-user tool gate, metadata SSRF guard, integration storage and plan-mode enforcement. We should preserve and strengthen those rather than replace them indiscriminately.
+
+### Audit status and next phase
+
+Final source inspection sweep completed
+
+The audit is not yet closed. We have not run the application, verified effective filesystem permissions, tested process isolation, or demonstrated exploitability. Those remain explicitly unverified.
+
+The next deliverable should be the consolidated Agent Authority Matrix, covering every execution route, its identity requirements, effective permissions, persistence, network access and autonomous behavior. From that matrix we can produce the ranked security defect register and the implementation handover.
+
+No fixes have been applied. No runtime or provider operations have been performed.
+
+Key source references at the verified revision:
+
+- [MCP manager](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/mcp_manager.py?utm_source=chatgpt.com)
+- [MCP routes](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/routes/mcp_routes.py?utm_source=chatgpt.com)
+- [Built-in MCP registration](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/builtin_mcp.py?utm_source=chatgpt.com)
+- [Integration execution](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/integrations.py?utm_source=chatgpt.com)
+- [Tool security policy](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/src/tool_security.py?utm_source=chatgpt.com)
+- [Application startup](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/app.py?utm_source=chatgpt.com)
+
+My recommendation: proceed directly to the Authority Matrix. We have enough source evidence to build it without another broad inspection pass; any remaining uncertainty can be explicitly marked rather than hidden behind assumptions.

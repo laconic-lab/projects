@@ -1,0 +1,184 @@
+Yes. The audit phase ends here. And 1.3 — Odysseus: Reset — Audit Phase has certainly earned its title. 😄
+
+But I want to make one important distinction: we have completed the source-level security audit and architectural assessment. We have not completed runtime penetration testing or verified the security properties of an installed deployment. Those belong in the installation and acceptance phase, not as claims in this audit.
+
+The conclusion below is intended to serve as the formal closing record for 1.3 and the starting authority for 1.4.
+
+# ODYSSEUS — PHASE 1.3
+
+## Reset & Security Audit — Final Conclusion
+
+SOURCE AUDIT CLOSED
+
+RUNTIME VALIDATION PENDING
+
+Audited repository: `odysseus-dev/odysseus-current`
+
+Branch: `dev`
+
+Verified HEAD: `142b93ad86073efb24981df385423f58fe5376b1`
+
+Audit mode: Read-only. No source modifications, installations, provider calls, credential reads or runtime tests.
+
+### 1. What we accomplished
+
+We moved beyond inspecting individual functions and examined Odysseus as a complete authority system.
+
+The audit covered:
+
+- Application deployment and container architecture.
+- Authentication, admin authority and API-token identity.
+- Native tool registry, schemas and execution dispatch.
+- Bash, Python and filesystem access.
+- Internal application API and shell bridges.
+- MCP registration, execution, configuration and reconnection.
+- External provider and integration API access.
+- Credential storage and exposure paths.
+- Browser automation and untrusted web content.
+- Background jobs, Agent continuation and scheduled actions.
+- Startup behavior and autonomous mechanisms.
+- Security documentation and threat-model assumptions.
+
+The most important outcome is that we now understand where Odysseus obtains its authority, how that authority reaches the Agent, and where the existing restrictions fail to contain it.
+
+### 2. The central audit verdict
+
+# Not ready for a trusted installation
+
+The audited source contains useful security controls, but its current architecture does not provide the isolation and least-privilege guarantees required for the intended Odysseus deployment.
+
+The most consequential findings are:
+
+1. MCP environment inheritance: external MCP processes can inherit the application's environment, potentially exposing provider credentials and internal secrets.
+2. Agent execution authority: Bash and Python execute without an OS-level sandbox.
+3. Internal API authority: the internal application bridge offers a broad privileged capability.
+4. API-token scope enforcement: the general chat path does not establish the required scope boundary.
+5. MCP disable semantics: per-server disabled tools are not reliably blocked at execution time, and disabling built-in MCP does not disable every configured server.
+6. Integration authority: generic API calls can perform broad operations against configured integrations, with insufficient response redaction.
+7. Autonomous execution: background jobs, scheduled actions, email polling and MCP reconnection introduce activity beyond an individual user interaction.
+8. Browser isolation: the browser MCP's default configuration does not establish an adequate OS-level isolation boundary.
+
+These are architectural issues, not simply a collection of minor configuration mistakes.
+
+### 3. What we learned about the intended security architecture
+
+The audit established an important design direction:
+
+Odysseus should be an orchestrator, not an unrestricted administrator of its host.
+
+The Agent should reason, plan and request capabilities. Independent security components should decide whether those capabilities are permitted.
+
+The intended principles are:
+
+| Principle             | Required behavior                                                  |
+| --------------------- | ------------------------------------------------------------------ |
+| Local-first           | No cloud provider use without explicit authorization               |
+| Least privilege       | Agent receives only the permissions needed for its current task    |
+| Isolation             | Application and execution environments have restricted host access |
+| Credential separation | Provider keys remain outside the Agent's execution environment     |
+| Controlled execution  | Shell, Python and remote actions require explicit authorization    |
+| MCP containment       | Only approved servers, tools and environment variables are exposed |
+| Manual operation      | No unwanted startup, background autonomy or automatic recovery     |
+| Auditability          | Every privileged operation has an attributable record              |
+| Recoverability        | A failed installation or update can be rolled back safely          |
+
+These principles become mandatory acceptance criteria for the next phase.
+
+### 4. What remains deliberately unverified
+
+Closing this audit does not mean pretending we tested what we did not test.
+
+The following belong to installation validation:
+
+- Actual container mounts and effective filesystem access.
+- Process UID, groups, capabilities and namespaces.
+- Network reachability and firewall enforcement.
+- Effective credential-file permissions.
+- Actual provider-key separation.
+- MCP child-process environment isolation.
+- API-token authorization behavior under real requests.
+- Background-service and scheduler inactivity.
+- Resource limits and restart behavior.
+- Recovery and rollback procedures.
+
+These will need explicit acceptance tests. Source inspection alone cannot prove them.
+
+## 5. Formal transition to Phase 1.4
+
+# 1.4 — Odysseus Installation
+
+Next phase
+
+[Futuristic Data Center](https://images.openai.com/static-rsc-4/YjjaoWrvQng3Q0akAkKGu55HKAPIM5sIk-yYRt7oLoeKR6jqj8YMZtiY0A6umbrm3V_G05E3mr1l_H7I6PZxCnIj2oY0cx-JlwtIc1gcsxrdFkse5_4O2tTictK74iZkD127ySPsSSQQf5r0GlS_iU2SMW-0AtP_t9omfCq_Xe2rmQihOZGCTD7z3btacRMi?purpose=inline)
+
+Objective: Build a clean, isolated, recoverable Odysseus environment based on the security conclusions of Phase 1.3.
+
+The installation is not a reproduction of the old deployment. It is a controlled rebuild.
+
+Installation gates
+
+1. Environment inspection: verify the actual Steam Deck host, Distrobox, Podman and storage state before changing anything.
+2. Repository lock: verify the intended repository, branch and commit before installation.
+3. Isolation foundation: establish the dedicated rootless execution boundary and restricted mounts.
+4. Credential foundation: prepare host-side provider credential storage, outside the project and container.
+5. Core installation: install only the required Odysseus components and pinned dependencies.
+6. Security configuration: disable unwanted autonomous mechanisms and restrict MCP and external execution.
+7. Acceptance testing: validate the security properties established by the audit.
+8. Recovery: document and verify backup, rollback and restart procedures.
+
+### 6. Rules carried into 1.4
+
+The following are non-negotiable:
+
+- Inspect before modifying or deleting anything.
+- No reuse of old configuration without reviewing it.
+- No automatic startup unless explicitly approved.
+- No provider API calls during installation unless explicitly authorized.
+- No credentials inside the Git repository or general project directory.
+- No broad Steam Deck host mounts into the application.
+- No arbitrary host-shell access for the conversational Agent.
+- No silent fallback to less secure configurations.
+- No declaring a security test passed without evidence.
+- One installation stage at a time, with verification before proceeding.
+
+The Steam Deck's gaming performance remains a priority. Odysseus must not become an uncontrolled background consumer of CPU, GPU, RAM or storage.
+
+### 7. Audit closure record
+
+## Phase 1.3 — CLOSED
+
+Source-level security inspection
+
+Complete
+
+Agent authority matrix
+
+Complete
+
+Security findings register
+
+Consolidated
+
+Target security architecture
+
+Defined
+
+Runtime validation
+
+Transferred to 1.4
+
+Implementation
+
+Not started
+
+Final decision: proceed to Phase 1.4, subject to its initial environment inspection and repository verification.
+
+### A final word before the reset
+
+The most valuable result of 1.3 is not the number of defects we found. It is that we now have a much clearer understanding of what Odysseus must not be allowed to do.
+
+We are not going to install a powerful Agent first and try to secure it afterwards.
+
+We are going to establish the boundaries first, then install the Agent inside them.
+
+Phase 1.3 is closed. Welcome to 1.4 — Installation. 😎
