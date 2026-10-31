@@ -1,0 +1,459 @@
+(deck@Laco ~)$ echo "===== HOST IDENTITY ====="
+id
+getent passwd deck
+
+echo
+echo "===== SUBORDINATE UID ====="
+if [ -r /etc/subuid ]; then
+    grep -E '^deck:' /etc/subuid || echo "No deck entry"
+else
+    echo "/etc/subuid unavailable"
+fi
+
+echo
+echo "===== SUBORDINATE GID ====="
+if [ -r /etc/subgid ]; then
+    grep -E '^deck:' /etc/subgid || echo "No deck entry"
+else
+    echo "/etc/subgid unavailable"
+fi
+
+echo
+echo "===== CURRENT USER NAMESPACE ====="
+cat /proc/self/uid_map
+cat /proc/self/gid_map
+
+echo
+echo "===== USER NAMESPACE LIMITS ====="
+for f in \
+    /proc/sys/user/max_user_namespaces \
+    /proc/sys/kernel/unprivileged_userns_clone
+do
+    if [ -r "$f" ]; then
+        printf '%s = ' "$f"
+        cat "$f"
+    else
+        echo "$f unavailable"
+    fi
+done
+===== HOST IDENTITY =====
+uid=1000(deck) gid=1000(deck) groups=1000(deck),973(steamos-log-submitter),998(wheel)
+deck:x:1000:1000:SteamOS User:/home/deck:/bin/bash
+
+===== SUBORDINATE UID =====
+deck:100000:65536
+
+===== SUBORDINATE GID =====
+deck:100000:65536
+
+===== CURRENT USER NAMESPACE =====
+         0          0 4294967295
+         0          0 4294967295
+
+===== USER NAMESPACE LIMITS =====
+/proc/sys/user/max_user_namespaces = 59068
+/proc/sys/kernel/unprivileged_userns_clone unavailable
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$ echo "===== PODMAN VERSION ====="
+podman --version
+
+echo
+echo "===== PODMAN INFO ====="
+podman info --debug
+
+echo
+echo "===== PODMAN CONTAINERS ====="
+podman ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+
+echo
+echo "===== DISTROBOX VERSION ====="
+distrobox --version
+
+echo
+echo "===== AVAILABLE RUNTIME TOOLS ====="
+for cmd in podman distrobox crun runc conmon newuidmap newgidmap slirp4netns pasta netavark aardvark-dns jq; do
+    printf '%-16s' "$cmd"
+    command -v "$cmd" || echo "not found"
+done
+===== PODMAN VERSION =====
+podman version 6.0.2
+
+===== PODMAN INFO =====
+host:
+  arch: amd64
+  buildahVersion: 1.44.1
+  cdiSpecDirs:
+  - /etc/cdi
+  - /var/run/cdi
+  cgroupControllers:
+  - cpu
+  - memory
+  - pids
+  - dmem
+  cgroupManager: systemd
+  cgroupVersion: v2
+  conmon:
+    package: conmon-1:2.2.1-1
+    path: /usr/bin/conmon
+    version: 'conmon version 2.2.1, commit: c8cc2c4db27531bd4e084ce7857f73cd21ee639d'
+  cpuUtilization:
+    idlePercent: 89.55
+    systemPercent: 3.3
+    userPercent: 7.16
+  cpus: 8
+  databaseBackend: sqlite
+  distribution:
+    codename: holo
+    distribution: steamos
+    variant: steamdeck
+    version: 3.9.5
+  eventLogger: journald
+  freeLocks: 2038
+  hostname: Laco
+  idMappings:
+    gidmap:
+    - container_id: 0
+      host_id: 1000
+      size: 1
+    - container_id: 1
+      host_id: 100000
+      size: 65536
+    uidmap:
+    - container_id: 0
+      host_id: 1000
+      size: 1
+    - container_id: 1
+      host_id: 100000
+      size: 65536
+  kernel: 7.2.7-valve2-2-neptune-72-g31504582a073
+  linkmode: dynamic
+  logDriver: journald
+  memFree: 1065902080
+  memTotal: 15517065216
+  networkBackend: netavark
+  networkBackendInfo:
+    backend: netavark
+    defaultNetwork: podman
+    dns:
+      package: aardvark-dns-2.0.0-1
+      path: /usr/lib/podman/aardvark-dns
+      version: aardvark-dns 2.0.0
+    package: netavark-2.0.0-1
+    path: /usr/lib/podman/netavark
+    version: netavark 2.0.0
+  ociRuntime:
+    name: crun
+    package: crun-1.28-1
+    path: /usr/bin/crun
+    version: |-
+      crun version 1.28-dirty
+      commit: 54f16ffbefcd022bf032af768b5c5ce075c18bfc
+      rundir: /run/user/1000/crun
+      spec: 1.0.0
+      +SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +LIBKRUN +JSON_C
+  os: linux
+  pasta:
+    executable: /usr/bin/pasta
+    package: passt-2026_07_16.090d739-1
+    version: |
+      pasta 2026_07_16.090d739
+      Copyright Red Hat
+      GNU General Public License, version 2 or later
+        <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>
+      This is free software: you are free to change and redistribute it.
+      There is NO WARRANTY, to the extent permitted by law.
+  remoteSocket:
+    exists: true
+    path: /run/user/1000/podman/podman.sock
+  rootlessNetworkCmd: pasta
+  rootlessPortForwarder: rootlessport
+  security:
+    apparmorEnabled: false
+    capabilities: CAP_CHOWN,CAP_DAC_OVERRIDE,CAP_FOWNER,CAP_FSETID,CAP_KILL,CAP_NET_BIND_SERVICE,CAP_SETFCAP,CAP_SETGID,CAP_SETPCAP,CAP_SETUID,CAP_SYS_CHROOT
+    rootless: true
+    seccompEnabled: true
+    seccompProfilePath: /usr/share/containers/seccomp.json
+    selinuxEnabled: false
+  serviceIsRemote: false
+  swapFree: 8003571712
+  swapTotal: 8832147456
+  uptime: 71h 42m 32.00s (Approximately 2.96 days)
+  variant: ""
+plugins:
+  authorization: null
+  log:
+  - k8s-file
+  - none
+  - passthrough
+  - journald
+  network:
+  - bridge
+  - macvlan
+  - ipvlan
+  volume:
+  - local
+registries: {}
+store:
+  containerStore:
+    number: 4
+    paused: 0
+    running: 1
+    stopped: 3
+  graphDriverName: overlay
+  graphOptions:
+    overlay.mountopt: nodev
+  graphRoot: /home/deck/.local/share/containers/storage
+  graphRootAllocated: 1007626104832
+  graphRootUsed: 418800435200
+  graphStatus:
+    Backing Filesystem: extfs
+    Native Overlay Diff: "false"
+    Supports d_type: "true"
+    Supports shifting: "true"
+    Supports volatile: "true"
+    Using metacopy: "false"
+  imageCopyTmpDir: /var/tmp
+  imageStore:
+    number: 6
+  runRoot: /run/user/1000/containers
+  transientStore: false
+  volumePath: /home/deck/.local/share/containers/storage/volumes
+version:
+  APIVersion: 6.0.2
+  Built: 1785979377
+  BuiltTime: Thu Aug  6 03:22:57 2026
+  GitCommit: b28edb9ad70ce4317dc762ee9ce0a6d081d154e9
+  GoVersion: go1.26.5-X:nodwarf5
+  Os: linux
+  OsArch: linux/amd64
+  Version: 6.0.2
+
+
+===== PODMAN CONTAINERS =====
+NAMES        STATUS                     IMAGE
+pihole-box   Exited (143) 30 hours ago  docker.io/library/archlinux:latest
+pihole       Up 3 days                  docker.io/pihole/pihole:latest
+Stable-box   Exited (143) 29 hours ago  docker.io/library/ubuntu:24.04
+localai-box  Exited (143) 29 hours ago  docker.io/library/ubuntu:24.04
+
+===== DISTROBOX VERSION =====
+distrobox: 1.8.2.5
+
+===== AVAILABLE RUNTIME TOOLS =====
+podman          /usr/bin/podman
+distrobox       /usr/bin/distrobox
+crun            /usr/bin/crun
+runc            not found
+conmon          /usr/bin/conmon
+newuidmap       /usr/bin/newuidmap
+newgidmap       /usr/bin/newgidmap
+slirp4netns     not found
+pasta           /usr/bin/pasta
+netavark        not found
+aardvark-dns    not found
+jq              /usr/bin/jq
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$ echo "===== STEAMOS AND KERNEL ====="
+cat /etc/os-release
+uname -a
+
+echo
+echo "===== CGROUP VERSION ====="
+stat -fc %T /sys/fs/cgroup
+
+echo
+echo "===== CGROUP CONTROLLERS ====="
+if [ -r /sys/fs/cgroup/cgroup.controllers ]; then
+    cat /sys/fs/cgroup/cgroup.controllers
+else
+    echo "cgroup.controllers unavailable"
+fi
+
+echo
+echo "===== CURRENT PROCESS SECCOMP ====="
+grep -E '^(NoNewPrivs|Seccomp|Seccomp_filters):' /proc/self/status
+
+echo
+echo "===== NAMESPACE SUPPORT ====="
+ls -l /proc/self/ns/
+
+echo
+echo "===== SECURITY FRAMEWORKS ====="
+for cmd in getenforce aa-status; do
+    printf '%-16s' "$cmd"
+    command -v "$cmd" || echo "not found"
+done
+===== STEAMOS AND KERNEL =====
+NAME="SteamOS"
+PRETTY_NAME="SteamOS"
+VERSION_CODENAME=holo
+ID=steamos
+ID_LIKE=arch
+ANSI_COLOR="1;35"
+HOME_URL="https://www.steampowered.com/"
+DOCUMENTATION_URL="https://support.steampowered.com/"
+SUPPORT_URL="https://support.steampowered.com/"
+BUG_REPORT_URL="https://support.steampowered.com/"
+LOGO=steamos
+VARIANT_ID=steamdeck
+VERSION_ID=3.9.5
+BUILD_ID=20261023.100
+STEAMOS_DEFAULT_UPDATE_BRANCH=stable
+Linux Laco 7.2.7-valve2-2-neptune-72-g31504582a073 #1 SMP PREEMPT_DYNAMIC Fri, 23 Oct 2026 20:44:20 +0000 x86_64 GNU/Linux
+
+===== CGROUP VERSION =====
+cgroup2fs
+
+===== CGROUP CONTROLLERS =====
+cpuset cpu io memory hugetlb pids rdma misc dmem
+
+===== CURRENT PROCESS SECCOMP =====
+NoNewPrivs:     0
+Seccomp:        0
+Seccomp_filters:        0
+
+===== NAMESPACE SUPPORT =====
+total 0
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 cgroup -> 'cgroup:[4026531835]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 ipc -> 'ipc:[4026531839]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 mnt -> 'mnt:[4026531832]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 net -> 'net:[4026531833]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 pid -> 'pid:[4026531836]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 pid_for_children -> 'pid:[4026531836]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 time -> 'time:[4026531834]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 time_for_children -> 'time:[4026531834]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 user -> 'user:[4026531837]'
+lrwxrwxrwx 1 deck deck 0 Oct 31 00:58 uts -> 'uts:[4026531838]'
+
+===== SECURITY FRAMEWORKS =====
+getenforce      not found
+aa-status       not found
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$ echo "===== NETWORK INTERFACES ====="
+ip -brief address
+
+echo
+echo "===== ROUTING ====="
+ip route
+
+echo
+echo "===== IPV6 ROUTING ====="
+ip -6 route
+
+echo
+echo "===== FIREWALL STATUS ====="
+if command -v firewall-cmd >/dev/null 2>&1; then
+    firewall-cmd --state
+    firewall-cmd --get-active-zones
+else
+    echo "firewalld command unavailable"
+fi
+
+echo
+echo "===== NFTABLES AVAILABILITY ====="
+if command -v nft >/dev/null 2>&1; then
+    nft --version
+else
+    echo "nft unavailable"
+fi
+
+echo
+echo "===== PODMAN NETWORK CONFIGURATION ====="
+podman network ls
+
+echo
+echo "===== NETWORK BACKEND ====="
+podman info --debug | grep -i -E 'networkBackend|network backend|rootlessNetworkCmd|rootless network'
+===== NETWORK INTERFACES =====
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+enp4s0f3u1u4     UP             192.168.1.161/24 2001:861:3013:b730:1946:f2c6:3a2a:6e88/64 2001:861:3013:b730:9e86:f740:ab73:ae13/64 fe80::61d4:7843:e196:34c1/64
+wlan0            DOWN
+
+===== ROUTING =====
+default via 192.168.1.254 dev enp4s0f3u1u4 proto dhcp src 192.168.1.161 metric 100
+192.168.1.0/24 dev enp4s0f3u1u4 proto kernel scope link src 192.168.1.161 metric 100
+
+===== IPV6 ROUTING =====
+2001:861:3013:b730::/64 dev enp4s0f3u1u4 proto ra metric 100 pref medium
+fe80::/64 dev enp4s0f3u1u4 proto kernel metric 1024 pref medium
+default via fe80::b292:4aff:fe4f:f855 dev enp4s0f3u1u4 proto ra metric 100 pref medium
+
+===== FIREWALL STATUS =====
+running
+public (default)
+  interfaces: enp4s0f3u1u4
+
+===== NFTABLES AVAILABILITY =====
+nftables v1.1.6 (Commodore Bullmoose #7)
+
+===== PODMAN NETWORK CONFIGURATION =====
+NETWORK ID    NAME        DRIVER
+2f259bab93aa  podman      bridge
+
+===== NETWORK BACKEND =====
+  networkBackend: netavark
+  networkBackendInfo:
+  rootlessNetworkCmd: pasta
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$ echo "===== MEMORY ====="
+free -h
+
+echo
+echo "===== CPU ====="
+nproc
+lscpu | grep -E 'Model name|CPU\(s\)|Thread|Core|Socket'
+
+echo
+echo "===== FILESYSTEM CAPACITY ====="
+df -h /home /var /tmp
+
+echo
+echo "===== STORAGE FILESYSTEM TYPES ====="
+findmnt -T /home
+findmnt -T /var
+findmnt -T /tmp
+
+echo
+echo "===== CURRENT USER STORAGE ====="
+du -sh ~/.local/share/containers 2>/dev/null || echo "No rootless container storage directory"
+===== MEMORY =====
+               total        used        free      shared  buff/cache   available
+Mem:            14Gi       6.2Gi       995Mi       514Mi       8.1Gi       8.3Gi
+Swap:          8.2Gi       790Mi       7.5Gi
+
+===== CPU =====
+8
+CPU(s):                                  8
+On-line CPU(s) list:                     0-7
+Model name:                              AMD Custom APU 0932
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+Socket(s):                               1
+CPU(s) scaling MHz:                      56%
+NUMA node0 CPU(s):                       0-7
+
+===== FILESYSTEM CAPACITY =====
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/nvme0n1p8  939G  391G  549G  42% /home
+/dev/nvme0n1p6  230M   41M  173M  19% /var
+tmpfs           7.3G  499M  6.8G   7% /tmp
+
+===== STORAGE FILESYSTEM TYPES =====
+TARGET SOURCE         FSTYPE OPTIONS
+/home  /dev/nvme0n1p8 ext4   rw,relatime
+TARGET SOURCE         FSTYPE OPTIONS
+/var   /dev/nvme0n1p6 ext4   rw,relatime
+TARGET SOURCE FSTYPE OPTIONS
+/tmp   tmpfs  tmpfs  rw,nosuid,nodev,nr_inodes=1048576,inode64,huge=advise,usrquota
+
+===== CURRENT USER STORAGE =====
+6.5G    /home/deck/.local/share/containers
+No rootless container storage directory
+(deck@Laco ~)$
+(deck@Laco ~)$
+(deck@Laco ~)$
