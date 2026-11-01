@@ -1,0 +1,440 @@
+This is a copy of a shared ChatGPT chat. It won't be added to memory.
+Report conversation
+Today 6:18 AM
+I want to stack a new project calles waydroid-box, but only if it fulfill
+this requirement :
+Can I launch waydroid from a SSH terminal and all cpu/gpu load are
+handled by the deck ?
+to clarify I want to enjoy the waydroid on the pc client, with all
+workload on the deck
+Waydroid-box — feasibility assessment
+Yes, your goal is technically achievable in principle, but there is an important distinction: you want to
+use your Linux Mint PC as the display and input client, while your Steam Deck OLED does all the Android
+computing.
+Your intended architecture is:
+PC client — Linux Mint
+Display Android • Keyboard • Mouse
+LAN connection — remote display and input
+Steam Deck OLED — host
+Waydroid • Android apps • CPU • GPU • RAM
+Computing stays on the Deck
+The important part is that SSH alone does not transfer Waydroid's graphical interface to your PC. SSH
+can launch and manage processes on the Deck, but you also need a suitable way to stream the Android
+display to Linux Mint and send keyboard, mouse and touch input back.
+The main technical obstacle
+Waydroid is designed to run on a Linux system with a suitable graphics environment. Its normal graphical
+session integrates with the host's Wayland compositor and GPU. It isn't inherently a remote Android
+streaming service. waydroid/do… +1
+So our project must solve two separate problems:
+Remote execution: launch and control Waydroid on SteamOS through your existing SSH connection.
+Remote graphics: display the Deck-rendered Android interface on Linux Mint, with responsive mouse
+and keyboard input.
+Possible approaches
+1. Waydroid + remote display bridge
+Run Waydroid on the Deck and investigate whether an Android display capture/streaming
+bridge can deliver its output to Linux Mint. This is the closest match to your goal, but
+compatibility and GPU behavior need testing.
+ChatGPT Log in Sign up for free
+2. Remote desktop or game-streaming solution
+Stream a Deck-hosted graphical session to the PC. This may be practical if Waydroid can
+run in that session, but it adds a graphical-session requirement and may be more complex
+than necessary.
+Neither approach is confirmed to work on your Steam Deck OLED yet. We should verify the actual SteamOS
+kernel, graphics stack and session requirements before choosing one.
+Proposed waydroid-box acceptance criteria
+One caveat: video encoding on the Deck and decoding on the PC will also consume resources. The PC will
+never be completely idle, but Android application processing and rendering should remain on the Deck if
+we choose the architecture correctly.
+My recommendation
+Proceed with a read-only feasibility audit before creating or installing anything. The key question is
+whether Waydroid can run reliably on the SteamOS host and expose its graphical output to a remote client
+without requiring an unsupported host modification.
+One question before we plan the first test:
+What do you want to see on the Linux Mint PC?
+Only the Android screen or app, in its own window
+The entire Steam Deck desktop, including Waydroid
+Should Waydroid run while the Deck is in desktop mode?
+Yes — use the existing Steam Deck desktop session
+No — prefer a dedicated session that doesn't require the Deck's desktop to be open
+Requirement Target
+Android runtime Steam Deck
+CPU and RAM workload Steam Deck
+Android GPU rendering Steam Deck, hardware acceleration if supported
+Display and input Linux Mint PC
+Launch and stop Manual commands through SSH
+Network Existing LAN
+Startup at boot Disabled
+SteamOS modifications Minimize; inspect requirements first
+Continue feasibility audit
+Sources
+For the proposed waydroid-box project, display preference: Android
+screen/app in its own PC window; execution preference: use the
+existing Steam Deck desktop session. Continue with a read-only
+feasibility audit, no installation or modifications.
+Read-only audit: preliminary findings
+The official documentation confirms three important facts:
+1. Waydroid shares the host Linux kernel and uses Linux namespaces. It is a container-based Android
+environment, not a separate Android computer. waydroid/do… +1
+2. Waydroid's graphical session connects to a Wayland compositor. The documented startup sequence
+separates container startup from the user-level graphical session. GitHub +1
+3. scrcpy is not automatically the answer. It is designed to mirror and control Android devices through
+Android Debug Bridge (ADB), but Waydroid is an Android container on the Deck, not a separate
+physical Android device. We'd need to verify whether its ADB interface and display capture support the
+workflow you want. GitHub +1
+The main unknown is therefore not whether the Deck can perform the computation. It is how to deliver
+Waydroid's graphics into a separate Linux Mint window while keeping the existing Deck desktop session
+intact.
+Phase 1 — Inspect the existing Steam Deck session
+No installation, file changes, service changes or project creation yet.
+Run this read-only command card in your existing Steam Deck host SSH terminal. It checks the session,
+graphics devices and whether relevant tools are already present.
+STEAM DECK — host SSH
+Inspection only • No sudo required
+Paste the complete output here. These checks do not install or start anything.
+What happens next?
+Phase 1: establish the Deck's actual graphics and desktop-session conditions.
+Phase 2: determine whether an individual Waydroid window can be streamed to Linux Mint with
+acceptable performance.
+Phase 3: assess GPU acceleration, input forwarding, security and the minimum necessary changes.
+The project proceeds only if the architecture satisfies your requirements. We will not create waydroidbox or modify SteamOS before the feasibility audit supports doing so.
+Copy inspection commands
+Sources
+Uploaded a file
+results
+Uploaded a file
+results
+Uploaded a file
+Excellent. This confirms an important detail about the Steam Deck kernel:
+Your Steam Deck uses the Rust Binder implementation, not the traditional C implementation. Binder
+devices are not preconfigured through the kernel parameter.
+The earlier host-side BinderFS experiment successfully created binder , vndbinder and hwbinder
+dynamically. That is encouraging, but our container-side ioctl test is still inconclusive.
+Updated findings
+One important correction
+The previous Perl test used ioctl request 0x40046201 . We should not assume that this is the correct
+request for the kernel's Binder UAPI without verifying its definition.
+The cleanest next step is to obtain the authoritative Binder UAPI header matching the running kernel
+source, then calculate the ioctl request and structure layout for x86_64.
+We should not install development packages on SteamOS or modify the host for this. The source can be
+inspected separately.
+My recommendation: pause execution tests here and verify the upstream kernel definition first. We have
+enough evidence to continue the audit, but not enough to conclude that Binder device creation works
+inside rootless Podman.
+The distinction matters: we're trying to establish whether a secure container architecture is viable, not
+merely whether we can make Waydroid start by progressively granting it more privileges.
+CONFIG_ANDROID_BINDER_IPC is not set
+CONFIG_ANDROID_BINDER_IPC_RUST=y
+CONFIG_ANDROID_BINDER_DEVICES=""
+Finding Status
+Rust Binder kernel support Confirmed
+BinderFS visible inside Podman Confirmed
+Mount with CAP_SYS_ADMIN only Confirmed
+Binder device creation inside Podman Unresolved
+Actual Binder communication Not tested
+before we contine
+please list all the examinations, inspections, audit, tests we
+performed, put them in a schema and chart
+lets continue
+Absolutely. Before continuing, let's consolidate the investigation into a proper Waydroid Container
+Feasibility Audit — baseline record.
+The scope remains unchanged:
+Waydroid must run inside rootless Podman or Distrobox.
+No native Waydroid installation on SteamOS.
+No changes to existing containers or projects.
+No broad privileges simply to force compatibility.
+A conclusion that secure container deployment is not viable is an acceptable audit result.
+1. Investigation schema
+This shows the complete path we've followed so far, from host inspection to the current BinderFS
+investigation.
+2. Full examination and test register
+The following distinguishes what we actually inspected or tested from what remains untested.
+A. SteamOS host and environment
+flowchart TD
+ A["Waydroid container-only feasibility audit"] --> B["Host environment inspection"]
+ B --> C["Rootless Podman inventory"]
+ C --> D["Kernel Binder support inspection"]
+ D --> E["Host BinderFS namespace test"]
+ E --> F["Rootless Podman BinderFS tests"]
+ F --> G{"BinderFS mount result"}
+ G -->|"No capabilities: denied"| H["Add only CAP_SYS_ADMIN"]
+ H --> I["BinderFS mount succeeds"]
+ I --> J["Inspect binder-control"]
+ J --> K["Attempt BINDER_CTL_ADD"]
+ K --> L["EINVAL: inconclusive"]
+ L --> M["Check architecture and UAPI headers"]
+ M --> N["Confirm x86_64; host headers absent"]
+ N --> O["Inspect kernel configuration"]
+ O --> P["Rust Binder enabled; C Binder disabled"]
+ P --> Q["Current task: verify authoritative UAPI"]
+ Q --> R["Repeat device creation test"]
+ R --> S["Later: Binder transactions, LXC, GPU, Wayland, networking"]
+ID Examination Result
+H01 SteamOS build and kernel Build 20261023.100 ; kernel 7.2.7-valve2-2-neptune-72-g31504582a073
+H02 CPU architecture x86_64
+H03 Active desktop session KDE Wayland, active session
+H04 SSH environment Headless TTY; no inherited DISPLAY or WAYLAND_DISPLAY
+H05 Wayland socket /run/user/1000/wayland-0 exists
+H06 GPU identification AMD Van Gogh, amdgpu
+H07 GPU devices /dev/dri/card0 and /dev/dri/renderD128 inspected
+Mermaid
+B. Rootless Podman inspection
+Protection boundary: existing Pi-hole, Stable Diffusion, LocalAI/Shyrka and all unrelated Podman
+resources were preserved. The Debian image was already present; no image download was necessary.
+C. Waydroid architecture inspection
+D. BinderFS experiments — detailed results
+H08 GPU permissions card0 root:video 0660 with ACL; render node 0666
+H09 Host Binder filesystem
+support
+nodev binder present in /proc/filesystems
+H10 Binder module state Rust Binder present; traditional Binder module absent
+H11 Host BinderFS namespace
+test
+Mount and device creation succeeded in disposable namespaces
+H12 Host network forwarding net.ipv4.ip_forward=0
+H13 Host networking tools ip , iptables , ip6tables , nft , pasta , netavark available; dnsmasq
+unavailable
+ID Examination Result
+P01 Podman version 6.0.2
+P02 Rootless status true
+P03 Storage driver overlay
+P04 UID mapping Container root maps to host UID 1000; subordinate range 100000–165535
+P05 GID mapping Equivalent mapping
+P06 Subordinate ID configuration /etc/subuid and /etc/subgid inspected
+P07 Existing images Python Alpine, Debian 12 Slim, Pi-hole, Arch, Ubuntu, Chroma
+P08 Existing containers Pi-hole, pihole-box, Stable-box, localai-box
+P09 Rootless network backend Netavark; pasta
+P10 Default bridge network 10.88.0.0/16
+P11 Rootless outbound connectivity Passed
+P12 Rootless DNS Passed
+P13 Disposable namespace
+bridge/NAT
+Namespace-local bridge and NAT operations succeeded
+P14 Strict NET_ADMIN experiment Container had NET_ADMIN only; setting ip_forward failed with permission
+denied
+ID Examination Finding
+W01 Waydroid container architecture Waydroid launches an inner LXC Android container
+W02 Binder requirement Binder devices required by Android
+W03 Graphics requirement Render device must be accessible to Android LXC
+W04 LXC capability requirements Upstream base configuration includes broad capabilities
+W05 LXC mount requirements Cgroup, sysfs, proc and device handling need investigation
+W06 Network architecture Waydroid creates a bridge and configures firewall/NAT
+W07 Host forwarding side effect Network script enables host IP forwarding
+W08 Desktop integration Wayland, runtime directory, D-Bus and audio integration required
+W09 ADB Android-side ADB connection is distinct from exposing ADB to the LAN
+W10 Security boundary Container isolation alone does not establish safe nested-LXC isolation
+Two successful mount experiments
+Important: B06 is inconclusive. The ioctl request and structure encoding have not yet been independently
+verified. We cannot call this a genuine kernel or container failure.
+3. The ioctl investigation — resolved
+I checked the upstream Linux BinderFS UAPI definition. We have found the problem with our previous
+device-creation test.
+The actual definition is:
+BINDER_CTL_ADD is _IOWR('b', 1, struct binderfs_device) .
+The structure contains a 256-byte name, followed by two 32-bit fields: major and minor .
+Its total size is 264 bytes.
+The request therefore needs to encode a read/write operation and the full 264-byte structure.
+GitHub +1
+Our previous request, 0x40046201 , encoded a different ioctl operation and an incorrect structure size.
+That explains why the kernel returned EINVAL . The previous failure was a test-construction error, not
+evidence that Podman cannot create Binder devices.
+Corrected ioctl request
+0xC1086201
+x86_64 · BINDER_CTL_ADD · 264-byte structure
+Previous request 0x40046201
+Correct request 0xC1086201
+4. Corrected Test 3 — Binder device creation
+We'll repeat the test with the correct request and structure. Same restrictions: rootless Podman, only
+CAP_SYS_ADMIN , no network, no host mounts, no device passthrough.
+STEAM DECK — host SSH
+Test Configuration Result
+B01 Host, disposable user + mount
+namespace
+BinderFS mount succeeded
+B02 Host namespace, BINDER_CTL_ADD binder , vndbinder , hwbinder created
+B03 Rootless Podman, no added
+capabilities
+Mount denied; exit code 32
+B04 Rootless Podman, only
+CAP_SYS_ADMIN
+Mount succeeded
+B05 Inspect mounted BinderFS binder-control appeared as major 243, minor 0, mode 0600
+B06 Attempt device creation with Perl ioctl All three returned EINVAL
+B07 Check Debian test utilities Perl available; Python, Ruby, BusyBox, ioctl and strace absent
+B08 Check host Binder headers No matching Binder headers found under /usr/include
+B09 Check architecture x86_64
+B10 Inspect kernel configuration Rust Binder enabled; C Binder disabled;
+CONFIG_ANDROID_BINDER_DEVICES=""
+podman run --rm \
+ --name waydroid-binderfs-device-audit \
+ --network=none \
+ --cap-drop=ALL \
+ --cap-add=SYS_ADMIN \
+ --security-opt=no-new-privileges \
+Bash
+5. Updated audit status
+The next output will tell us whether Binder device creation itself works inside this container. We can then
+move on to the harder questions: device access, Binder communication and nested LXC.
+ docker.io/library/debian:12-slim \
+ sh -c '
+ set -u
+ mkdir -p /tmp/binderfs
+ echo "===== MOUNT BINDERFS ====="
+ mount -t binder binder /tmp/binderfs || exit 1
+ echo
+ echo "===== CREATE BINDER DEVICES ====="
+ perl -e '\''
+ use strict;
+ use warnings;
+ use Fcntl qw(O_RDWR);
+ my $fd;
+ sysopen($fd, "/tmp/binderfs/binder-control", O_RDWR)
+ or die "Cannot open binder-control: $!\n";
+ my $request = 0xC1086201;
+ for my $name (qw(binder vndbinder hwbinder)) {
+ my $buffer = pack("Z256VV", $name, 0, 0);
+ my $result = syscall(16, fileno($fd), $request, $buffer);
+ if ($result == 0) {
+ my ($major, $minor) = unpack("x256VV", $buffer);
+ printf "%s: CREATED — major=%u minor=%u\n",
+ $name, $major, $minor;
+ } else {
+ printf "%s: FAILED — errno=%d (%s)\n",
+ $name, 0+$!, "$!";
+ }
+ }
+ close($fd);
+ '\''
+ echo
+ echo "===== RESULTING BINDER DEVICES ====="
+ ls -la /tmp/binderfs
+ echo
+ echo "===== DEVICE DETAILS ====="
+ stat -c "%n major=%t minor=%T mode=%a" \
+ /tmp/binderfs/binder \
+ /tmp/binderfs/vndbinder \
+ /tmp/binderfs/hwbinder 2>/dev/null || true
+ umount /tmp/binderfs
+ '
+Capability Current status
+Host BinderFS Passed
+Rootless Podman BinderFS mount Passed with CAP_SYS_ADMIN
+Binder control device Passed
+Binder device creation Corrected test pending
+Binder communication Not tested
+Nested LXC Not tested
+GPU / Wayland integration Not tested
+Android networking Not tested
+Sources
+Show more
+(deck@Laco ~)$ podman run --rm \
+> --name waydroid-binderfs-device-audit \
+> --network=none \
+> --cap-drop=ALL \
+> --cap-add=SYS_ADMIN \
+> --security-opt=no-new-privileges \
+> docker.io/library/debian:12-slim \
+> sh -c '
+> set -u
+>
+> mkdir -p /tmp/binderfs
+(deck@Laco ~)$ podman run --rm \
+> --name waydroid-binderfs-device-audit \
+> --network=none \
+> --cap-drop=ALL \
+> --cap-add=SYS_ADMIN \
+> --security-opt=no-new-privileges \
+> docker.io/library/debian:12-slim \
+> sh -c '
+> set -u
+>
+> mkdir -p /tmp/binderfs
+Binder device creation confirmed
+Excellent! We have now passed another important feasibility checkpoint.
+All three standard Binder devices were successfully created inside the rootless Podman container, using
+only CAP_SYS_ADMIN .
+1. Test 3 — Verified results
+The corrected ioctl returned the expected major and minor numbers. This also confirms that our earlier
+EINVAL was caused by the incorrectly encoded ioctl request, not a demonstrated Podman limitation.
+2. Updated architecture evidence
+Security qualification: this proves device creation inside the container's BinderFS mount. It does not yet
+prove that Android processes can open and communicate through those devices, or that a nested LXC
+container can use them safely.
+3. Next test — Binder driver communication
+Before attempting nested LXC, let's verify that the newly created binder device can actually be opened
+and responds to a Binder driver ioctl.
+We'll use BINDER_VERSION , a harmless driver-information query. It does not start Android, create
+transactions or change host configuration.
+Device Major Minor Permissions Result
+binder 243 1 0600 Created
+vndbinder 243 2 0600 Created
+hwbinder 243 3 0600 Created
+binder-control 243 0 0600 Present
+flowchart TD
+ A["SteamOS host kernel"] --> B["Rust Binder implementation"]
+ B --> C["BinderFS filesystem"]
+ C --> D["Rootless Podman container"]
+ D --> E["CAP_SYS_ADMIN only"]
+ E --> F["Mount BinderFS"]
+ F --> G["Open binder-control"]
+ G --> H["BINDER_CTL_ADD"]
+ H --> I["binder — 243:1"]
+ H --> J["vndbinder — 243:2"]
+ H --> K["hwbinder — 243:3"]
+Mermaid
+STEAM DECK — host SSH
+What success would establish
+1. BinderFS can be mounted.
+2. Binder devices can be created.
+3. The container can open a Binder device.
+4. The Binder driver responds to a protocol query.
+That would be stronger evidence than merely seeing device nodes. It still would not prove full Binder
+transactions or nested LXC compatibility.
+podman run --rm \
+ --name waydroid-binder-driver-audit \
+ --network=none \
+ --cap-drop=ALL \
+ --cap-add=SYS_ADMIN \
+ --security-opt=no-new-privileges \
+ docker.io/library/debian:12-slim \
+ sh -c '
+ set -u
+ mkdir -p /tmp/binderfs
+ echo "===== MOUNT BINDERFS ====="
+ mount -t binder binder /tmp/binderfs || exit 1
+ echo
+ echo "===== CREATE BINDER DEVICE ====="
+ perl -e '\''
+ use strict;
+ use warnings;
+ use Fcntl qw(O_RDWR);
+ my $control;
+ sysopen($control, "/tmp/binderfs/binder-control", O_RDWR)
+ or die "Cannot open binder-control: $!\n";
+ my $buffer = pack("Z256VV", "binder", 0, 0);
+ syscall(16, fileno($control), 0xC1086201, $buffer) == 0
+ or die "BINDER_CTL_ADD failed: $!\n";
+ close($control);
+ print "Binder device created.\n";
+ my $device;
+ sysopen($device, "/tmp/binderfs/binder", O_RDWR)
+ or die "Cannot open binder device: $!\n";
+ print "Binder device opened successfully.\n";
+ my $version = pack("V", 0);
+ my $result = syscall(16, fileno($device), 0xC0046209, $version);
+ if ($result == 0) {
+ my ($protocol_version) = unpack("V", $version);
+ print "BINDER_VERSION ioctl succeeded.\n";
+ print "Driver protocol version: $protocol_version\n";
+ } else {
+ print "BINDER_VERSION ioctl failed: errno=$! \n";
+ }
+ close($device);
+ '\''
+ echo
+ echo "===== BINDER DEVICE DETAILS ====="
+ ls -l /tmp/binderfs
+ umount /tmp/binderfs
+ '
+Bash
+Send me the output and we'll update the audit register before moving to the next subsystem.
+ChatGPT is AI and can make mistakes.
