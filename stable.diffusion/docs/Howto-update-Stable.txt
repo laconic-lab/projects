@@ -1,0 +1,267 @@
+STABLE DIFFUSION CPP — SAFE UPDATE HOWTO
+========================================
+Host: Steam Deck OLED / SteamOS
+Container: Stable-box (Ubuntu 24.04)
+Project: /home/deck/StableDiffusionProject
+Engine: leejet/stable-diffusion.cpp
+GPU backend: AMD Vulkan
+WebUI: 127.0.0.1:1234
+Last known-good source revision: 0886f11b6b8b4d1f6259e0f1337cae554284c37a
+
+PURPOSE
+-------
+Update the source and rebuild sd-server and sd-cli without immediately
+replacing the currently working binaries.
+
+This is a manual procedure. Do not update just because a new commit exists.
+Read the upstream changes and only proceed when you want the update.
+
+IMPORTANT RULES
+--------------
+- Do not update SteamOS as part of this procedure.
+- Do not modify Pi-hole, SSH, Waydroid, or firewall settings.
+- Do not expose the WebUI to the LAN.
+- Keep using the SSH tunnel from Windows.
+- Do not delete the model or outputs.
+- Never overwrite the current binaries before the new build passes checks.
+- If any step fails, STOP. Do not continue to the replacement step.
+- Do not use a random precompiled binary from an unofficial website.
+
+STEP 1 — BACK UP FIRST (STEAMOS HOST)
+-------------------------------------
+Stop the WebUI from inside Stable-box first:
+
+    cd /home/deck/StableDiffusionProject
+    ./sd-stop.sh
+
+If you are at the host prompt, run:
+
+    distrobox enter Stable-box -- bash -lc \
+      'cd /home/deck/StableDiffusionProject && ./sd-stop.sh'
+
+Then, on the SteamOS host:
+
+    ~/Stable-backup.sh
+
+Wait for BACKUP COMPLETE. Keep the dated archive and checksum.
+
+STEP 2 — CHECK THE CURRENT SOURCE (INSIDE Stable-box)
+-----------------------------------------------------
+Enter the container:
+
+    distrobox enter Stable-box
+
+Then run:
+
+    cd /home/deck/StableDiffusionProject
+    git status --short
+    git branch --show-current
+    git rev-parse HEAD
+    git submodule status
+
+Review the output. The original setup had local, untracked items such
+as logs/, outputs/, tools/, sd-start.sh and sd-stop.sh. These are
+intentional; do not delete them.
+
+Do not proceed if tracked source files have local modifications you
+want to keep. Investigate first.
+
+STEP 3 — CHECK WHAT UPSTREAM CHANGED (INSIDE Stable-box)
+--------------------------------------------------------
+Fetch the upstream information without changing the checked-out source:
+
+    git fetch origin
+    git log --oneline --decorate -10
+    git log --oneline HEAD..origin/master
+
+Read the relevant upstream commit messages and release notes.
+If origin/master does not exist, STOP and inspect the configured branch
+and remote rather than guessing.
+
+If the changes are not worth the risk, stop here. Fetching alone does
+not replace your working binaries.
+
+STEP 4 — UPDATE SOURCE AND SUBMODULES (INSIDE Stable-box)
+---------------------------------------------------------
+Proceed only after deciding to update.
+
+Confirm there are no tracked local changes you need to preserve:
+
+    git diff --exit-code
+    git diff --cached --exit-code
+
+Then fast-forward the source and synchronize its submodules:
+
+    git merge --ff-only origin/master
+    git submodule update --init --recursive
+
+If the merge fails or reports conflicts, STOP. Do not force the merge
+and do not use git reset --hard as a shortcut.
+
+Record the new revision:
+
+    git rev-parse HEAD
+    git submodule status
+
+STEP 5 — CHECK THE LOCAL BUILD TOOLS
+------------------------------------
+Still inside Stable-box:
+
+    cd /home/deck/StableDiffusionProject
+    export NODE_HOME="$PWD/tools/node-dist/node-v22.23.4-linux-x64"
+    export PATH="$NODE_HOME/bin:$PWD/tools/npm-global/bin:$PATH"
+
+    node --version
+    pnpm --version
+    cmake --version
+    ninja --version
+    ./build/bin/sd-cli --list-devices
+
+Confirm the AMD Vulkan device is listed. Do not proceed if Vulkan or
+the local build tools are unavailable.
+
+STEP 6 — REBUILD SEPARATELY (INSIDE Stable-box)
+-----------------------------------------------
+Install the frontend dependencies from the checked-out lockfile:
+
+    pnpm --ignore-workspace -C examples/server/frontend install --frozen-lockfile
+
+Configure a separate build directory. This preserves the existing
+build/ directory and its known-good binaries:
+
+    cmake -S . -B build-update -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSD_VULKAN=ON \
+      -DSD_SERVER_BUILD_FRONTEND=ON \
+      -DPNPM_EXECUTABLE="$PWD/tools/npm-global/bin/pnpm"
+
+Build with limited parallelism:
+
+    cmake --build build-update --parallel 4
+
+If configuration or compilation fails, STOP. The current binaries
+under build/bin have not been replaced by these commands.
+
+Do not remove build/ or the model to solve a build error.
+
+STEP 7 — TEST THE NEW BUILD BEFORE REPLACEMENT
+----------------------------------------------
+Run:
+
+    ./build-update/bin/sd-server --help
+    ./build-update/bin/sd-cli --list-devices
+
+Confirm that both commands work and that the AMD Vulkan device appears.
+
+If the CLI supports a generation test, use a known-good input image,
+model and settings. Do not assume --help alone proves image generation.
+
+If any test fails, do not replace the current binaries.
+
+STEP 8 — SAVE THE OLD BINARIES AND PROMOTE THE NEW ONES
+-------------------------------------------------------
+Only proceed after the new build and tests succeed.
+
+Create a dated copy of the existing binaries:
+
+    STAMP="$(date +%Y%m%d_%H%M%S)"
+    SAVE="/home/deck/StableDiffusionrecovery/pre-update-binaries-$STAMP"
+    mkdir -p "$SAVE"
+    cp -a build/bin/sd-server build/bin/sd-cli "$SAVE/"
+
+Copy the new binaries to temporary names first, then replace the originals:
+
+    cp build-update/bin/sd-server build/bin/sd-server.new
+    cp build-update/bin/sd-cli build/bin/sd-cli.new
+
+    test -x build/bin/sd-server.new
+    test -x build/bin/sd-cli.new
+
+    mv build/bin/sd-server build/bin/sd-server.pre-update
+    mv build/bin/sd-cli build/bin/sd-cli.pre-update
+
+    mv build/bin/sd-server.new build/bin/sd-server
+    mv build/bin/sd-cli.new build/bin/sd-cli
+
+The dated SAVE directory is the explicit rollback copy.
+The .pre-update files are an additional temporary safeguard.
+
+STEP 9 — VERIFY THE PROMOTED BINARIES
+-------------------------------------
+Run:
+
+    ./build/bin/sd-server --help
+    ./build/bin/sd-cli --list-devices
+    bash -n ./sd-start.sh
+    bash -n ./sd-stop.sh
+
+Start the WebUI manually:
+
+    ./sd-start.sh
+
+From the SteamOS host, check HTTP:
+
+    curl -sS -o /dev/null -w 'HTTP status: %{http_code}\n' \
+      http://127.0.0.1:1234/
+
+Expected: HTTP status 200.
+
+Then test a real image generation through the WebUI.
+Confirm that Vulkan is being used and that image-to-image works.
+A successful HTTP response alone does not prove generation works.
+
+STEP 10 — IF THE UPDATE FAILS
+-----------------------------
+Stop the WebUI first.
+
+Inside Stable-box, use the exact SAVE directory printed in Step 8.
+Replace SAVE_PATH below with that full path:
+
+    SAVE_PATH="/home/deck/StableDiffusionrecovery/pre-update-binaries-REPLACE_ME"
+
+    cd /home/deck/StableDiffusionProject
+    test -s "$SAVE_PATH/sd-server"
+    test -s "$SAVE_PATH/sd-cli"
+
+    cp -a "$SAVE_PATH/sd-server" build/bin/sd-server
+    cp -a "$SAVE_PATH/sd-cli" build/bin/sd-cli
+
+Then test the restored binaries:
+
+    ./build/bin/sd-server --help
+    ./build/bin/sd-cli --list-devices
+
+Do not delete the new build or change source history while investigating.
+Restoring the old binaries does not roll back the Git source or submodules.
+The original dated project backup remains the full project-level fallback.
+
+KNOWN WORKING SETTINGS
+----------------------
+CMake:
+    -DCMAKE_BUILD_TYPE=Release
+    -DSD_VULKAN=ON
+    -DSD_SERVER_BUILD_FRONTEND=ON
+
+Backend:
+    diffusion=vulkan0,te=cpu,vae=vulkan0
+
+Model:
+    models/v1-5-pruned_Q4_K.gguf
+
+Server:
+    127.0.0.1:1234
+
+Source:
+    https://github.com/leejet/stable-diffusion.cpp
+
+Build instructions:
+    https://github.com/leejet/stable-diffusion.cpp/blob/master/docs/build.md
+
+Frontend instructions:
+    https://github.com/leejet/stable-diffusion.cpp/tree/master/examples/server
+
+FINAL REMINDER
+--------------
+A new source revision is not automatically a better revision.
+Keep the known-good backup and old binaries until the new build has
+passed actual image-generation tests.
