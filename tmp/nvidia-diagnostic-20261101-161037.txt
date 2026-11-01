@@ -1,0 +1,199 @@
+NVIDIA DIAGNOSTIC — READ ONLY
+2026-11-01T16:10:37+01:00
+Host: Unknown
+User: laco
+
+=== OS ===
+NAME="Linux Mint"
+VERSION="22 (Wilma)"
+ID=linuxmint
+ID_LIKE="ubuntu debian"
+PRETTY_NAME="Linux Mint 22"
+VERSION_ID="22"
+HOME_URL="https://www.linuxmint.com/"
+SUPPORT_URL="https://forums.linuxmint.com/"
+BUG_REPORT_URL="http://linuxmint-troubleshooting-guide.readthedocs.io/en/latest/"
+PRIVACY_POLICY_URL="https://www.linuxmint.com/"
+VERSION_CODENAME=wilma
+UBUNTU_CODENAME=noble
+
+=== KERNEL ===
+
+$ uname -a
+Linux Unknown 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+=== PCI / GPU ===
+00:16.3 Serial controller [0700]: Intel Corporation 8 Series/C220 Series Chipset Family KT Controller [8086:8c3d] (rev 04)
+	Subsystem: Dell 8 Series/C220 Series Chipset Family KT Controller [1028:05cc]
+	Kernel driver in use: serial
+00:19.0 Ethernet controller [0200]: Intel Corporation Ethernet Connection I217-LM [8086:153a] (rev 04)
+	DeviceName:  Onboard LAN
+--
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK106GLM [Quadro K2100M] [10de:11fc] (rev a1)
+	Subsystem: Dell GK106GLM [Quadro K2100M] [1028:05cc]
+	Kernel driver in use: nvidia
+	Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+01:00.1 Audio device [0403]: NVIDIA Corporation GK106 HDMI Audio Controller [10de:0e0b] (rev a1)
+	Subsystem: Dell GK106 HDMI Audio Controller [1028:05cc]
+	Kernel driver in use: snd_hda_intel
+	Kernel modules: snd_hda_intel
+03:00.0 Network controller [0280]: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] [8086:2725] (rev 1a)
+
+=== ACTIVE NVIDIA MODULE ===
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  470.256.02  Thu May  2 14:37:44 UTC 2024
+GCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 
+
+$ modinfo -F version nvidia
+470.256.02
+
+$ modinfo -n nvidia
+/lib/modules/6.8.0-147-generic/updates/dkms/nvidia.ko.zst
+
+$ nvidia-smi
+Sun Nov  1 16:10:37 2026       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Quadro K2100M       Off  | 00000000:01:00.0  On |                  N/A |
+| N/A   50C    P0    N/A /  N/A |    513MiB /  1991MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A      1837      G   /usr/lib/xorg/Xorg                313MiB |
+|    0   N/A  N/A      2492      G   cinnamon                           50MiB |
+|    0   N/A  N/A      3059      G   ...-uuid=3190708988185955192      143MiB |
++-----------------------------------------------------------------------------+
+
+=== DKMS ===
+
+$ dkms status
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-139-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+
+=== NVIDIA APT PACKAGES ===
+ii  libnvidia-cfg1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-common-580 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-compute-470-server:amd64 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-compute-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-compute-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-egl-wayland1:amd64 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-egl-wayland1:i386 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-encode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-encode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-extra-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:i386 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-gl-470:i386 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-gl-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-gl-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  linux-firmware-nvidia-graphics 20240318.git3b128b60-0ubuntu3.1
+ii  nvidia-compute-utils-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-dkms-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-dkms-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-dkms-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-driver-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-driver-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-driver-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-firmware-580-580.178.04 580.178.04-0ubuntu0.24.04.1
+rc  nvidia-kernel-common-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-kernel-common-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-kernel-source-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-prime 0.8.17.2
+ii  nvidia-settings 510.47.03-0ubuntu4.24.04.1
+ii  nvidia-utils-580 580.178.04-0ubuntu0.24.04.1
+ii  xserver-xorg-video-nvidia-580 580.178.04-0ubuntu0.24.04.1
+
+=== APT HOLDS ===
+nvidia-dkms-470-server
+nvidia-driver-470-server
+nvidia-kernel-common-470-server
+
+=== KERNEL COMMAND LINE ===
+BOOT_IMAGE=/boot/vmlinuz-6.8.0-147-generic root=UUID=19705670-12b0-4218-b537-1664f375df4c ro quiet splash usbcore.autosuspend=-1 pci=noaer
+
+=== INSTALLER / SOURCE PATHS ===
+drwx------ 2 root root 4096 Oct 20 20:07 /var/lib/nvidia
+drwxr-xr-x 8 root root 4096 Oct 20 20:07 /usr/src/nvidia-470.256.02
+lrwxrwxrwx 1 root root 16 Oct 20 20:07 /usr/bin/nvidia-uninstall -> nvidia-installer
+Root-only installer DB; requesting read-only header:
+1.0-47025602 (470.256.02)
+NVIDIA Accelerated Graphics Driver for Linux-x86_64
+2: /usr/lib/x86_64-linux-gnu/libnvidia-fbc.so.1
+
+=== NVIDIA LIBRARY LINKS ===
+--- /usr/lib/x86_64-linux-gnu/libcuda.so
+Link: libcuda.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so
+--- /usr/lib/x86_64-linux-gnu/libcuda.so.1
+Link: libcuda.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+--- /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+Link: libcudadebugger.so.580.178.04
+Resolved: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.580.178.04
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+Link: libnvidia-ml.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+Link: libnvidia-ml.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+Link: libnvidia-nvvm.so.4
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+Link: libnvidia-nvvm.so.4.0.0
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+-rw-r--r-- 1 root root 24829456 Aug 10 00:18 /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+Link: libnvidia-opencl.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+Link: libnvidia-ptxjitcompiler.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+Link: libnvidia-ptxjitcompiler.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+
+=== NVIDIA CONFIG PATHS ===
+drwxr-xr-x 2 root root 4096 Oct 19 22:54 /etc/modprobe.d
+-rw-r--r-- 1 root root 1192 Oct 20 20:09 /etc/X11/xorg.conf
+-rw-r--r-- 1 root root 1756 Apr 27  2026 /etc/default/grub
+/etc/modprobe.d/nvidia-drm.conf
+/etc/modprobe.d/nvidia-kms.conf
+/etc/modprobe.d/nvidia-graphics-drivers-kms.conf
+
+=== NVIDIA SUSPEND/RESUME SERVICE STATUS ===
+--- nvidia-suspend.service
+enabled
+inactive
+--- nvidia-resume.service
+enabled
+inactive
+--- nvidia-hibernate.service
+enabled
+inactive
+
+=== END — NO SYSTEM MODIFICATIONS PERFORMED ===
