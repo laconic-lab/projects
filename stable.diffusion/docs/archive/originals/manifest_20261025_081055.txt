@@ -1,0 +1,20 @@
+Stable Diffusion backup manifest
+Created: 2026-10-25T08:10:55+01:00
+Project: /home/deck/StableDiffusionProject
+
+Git revision:
+0886f11b6b8b4d1f6259e0f1337cae554284c37a
+
+Submodule revisions:
+ 34e5ad6edcaf827b7fe1e9ffa55ee86cd2fc43d2 examples/server/frontend (heads/master)
+ a5915eb0e47adef21c3f25b889a008925ea838c2 ggml (remotes/origin/sd.cpp)
+ 5bf12267eea773a32fcf4949de52b0add158a8d5 thirdparty/libwebm (libwebm-1.0.0.32-6-g5bf1226)
+ 0c9546f7efc61eac7f79ae115c3f99c91c21c443 thirdparty/libwebp (v1.6.0-158-g0c9546f7)
+
+Model SHA-256:
+79c3026aecf43af544fbd7ef3419a8d695eff292effab45f92ac3d9259e24198  models/v1-5-pruned_Q4_K.gguf
+
+Core file sizes:
+build/bin/sd-server | 78333176 bytes
+build/bin/sd-cli | 77045320 bytes
+models/v1-5-pruned_Q4_K.gguf | 3174685280 bytes
