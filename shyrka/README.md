@@ -4,11 +4,11 @@ Shyrka is a locally hosted AI agent and browser dashboard on the Steam Deck. Its
 
 ## Documentation
 
-- [Current agent manifest](./docs/SHYRKA-AGENT-MANIFEST.txt)
-- [Release notes](./docs/SHYRKA_RELEASE_NOTES.txt)
-- [Python virtual environment reference](./docs/PYTHON_VENV.readme)
-- [Project versions](./docs/PROJECT_VERSIONS.txt)
-- [Startup references and Python reliability protocol](./docs/SHYRKA%20%E2%80%94%20STARTUP%20REFERENCES%20%26%20PYTHON%20RELIABILITY%20PROTOCOL.txt)
+- [Current agent manifest](./docs/AGENT-MANIFEST.md)
+- [Release notes](./docs/RELEASE-NOTES.md)
+- [Python virtual environment reference](./docs/PYTHON-ENVIRONMENT.md)
+- [Project versions](./docs/PROJECT-VERSIONS.md)
+- [Startup references and Python reliability protocol](./docs/STARTUP-AND-RELIABILITY-PROTOCOL.md)
 
 ## Architecture at a glance
 
