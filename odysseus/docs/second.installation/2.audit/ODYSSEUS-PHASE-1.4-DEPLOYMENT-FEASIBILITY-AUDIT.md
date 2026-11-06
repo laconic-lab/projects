@@ -5,7 +5,7 @@
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
 > **Version:** 1.0  
 > **Record date:** 2026-11-06  
-> **Status:** <span style="color:#b7791f">ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED</span>  
+> **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
 ---

@@ -49,7 +49,7 @@ It did not prove runtime isolation or authorize a deployment. Its findings must 
 
 ## 4. Audit 2 — Phase 1.4 deployment feasibility
 
-<badge>ACTIVE — AUDIT ONLY</badge>
+**ACTIVE — AUDIT ONLY**
 
 Canonical document:
 
