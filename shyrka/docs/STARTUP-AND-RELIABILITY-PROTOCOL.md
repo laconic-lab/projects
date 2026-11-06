@@ -56,7 +56,7 @@ Use these documents as the initial project map. Check their current contents whe
 
 ## 3. Python Reference and Verified Baseline
 
-Consult /home/deck/LocalAIProject/PYTHON_VENV.readme for the detailed
+Consult [the Python Environment reference](./PYTHON-ENVIRONMENT.md) for the detailed
 interpreter inventory, package versions, venv policy, test commands, and
 planned Kokoro paths. It is the detailed reference for verified Python facts.
 
