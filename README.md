@@ -109,7 +109,7 @@ The repository contains projects at different maturity levels. A project may be 
 ### Direct documentation
 
 **Shared Steam Deck standards**
-- [Engineering & Security Playbook](./deck/docs/GLOBAL%20ENGINEERING%20%26%20SECURITY%20STANDARD.readme)
+- [Engineering & Security Baseline](./deck/docs/ENGINEERING-AND-SECURITY-BASELINE.md)
 - [Project Documentation Protocol](./deck/docs/PROJECT_DOCUMENTATION_PROTOCOL.txt)
 - [Deck maintenance scripts](./deck/scripts/)
 
