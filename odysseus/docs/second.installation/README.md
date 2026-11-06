@@ -9,10 +9,10 @@
 
 This directory tracks the second Odysseus rebuild effort. The parent directory name, `second.installation`, is retained as a historical identifier for the second rebuild attempt; it does **not** mean that the project is currently in an installation phase.
 
-The work is organized by audit sequence:
+The work is organized into two independent audits:
 
 - **Audit 1 — Phase 1.3:** source-level security audit of the local Odysseus Agent, its authority, execution routes and trust boundaries. Closed as a source audit only.
-- **Audit 2 — formerly Phase 1.4:** deployment feasibility and architecture validation. This remains an audit. It must establish whether the intended security boundaries can be enforced on SteamOS before any installation decision.
+- **Audit 2 — Phase 1.4:** deployment feasibility and runtime security validation. Active; installation is not authorized.
 
 ## 2. Directory structure
 
@@ -23,15 +23,17 @@ second.installation/
 │   └── archive/
 │       ├── ODYSSEUS — Phase 1.3 Reset & Security Audit.md
 │       └── original-1.3.0/
-│           ├── 1.3.0 ... 1.3.24 source exports (.txt)
-│           └── _1.3_ Odysseus - Reset - Audit Phase.txt
+│           └── original Phase 1.3 source exports
 └── 2.audit/
-    └── 1.4.0 ... 1.4.14 source exports (.txt)
+    ├── ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md
+    └── archive/
+        └── 2026-11-06/
+            ├── source-exports/
+            │   └── 1.4.0–1.4.14 original TXT exports (unchanged)
+            └── ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v1.0.md
 ```
 
-The original TXT files are retained unchanged in the Audit 1 archive. The consolidated Markdown record is the readable technical entry point; it preserves the technical findings, source references, limitations and requirements while removing conversational filler and repeated chat artifacts.
-
-Audit 2 files have only been relocated from `2.installation/` to `2.audit/`. Their contents have not been edited, reformatted or consolidated.
+The numbered Phase 1.4 TXT exports are retained unchanged under the dated archive. The canonical Markdown audit is the active technical record and continuation handoff.
 
 ## 3. Audit 1 — Phase 1.3
 
@@ -39,58 +41,74 @@ Audit 2 files have only been relocated from `2.installation/` to `2.audit/`. The
 
 Primary document:
 
-[ODYSSEUS — Security-First Rebuild: Phase 1.3 Reset & Security Audit](./1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md)
+[ODYSSEUS — Phase 1.3 Reset & Security Audit](./1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md)
 
-Original source exports:
+Audit 1 examined authentication and roles, Agent tool schemas and dispatch, shell/Python, filesystem access, MCP, internal APIs, integrations, credentials, browser execution, background jobs and scheduling.
 
-[`1.audit/archive/original-1.3.0/`](./1.audit/archive/original-1.3.0/)
+It did not prove runtime isolation or authorize a deployment. Its findings must remain separate from Audit 2 runtime evidence.
 
-Audit 1 examined the local Agent's authority and execution surfaces, including authentication, token scope, native tools, Bash/Python, filesystem access, MCP, internal and external API bridges, credentials, browser execution, background jobs and scheduling.
+## 4. Audit 2 — Phase 1.4 deployment feasibility
 
-The earlier Distrobox deployment was removed because of local runtime security problems: privileged/root execution, host networking, broad host mounts, AppArmor unconfined and SELinux labels disabled. This is distinct from Cloud AI API implementation security; the two subjects must not be conflated.
+<badge>ACTIVE — AUDIT ONLY</badge>
 
-Audit 1 did not perform runtime validation, install Odysseus, modify upstream source or authorize a deployment.
+Canonical document:
 
-## 4. Audit 2 — deployment feasibility
+[ODYSSEUS — Phase 1.4 Deployment Feasibility & Security Audit](./2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md)
 
-**Status:** Active audit / feasibility assessment
+This is the **single source of truth** for Audit 2's current status, evidence, completed tests, decisions, next gate and ChatGPT continuation instructions.
 
-Current directory:
+The audit determines whether the target architecture can be enforced on SteamOS before any installation decision. It includes rootless Podman identity/mount/network/cgroup validation and an explicit comparison of Podman, Distrobox, LXC, LXD, Incus, Docker/Compose and virtual-machine approaches.
 
-[`2.audit/`](./2.audit/)
+### Mandatory continuity protocol
 
-The documents were previously stored under `2.installation/`. The folder was renamed because the work remains in audit and feasibility validation, not installation.
+The following rules are mandatory:
 
-The current audit work must address, in its own records:
+1. Every completed test is recorded immediately in the canonical document, including exact executed commands, relevant output, exit status, interpretation and cleanup.
+2. Every five completed tests trigger a documentation consistency review and an unchanged versioned archive snapshot.
+3. A snapshot is also required before a major architecture/security decision or material restructuring.
+4. Every new ChatGPT conversation begins from the canonical audit and this README, never from assumed conversation memory.
+5. Completed tests must not be repeated merely because a new chat has started.
+6. A repeated test requires a documented changed condition or a previously untested behavior.
+7. The parent README must be updated when the canonical handoff, archive structure or audit status changes.
 
-1. Reconcile the upstream repository and commit identity before selecting a deployment source.
-2. Validate rootless Podman user-namespace and UID/GID isolation on the actual SteamOS environment.
-3. Establish the feasibility of filesystem, mount, network and process boundaries.
-4. Determine whether upstream execution routes and background mechanisms can be restricted effectively.
-5. Decide whether the proposed architecture can proceed, requires revision, or must be stopped.
+The detailed rules and templates are in §0 and §13–§18 of the canonical audit.
 
-The latest source export in this folder describes Gate A.2 — UID/GID isolation feasibility. Its stated test limits and acceptance criteria belong exclusively to Audit 2.
+## 5. Current recorded position
 
-**Important:** Audit 2 findings must not be retroactively inserted into Audit 1. Audit 1's conclusion remains a source-level assessment of the audited upstream code; Audit 2 has its own evidence and conclusion.
+- The default rootless Podman UID mapping maps container root to host `deck` UID 1000; this is not the preferred isolation boundary.
+- `--userns=auto` failed under the recorded subordinate-ID allocation.
+- `--userns=nomap` produced a subordinate host mapping in the tested invocation.
+- A private host directory bind-mount test passed for the exact tested configuration.
+- `--network=none` blocked the tested destinations.
+- The default Podman bridge allowed tested router/LAN and public Internet connectivity and is unsuitable as the Agent/Inspector boundary.
+- A dedicated Podman internal network is the next proposed test; it has not been created.
+- cgroup v2/systemd delegation exists at host level, but writable nested delegation in the disposable container was not demonstrated.
+- Seccomp is enabled; AppArmor and SELinux are disabled.
+- No Odysseus or LXC installation has been performed.
 
-## 5. Naming and phase policy
+These are scoped findings, not a final security certification. Consult the canonical audit for test IDs, evidence limits and the next approved step.
+
+## 6. Naming and phase policy
 
 The sequence is intentionally named:
 
 - `1.audit`
 - `2.audit`
 
-Do not use `2.audit2`, which is redundant and ambiguous. Do not place Audit 2 inside `1.audit/phase 2`; the two audits have distinct scopes and independent conclusions.
+Do not use `2.audit2`. Do not place Audit 2 inside `1.audit/phase 2`; the two audits have distinct scopes and independent conclusions.
 
-The parent name `second.installation` is retained only to preserve the historical grouping of the second rebuild attempt. The README and child directory names define the actual current phase.
+The parent name `second.installation` remains a historical grouping identifier only.
 
-## 6. Change boundary for this documentation update
+## 7. Documentation and safety boundary
 
-This reorganization is documentation-only.
+This documentation update is a repository-only operation.
 
-- No Steam Deck audit was performed.
-- No SteamOS, Podman, Distrobox, container, network or credential state was inspected or changed.
-- Audit 1 original TXT exports were moved without modification.
-- Audit 2 TXT exports were moved without modification.
-- Audit 2 content was not consolidated, rewritten or otherwise edited.
-- The new consolidated Markdown report is an archival technical record, not an installation guide or authorization.
+- No Steam Deck host or container state was changed.
+- No packages or images were installed or downloaded.
+- No Odysseus/LXC container or network was created.
+- No protected project was stopped, started or modified.
+- No provider credential contents were accessed.
+- Original Phase 1.4 TXT exports were moved without content changes.
+- The canonical Markdown document consolidates recorded evidence; it does not authorize installation.
+
+**Installation requires a separate explicit decision after the audit gates are closed.**
