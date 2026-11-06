@@ -4,7 +4,7 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Document version:** 1.6  
+> **Document version:** 1.7  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -1479,6 +1479,16 @@ mnt:[4026532877]
 - Then, if the Podman cgroup version/manager remains useful, obtain it with a supported read-only `podman info` output format (e.g. inspect JSON keys rather than assuming template fields). This can be a small supplemental query, not a repeat of the host path test.
 - After cleanup and documentation verification, the five-test checkpoint (Tests 21–25) requires a consistency review and an unchanged archive snapshot of the updated canonical audit. Do not alter host cgroup or systemd settings.
 
+
+**Test 25 cleanup follow-up — completed**
+
+- **Verification result:** The temporary container `waydroid-cgroup-audit-25` was still present when checked.
+- **Action:** `podman stop waydroid-cgroup-audit-25` was issued. Podman reported that SIGTERM did not stop it within 10 seconds and escalated to SIGKILL.
+- **Final verification:** The subsequent `podman ps -a --filter name=^waydroid-cgroup-audit-25$` returned no rows. The named temporary container is therefore absent.
+- **Impact:** Cleanup is confirmed. This is not a new feasibility test and does not change the Test 25 cgroup-path findings. The forced SIGKILL is limited to the disposable test container; no Pi-hole container or host service was targeted.
+- **Operational note:** The earlier interactive-shell `EXIT` trap did not run; explicit cleanup was necessary. Future pasted interactive-shell blocks must not assume an `EXIT` trap will execute at the end of a compound command list.
+
+
 ---
 
 ### 5.6 Networking
@@ -1925,6 +1935,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.4 | 2026-11-06 | Recorded the initial Test 23 stdin-harness failure as not executed, then recorded the corrected successful nested PID namespace and child-process lifecycle test under default seccomp; advanced handoff to read-only cgroup inspection (Test 24). |
 | 1.5 | 2026-11-06 | Recorded Test 24's read-only cgroup v2 inspection: per-mount `ro`, visible `cpu memory pids` controllers, empty subtree control, no writable access or child cgroup directories; advanced handoff to read-only host delegation/path inspection (Test 25). |
 | 1.6 | 2026-11-06 | Recorded Test 25 host cgroup path and systemd delegation observations; qualified the unsupported Podman info template query and missing interactive-shell EXIT cleanup; advanced handoff to explicit temporary-container cleanup and five-test documentation/archive review. |
+| 1.7 | 2026-11-06 | Recorded Test 25 cleanup follow-up: the temporary container was present, SIGTERM timed out, Podman escalated to SIGKILL, and the subsequent filtered listing was empty; cleanup is confirmed. |
 
 ---
 
