@@ -4,8 +4,8 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Document version:** 1.1  
-**Last source refresh:** 2026-11-06  
+> > **Document version:** 1.1  
+> **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
 
@@ -540,15 +540,15 @@ Interpretation: `SETFCAP` is sufficient when added to the original three capabil
 **Exact command executed**
 
 ```bash
-podman run --rm --pull=never \\
-  --name waydroid-map-cap-audit-20 \\
-  --network=none \\
-  --cap-drop=ALL \\
-  --cap-add=SETUID \\
-  --cap-add=SETGID \\
-  --cap-add=SETFCAP \\
-  --security-opt=seccomp=unconfined \\
-  docker.io/library/debian:12-slim \\
+podman run --rm --pull=never \
+  --name waydroid-map-cap-audit-20 \
+  --network=none \
+  --cap-drop=ALL \
+  --cap-add=SETUID \
+  --cap-add=SETGID \
+  --cap-add=SETFCAP \
+  --security-opt=seccomp=unconfined \
+  docker.io/library/debian:12-slim \
   sh -c '
     echo "===== CAPABILITIES ====="
     grep -E "^(CapPrm|CapEff|CapBnd|NoNewPrivs|Seccomp):" /proc/self/status
