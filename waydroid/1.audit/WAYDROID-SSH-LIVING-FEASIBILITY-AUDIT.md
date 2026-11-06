@@ -1920,8 +1920,9 @@ The original source documents are retained unchanged under:
 The initial canonical living audit (version 1.0, before Test 20 was incorporated) is also preserved unchanged as:
 
 - `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.0.md`
+- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.7.md` — unchanged canonical snapshot immediately after Test 25 cleanup verification and before the v1.8 consistency-review corrections.
 
-Version 1.1 is the active canonical record. Archive snapshots are historical and must not be edited to reflect later results.
+Version 1.8 is the active canonical record. The v1.0 and v1.7 snapshots are historical and must not be edited to reflect later results.
 
 ### 13.4 Source access and review honesty
 
