@@ -1,43 +1,59 @@
-# SHYRKA AGENT — UPDATE, VERSIONING AND BACKUP POLICY
+# Shyrka Agent — Maintenance, Update and Backup Policy
 
 > **Document role:** Change, backup, validation and recovery workflow.  
 > **Source:** `howto_update.txt` (archived unchanged under [archive/originals](./archive/originals/)).  
-> **Conversion scope:** Markdown structure and presentation; underlying technical content retained. No Steam Deck audit or runtime revalidation was performed.
+> **Conversion scope:** Markdown structure and presentation; technical operating policy retained. Documentation references were updated to the current Markdown filenames. No Steam Deck audit or runtime revalidation was performed.
 
+## Before a significant change
 
-Before a significant change:
 1. Stop an interactive agent session, if one is running.
-2. Run /home/deck/LocalAIAgentrecovery/backup.sh
+2. Create a pre-change backup.
 3. Apply only the intended change.
-4. Run agent --check and the unit tests.
+4. Run `agent --check` and the unit tests.
 5. Verify the dashboard and archive.
-6. Run another backup after validation.
-7. Record the release in SHYRKA_RELEASE_NOTES.txt and
-   /home/deck/LocalAIProject/PROJECT_VERSIONS.txt.
+6. Create another backup after validation.
+7. Record the change in [Release Notes](./RELEASE-NOTES.md) and [Project Versions](./PROJECT-VERSIONS.md).
 
-Unified backup:
-  /home/deck/LocalAIAgentrecovery/backup.sh
+## Unified backup
 
-Verify latest backup:
-  /home/deck/LocalAIAgentrecovery/recovery.sh check
+Run:
 
-Restore a specific backup:
-  /home/deck/LocalAIAgentrecovery/recovery.sh restore \
-    /home/deck/LocalAIAgentrecovery/backups/Shyrka-Agent-TIMESTAMP
+```bash
+/home/deck/LocalAIAgentrecovery/backup.sh
+```
 
-The restore process asks for explicit confirmation and creates a safety backup
-before restoring. It restores the project files and SQLite archive. It does not
-remove unrelated files or reinstall the virtual environment/model weights.
+## Verify the latest backup
 
-Keep the agent manual-start only. Do not add shell execution, arbitrary writes,
-unapproved tools, unrestricted sudo, or credential access. Keep model inference
-local unless explicitly authorized otherwise.
+Run:
+
+```bash
+/home/deck/LocalAIAgentrecovery/recovery.sh check
+```
+
+## Restore a specific backup
+
+Run:
+
+```bash
+/home/deck/LocalAIAgentrecovery/recovery.sh restore \
+  /home/deck/LocalAIAgentrecovery/backups/Shyrka-Agent-TIMESTAMP
+```
+
+## Restore behavior
+
+The restore process asks for explicit confirmation and creates a safety backup before restoring. It restores the project files and SQLite archive. It does not remove unrelated files or reinstall the virtual environment or model weights.
+
+## Operational boundaries
+
+- Keep the agent manual-start only.
+- Do not add shell execution, arbitrary writes, unapproved tools, unrestricted sudo, or credential access.
+- Keep model inference local unless explicitly authorized otherwise.
 
 ## Change workflow schema
 
 ```mermaid
 flowchart TD
-    A["Significant change proposed"] --> B["Backup current project"]
+    A["Significant change proposed"] --> B["Create pre-change backup"]
     B --> C["Apply only the intended change"]
     C --> D["Run agent check and unit tests"]
     D --> E["Verify dashboard and archive"]
