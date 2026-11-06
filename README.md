@@ -110,7 +110,7 @@ The repository contains projects at different maturity levels. A project may be 
 
 **Shared Steam Deck standards**
 - [Engineering & Security Baseline](./deck/docs/ENGINEERING-AND-SECURITY-BASELINE.md)
-- [Project Documentation Protocol](./deck/docs/PROJECT_DOCUMENTATION_PROTOCOL.txt)
+- [Project Documentation Protocol](./deck/docs/PROJECT-DOCUMENTATION-STANDARD.md)
 - [Deck maintenance scripts](./deck/scripts/)
 
 **SSH — Steam Deck LAN administration**
