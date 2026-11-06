@@ -4,7 +4,7 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Document version:** 1.4  
+> **Document version:** 1.5  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -1054,6 +1054,234 @@ Podman exit code: 0
 
 ---
 
+#### Test 24 — completed: read-only cgroup v2 visibility and access audit
+
+- **Date:** 2026-11-06 (user-reported execution date)
+- **Status:** **CONFIRMED — restricted/read-only cgroup view**
+- **Environment:** Steam Deck host launching a disposable rootless Podman container
+- **Image/runtime:** `docker.io/library/debian:12-slim`; rootless Podman; `--cap-drop=ALL`; `--network=none`; default seccomp
+- **Prerequisites:** Host cgroup v2 baseline; earlier observation that a disposable container exposed a read-only cgroup2 mount; Tests 21–23 confirming nested user, mount and PID namespace operations under default seccomp.
+- **Question:** What cgroup hierarchy, controllers and access are visible inside a minimal rootless Podman container, without attempting any write?
+- **Why new:** This expands the prior brief observation into a read-only inventory of the cgroup namespace, membership, mount options, filesystem type, controller files, access checks and visible subdirectories.
+- **Repeat policy:** Do not repeat unless Podman configuration, cgroup namespace/mount arrangement, host cgroup configuration, kernel or runtime changes.
+- **Side-effect boundary:** Disposable container, `--rm`, `--network=none`, `--pull=never`, all capabilities dropped; inspection only. No cgroup writes, host configuration edits, delegation changes or service changes.
+
+**Exact command executed**
+
+```bash
+podman run --rm --pull=never \
+  --name waydroid-cgroup-audit-24 \
+  --network=none \
+  --cap-drop=ALL \
+  docker.io/library/debian:12-slim \
+  sh -c '
+    echo "===== CONTAINER IDENTITY ====="
+    id
+
+    echo
+    echo "===== CGROUP NAMESPACE ====="
+    readlink /proc/self/ns/cgroup
+
+    echo
+    echo "===== PROCESS CGROUP MEMBERSHIP ====="
+    cat /proc/self/cgroup
+
+    echo
+    echo "===== CGROUP MOUNT INFORMATION ====="
+    grep -E " - cgroup2? " /proc/self/mountinfo || true
+
+    echo
+    echo "===== CGROUP FILESYSTEM TYPE ====="
+    stat -f -c "Filesystem type: %T" /sys/fs/cgroup 2>&1
+
+    echo
+    echo "===== CGROUP ROOT DIRECTORY ====="
+    ls -la /sys/fs/cgroup
+
+    echo
+    echo "===== CGROUP CONTROLLER FILES ====="
+
+    for f in \
+      /sys/fs/cgroup/cgroup.controllers \
+      /sys/fs/cgroup/cgroup.subtree_control \
+      /sys/fs/cgroup/cgroup.procs \
+      /sys/fs/cgroup/cgroup.type \
+      /sys/fs/cgroup/cgroup.events
+    do
+      echo
+      echo "--- $f ---"
+
+      if [ -e "$f" ]; then
+        if [ -r "$f" ]; then
+          echo "Readable: yes"
+          cat "$f"
+        else
+          echo "Readable: no"
+        fi
+
+        if [ -w "$f" ]; then
+          echo "Access check says writable: yes"
+        else
+          echo "Access check says writable: no"
+        fi
+      else
+        echo "Not present"
+      fi
+    done
+
+    echo
+    echo "===== AVAILABLE CONTROLLER SUBDIRECTORIES ====="
+    for d in /sys/fs/cgroup/*; do
+      if [ -d "$d" ]; then
+        echo "$d"
+      fi
+    done
+
+    echo
+    echo "===== CGROUP INSPECTION COMPLETE ====="
+  '
+
+PODMAN_EXIT=$?
+
+echo
+echo "===== OUTER PODMAN EXIT STATUS ====="
+echo "Podman exit code: $PODMAN_EXIT"
+```
+
+**Actual output**
+
+```text
+===== CONTAINER IDENTITY =====
+uid=0(root) gid=0(root) groups=0(root)
+
+===== CGROUP NAMESPACE =====
+cgroup:[4026532990]
+
+===== PROCESS CGROUP MEMBERSHIP =====
+0::/
+
+===== CGROUP MOUNT INFORMATION =====
+1696 1693 0:34 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime,nosymfollow - cgroup2 cgroup2 rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting
+
+===== CGROUP FILESYSTEM TYPE =====
+Filesystem type: cgroup2fs
+
+===== CGROUP ROOT DIRECTORY =====
+total 0
+drwxr-xr-x  2 root   root    0 Nov  6 19:01 .
+drwxr-xr-x 11 nobody nogroup 0 Nov  6 19:01 ..
+-r--r--r--  1 root   root    0 Nov  6 19:01 cgroup.controllers
+-r--r--r--  1 root   root    0 Nov  6 19:01 cgroup.events
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.freeze
+--w-------  1 root   root    0 Nov  6 19:01 cgroup.kill
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.max.depth
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.max.descendants
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.pressure
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.procs
+-r--r--r--  1 root   root    0 Nov  6 19:01 cgroup.stat
+-r--r--r--  1 root   root    0 Nov  6 19:01 cgroup.stat.local
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.subtree_control
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.threads
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cgroup.type
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.idle
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.max
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.max.burst
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.pressure
+-r--r--r--  1 root   root    0 Nov  6 19:01 cpu.stat
+-r--r--r--  1 root   root    0 Nov  6 19:01 cpu.stat.local
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.uclamp.max
+-rw-r--r--  1 root   root    0 Nov  6 19:01 cpu.uclamp.min
+-rw-r--r--  1 root   root    0 Nov  6 19:01 io.pressure
+-rw-r--r--  1 root   root    0 Nov  6 19:01 irq.pressure
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.current
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.events
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.events.local
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.high
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.low
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.max
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.min
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.numa_stat
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.oom.group
+--w-------  1 root   root    0 Nov  6 19:01 memory.reclaim
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.swap.current
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.swap.events
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.swap.high
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.swap.max
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.swap.peak
+-r--r--r--  1 root   root    0 Nov  6 19:01 memory.zswap.current
+-rw-r--r--  1 root   root    0 Nov  6 19:01 memory.zswap.max
+-r--r--r--  1 root   root    0 Nov  6 19:01 pids.current
+-r--r--r--  1 root   root    0 Nov  6 19:01 pids.events
+-r--r--r--  1 root   root    0 Nov  6 19:01 pids.events.local
+-rw-r--r--  1 root   root    0 Nov  6 19:01 pids.max
+-r--r--r--  1 root   root    0 Nov  6 19:01 pids.peak
+
+===== CGROUP CONTROLLER FILES =====
+
+--- /sys/fs/cgroup/cgroup.controllers ---
+Readable: yes
+cpu memory pids
+Access check says writable: no
+
+--- /sys/fs/cgroup/cgroup.subtree_control ---
+Readable: yes
+Access check says writable: no
+
+--- /sys/fs/cgroup/cgroup.procs ---
+Readable: yes
+1
+10
+Access check says writable: no
+
+--- /sys/fs/cgroup/cgroup.type ---
+Readable: yes
+domain
+Access check says writable: no
+
+--- /sys/fs/cgroup/cgroup.events ---
+Readable: yes
+populated 1
+frozen 0
+Access check says writable: no
+
+===== AVAILABLE CONTROLLER SUBDIRECTORIES =====
+
+===== CGROUP INSPECTION COMPLETE =====
+
+===== OUTER PODMAN EXIT STATUS =====
+Podman exit code: 0
+```
+
+**Observed result**
+
+- Container process identity was `uid=0(root) gid=0(root)`; this is container namespace identity, not host root.
+- Cgroup namespace was `cgroup:[4026532990]`.
+- Process membership was `0::/`, so the process appears at the root of the cgroup namespace's visible hierarchy.
+- Filesystem type was `cgroup2fs`, confirming unified cgroup v2.
+- Mountinfo showed mount options `ro,nosuid,nodev,noexec,relatime,nosymfollow` before the separator and superblock options `rw,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting` after it. The mount itself is **read-only**; the `rw` superblock option does not override the mount-level `ro`.
+- `cgroup.controllers` listed `cpu memory pids`.
+- `cgroup.subtree_control` was readable and empty.
+- `cgroup.procs` listed PIDs `1` and `10`; `cgroup.type` was `domain`; `cgroup.events` reported `populated 1` and `frozen 0`.
+- The five inspected files were readable; the shell `-w` access checks all returned false.
+- No controller subdirectories were visible.
+- Podman exited with status `0`.
+
+**Interpretation**
+
+- **What this proves:** The disposable rootless container sees a cgroup v2 filesystem and a cgroup namespace, with CPU, memory and PID controller interfaces visible. The exposed cgroup mount is read-only from this container; the process sees itself at namespace-root membership, and no child cgroup directories are exposed.
+- **Important mountinfo distinction:** The mount's per-mount options include `ro`; the superblock options include `rw`. Treat the mount as read-only for this container. Do not infer writable cgroup delegation from the superblock's `rw` token.
+- **What this does not prove:** It does not establish whether the host's delegated cgroup parent could create a child cgroup, whether a different Podman configuration can expose a writable delegated subtree, whether LXC can manage its own cgroups, or whether Android's cgroup requirements can be met safely. No cgroup write was attempted.
+- **Security note:** No cgroup mutation, host setting change, delegation enablement, or service change was attempted.
+
+**Decision / next step**
+
+- Mark Test 24 **CONFIRMED — read-only cgroup visibility**.
+- Do not try to remount the exposed hierarchy or write to cgroup files from this container.
+- Next, perform Test 25 as a read-only host-side inspection of the existing user/systemd cgroup delegation state and the exact cgroup path assigned to the rootless Podman process/container. Do not modify host cgroups or systemd properties.
+- This is the fifth completed test since Test 20 (Tests 21–25). After Test 25 is documented, run the scheduled documentation consistency review and preserve an unchanged archive snapshot of the updated canonical audit.
+
+---
+
 ### 5.6 Networking
 
 | Test ID | Environment / procedure | Actual result | Status |
@@ -1474,14 +1702,15 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
 
-**Latest completed test:** Test 23 — nested PID namespace creation and child-process lifecycle under default seccomp. Result: **CONFIRMED** (`Seccomp: 2`; capability mask `00000000800000c0`; distinct parent/child PID namespace IDs; inner process PID `1`; child process start/check/wait succeeded; nested and outer exit codes `0`). The first invocation was not executed because `-i` was omitted; the corrected invocation is the only run counted. See §5.5 for full evidence.
+**Latest completed test:** Test 24 — read-only cgroup v2 visibility and access audit in disposable rootless Podman. Result: **CONFIRMED — restricted/read-only view**. The cgroup2 mount has per-mount `ro`; visible controllers are `cpu memory pids`; `cgroup.subtree_control` is empty; inspected files are readable but fail the shell writable access check; no child cgroup directories are visible. No writes or host changes were attempted. See §5.5 for the full command and output.
 
-**Next exact test:** Test 24 — read-only cgroup visibility and delegation audit from a disposable rootless Podman container. Inspect mount type/options, cgroup namespace identity, visible controller files, writability and `cgroup.subtree_control` without writing to cgroups, changing host configuration, or enabling delegation.
+**Next exact test:** Test 25 — read-only host-side inspection of the existing user/systemd cgroup delegation state and the exact cgroup path assigned to rootless Podman. Do not modify host cgroups or systemd properties.
 
-**After Test 23:**
-1. Perform Test 24: read-only cgroup visibility and delegation audit inside a disposable rootless container.
-2. Compare container-visible cgroup mount/options/controllers with the already-recorded host cgroup v2 baseline.
-3. Do not change host cgroup configuration or enable delegation without explicit review and approval.
+**After Test 24:**
+1. Perform Test 25: read-only host-side inspection of the existing user/systemd cgroup delegation state and rootless Podman cgroup path.
+2. Compare the host delegation/path evidence with the container's read-only cgroup v2 view.
+3. After Test 25 is recorded, perform the five-test documentation consistency review and preserve an unchanged archive snapshot.
+4. Do not modify host cgroups, systemd properties or delegation settings without explicit review and approval.
 
 **Continuation rule:** Before any command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. After the user runs it, record the result in this canonical document immediately, before proposing the next test.
 ---
@@ -1495,6 +1724,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.2 | 2026-11-06 | Recorded Test 21 as passed under Podman's default seccomp profile with the reduced capability set; captured exact command/output and both exit statuses; advanced the next gate to Test 22; adopted immediate per-test recording, five-test documentation reviews/archive snapshots, and canonical-handoff-first continuity across ChatGPT conversations. |
 | 1.3 | 2026-11-06 | Recorded Test 22: nested user and mount namespace creation confirmed under default seccomp with the reduced capability set; documented distinct namespace IDs and the malformed shell comparison guard; advanced handoff to Test 23. |
 | 1.4 | 2026-11-06 | Recorded the initial Test 23 stdin-harness failure as not executed, then recorded the corrected successful nested PID namespace and child-process lifecycle test under default seccomp; advanced handoff to read-only cgroup inspection (Test 24). |
+| 1.5 | 2026-11-06 | Recorded Test 24's read-only cgroup v2 inspection: per-mount `ro`, visible `cpu memory pids` controllers, empty subtree control, no writable access or child cgroup directories; advanced handoff to read-only host delegation/path inspection (Test 25). |
 
 ---
 
