@@ -6,7 +6,7 @@ This directory contains the active, cumulative feasibility audit and its preserv
 
 - [Waydroid SSH — Living Container Feasibility Audit](WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT.md)
 
-Read this document first before continuing the audit. It contains the current project constraints, historical environment, completed test ledger, Tests 21–25 consistency review, confirmed temporary-container cleanup, current dependency gates, and evidence-recording schemas. The unchanged v1.7 snapshot is preserved in the archive. The next action is the proposed read-only Podman JSON query; no host cgroup or systemd changes are authorized.
+Read this document first before continuing the audit. It contains the current project constraints, historical environment, completed test ledger, Tests 21–25 consistency review, the successful supplemental Podman JSON query, the cgroup/LXC feasibility decision, current dependency gates, and evidence-recording schemas. The unchanged v1.7 and v1.8 snapshots are preserved in the archive. Current handoff: Gate 3 is complete; Gate 2 remains blocked because the cgroup mount exposed inside the rootless container was read-only and writable nested delegation was not demonstrated. A disposable LXC experiment is not justified under the current evidence. No LXC or Waydroid installation and no host cgroup/systemd changes are authorized.
 
 ## Archive
 
