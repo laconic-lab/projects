@@ -4,14 +4,13 @@
 > **Source:** `SHYRKA-AGENT-MANIFEST.txt` (archived unchanged under [archive/originals](./archive/originals/)).  
 > **Conversion scope:** Markdown structure and presentation; underlying technical content retained. No Steam Deck audit or runtime revalidation was performed.
 
-
 Project identity: Shyrka Agent
 Platform: localai-box
 Container: Ubuntu 24.04
 Project root: /home/deck/LocalAIProject/AIAgent
 Recovery root: /home/deck/LocalAIAgentrecovery
 
-Integrated components:
+## Integrated components
 - LangGraph agent and approved diagnostic tools
 - Granite 4.1 8B local model configuration
 - Dashboard at http://192.168.1.161:8765/
@@ -28,9 +27,9 @@ Integrated components:
 - Unified backup and recovery scripts
 - Project and release history documentation
 
-CURRENT GRANITE GENERATION CONFIGURATION
+## Current Granite generation configuration
 
-FOLLOW-UP VALIDATION — 2026-10-28
+### Follow-up validation — 2026-10-28
 - A long-response test was subsequently reported successful for its tested
   workload after num_predict was raised to 4096.
 - Dashboard restart and HTTP 200 were reported successful.
@@ -40,8 +39,8 @@ FOLLOW-UP VALIDATION — 2026-10-28
   independently inspected during this documentation update.
 - Do not interpret one successful test as a guarantee of universal
   completion. The quality concern about generic operational suggestions
-## remains open.
-Active profile:
+remains open.
+### Active profile
 - Path: /home/deck/LocalAIProject/config/granite-api-options.json
 - Model: Granite 4.1 8B through the configured local Ollama endpoint.
 - num_ctx: 4096.
@@ -53,14 +52,14 @@ Active profile:
 - repeat_last_n: 64.
 - seed: 42.
 
-Setting semantics:
+### Setting semantics
 - num_ctx controls the context window.
 - num_predict limits generated output tokens.
 - The two settings currently share the numeric value 4096 for ease
   of recall; they serve different purposes.
 - The output limit is a maximum, not a guarantee of response completion.
 
-Tuning rationale and evidence:
+### Tuning rationale and evidence
 - The output limit was increased from 1024 to 4096 after an archived
   long answer was found to end mid-sentence.
 - The stored incomplete answer established incompleteness, not the
@@ -72,45 +71,45 @@ Tuning rationale and evidence:
 - Active values and unchanged non-target settings were checked against
   that backup during this documentation update.
 
-Current validation status:
+### Current validation status
 - Configuration values: VERIFIED.
 - Pre-change profile backup: VERIFIED for the expected prior parameter values.
 - Long-response completion: SUCCESSFUL FOR THE REPORTED TEST WORKLOAD; not a guarantee for all future answers.
 - Absence of unexpected tool calls across future tests: NOT ESTABLISHED.
 - A full Shyrka backup restore drill: NOT ESTABLISHED BY THIS CHANGE.
 
-Operational boundaries:
+### Operational boundaries
 - Local-first behavior and manual startup remain the intended policy.
 - This configuration update does not add tools or grant mutation capability.
 - No claim is made that all future long answers will complete successfully.
 
-Python environment baseline:
+## Python environment baseline
 - SteamOS host Python: /usr/bin/python3, version 3.14.6 (observed 2026-10-28).
 - localai-box Python: /usr/bin/python3.12, version 3.12.3.
 - Shyrka uses AIAgent/.venv; project dependencies remain isolated.
 - Detailed reference: /home/deck/LocalAIProject/PYTHON_VENV.readme.
 - Backup payload path: project-docs/PYTHON_VENV.readme.
 
-Operational rules:
+## Operational rules
 - Manual start only; no boot auto-start.
 - Keep model inference local unless explicitly authorized otherwise.
 - Do not add shell execution or unapproved agent tools.
 - Do not expose the dashboard publicly.
 - Back up before significant changes and after successful validation.
 
-Backup format:
+## Backup format
 backups/Shyrka-Agent-<timestamp>/
 Includes a checksum manifest and a consistent SQLite archive snapshot.
 
-Recovery:
+## Recovery
 recovery.sh check
 recovery.sh restore /home/deck/LocalAIAgentrecovery/backups/Shyrka-Agent-TIMESTAMP
 
-Important limitation:
+## Important limitation
 Conversation transcripts are preserved, but hidden LangGraph state is not
 restored because the graph has no persistent checkpointer.
 
-## OPTIONAL CLOUD VOICE — VERIFIED 2026-10-29
+## Optional cloud voice — verified 2026-10-29
 - Dashboard endpoint: /api/cloud-speak.
 - Provider: ElevenLabs text-to-speech; configured model: eleven_flash_v2_5.
 - Active configured voice: Bella; voice ID hpp4J3VqNfWAUOO0d1Us.
