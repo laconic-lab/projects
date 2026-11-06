@@ -4,7 +4,7 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Document version:** 1.3  
+> **Document version:** 1.4  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -885,6 +885,175 @@ Podman exit code: 0
 
 ---
 
+#### Test 23 — completed: nested PID namespace and child lifecycle
+
+- **Date:** 2026-11-06 (user-reported execution date)
+- **Status:** **CONFIRMED**
+- **Environment:** Steam Deck host launching a disposable rootless Podman container
+- **Image/runtime:** `docker.io/library/debian:12-slim`; rootless Podman; Podman's default seccomp profile
+- **Prerequisite:** Test 21 / CAP-11 (nested user namespace under default seccomp) and Test 22 (distinct mount namespace creation)
+- **Question:** Can the reduced capability set create a nested user namespace and PID namespace under default seccomp, start a child process, and wait for it successfully?
+- **Why new:** Tests 21–22 established user and mount namespace creation. Test 23 adds a PID namespace and validates PID 1 identity plus a basic child-process lifecycle.
+- **Repeat policy:** Do not repeat unless the kernel, Podman/crun, seccomp profile, user-namespace policy, image, or capability configuration changes.
+- **Side-effect boundary:** Disposable container, `--rm`, `--network=none`, `--pull=never`; no host networking, persistent files, services, or configuration changes.
+
+**Harness correction:** The first Test 23 invocation omitted `-i` while feeding a here-document to `sh -s`. It produced no container output and only `Podman exit code: 0`; this was **not executed**, not a pass or failure. The corrected invocation added `-i` and exported the parent PID namespace identifier for the nested shell. Only the corrected run below counts as Test 23.
+
+**Exact successful command**
+
+```bash
+podman run -i --rm --pull=never \
+  --name waydroid-map-cap-audit-23 \
+  --network=none \
+  --cap-drop=ALL \
+  --cap-add=SETUID \
+  --cap-add=SETGID \
+  --cap-add=SETFCAP \
+  docker.io/library/debian:12-slim \
+  sh -s <<'CONTAINER_SCRIPT'
+echo "===== CAPABILITIES AND SECURITY ====="
+grep -E "^(CapPrm|CapEff|CapBnd|NoNewPrivs|Seccomp):" /proc/self/status
+
+echo
+echo "===== PARENT PID NAMESPACE ====="
+parent_pid_ns=$(readlink /proc/self/ns/pid)
+echo "$parent_pid_ns"
+export parent_pid_ns
+
+echo
+echo "===== NESTED USER + PID NAMESPACE ====="
+
+unshare --user --map-root-user --pid --fork sh -c '
+  echo "Nested namespace created"
+
+  echo
+  echo "Child PID namespace:"
+  child_pid_ns=$(readlink /proc/self/ns/pid)
+  echo "$child_pid_ns"
+
+  echo
+  echo "Parent PID namespace:"
+  echo "$parent_pid_ns"
+
+  if [ "$child_pid_ns" = "$parent_pid_ns" ]; then
+    echo "ERROR: PID namespace did not change"
+    exit 1
+  fi
+
+  echo
+  echo "Current process PID:"
+  echo "$"
+
+  if [ "$" -ne 1 ]; then
+    echo "ERROR: Namespace init process is not PID 1"
+    exit 1
+  fi
+
+  echo
+  echo "PID namespace status:"
+  grep "^NSpid:" /proc/self/status
+
+  echo
+  echo "===== CHILD PROCESS LIFECYCLE ====="
+
+  sleep 2 &
+  child_pid=$!
+
+  echo "Started child PID: $child_pid"
+
+  if kill -0 "$child_pid" 2>/dev/null; then
+    echo "Child process is running"
+  else
+    echo "ERROR: Child process was not running"
+    exit 1
+  fi
+
+  wait "$child_pid"
+  child_result=$?
+
+  echo "Child wait exit code: $child_result"
+  exit "$child_result"
+'
+
+result=$?
+
+echo
+echo "Nested user/PID namespace exit code: $result"
+
+exit "$result"
+CONTAINER_SCRIPT
+
+PODMAN_EXIT=$?
+
+echo
+echo "===== OUTER PODMAN EXIT STATUS ====="
+echo "Podman exit code: $PODMAN_EXIT"
+```
+
+**Actual output**
+
+```text
+===== CAPABILITIES AND SECURITY =====
+CapPrm: 00000000800000c0
+CapEff: 00000000800000c0
+CapBnd: 00000000800000c0
+NoNewPrivs:     0
+Seccomp:        2
+
+===== PARENT PID NAMESPACE =====
+pid:[4026532880]
+
+===== NESTED USER + PID NAMESPACE =====
+Nested namespace created
+
+Child PID namespace:
+pid:[4026532992]
+
+Parent PID namespace:
+pid:[4026532880]
+
+Current process PID:
+1
+
+PID namespace status:
+NSpid:  7       3
+
+===== CHILD PROCESS LIFECYCLE =====
+Started child PID: 4
+Child process is running
+Child wait exit code: 0
+
+Nested user/PID namespace exit code: 0
+
+===== OUTER PODMAN EXIT STATUS =====
+Podman exit code: 0
+```
+
+**Observed result**
+
+- Capability permitted/effective/bounding masks were all `00000000800000c0`, matching the retained `SETUID + SETGID + SETFCAP` set.
+- `Seccomp: 2`: the default seccomp filter remained active.
+- Parent PID namespace: `pid:[4026532880]`.
+- Child PID namespace: `pid:[4026532992]`; the identifiers differ.
+- The process launched by `unshare --pid --fork` reported PID `1` inside the new PID namespace.
+- `NSpid: 7 3` was reported by `/proc/self/status`; this is the kernel's namespace PID mapping for that process as exposed by this procfs view. It is not a contradiction of the shell's `$ = 1` output: `$` identifies the shell's PID in its active namespace, while `NSpid` lists IDs across the visible PID namespace hierarchy for the process represented by `/proc/self/status`.
+- Child process PID `4` was started, `kill -0` confirmed it was running, and `wait` returned `0`.
+- Nested user/PID namespace command exit status: `0`; outer Podman exit status: `0`.
+
+**Interpretation**
+
+- **What this proves:** In this exact SteamOS / rootless Podman / Debian 12 Slim configuration, the reduced capability set and default seccomp profile permitted creation of the nested user and PID namespaces, PID 1 operation for the namespace's init process, and a simple child-process start/check/wait lifecycle.
+- **What this does not prove:** It does not establish LXC startup, Android init/service supervision, PID namespace signal/reaping edge cases, cgroup delegation, mount setup, Binder transactions, Waydroid startup, or GUI/GPU integration.
+- **Security note:** No additional capability was needed for this tested namespace and process lifecycle operation. This is not a recommendation to grant more capabilities to a future container.
+
+**Decision / next step**
+
+- Mark Test 23 / PID namespace gate **CONFIRMED** for the limited operation tested.
+- The next high-value blocker is cgroup behavior/delegation as seen from the disposable container. Investigate read-only first; do not alter host cgroup settings or enable delegation.
+- Test 23 created no persistent container, host configuration, service, or network state.
+
+---
+
 ### 5.6 Networking
 
 | Test ID | Environment / procedure | Actual result | Status |
@@ -1305,14 +1474,14 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
 
-**Latest completed test:** Test 22 — nested mount namespace creation under default seccomp. Result: **CONFIRMED — namespace creation** (`Seccomp: 2`; capability mask `00000000800000c0`; parent and child mount namespace IDs differed; nested and outer exit codes `0`). The command's shell comparison guard emitted `sh: 10: [: missing ]`; see §5.5 for the exact command, output, and evidence qualification.
+**Latest completed test:** Test 23 — nested PID namespace creation and child-process lifecycle under default seccomp. Result: **CONFIRMED** (`Seccomp: 2`; capability mask `00000000800000c0`; distinct parent/child PID namespace IDs; inner process PID `1`; child process start/check/wait succeeded; nested and outer exit codes `0`). The first invocation was not executed because `-i` was omitted; the corrected invocation is the only run counted. See §5.5 for full evidence.
 
-**Next exact test:** Test 23 — nested PID namespace creation and a minimal child-process lifecycle check, using `SETUID + SETGID + SETFCAP` under Podman's default seccomp profile. Keep `--network=none`, `--cap-drop=ALL`, and `--pull=never`; preserve inner and outer exit statuses. Do not add capabilities or disable seccomp speculatively.
+**Next exact test:** Test 24 — read-only cgroup visibility and delegation audit from a disposable rootless Podman container. Inspect mount type/options, cgroup namespace identity, visible controller files, writability and `cgroup.subtree_control` without writing to cgroups, changing host configuration, or enabling delegation.
 
 **After Test 23:**
-1. Reassess the combined user/mount/PID namespace results.
-2. Resolve cgroup/LXC requirements without changing host configuration.
-3. Proceed to disposable LXC only if namespace and security prerequisites justify it.
+1. Perform Test 24: read-only cgroup visibility and delegation audit inside a disposable rootless container.
+2. Compare container-visible cgroup mount/options/controllers with the already-recorded host cgroup v2 baseline.
+3. Do not change host cgroup configuration or enable delegation without explicit review and approval.
 
 **Continuation rule:** Before any command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. After the user runs it, record the result in this canonical document immediately, before proposing the next test.
 ---
@@ -1325,6 +1494,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.1 | 2026-11-06 | Recorded Test 20 as passed with `SETPCAP` removed; captured exact command/output and both exit statuses; corrected exit-status propagation; advanced the next gate to default-seccomp validation; clarified version/archive provenance. |
 | 1.2 | 2026-11-06 | Recorded Test 21 as passed under Podman's default seccomp profile with the reduced capability set; captured exact command/output and both exit statuses; advanced the next gate to Test 22; adopted immediate per-test recording, five-test documentation reviews/archive snapshots, and canonical-handoff-first continuity across ChatGPT conversations. |
 | 1.3 | 2026-11-06 | Recorded Test 22: nested user and mount namespace creation confirmed under default seccomp with the reduced capability set; documented distinct namespace IDs and the malformed shell comparison guard; advanced handoff to Test 23. |
+| 1.4 | 2026-11-06 | Recorded the initial Test 23 stdin-harness failure as not executed, then recorded the corrected successful nested PID namespace and child-process lifecycle test under default seccomp; advanced handoff to read-only cgroup inspection (Test 24). |
 
 ---
 
