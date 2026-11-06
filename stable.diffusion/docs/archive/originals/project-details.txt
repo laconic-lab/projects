@@ -1,0 +1,73 @@
+STABLE DIFFUSION PROJECT DETAILS
+Last documented: 2026-10-25
+
+HOST AND CONTAINER
+- Host: Steam Deck / SteamOS, x86_64
+- Container: Distrobox named Stable-box
+- Container image: docker.io/library/ubuntu:24.04
+- Container OS observed: Ubuntu 24.04.5 LTS
+- Project: /home/deck/StableDiffusionProject
+- Container must be started manually; no WebUI boot service configured.
+
+ENGINE AND BUILD
+- Project: leejet/stable-diffusion.cpp
+- Git revision: 0886f11b6b8b4d1f6259e0f1337cae554284c37a
+- Build type: Release
+- Build system: CMake + Ninja
+- Vulkan enabled: SD_VULKAN=ON
+- Web frontend enabled: SD_SERVER_BUILD_FRONTEND=ON
+- Local Node.js: v22.23.4
+- Local pnpm: 10.15.1
+- Build directory: build/
+- Executables: build/bin/sd-cli and build/bin/sd-server
+
+SUBMODULE REVISIONS
+- examples/server/frontend:
+  34e5ad6edcaf827b7fe1e9ffa55ee86cd2fc43d2
+- ggml:
+  a5915eb0e47adef21c3f25b889a008925ea838c2
+- thirdparty/libwebm:
+  5bf12267eea773a32fcf4949de52b0add158a8d5
+- thirdparty/libwebp:
+  0c9546f7efc61eac7f79ae115c3f99c91c21c443
+
+MODEL
+- File: models/v1-5-pruned_Q4_K.gguf
+- Previously measured size: 3174685280 bytes
+- SHA-256:
+  79c3026aecf43af544fbd7ef3419a8d695eff292effab45f92ac3d9259e24198
+
+GPU AND BACKEND
+- Vulkan device verified: AMD Custom GPU 0932 (RADV VANGOGH)
+- Known working backend:
+  diffusion=vulkan0,te=cpu,vae=vulkan0
+- Text-to-image and image-to-image generation both succeeded.
+- Vulkan VAE substantially improved generation time compared with CPU VAE.
+- Nonfatal conv2d/conv3d direct-auto probe warnings were observed.
+
+WEBUI AND ACCESS
+- Listen address: 127.0.0.1
+- Port: 1234
+- URL on the Deck / through the SSH tunnel: http://127.0.0.1:1234/
+- HTTP 200 verified after a SteamOS reboot.
+- Windows access uses a separate SSH tunnel batch file.
+- The WebUI is intentionally not exposed directly to the LAN.
+- No automatic WebUI startup service is configured.
+
+OPERATIONS
+- Start WebUI inside Stable-box: ./sd-start.sh
+- Stop WebUI inside Stable-box: ./sd-stop.sh
+- Stop the container from the host: distrobox stop Stable-box
+- Enter the container from the host: distrobox enter Stable-box
+
+KNOWN NON-BLOCKING ISSUE
+- Container entry prints:
+  bash: /home/linuxbrew/.linuxbrew/bin/brew: No such file or directory
+- This warning did not prevent the tested build, generation, or WebUI startup.
+- Do not change unrelated environment configuration solely to remove this warning.
+
+STEAMOS UPDATE NOTES
+- SteamOS reboot resilience has been tested successfully.
+- The project, model, scripts, and executable persisted through the tested reboot.
+- Manual WebUI startup worked after reboot and returned HTTP 200.
+- This does not yet prove recovery from a destructive SteamOS update or container loss.
