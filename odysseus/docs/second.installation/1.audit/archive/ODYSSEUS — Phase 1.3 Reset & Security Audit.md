@@ -1,5 +1,7 @@
-# ODYSSEUS — Phase 1.3 Reset & Security Audit
-## Consolidated Technical Record
+# ODYSSEUS — Security-First Rebuild
+## Phase 1.3 — Reset & Security Audit
+
+### Consolidated Technical Record
 
 | Document control | Value |
 |---|---|
