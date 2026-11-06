@@ -1,85 +1,116 @@
-# Steam Deck Lab — Containerised Projects for the Local Network
+# Steam Deck Lab — Local Projects, Infrastructure & Engineering Notes
 
-A collection of self-hosted, locally managed projects built around a **Steam Deck OLED running SteamOS**. The Deck acts as a small home-lab host; Linux and Windows PCs on the same LAN are used as client workstations.
+A living technical index for the **Steam Deck OLED running SteamOS** and the projects developed around it. This repository records project architecture, operational procedures, security decisions, audits, recovery guidance and supporting scripts.
 
-The projects explore how far a compact, low-power device can go when it is used to host useful services and application workloads through **Distrobox and rootless Podman**, while keeping the SteamOS host as clean and stable as practical.
+The Steam Deck is the **host and infrastructure platform**. Linux and Windows machines on the same local network are primarily **client workstations** used to administer, develop, display and interact with workloads running on the Deck.
 
-> **Design principle:** keep applications and their dependencies in dedicated project environments; keep host-level changes small, deliberate and documented; expose only the network services that a project actually needs.
+> **Core idea:** keep SteamOS as stable and minimally modified as practical; place application dependencies in dedicated Distrobox and/or Podman environments wherever the workload permits; expose only the network access a project actually needs.
+
+This is an evolving lab, not a single product, a universal deployment recipe or a promise that every listed project is currently running.
 
 ---
 
 ## At a glance
 
-- **Host:** Steam Deck OLED / SteamOS
-- **Container tooling:** Distrobox and Podman
-- **Primary use:** self-hosted services, local AI, GPU workloads, and remote access from LAN PCs
-- **Clients:** Linux Mint and Windows
-- **Networking:** service-specific LAN bindings or SSH tunnels; not every project is directly exposed to the LAN
-- **Operating style:** manual lifecycle by default, read-only diagnosis before changes, backups before significant modifications
+| Layer | Role |
+|---|---|
+| Host | Steam Deck OLED, SteamOS, host user `deck` |
+| Container tooling | Distrobox and rootless Podman, selected per project |
+| Workloads | Infrastructure services, local AI, GPU applications, experiments and feasibility research |
+| LAN clients | Linux Mint and Windows PCs |
+| Remote access | SSH/SFTP, SSH tunnels, and project-specific browser interfaces |
+| Operating model | Diagnosis first, deliberate changes, manual lifecycle by default, backups before significant changes |
 
-This repository is the documentation, scripts and project working area for the lab. It is not a single application or a one-command deployment.
+The Deck provides the hardware, host operating system, network attachment, storage and container runtime. Client PCs do not normally host or duplicate the Deck's workloads: they connect to selected interfaces when a project supports remote access.
 
-## Architecture
+## Architecture and responsibilities
 
 ```text
-                 LOCAL NETWORK (LAN)
-             +---------------------------+
-             |                           |
-       Linux Mint PC                Windows PC
-       client tools                 client tools
-             |                           |
-             +-------------+-------------+
-                           |
-                    LAN / SSH access
-                           |
-                 +-------------------+
-                 |  Steam Deck OLED  |
-                 |     SteamOS       |
-                 |   host platform   |
-                 +-------------------+
-                           |
-              +------------+------------+
-              |                         |
-         Distrobox                    Podman
-      project userspaces          containers/services
-              |                         |
-       +------+------+          +-------+-------+
-       |      |      |          |               |
-    Shyrka  Stable  Odysseus   Pi-hole       supporting
-             Diffusion                         services
-       |      |      |          |
-       +------+------|----------+
-                     |
-          Project-specific data,
-          models, configuration,
-          backups and documentation
+                   LOCAL NETWORK (LAN)
+          +-----------------------------------+
+          |                                   |
+   Linux Mint workstation              Windows workstation
+   - terminal / SSH                    - PowerShell / SSH
+   - SFTP / file access                 - SFTP / file access
+   - browser / dashboard                - browser / dashboard
+   - development tools                  - development tools
+          |                                   |
+          +-----------------+-----------------+
+                            |
+                Project-specific access
+             SSH / SFTP / SSH tunnel / LAN UI
+                            |
+                 +----------------------+
+                 |   STEAM DECK OLED    |
+                 |       SteamOS        |
+                 |                      |
+                 | HOST / INFRASTRUCTURE|
+                 | - hardware and GPU   |
+                 | - network and SSH   |
+                 | - storage and files |
+                 | - firewall           |
+                 | - Podman / Distrobox |
+                 +----------+-----------+
+                            |
+             +--------------+----------------+
+             |                               |
+       Distrobox environments          Podman containers
+       project userspaces              application runtimes
+       and dependencies                 and services
+             |                               |
+       +-----+-----------+            +------+------+
+       |                 |            |             |
+   AI / development   GPU apps     LAN services   other workloads
+   environments       and tools    when required  as designed
+             |                               |
+             +---------------+---------------+
+                             |
+              Project-specific data, models,
+              configuration, logs and backups
 ```
 
-The diagram is conceptual, not a claim that every component runs simultaneously or that every project uses both Distrobox and Podman. Some workloads are launched manually; some services are published to the LAN; others are deliberately reachable only through an SSH tunnel.
+The diagram is conceptual. It does **not** mean every component runs simultaneously, that every project uses both technologies, or that every project is a LAN service.
 
-### Important distinction: Distrobox and Podman
+### Host, Distrobox and Podman are different layers
 
-Distrobox provides a convenient, container-based Linux userspace that integrates with the host. It is excellent for separating distributions, runtimes and dependencies, but **a Distrobox is not automatically a strong security boundary**: host integration, user-namespace mappings and shared mounts matter.
+- **SteamOS host:** owns the physical hardware, kernel, host networking, user accounts, SSH, firewall, storage and container lifecycle.
+- **Distrobox:** provides a convenient project-specific Linux userspace for tools, runtimes and dependencies. It integrates with the host by design; it is **not automatically a strong security boundary**.
+- **Podman:** manages containers. A Podman workload may be launched and managed independently of a Distrobox, even when a Distrobox is used for project tooling or data organisation.
+- **Project data:** persistent configuration, models, databases and backups must have explicit locations and recovery procedures. Container layers should not be mistaken for durable backups.
 
-Podman manages the containers and services. A Podman container may run independently of the Distrobox used to prepare or organise its project. Pi-hole is an example: its service lifecycle is managed by rootless Podman on the SteamOS host; the associated Distrobox is not required to stay running.
+Isolation is a property of the actual runtime configuration—not simply the presence of a container. UID/GID mappings, user namespaces, mounts, capabilities, sockets, devices, network mode and privileges all matter. Each project must document its own boundary and exceptions.
 
-Each project therefore documents its actual runtime rather than assuming that all containers behave the same way.
+## How LAN clients relate to the Deck
 
----
+Linux Mint and Windows are remote workstations, not automatically part of the Deck's application runtime.
 
-## Projects
+Typical client roles include:
 
-| Project | Purpose | Access / operating model |
+- **Administration:** SSH for host and project maintenance, and SFTP for file inspection or transfer.
+- **Remote application access:** browser dashboards or web interfaces where a project deliberately provides them.
+- **Secure forwarding:** SSH tunnels for services that should remain bound to loopback on the Deck instead of being published directly to the LAN.
+- **Development and review:** editing, terminal work, documentation and Git operations from a client PC.
+
+Access is project-specific. A client should not assume that a service is listening on the Deck's LAN address just because the application exists. Prefer loopback plus an SSH tunnel when direct LAN publication is unnecessary. Do not broaden firewall rules or publish a port merely to make remote access convenient.
+
+## Project index
+
+The repository contains projects at different maturity levels. A project may be operational, manually launched, under development, an audit, or historical reference material. Consult its documentation before relying on it.
+
+| Project | Purpose | Runtime / access model |
 |---|---|---|
-| [Pi-hole](./pi-hole/) | Network-wide DNS filtering and administration | LAN DNS service; administration interface is published on dedicated ports and controlled by host firewall policy |
-| [Shyrka](./shyrka/) | Local AI agent and browser dashboard, built around LangGraph and a local model endpoint | Manual startup; intended for controlled LAN use, not public exposure |
-| [Stable Diffusion](./stable.diffusion/) | Local image generation using `stable-diffusion.cpp` and the Deck's AMD GPU through Vulkan | Web UI binds to loopback; remote PC access uses an SSH tunnel rather than direct LAN publication |
-| [Odysseus](./odysseus/) | AI application and multi-provider integration work | Dedicated project environment; security and provider architecture are documented separately |
-| [Waydroid](./waydroid/) | Investigation of Android-in-container feasibility with remote Linux/Windows clients | Feasibility audit only; not a completed or approved installation |
+| [Pi-hole](./pi-hole/) | DNS filtering and LAN network service | Rootless Podman service with persistent host data; DNS and administration access are deliberately published and controlled |
+| [Shyrka](./shyrka/) | Local AI agent and browser dashboard using a local model endpoint | Dedicated Distrobox-based environment; local-first and manually managed; dashboard access is project-specific |
+| [Stable Diffusion](./stable.diffusion/) | Local image generation using stable-diffusion.cpp and the Deck AMD GPU through Vulkan | Dedicated Distrobox; WebUI binds to loopback; remote access uses an SSH tunnel, not direct LAN publication |
+| [Odysseus](./odysseus/) | AI application and multi-provider integration work | Dedicated project environment; consult the architecture and implementation-status documents before assuming a feature is implemented or a service is running |
+| [Waydroid](./waydroid/) | Feasibility research for Android workloads on the Deck with remote Linux/Windows clients | Investigation/audit; not a completed or approved native SteamOS installation |
 
-Project state changes over time. The descriptions above explain each project's purpose and intended access model; they are not a live service monitor. Consult the project documentation and current runtime checks before relying on a service.
+### Direct documentation
 
-### Project documentation
+**Shared Steam Deck standards**
+- [Global Engineering & Security Standard](./deck/docs/GLOBAL%20ENGINEERING%20%26%20SECURITY%20STANDARD.readme)
+- [Project Documentation Protocol](./deck/docs/PROJECT_DOCUMENTATION_PROTOCOL.txt)
+- [Deck maintenance scripts](./deck/scripts/)
 
 **Pi-hole**
 - [Architecture and operations](./pi-hole/docs/Pi-hole%20on%20SteamOS%20%E2%80%94%20Architecture%20%26%20Operations.md)
@@ -89,7 +120,7 @@ Project state changes over time. The descriptions above explain each project's p
 - [Troubleshooting](./pi-hole/docs/Pi-hole%20on%20SteamOS%20%E2%80%94%20Troubleshooting.md)
 
 **Shyrka**
-- [Project documentation](./shyrka/docs/)
+- [Documentation directory](./shyrka/docs/)
 - [Agent manifest](./shyrka/docs/SHYRKA-AGENT-MANIFEST.txt)
 - [Release notes](./shyrka/docs/SHYRKA_RELEASE_NOTES.txt)
 - [Python environment reference](./shyrka/docs/PYTHON_VENV.readme)
@@ -100,62 +131,77 @@ Project state changes over time. The descriptions above explain each project's p
 - [Update instructions](./stable.diffusion/docs/Howto-update-Stable.txt)
 
 **Odysseus**
-- [Project documentation](./odysseus/docs/)
+- [Documentation directory](./odysseus/docs/)
 - [Provider integration architecture](./odysseus/docs/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md)
 - [Deck lifecycle tools](./odysseus/decktools/)
 
 **Waydroid**
-- [Feasibility audit](./waydroid/1.audit/1.0_Waydroid-SSH-Consolidated-Audit.md)
+- [Consolidated SSH feasibility audit](./waydroid/1.audit/1.0_Waydroid-SSH-Consolidated-Audit.md)
 - [Audit source material](./waydroid/1.audit/)
 
-**Shared Steam Deck standards**
-- [Global Engineering & Security Standard](./deck/docs/GLOBAL%20ENGINEERING%20%26%20SECURITY%20STANDARD.readme)
-- [Project Documentation Protocol](./deck/docs/PROJECT_DOCUMENTATION_PROTOCOL.txt)
-- [Deck maintenance scripts](./deck/scripts/)
+## Engineering and security philosophy
 
----
+These are the default working principles for existing and future projects:
 
-## Engineering and security principles
+1. **Understand before acting.** Start with read-only inspection. Establish the real host, container, process, filesystem and network state before proposing changes.
+2. **Keep SteamOS lean.** Prefer project-specific environments for application dependencies. Host-level changes require a demonstrated need and a clear recovery path.
+3. **Use least privilege.** Avoid privileged containers, unnecessary capabilities, broad host mounts, host networking and access to sensitive host sockets.
+4. **Do not overstate isolation.** Inspect UID/GID mappings, namespaces, mounts, capabilities, devices, sockets and network exposure. Distrobox convenience is not equivalent to a security sandbox.
+5. **Expose only what is required.** Use loopback and SSH tunnels where appropriate. Publish LAN ports only for a documented project requirement and control them at the host firewall.
+6. **Keep lifecycle intentional.** Manual startup is the default. Do not introduce boot autostart, unattended restarts, scheduled jobs or background services without an explicit project-specific decision.
+7. **Protect persistent data.** Separate application state from disposable container layers. Back up before significant changes and verify that recovery procedures are usable.
+8. **Protect credentials.** Never commit passwords, API keys, tokens, private keys, secret environment files or unredacted diagnostic output. A file outside a project directory is not necessarily inaccessible to a process sharing the host UID.
+9. **Preserve working systems.** Do not delete, recreate, reset, reinstall or replace a functioning container, virtual environment, database or configuration as a first troubleshooting step.
+10. **Make changes incrementally.** Explain the purpose and scope of a change, preserve a backup where appropriate, modify only the necessary target and verify the result.
+11. **Separate facts from plans.** Label information as verified, documented, proposed, pending or deprecated. Historical observations do not prove current runtime state.
+12. **Document the actual architecture.** Do not force every project into one deployment pattern. Record the specific runtime, data paths, network exposure, lifecycle and recovery approach that the project really uses.
 
-The lab follows a cautious, evidence-led approach:
+These principles describe the intended engineering approach. They are not a claim that every historical project configuration is already fully hardened or currently operational.
 
-1. **Diagnose before modifying.** Start with read-only inspection and establish the actual state before proposing a fix.
-2. **Keep the host lean.** Prefer project-specific Distroboxes and containers for application dependencies instead of installing everything into SteamOS.
-3. **Use least privilege.** Avoid privileged containers, unnecessary capabilities, broad host mounts and host networking. Add permissions only where a demonstrated requirement exists.
-4. **Treat integration as a security decision.** Distrobox convenience does not guarantee isolation. Review user mappings, mounts, capabilities, sockets and network exposure.
-5. **Expose only what is needed.** Bind services to the appropriate interface, restrict access with firewall rules, and prefer SSH tunnels when direct LAN exposure is unnecessary.
-6. **Keep lifecycle intentional.** Manual startup is the default. Do not add boot autostart, unattended restarts or background services without a project-specific reason and explicit decision.
-7. **Protect persistent data.** Separate application data from disposable container layers. Back up before significant changes and verify recovery procedures.
-8. **Keep credentials out of Git.** Never commit API keys, passwords, tokens, private keys, secret environment files or sensitive diagnostic output.
-9. **Verify and document.** Distinguish verified facts from historical observations, proposals and unresolved work. Re-check versions and runtime state rather than assuming old notes are current.
-10. **Avoid destructive shortcuts.** Do not delete, recreate, reset or reinstall a working container as a first troubleshooting step.
+## Guidance for ChatGPT and other AI assistants
 
-These are engineering intentions, not a claim that every historical project configuration is already fully hardened. Each project must be assessed against its own current implementation and documentation.
+This repository is also intended to be a **technical handoff and context source** for future AI-assisted work. An assistant helping with this lab should:
+
+1. Read this README first, then read the relevant project's architecture/overview and applicable shared standards before recommending commands or edits.
+2. Identify whether each command runs on the **SteamOS host**, inside a named **Distrobox**, inside a **Podman container**, or on a **LAN client** (Linux Mint or Windows). Never blur these environments.
+3. Treat the Steam Deck as the host/infrastructure platform and the client PCs as remote workstations unless a project document explicitly says otherwise.
+4. Never assume all applications are continuously running, all Distroboxes must remain running, or all projects expose a LAN port. Confirm the project's documented lifecycle and access model.
+5. Treat documentation as a starting point, not proof of live state. Check current versions, paths, process state, mounts, permissions and network bindings when relevant.
+6. Prefer read-only audits and targeted diagnostics before proposing modifications. Do not repeat completed investigations without first checking the existing audit and evidence.
+7. Do not perform destructive actions or make security-sensitive host changes without explicit approval. This includes deleting/recreating environments, changing firewall/network policy, changing persistent data, enabling autostart, or broadening privileges.
+8. Never request, print, infer, or commit secrets. Avoid exposing credentials, private keys, tokens, session data or sensitive logs in chat or Git.
+9. Preserve project-specific decisions and protected assets. A shared standard provides a baseline; it does not authorize an assistant to rewrite a project's architecture.
+10. When evidence is incomplete, say what is known, what is only documented, what remains unverified and what read-only check would resolve the uncertainty.
+
+**Recommended starting instruction for a new AI session:**
+
+> Read this repository's README and the relevant project documentation in full before advising. Follow the Global Engineering & Security Standard and the project's own instructions. First establish the execution environment and current state using read-only checks. Do not repeat completed audits, modify files, restart services, install packages, change host configuration or perform destructive actions without explaining the need and obtaining approval. Clearly distinguish verified facts, documented history, proposals and pending work.
 
 ## Repository layout
 
 ```text
 .
 ├── deck/              # Shared host standards, documentation and maintenance scripts
-├── odysseus/          # Odysseus project documentation and Deck lifecycle tools
-├── pi-hole/           # Pi-hole documentation and recovery scripts
+├── odysseus/          # Odysseus documentation and Deck lifecycle tools
+├── pi-hole/           # Pi-hole documentation and recovery material
 ├── shyrka/            # Shyrka agent documentation and supporting material
-├── stable.diffusion/  # Stable Diffusion project documentation
+├── stable.diffusion/  # Stable Diffusion documentation and project material
 ├── waydroid/          # Android-in-container feasibility research and scripts
 └── tmp/               # Temporary diagnostic and working material
 ```
 
-The `tmp/` directory is working material, not an authoritative project documentation area. Prefer the project-specific documentation directories when looking for supported procedures or current design decisions.
+The `tmp/` directory is working material, not an authoritative documentation area. Prefer project-specific documentation directories and current manifests for supported procedures.
 
 ## How to use this repository
 
-- Start with this README to understand the lab and locate a project.
-- Read that project's architecture or overview document before running scripts or changing its configuration.
-- Check whether a document describes a verified current state, a historical observation, a proposal or an outstanding task.
-- Follow the project's own backup, recovery and lifecycle instructions.
-- Treat scripts as project-specific tools; inspect them before execution and do not assume they are interchangeable.
+- Start here for the overall lab model and project index.
+- Read the relevant project's architecture document before running its scripts or changing its configuration.
+- Read the shared standard when starting a new project or making host/container/security decisions.
+- Follow the project's own lifecycle, backup, recovery and troubleshooting procedures.
+- Inspect scripts before execution; paths and assumptions may be project-specific.
+- Re-check live state when correctness depends on what is currently running.
 
-This repository is primarily a technical record of a real, evolving setup. It favours reproducible procedures, explicit trade-offs and careful maintenance over one-size-fits-all automation.
+This repository is a technical record of a real, evolving setup. It favours reproducible procedures, explicit trade-offs, careful maintenance and project-specific architecture over one-size-fits-all automation.
 
 ---
 
