@@ -71,7 +71,7 @@ The following rules are mandatory:
 6. A repeated test requires a documented changed condition or a previously untested behavior.
 7. The parent README must be updated when the canonical handoff, archive structure or audit status changes.
 
-The detailed rules and templates are in §0 and §13–§18 of the canonical audit.
+The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.1 (2026-11-07); NET-03 is recorded as partial because external egress probes passed but peer-to-peer communication was not tested.
 
 ## 5. Current recorded position
 
@@ -81,7 +81,7 @@ The detailed rules and templates are in §0 and §13–§18 of the canonical aud
 - A private host directory bind-mount test passed for the exact tested configuration.
 - `--network=none` blocked the tested destinations.
 - The default Podman bridge allowed tested router/LAN and public Internet connectivity and is unsuitable as the Agent/Inspector boundary.
-- A dedicated Podman internal network is the next proposed test; it has not been created.
+- NET-03 created and tested a temporary dedicated Podman internal bridge. The tested host SSH, router DNS, public HTTPS and DNS lookup paths were blocked; the temporary network was removed. Peer-to-peer communication remains untested and is the next network dependency.
 - cgroup v2/systemd delegation exists at host level, but writable nested delegation in the disposable container was not demonstrated.
 - Seccomp is enabled; AppArmor and SELinux are disabled.
 - No Odysseus or LXC installation has been performed.
