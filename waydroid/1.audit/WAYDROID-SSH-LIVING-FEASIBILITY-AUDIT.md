@@ -644,14 +644,14 @@ Podman exit code: 0
 **Exact command executed**
 
 ```bash
-podman run --rm --pull=never \\
-  --name waydroid-map-cap-audit-21 \\
-  --network=none \\
-  --cap-drop=ALL \\
-  --cap-add=SETUID \\
-  --cap-add=SETGID \\
-  --cap-add=SETFCAP \\
-  docker.io/library/debian:12-slim \\
+podman run --rm --pull=never \
+  --name waydroid-map-cap-audit-21 \
+  --network=none \
+  --cap-drop=ALL \
+  --cap-add=SETUID \
+  --cap-add=SETGID \
+  --cap-add=SETFCAP \
+  docker.io/library/debian:12-slim \
   sh -c '
     echo "===== CAPABILITIES ====="
     grep -E "^(CapPrm|CapEff|CapBnd|NoNewPrivs|Seccomp):" /proc/self/status
