@@ -135,9 +135,12 @@ The repository contains projects at different maturity levels. A project may be 
 - [Python environment reference](./shyrka/docs/PYTHON_VENV.readme)
 
 **Stable Diffusion**
-- [Project details and verified configuration](./stable.diffusion/docs/project-details.txt)
-- [Recovery notes](./stable.diffusion/docs/RECOVERY.md)
-- [Update instructions](./stable.diffusion/docs/Howto-update-Stable.txt)
+- [Documentation index](./stable.diffusion/docs/README.md)
+- [Project details and verified configuration](./stable.diffusion/docs/PROJECT-DETAILS.md)
+- [Recovery and restore guide](./stable.diffusion/docs/RECOVERY-AND-RESTORE.md)
+- [Safe update and rebuild guide](./stable.diffusion/docs/SAFE-UPDATE-GUIDE.md)
+- [Build and backup manifest](./stable.diffusion/docs/BUILD-AND-BACKUP-MANIFEST.md)
+- [Archived original documents](./stable.diffusion/docs/archive/originals/)
 
 **Odysseus**
 - [Documentation directory](./odysseus/docs/)
