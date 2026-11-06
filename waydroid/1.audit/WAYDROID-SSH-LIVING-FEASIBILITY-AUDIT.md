@@ -4,7 +4,7 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Document version:** 1.5  
+> **Document version:** 1.6  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -1282,6 +1282,205 @@ Podman exit code: 0
 
 ---
 
+#### Test 25 — completed: host cgroup delegation and Podman path inspection
+
+- **Date:** 2026-11-06 (user-reported execution date)
+- **Status:** **PARTIALLY CONFIRMED — host path and unit properties observed; Podman info template query invalid; temporary-container cleanup must be verified**
+- **Environment:** Steam Deck SteamOS host; rootless Podman; systemd user manager
+- **Question:** Which host cgroup path contains the rootless Podman container, and which relevant systemd units report delegation?
+- **Why new:** Test 24 showed a read-only cgroup2 mount inside the disposable container. Test 25 correlates that view with the host's writable cgroup2 mount, systemd unit properties and the actual container host PID/cgroup path.
+- **Side-effect boundary:** Host inspection is read-only. A temporary inert container named `waydroid-cgroup-audit-25` was launched with `--rm`, `--network=none`, and `--cap-drop=ALL`. No cgroup or systemd setting was modified.
+- **Repeat policy:** Do not repeat the host path/unit inspection unless systemd, Podman, cgroup layout or runtime configuration changes. The failed Podman info format query may be corrected separately if the manager/version value remains necessary.
+
+**Exact command executed**
+
+```bash
+echo "===== HOST CGROUP BASELINE ====="
+echo "UID: $(id -u)"
+echo "User cgroup membership:"
+cat /proc/self/cgroup
+
+echo
+echo "===== HOST CGROUP MOUNT ====="
+findmnt -T /sys/fs/cgroup -o TARGET,FSTYPE,OPTIONS
+
+echo
+echo "===== PODMAN CGROUP CONFIGURATION ====="
+podman info --format 'Cgroup version: {{.Host.CgroupVersion}}
+Cgroup manager: {{.Host.CgroupManager}}'
+
+echo
+echo "===== SYSTEMD USER SLICE ====="
+UID_NUM=$(id -u)
+
+systemctl show "user.slice" \
+  -p ActiveState \
+  -p ControlGroup \
+  -p Delegate
+
+systemctl show "user-${UID_NUM}.slice" \
+  -p ActiveState \
+  -p ControlGroup \
+  -p Delegate
+
+systemctl show "user@${UID_NUM}.service" \
+  -p ActiveState \
+  -p ControlGroup \
+  -p Delegate
+
+echo
+echo "===== START TEMPORARY PODMAN INSPECTION CONTAINER ====="
+
+CONTAINER_NAME="waydroid-cgroup-audit-25"
+
+cleanup() {
+  echo
+  echo "===== TEMPORARY CONTAINER CLEANUP ====="
+  podman stop "$CONTAINER_NAME" 2>&1 || true
+}
+
+trap cleanup EXIT
+
+podman run -d --rm \
+  --pull=never \
+  --name "$CONTAINER_NAME" \
+  --network=none \
+  --cap-drop=ALL \
+  docker.io/library/debian:12-slim \
+  sleep 180
+
+RUN_RESULT=$?
+
+if [ "$RUN_RESULT" -ne 0 ]; then
+  echo "ERROR: Temporary container failed to start"
+  exit "$RUN_RESULT"
+fi
+
+echo
+echo "===== PODMAN CONTAINER INSPECTION ====="
+
+CONTAINER_PID=$(podman inspect --format '{{.State.Pid}}' "$CONTAINER_NAME")
+echo "Host PID: $CONTAINER_PID"
+
+echo
+echo "===== CONTAINER HOST CGROUP MEMBERSHIP ====="
+cat "/proc/${CONTAINER_PID}/cgroup"
+
+echo
+echo "===== CONTAINER CGROUP NAMESPACE ====="
+readlink "/proc/${CONTAINER_PID}/ns/cgroup"
+
+echo
+echo "===== CONTAINER HOST MOUNT NAMESPACE ====="
+readlink "/proc/${CONTAINER_PID}/ns/mnt"
+
+echo
+echo "===== CONTAINER SYSTEMD UNIT / SCOPE ====="
+systemd-cgls --no-pager 2>&1 | grep -E -C 3 \
+  "libpod|podman|${CONTAINER_PID}" || true
+
+echo
+echo "===== HOST CGROUP INSPECTION COMPLETE ====="
+```
+
+**Actual output**
+
+```text
+===== HOST CGROUP BASELINE =====
+UID: 1000
+User cgroup membership:
+0::/user.slice/user-1000.slice/session-10.scope
+
+===== HOST CGROUP MOUNT =====
+TARGET         FSTYPE  OPTIONS
+/sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting
+
+===== PODMAN CGROUP CONFIGURATION =====
+Cgroup version: Error: template: info:1:23: executing "info" at <.Host.CgroupVersion>: can't evaluate field CgroupVersion in type *define.HostInfo
+
+===== SYSTEMD USER SLICE =====
+ActiveState=active
+ControlGroup=/user.slice
+Delegate=no
+ActiveState=active
+ControlGroup=/user.slice/user-1000.slice
+Delegate=no
+ActiveState=active
+ControlGroup=/user.slice/user-1000.slice/user@1000.service
+Delegate=yes
+
+===== START TEMPORARY PODMAN INSPECTION CONTAINER =====
+9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997
+
+===== PODMAN CONTAINER INSPECTION =====
+Host PID: 299655
+
+===== CONTAINER HOST CGROUP MEMBERSHIP =====
+0::/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997.scope/container
+
+===== CONTAINER CGROUP NAMESPACE =====
+cgroup:[4026532990]
+
+===== CONTAINER HOST MOUNT NAMESPACE =====
+mnt:[4026532877]
+
+===== CONTAINER SYSTEMD UNIT / SCOPE =====
+│   │ ├─264539 sshd-session: deck@pts/0
+│   │ ├─264541 -bash
+│   │ ├─299764 systemd-cgls --no-pager
+│   │ └─299765 grep --color=auto -E -C 3 libpod|podman|299655
+│   ├─user@1000.service …
+│   │ ├─session.slice
+--
+│   │ │ └─kde-baloo.service
+│   │ │   └─18905 /usr/lib/kf6/baloo_file
+│   │ ├─user.slice
+│   │ │ ├─podman-pause-0cd3be5c.scope
+│   │ │ │ └─1948 catatonit -P
+│   │ │ ├─libpod-9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997.scope
+│   │ │ │ └─container
+│   │ │ │   └─299655 sleep 180
+│   │ │ ├─libpod-dd33930cdcdd76eee0cb53e58be38495d2f1a7d08d85b1c633d00ccd727d6105.scope
+│   │ │ │ └─container
+│   │ │ │   ├─1985 /bin/bash /usr/bin/start.sh
+│   │ │ │   ├─2045 /bin/bash /usr/bin/start.sh
+│   │ │ │   ├─2086 /bin/bash -c /usr/bin/pihole-FTL no-daemon >/dev/null
+│   │ │ │   ├─2090 /usr/bin/pihole-FTL no-daemon
+│   │ │ │   └─2554 tail -F -c +1414 -- /var/log/pihole/FTL.log
+│   │ │ ├─podman-299631.scope
+│   │ │ │ └─299647 /usr/bin/fuse-overlayfs -o lowerdir=/home/deck/.local/share/…
+│   │ │ └─libpod-conmon-9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997.scope
+│   │ │   └─299651 /usr/bin/conmon --api-version 1 -c 9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997.scope
+│   ├─app.slice
+│   │ ├─speech-dispatcher.service
+
+===== HOST CGROUP INSPECTION COMPLETE =====
+```
+
+**Observed result and interpretation**
+
+- Host UID was `1000`; interactive shell membership was `/user.slice/user-1000.slice/session-10.scope`.
+- Host `/sys/fs/cgroup` was cgroup2 and mounted `rw`.
+- The Podman info template failed because this Podman build's `.Host` structure does not expose the requested `CgroupVersion` field. The command therefore did **not** establish the Podman cgroup version/manager. This is a query/template error, not a Podman runtime failure.
+- `user.slice` and `user-1000.slice` reported `Delegate=no`; `user@1000.service` reported `Delegate=yes`.
+- Temporary container host PID was `299655`. Its host cgroup membership was:
+  `/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-9e0a1b11bcfa2ebfe7773ff55229141ae32c7150343e7c55c78936a1d11a6997.scope/container`.
+- This places the container under the user manager's delegated service subtree, nested below its own `user.slice` and a Podman-created `libpod-….scope`.
+- Container cgroup namespace was `cgroup:[4026532990]`; mount namespace was `mnt:[4026532877]`. These inode values can be reused after namespace teardown and should not be treated as stable identifiers.
+- `systemd-cgls` showed the temporary container scope and the existing Pi-hole scope. The command was observational; no Pi-hole process was targeted or modified.
+- The command defined `trap cleanup EXIT`, but because it was pasted into an already-running interactive shell, the shell itself did not exit at the end of the command list. The output does **not** show the cleanup trap running. Therefore the temporary `sleep 180` container may still be present; verify and stop it explicitly before proceeding.
+- The systemd unit's `Delegate=yes` does not negate Test 24's read-only mount inside the container. It indicates delegation at the user service boundary, not that the particular Podman container has a writable cgroup mount or usable child delegation.
+- No cgroup writes or systemd changes were attempted.
+
+**Decision / next step**
+
+- Mark Test 25 **PARTIALLY CONFIRMED**: host cgroup path and unit delegation properties were observed; the Podman info template field query was invalid; temporary-container cleanup remains unverified.
+- First verify and clean up the temporary container named `waydroid-cgroup-audit-25`.
+- Then, if the Podman cgroup version/manager remains useful, obtain it with a supported read-only `podman info` output format (e.g. inspect JSON keys rather than assuming template fields). This can be a small supplemental query, not a repeat of the host path test.
+- After cleanup and documentation verification, the five-test checkpoint (Tests 21–25) requires a consistency review and an unchanged archive snapshot of the updated canonical audit. Do not alter host cgroup or systemd settings.
+
+---
+
 ### 5.6 Networking
 
 | Test ID | Environment / procedure | Actual result | Status |
@@ -1702,14 +1901,14 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
 
-**Latest completed test:** Test 24 — read-only cgroup v2 visibility and access audit in disposable rootless Podman. Result: **CONFIRMED — restricted/read-only view**. The cgroup2 mount has per-mount `ro`; visible controllers are `cpu memory pids`; `cgroup.subtree_control` is empty; inspected files are readable but fail the shell writable access check; no child cgroup directories are visible. No writes or host changes were attempted. See §5.5 for the full command and output.
+**Latest completed test:** Test 25 — host cgroup delegation and Podman path inspection. Result: **PARTIALLY CONFIRMED**. Host cgroup2 mount is `rw`; `user@1000.service` reports `Delegate=yes`; the temporary Podman container's host path is under that user service's `user.slice/libpod-….scope/container`. The Podman info template query used an unsupported field and did not establish manager/version. The cleanup trap did not run in the still-open interactive shell, so the temporary container must be explicitly verified/stopped. See §5.5.
 
-**Next exact test:** Test 25 — read-only host-side inspection of the existing user/systemd cgroup delegation state and the exact cgroup path assigned to rootless Podman. Do not modify host cgroups or systemd properties.
+**Next action:** Verify and stop the temporary `waydroid-cgroup-audit-25` container. Then perform the five-test documentation consistency review and preserve an unchanged archive snapshot for Tests 21–25. A supported read-only Podman info query can be done as a supplemental check if still needed. Do not modify host cgroup or systemd settings.
 
-**After Test 24:**
-1. Perform Test 25: read-only host-side inspection of the existing user/systemd cgroup delegation state and rootless Podman cgroup path.
-2. Compare the host delegation/path evidence with the container's read-only cgroup v2 view.
-3. After Test 25 is recorded, perform the five-test documentation consistency review and preserve an unchanged archive snapshot.
+**After Test 25:**
+1. Verify and stop the temporary `waydroid-cgroup-audit-25` container; its interactive-shell EXIT trap did not run automatically.
+2. Perform the five-test consistency review for Tests 21–25 and preserve an unchanged archive snapshot of the updated canonical audit.
+3. Optionally query supported Podman info JSON fields read-only to resolve the unsupported template-field query.
 4. Do not modify host cgroups, systemd properties or delegation settings without explicit review and approval.
 
 **Continuation rule:** Before any command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. After the user runs it, record the result in this canonical document immediately, before proposing the next test.
@@ -1725,6 +1924,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.3 | 2026-11-06 | Recorded Test 22: nested user and mount namespace creation confirmed under default seccomp with the reduced capability set; documented distinct namespace IDs and the malformed shell comparison guard; advanced handoff to Test 23. |
 | 1.4 | 2026-11-06 | Recorded the initial Test 23 stdin-harness failure as not executed, then recorded the corrected successful nested PID namespace and child-process lifecycle test under default seccomp; advanced handoff to read-only cgroup inspection (Test 24). |
 | 1.5 | 2026-11-06 | Recorded Test 24's read-only cgroup v2 inspection: per-mount `ro`, visible `cpu memory pids` controllers, empty subtree control, no writable access or child cgroup directories; advanced handoff to read-only host delegation/path inspection (Test 25). |
+| 1.6 | 2026-11-06 | Recorded Test 25 host cgroup path and systemd delegation observations; qualified the unsupported Podman info template query and missing interactive-shell EXIT cleanup; advanced handoff to explicit temporary-container cleanup and five-test documentation/archive review. |
 
 ---
 
