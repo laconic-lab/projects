@@ -6,7 +6,7 @@ This directory contains the active, cumulative feasibility audit and its preserv
 
 - [Waydroid SSH — Living Container Feasibility Audit](WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT.md)
 
-Read this document first before continuing the audit. It contains the current project constraints, historical environment, completed test ledger, completed Tests 20–24, the next read-only host cgroup delegation/path inspection, later dependency gates, and evidence-recording schemas. It is maintained as the canonical continuation record to prevent repeated groundwork across conversations.
+Read this document first before continuing the audit. It contains the current project constraints, historical environment, completed test ledger, completed Tests 20–25, with host cgroup path/delegation evidence recorded; verify temporary-container cleanup and complete the five-test consistency/archive checkpoint, later dependency gates, and evidence-recording schemas. It is maintained as the canonical continuation record to prevent repeated groundwork across conversations.
 
 ## Archive
 
