@@ -1,0 +1,1564 @@
+# GLOBAL ENGINEERING & SECURITY STANDARD
+
+**Master Technical Reference and Project Initialization Standard**
+
+**Document:** `GLOBAL ENGINEERING & SECURITY STANDARD.readme`  
+**Version:** 1.0 — Initial Draft  
+**Platform:** Steam Deck / SteamOS  
+**Primary host user:** `deck`  
+**Primary development environment:** Distrobox / Podman  
+**Scope:** All present and future local development, automation, AI, Agent, API integration and supporting infrastructure projects.
+
+---
+
+# 0. PURPOSE, AUTHORITY AND SCOPE
+
+## 0.1 Purpose
+
+This document establishes a common engineering, operational and security framework for all projects developed on the Steam Deck host.
+
+Its purpose is to eliminate repeated discovery, inconsistent configurations, avoidable security weaknesses, unnecessary troubleshooting and accidental damage to existing projects.
+
+Every new project should begin by consulting this standard.
+
+The standard defines:
+
+- Host operating conventions.
+- Container architecture and isolation principles.
+- Python environment management.
+- Project filesystem organization.
+- API credential storage and handling.
+- Agent security and permissions.
+- Network exposure and firewall principles.
+- Backup and recovery requirements.
+- Logging and diagnostic procedures.
+- Project lifecycle management.
+- Documentation and version control.
+- Standardized project initialization and validation.
+
+It is intended to provide continuity between projects even when individual projects use different programming languages, containers, models, APIs or architectures.
+
+## 0.2 Authority hierarchy
+
+The following documentation hierarchy applies:
+
+1. **Global Engineering & Security Standard:** establishes common rules.
+2. **Environment Profile:** documents the actual host and container configuration.
+3. **Project Architecture Document:** defines the architecture of an individual project.
+4. **Project Configuration and Manifest:** records implementation details, versions and dependencies.
+5. **Project Recovery Documentation:** records recovery procedures and known failure conditions.
+
+A project-specific document may introduce additional restrictions or specialized procedures.
+
+It must not silently override a global security requirement.
+
+Any deliberate deviation must be documented, justified and approved.
+
+## 0.3 Information classification
+
+All technical information must be classified into one of the following categories:
+
+**VERIFIED**
+
+Directly inspected or successfully tested on the actual system.
+
+**DOCUMENTED**
+
+Recorded in an authoritative project document but not necessarily verified against the current system.
+
+**PROPOSED**
+
+A recommended configuration that has not yet been implemented.
+
+**PENDING**
+
+An incomplete task or unresolved technical decision.
+
+**DEPRECATED**
+
+An old configuration retained for historical or recovery purposes.
+
+Never describe a proposed or documented configuration as currently operational without verification.
+
+---
+
+# 1. HOST ENVIRONMENT STANDARD
+
+## 1.1 Host identity
+
+The Steam Deck host is the primary operating environment.
+
+Established host identity:
+
+- Host user: `deck`
+- Host home: `/home/deck`
+- Host operating system: SteamOS
+- Host shell: Bash
+- Administrative group: `wheel`
+
+The actual SteamOS version, kernel, hardware state, available storage and network configuration must be inspected when relevant.
+
+Do not assume that information recorded during an earlier project remains current.
+
+## 1.2 Host responsibilities
+
+The host is responsible for:
+
+- Hardware and kernel operation.
+- User account management.
+- Filesystem ownership and permissions.
+- Host-side SSH access.
+- Container management through Podman and Distrobox.
+- Host-side credential storage.
+- Network interfaces and firewall configuration.
+- Backup destinations.
+- Access to external storage.
+
+Application-specific binaries, runtimes and dependencies should normally remain inside their dedicated project environments.
+
+## 1.3 Host modification policy
+
+SteamOS is an immutable-oriented operating system.
+
+Consequently:
+
+- Avoid unnecessary modifications to the host operating system.
+- Do not install application dependencies globally without a documented reason.
+- Prefer Distrobox for development environments.
+- Avoid replacing system Python.
+- Avoid modifying protected system directories.
+- Do not disable security mechanisms merely to simplify installation.
+- Do not make persistent system changes without understanding their recovery implications.
+
+Any host modification must be preceded by an inspection and followed by verification.
+
+## 1.4 Host command conventions
+
+Commands must clearly identify their execution environment.
+
+Use these labels:
+
+- `STEAM DECK HOST`
+- `ODYSSEUS CONTAINER`
+- `SHYRKA CONTAINER`
+- `WINDOWS — POWERSHELL`
+- Other explicitly named environments when applicable.
+
+Do not mix host commands and container commands without clearly identifying the transition.
+
+When the user is already connected through SSH or already inside a Distrobox, do not unnecessarily repeat login or container-entry commands.
+
+## 1.5 Administrative privileges
+
+Use ordinary user permissions whenever possible.
+
+Use `sudo` only when a specific operation requires elevated privileges.
+
+Before requesting elevation:
+
+1. Explain why it is required.
+2. Identify the exact operation.
+3. Inspect the target.
+4. Avoid combining unrelated privileged operations.
+5. Verify the result afterwards.
+
+Never recommend running an entire application or development environment as root merely to bypass a permissions problem.
+
+---
+
+# 2. DISTROBOX AND PODMAN ARCHITECTURE
+
+## 2.1 General principle
+
+Each substantial project should have an identifiable and independent execution environment.
+
+Distrobox provides a convenient Linux userspace on top of the host operating system.
+
+Podman provides container management.
+
+These technologies are useful for separating dependencies and application environments, but they must not be confused with complete security isolation.
+
+**A Distrobox is an environment boundary, not automatically a security boundary.**
+
+## 2.2 Project container separation
+
+Projects should normally have dedicated containers.
+
+Examples:
+
+- `odysseus-box`
+- `localai-box`
+- `Stable-box`
+- `pihole-box`
+
+The container name must be documented and must remain consistent.
+
+A project should not silently migrate to another project's container.
+
+Do not install unrelated application dependencies in a project container without justification.
+
+## 2.3 Container responsibilities
+
+Each container should own its application-specific:
+
+- Operating system userspace.
+- Application runtime.
+- Python interpreter, where applicable.
+- Python virtual environments.
+- Package dependencies.
+- Application binaries.
+- Development tools.
+- Provider SDKs.
+- Supporting libraries.
+
+The host remains responsible for host-level credentials, system security and container lifecycle.
+
+## 2.4 Host/container identity
+
+A critical security consideration is UID and GID mapping.
+
+A process running inside a container may have the same effective numeric UID as the host user.
+
+For example:
+
+- Host user `deck`: UID 1000.
+- Container process: potentially UID 1000.
+
+When both identities map to the same underlying host identity, ordinary Linux file permissions may allow the container process to access host files.
+
+Therefore:
+
+**Never assume that a file is protected from an Agent merely because it is stored outside the project directory or because its permissions are 600.**
+
+Before designing credential isolation, inspect:
+
+- Container user.
+- Effective UID and GID.
+- Supplementary groups.
+- User namespace mappings.
+- Bind mounts.
+- Mount read/write flags.
+- Container capabilities.
+- Access to host home directories.
+- Access to the Podman socket.
+- Available privilege-escalation paths.
+
+Use actual runtime inspection rather than relying exclusively on a configuration file.
+
+## 2.5 Mount policy
+
+Every project must have a documented mount policy.
+
+Classify mounts as:
+
+- Read-only.
+- Read/write.
+- Temporary.
+- Credential-bearing.
+- Sensitive.
+- Unnecessary.
+
+Mount only what the project needs.
+
+Avoid exposing the complete host filesystem to an application when a narrower mount is sufficient.
+
+Never assume that a read/write host-home mount is harmless.
+
+Do not remove existing mounts or modify container definitions without inspecting their current configuration and understanding the consequences.
+
+## 2.6 Container creation
+
+Before creating a new container:
+
+1. Inspect existing containers.
+2. Confirm that a suitable project container does not already exist.
+3. Check existing images and versions.
+4. Determine required operating system and runtime.
+5. Establish the filesystem layout.
+6. Define mount and identity requirements.
+7. Define network requirements.
+8. Define the recovery strategy.
+
+Avoid duplicate containers and unnecessary images.
+
+Do not recreate a functioning container as a first troubleshooting measure.
+
+## 2.7 Container lifecycle
+
+Manual startup is the default.
+
+Do not enable automatic startup, persistent background services or boot-time execution without explicit approval.
+
+Prefer documented START, STOP, STATUS, CHECK and LOGS procedures.
+
+Graceful shutdown must be supported.
+
+A project should not consume CPU, GPU or RAM when it is not required.
+
+---
+
+# 3. PYTHON AND VIRTUAL ENVIRONMENT STANDARD
+
+## 3.1 General principle
+
+Python environments must remain independent.
+
+The host Python interpreter, container Python interpreter and project virtual environment are three distinct things.
+
+Never assume they are interchangeable.
+
+## 3.2 Python interpreter hierarchy
+
+The preferred execution hierarchy is:
+
+1. Project virtual environment.
+2. Container system Python for environment maintenance.
+3. Host Python only for explicitly host-level tasks.
+
+Project application code should use its own documented virtual environment.
+
+## 3.3 Virtual environment location
+
+A typical project structure:
+
+```text
+ProjectName/
+├── .venv/
+├── src/
+├── tests/
+├── config/
+├── scripts/
+├── logs/
+├── data/
+├── requirements.txt
+├── README.md
+└── pyproject.toml
+```
+
+The exact structure depends on the application.
+
+A `.venv` must belong to its project and must not be shared casually with another project.
+
+## 3.4 Python version control
+
+Record:
+
+- Host Python version.
+- Container Python version.
+- Project Python version.
+- Virtual environment interpreter path.
+- Package manager version.
+- Dependency versions.
+
+Example:
+
+```bash
+python --version
+which python
+python -m pip --version
+```
+
+For the actual project interpreter:
+
+```bash
+/home/deck/ProjectName/.venv/bin/python --version
+```
+
+Never assume that invoking `python` activates the correct environment.
+
+## 3.5 Dependency management
+
+Dependencies must be documented.
+
+Prefer reproducible dependency files.
+
+Depending on the project, use:
+
+- `requirements.txt`
+- Project-specific requirements files.
+- `pyproject.toml`
+- Lock files where supported.
+
+Preserve existing dependency files.
+
+Do not replace an existing requirements file without inspecting its contents and understanding project-specific modifications.
+
+In particular, preserve known local modifications to:
+
+- `src/builtin_mcp.py`
+- `decktools/`
+- `requirements-odysseus.txt`
+
+These are protected Odysseus project assets.
+
+## 3.6 Virtual environment protection
+
+Never delete and recreate a working `.venv` simply because an application has developed a problem.
+
+First inspect:
+
+- Interpreter path.
+- Python version.
+- Installed packages.
+- Dependency conflicts.
+- Import paths.
+- Environment variables.
+- Application logs.
+- Current working directory.
+
+A virtual environment can contain a carefully assembled and validated dependency state.
+
+Treat it as a recoverable project asset.
+
+## 3.7 Working directory and imports
+
+The project root must be established before project imports.
+
+For example:
+
+```bash
+cd /home/deck/OdysseusProject
+```
+
+Then execute the project interpreter.
+
+Do not assume that running a script from another directory produces the same import behavior.
+
+Avoid changing `PYTHONPATH` or modifying import structure to conceal an incorrect working directory.
+
+## 3.8 Python validation
+
+After installing or modifying dependencies, verify:
+
+- Interpreter identity.
+- Dependency consistency.
+- Critical imports.
+- Application startup.
+- Relevant tests.
+- Logs.
+
+Do not equate a successful package installation with a successful application integration.
+
+---
+
+# 4. API CREDENTIAL AND SECRET MANAGEMENT
+
+## 4.1 Fundamental security rule
+
+API credentials are secrets.
+
+They must never be treated as ordinary application configuration.
+
+The default security objective is:
+
+**The application may use an authorized credential, but its Agent must not receive unrestricted access to the credential itself.**
+
+Credentials must not be exposed through:
+
+- Source code.
+- Git repositories.
+- Commit history.
+- Browser interfaces.
+- Agent prompts.
+- Tool outputs.
+- Logs.
+- Error messages.
+- Unencrypted session data.
+- Ordinary database metadata.
+- Screenshots.
+- Debugging traces.
+- Backup manifests.
+
+## 4.2 Host-side storage
+
+The preferred architectural approach is to store long-lived provider credentials outside the project repository.
+
+Example Odysseus convention:
+
+```text
+/home/deck/.config/odysseus/
+└── providers/
+    ├── groq/
+    │   └── odysseus-groq.key
+    ├── cloudflare/
+    │   └── odysseus-cloudflare.key
+    ├── openai/
+    │   └── odysseus-openai.key
+    ├── gemini/
+    │   └── odysseus-gemini.key
+    ├── mistral/
+    │   └── odysseus-mistral.key
+    ├── cerebras/
+    │   └── odysseus-cerebras.key
+    └── openrouter/
+        └── odysseus-openrouter.key
+```
+
+This is an Odysseus-specific naming convention, not a requirement that every future project use the same directory name.
+
+Each project should have its own credential namespace.
+
+Do not mix unrelated projects' credentials merely because they use the same provider.
+
+## 4.3 Ownership and permissions
+
+The initial Unix permission baseline is:
+
+| Resource | Recommended permissions |
+|---|---:|
+| Private credential directory | 700 |
+| Provider directory | 700 |
+| Individual key file | 600 |
+
+Expected ownership for the current host convention:
+
+```text
+deck:deck
+```
+
+These settings prevent access by other ordinary Unix users.
+
+However, they do not protect against processes running under the same UID.
+
+This limitation must always be considered.
+
+## 4.4 Agent credential isolation
+
+Credential storage and credential isolation are separate security problems.
+
+A host file outside a project repository is not automatically inaccessible to a project Agent.
+
+A container sharing the host user's UID and a read/write home-directory mount may be able to read that file.
+
+Therefore, projects requiring OS-level secret isolation must implement an actual security boundary.
+
+Potential approaches include:
+
+- Dedicated unprivileged Unix identities.
+- Restricted credential-broker processes.
+- Narrowly scoped IPC interfaces.
+- Explicitly controlled secret injection.
+- Restricted filesystem mounts.
+- Separate service identities.
+- Capability reduction and process sandboxing.
+
+Each solution must be evaluated against the actual host/container architecture.
+
+Do not assume that an environment variable, a hidden file, a configuration flag or an Agent tool allowlist provides OS-level protection.
+
+## 4.5 Credential broker principle
+
+Where possible, an Agent should request an authorized operation rather than receive the credential.
+
+For example:
+
+```text
+AGENT
+  |
+  | Request authenticated Groq operation
+  v
+AUTHORIZED APPLICATION LAYER
+  |
+  | Resolve credential securely
+  v
+CREDENTIAL ACCESS COMPONENT
+  |
+  | Authenticate request
+  v
+GROQ API
+```
+
+The Agent should receive only the information necessary to continue its task.
+
+It should not receive:
+
+- Raw API keys.
+- Credential file contents.
+- Unrestricted filesystem access.
+- Secret-bearing environment dumps.
+
+The exact implementation depends on the process-level isolation available.
+
+## 4.6 Database and session protection
+
+Ordinary JSON database fields must not be treated as encrypted secret storage.
+
+For example, if a database stores:
+
+```text
+DbSession.headers
+```
+
+and that field is ordinary JSON, do not store long-lived provider API credentials there.
+
+Resolve host credentials at request time.
+
+Separate:
+
+- Model discovery.
+- Endpoint configuration.
+- Authentication.
+- Credential resolution.
+- Provider connectivity testing.
+
+Do not let cached model information establish that authentication succeeded.
+
+## 4.7 Credential logging
+
+Logs must never contain complete API keys.
+
+Where diagnostic identification is necessary, use a non-secret provider identifier or a safely redacted representation.
+
+Never log:
+
+```text
+Authorization: Bearer <complete-key>
+```
+
+Error handling must sanitize request headers, URLs, environment variables and exception output.
+
+## 4.8 Credential lifecycle
+
+Each provider credential should have a documented lifecycle:
+
+1. Creation or acquisition.
+2. Secure host-side storage.
+3. Permission verification.
+4. Authorized runtime access.
+5. Authentication validation.
+6. Rotation.
+7. Revocation.
+8. Secure removal when no longer needed.
+
+Do not automatically rotate or revoke credentials without authorization.
+
+Never place real credentials in test fixtures or documentation.
+
+---
+
+# 5. AGENT SECURITY STANDARD
+
+## 5.1 Default security posture
+
+All new Agents should begin with the following default:
+
+**Local-first, read-only, least privilege and explicit authorization.**
+
+An Agent should only receive capabilities necessary for its assigned purpose.
+
+## 5.2 Tool allowlisting
+
+Use explicit tool allowlists.
+
+Do not grant unrestricted tool discovery or execution by default.
+
+A tool should have:
+
+- A clear name.
+- A defined purpose.
+- Documented inputs.
+- Documented outputs.
+- Permission boundaries.
+- Error handling.
+- Logging rules.
+- A validation procedure.
+
+Unknown tools must not become automatically available.
+
+## 5.3 Read-only by default
+
+The default Agent should be able to inspect approved information without modifying the environment.
+
+Examples of permitted read-only tasks:
+
+- Checking application status.
+- Reading approved logs.
+- Inspecting selected project files.
+- Reporting backup status.
+- Checking provider connectivity through an authorized interface.
+
+Write operations must require an explicit authorization model.
+
+Destructive operations must require especially strong safeguards.
+
+## 5.4 Prohibited default capabilities
+
+Unless explicitly authorized, Agents must not have:
+
+- Arbitrary shell execution.
+- Unrestricted filesystem access.
+- Credential-file access.
+- Unrestricted network access.
+- Automatic package installation.
+- Automatic service management.
+- Automatic startup configuration changes.
+- Unrestricted database modification.
+- Unrestricted browser access.
+- Unrestricted email or personal-data access.
+
+## 5.5 Agent output sanitization
+
+Agents must not expose secrets in:
+
+- Responses.
+- Chat history.
+- Archives.
+- Debugging panels.
+- Browser dashboards.
+- Tool execution transcripts.
+- Logs.
+
+Sensitive values must be filtered before they reach the presentation layer.
+
+## 5.6 Separation of responsibilities
+
+An Agent should not be its own unrestricted administrator.
+
+Where practical, separate:
+
+- Reasoning.
+- Tool authorization.
+- Application execution.
+- Credential resolution.
+- Administrative operations.
+
+An Agent should request privileged operations through a controlled interface.
+
+## 5.7 Human authorization
+
+The user remains the authority for:
+
+- Destructive changes.
+- Credential creation and rotation.
+- External service activation.
+- Paid API usage.
+- Public network exposure.
+- Startup persistence.
+- Security policy changes.
+- Installation of major dependencies.
+- Changes to protected project files.
+
+---
+
+# 6. API PROVIDER INTEGRATION STANDARD
+
+## 6.1 Provider independence
+
+Each API provider should have an identifiable configuration and authentication mechanism.
+
+Examples:
+
+- Groq.
+- Cloudflare.
+- OpenAI.
+- Gemini.
+- Mistral.
+- Cerebras.
+- OpenRouter.
+
+Provider-specific logic should not unnecessarily contaminate unrelated application components.
+
+## 6.2 Transport and authentication separation
+
+Provider transport and provider authentication must be treated separately.
+
+An existing HTTP transport implementation does not establish that authentication works.
+
+Likewise, model discovery does not establish successful authentication.
+
+## 6.3 Model discovery
+
+Model discovery should use the provider's actual discovery mechanism when available.
+
+If curated models are used as a fallback, clearly label them as fallback information.
+
+Never use a curated model list as proof of connectivity or authentication.
+
+## 6.4 Connection validation
+
+Authentication must be validated through an actual authenticated provider operation.
+
+Use a minimal, controlled request.
+
+Avoid expensive or unnecessary generation requests.
+
+No paid request should be made without explicit authorization.
+
+## 6.5 Provider health states
+
+Where provider health is implemented, distinguish:
+
+- ONLINE.
+- DEGRADED.
+- OFFLINE.
+- AUTH ERROR.
+- NOT TESTED.
+
+Do not collapse authentication failures into generic offline states.
+
+Do not modify established general service-health semantics merely to accommodate a new provider.
+
+## 6.6 Caching
+
+Existing endpoint listings should remain cache-only where this is an established architectural requirement.
+
+Do not silently trigger network discovery during an ordinary status or listing operation.
+
+## 6.7 Cost control
+
+Cloud API usage must be explicit.
+
+The default is:
+
+- No automatic paid usage.
+- No automatic provider switching.
+- No automatic fallback to paid services.
+- No hidden background API requests.
+- No uncontrolled retry loops.
+
+Provider quotas, model limits and web-search allowances should be tracked separately.
+
+---
+
+# 7. NETWORK AND REMOTE ACCESS STANDARD
+
+## 7.1 Local-first principle
+
+Projects should operate locally by default.
+
+Cloud access must be a deliberate feature rather than an assumed dependency.
+
+## 7.2 LAN access
+
+When a service requires remote access, prefer local-network access.
+
+Document:
+
+- Listening address.
+- Port.
+- Protocol.
+- Firewall rules.
+- Authorized clients.
+- Authentication requirements.
+
+Avoid binding administrative interfaces to all network interfaces without a documented reason.
+
+## 7.3 SSH
+
+SSH should be restricted to the intended administration environment.
+
+The existing Steam Deck administration approach uses LAN-only access and authorized public keys.
+
+Changes to SSH configuration must preserve existing recovery procedures.
+
+Do not expose SSH to the public internet as a convenience.
+
+## 7.4 Firewall
+
+Firewall rules must be explicit and narrowly scoped.
+
+Prefer source-address restrictions where appropriate.
+
+Do not disable the firewall to troubleshoot an application without a clear, temporary and approved diagnostic reason.
+
+Inspect the existing rules before changing them.
+
+## 7.5 Network troubleshooting
+
+Diagnose in layers:
+
+1. Interface state.
+2. IP address.
+3. Routing.
+4. DNS resolution.
+5. Firewall.
+6. Listening socket.
+7. Application response.
+8. Authentication.
+
+Do not change multiple layers simultaneously.
+
+---
+
+# 8. FILESYSTEM AND PROJECT ORGANIZATION
+
+## 8.1 Project independence
+
+Each project should have a clearly identifiable project root.
+
+Example:
+
+```text
+/home/deck/
+├── OdysseusProject/
+├── LocalAIProject/
+├── StableDiffusionProject/
+├── OdysseusRecovery/
+└── LocalAIAgentrecovery/
+```
+
+The actual directory names must be verified before use.
+
+## 8.2 Project directory structure
+
+A recommended generic layout:
+
+```text
+ProjectName/
+├── src/
+├── tests/
+├── scripts/
+├── config/
+├── docs/
+├── logs/
+├── data/
+├── .venv/
+├── .gitignore
+├── README.md
+├── requirements.txt
+└── pyproject.toml
+```
+
+Not every project needs every directory.
+
+Do not create empty structures without a purpose.
+
+## 8.3 Protected assets
+
+Every project must document:
+
+- Protected files.
+- Protected directories.
+- User modifications.
+- External dependencies.
+- Recovery scripts.
+- Configuration files.
+- Important runtime data.
+
+Protected assets must not be overwritten, deleted or regenerated without explicit approval.
+
+## 8.4 Git boundaries
+
+Never commit:
+
+- API credentials.
+- Passwords.
+- Private certificates.
+- Session tokens.
+- Sensitive personal information.
+- Local credential stores.
+- Unnecessary runtime data.
+- Large model archives without explicit reason.
+
+Use `.gitignore` and inspect its effectiveness.
+
+Do not assume that adding a file to `.gitignore` removes it from Git history.
+
+Check tracked files before publishing.
+
+---
+
+# 9. BACKUP AND RECOVERY STANDARD
+
+## 9.1 Recovery is part of the architecture
+
+A project is not considered operationally mature until it has a documented recovery procedure.
+
+Backup must be designed before major implementation work.
+
+## 9.2 Recovery directory
+
+Each project should have a separate recovery location.
+
+Examples:
+
+```text
+/home/deck/OdysseusRecovery
+/home/deck/LocalAIAgentrecovery
+```
+
+The exact name must be documented.
+
+## 9.3 Backup scope
+
+A backup plan should identify:
+
+- Source code.
+- Project configuration.
+- Dependency manifests.
+- Important application data.
+- Databases.
+- Recovery scripts.
+- Documentation.
+- Relevant logs.
+- Necessary runtime metadata.
+
+Avoid backing up regenerable dependencies unnecessarily.
+
+Do not automatically include large model archives.
+
+Credentials require a separate security-conscious backup decision.
+
+## 9.4 Backup integrity
+
+A backup should have:
+
+- Timestamp.
+- Source identification.
+- Destination identification.
+- File inventory.
+- Integrity checks.
+- Completion status.
+- Error reporting.
+
+Checksums should be used where appropriate.
+
+A successful copy command does not necessarily prove that the backup is restorable.
+
+## 9.5 Recovery testing
+
+Periodically verify that:
+
+- The backup can be accessed.
+- The expected files are present.
+- Important files are intact.
+- The project can be reconstructed.
+- The recovery instructions are accurate.
+
+Do not conduct destructive restore tests on the live project.
+
+## 9.6 External storage
+
+External drives must be identified by their actual mount points and filesystem state.
+
+Never assume a USB drive is mounted at its previous location.
+
+Inspect available capacity and mount status before initiating a backup.
+
+Avoid unnecessary repetitive writes to flash storage.
+
+---
+
+# 10. LOGGING, DIAGNOSTICS AND MONITORING
+
+## 10.1 Diagnosis-first principle
+
+Every technical investigation begins with observation.
+
+Do not modify the system before establishing the current state.
+
+## 10.2 Diagnostic sequence
+
+Use the following sequence:
+
+1. Identify the execution environment.
+2. Identify the affected component.
+3. Inspect current configuration.
+4. Inspect permissions.
+5. Inspect processes and services.
+6. Inspect relevant logs.
+7. Reproduce the issue if safe.
+8. Form a diagnosis.
+9. Propose a minimal correction.
+10. Obtain authorization where required.
+11. Execute one change.
+12. Verify the result.
+
+## 10.3 One step at a time
+
+The preferred troubleshooting protocol is:
+
+- One command.
+- One output.
+- One interpretation.
+- One next action.
+
+Avoid giant scripts that inspect and modify multiple unrelated components.
+
+## 10.4 Logging policy
+
+Logs must be useful without disclosing secrets.
+
+Never log:
+
+- Complete API keys.
+- Authorization headers.
+- Passwords.
+- Private tokens.
+- Credential file contents.
+
+Log rotation and retention should be documented.
+
+Avoid unlimited log growth.
+
+## 10.5 Status reporting
+
+Status checks should be informational unless a corrective action is explicitly requested.
+
+A status report must distinguish:
+
+- Operational.
+- Degraded.
+- Offline.
+- Not configured.
+- Not tested.
+- Unknown.
+
+Do not report a successful backup merely because its directory exists.
+
+---
+
+# 11. APPLICATION LIFECYCLE STANDARD
+
+## 11.1 Manual startup
+
+Manual startup is the default for development and AI applications.
+
+No automatic startup or boot persistence without explicit authorization.
+
+## 11.2 Standard scripts
+
+Where useful, provide distinct scripts for:
+
+```text
+START
+STOP
+STATUS
+CHECK
+LOGS
+BACKUP
+```
+
+Each script should have a clear and limited responsibility.
+
+## 11.3 Graceful shutdown
+
+Applications should support controlled shutdown.
+
+Avoid force-killing processes as the default stop mechanism.
+
+If graceful shutdown fails, inspect the process and its state before escalating.
+
+## 11.4 Resource management
+
+CPU, GPU, RAM and storage are finite shared resources.
+
+Avoid unnecessary background processes.
+
+Do not run several heavyweight AI services simultaneously unless required and approved.
+
+Status monitoring should not itself become a significant resource consumer.
+
+---
+
+# 12. DOCUMENTATION AND VERSION CONTROL
+
+## 12.1 Required documentation
+
+Each substantial project should maintain:
+
+- Architecture document.
+- Installation instructions.
+- Environment manifest.
+- Dependency manifest.
+- Startup and shutdown instructions.
+- Security model.
+- Credential handling description.
+- Backup and recovery procedure.
+- Known limitations.
+- Change history.
+
+## 12.2 Version records
+
+Record relevant versions:
+
+- Host operating system.
+- Kernel.
+- Distrobox version.
+- Podman version.
+- Container operating system.
+- Python interpreter.
+- Project dependencies.
+- Application version.
+- Provider SDK versions.
+
+Version information should be timestamped where appropriate.
+
+## 12.3 Change documentation
+
+Significant changes should record:
+
+- What changed.
+- Why it changed.
+- Which files were affected.
+- Previous behavior.
+- New behavior.
+- Validation performed.
+- Recovery implications.
+
+## 12.4 Documentation authority
+
+When documents conflict, do not automatically select the newest-looking file.
+
+Inspect:
+
+- Version.
+- Publication date.
+- Project status.
+- Actual runtime configuration.
+- Whether the document supersedes an earlier one.
+
+Record the resolution.
+
+---
+
+# 13. CHANGE MANAGEMENT AND SAFETY PROTOCOL
+
+## 13.1 Inspection before modification
+
+No modification should be made before inspecting the relevant existing state.
+
+This includes:
+
+- Directories.
+- Files.
+- Permissions.
+- Ownership.
+- Services.
+- Processes.
+- Container configuration.
+- Python environments.
+- Git status.
+- Network rules.
+
+## 13.2 Protected operations
+
+The following require explicit authorization:
+
+- Deletion.
+- Overwriting.
+- Resetting.
+- Cleaning.
+- Rebuilding an existing environment.
+- Replacing configuration.
+- Changing ownership.
+- Changing security permissions.
+- Installing major dependencies.
+- Enabling persistent services.
+- Opening network access.
+- Rotating credentials.
+
+## 13.3 Preserve local modifications
+
+Never assume that a local modification is disposable.
+
+Inspect Git status and compare the actual file before replacing it.
+
+A locally modified file may contain essential functionality not yet published upstream.
+
+## 13.4 Minimal change principle
+
+Prefer the smallest change that solves the verified problem.
+
+Avoid combining cleanup, optimization, restructuring and feature development in one operation.
+
+Do not expand the scope of a task without justification.
+
+## 13.5 Verification after modification
+
+Every modification must have a corresponding verification.
+
+Examples:
+
+- Directory creation → inspect ownership and permissions.
+- Python installation → verify interpreter and imports.
+- API integration → validate authenticated communication.
+- Firewall change → inspect resulting rules and connectivity.
+- Backup → inspect files and integrity.
+- Script modification → test the intended behavior.
+
+---
+
+# 14. PROJECT INITIALIZATION STANDARD
+
+Every new substantial project should pass through the following stages.
+
+## Stage 1 — Project definition
+
+- Define purpose.
+- Define scope.
+- Define expected capabilities.
+- Identify external dependencies.
+- Identify security requirements.
+- Identify resource requirements.
+- Establish what is explicitly out of scope.
+
+## Stage 2 — Environment inspection
+
+- Inspect host.
+- Inspect available containers.
+- Inspect existing project directories.
+- Inspect installed runtimes.
+- Inspect storage.
+- Inspect network requirements.
+- Avoid unnecessary duplication.
+
+## Stage 3 — Environment design
+
+- Select container.
+- Define operating system.
+- Define UID/GID expectations.
+- Define mounts.
+- Define filesystem layout.
+- Define Python or other runtime.
+- Define dependency strategy.
+
+## Stage 4 — Security design
+
+- Define trust boundaries.
+- Define Agent permissions.
+- Define credential storage.
+- Define credential access mechanism.
+- Define network access.
+- Define logging restrictions.
+- Define backup treatment of secrets.
+
+## Stage 5 — Recovery design
+
+- Establish recovery directory.
+- Define backup scope.
+- Define backup schedule if appropriate.
+- Define restoration procedure.
+- Validate recovery assumptions.
+
+## Stage 6 — Implementation
+
+- Create only approved directories.
+- Create the environment.
+- Install dependencies.
+- Implement minimal functionality.
+- Preserve existing protected assets.
+- Avoid unnecessary automation.
+
+## Stage 7 — Validation
+
+- Verify runtime.
+- Verify imports.
+- Verify permissions.
+- Verify security boundaries.
+- Verify application behavior.
+- Verify logs.
+- Verify recovery.
+
+## Stage 8 — Documentation
+
+- Publish architecture.
+- Record versions.
+- Record security decisions.
+- Record known limitations.
+- Record validation results.
+- Update recovery instructions.
+
+---
+
+# 15. PROJECT COMPLETION AND MAINTENANCE
+
+A project should not be declared complete merely because its main feature works.
+
+It should also have:
+
+- Reproducible environment.
+- Documented dependencies.
+- Defined security boundaries.
+- Controlled credential handling.
+- Clear startup and shutdown procedures.
+- Diagnostic capabilities.
+- Recovery documentation.
+- Verified core functionality.
+- Known limitations.
+- Version records.
+
+Maintenance should be proportional to actual benefit.
+
+Do not introduce unnecessary monitoring, optimization or automation simply because it is technically possible.
+
+If a project is placed on hold, preserve its working state and document its status.
+
+Do not continue developing a project merely to justify previous investment.
+
+---
+
+# 16. KNOWN ENVIRONMENT PROFILES
+
+This section records established information without turning project-specific settings into universal requirements.
+
+## 16.1 Steam Deck host
+
+| Parameter | Recorded value |
+|---|---|
+| User | `deck` |
+| Home | `/home/deck` |
+| Shell | Bash |
+| Administrative group | `wheel` |
+| Host Python | Must be checked when relevant |
+| Operating system | SteamOS |
+
+## 16.2 Odysseus environment
+
+| Parameter | Recorded value |
+|---|---|
+| Container | `odysseus-box` |
+| Container OS | Ubuntu 24.04 |
+| Project | `/home/deck/OdysseusProject` |
+| Recovery | `/home/deck/OdysseusRecovery` |
+| Python | 3.12.3 |
+| Interpreter | `/home/deck/OdysseusProject/.venv/bin/python` |
+| Credential root | `/home/deck/.config/odysseus/providers/` |
+
+Odysseus-specific protected modifications:
+
+- `src/builtin_mcp.py`
+- `decktools/`
+- `requirements-odysseus.txt`
+
+These must be preserved.
+
+The seven-provider architecture currently targets:
+
+- Groq.
+- Cloudflare.
+- OpenAI.
+- Gemini.
+- Mistral.
+- Cerebras.
+- OpenRouter.
+
+## 16.3 Shyrka environment
+
+Shyrka is an existing project and a useful reference for operational and security decisions.
+
+Verified credential configuration:
+
+```text
+/home/deck/.config/shyrka/
+    Owner: deck:deck
+    Permissions: 700
+
+elevenlabs-api-key
+    Owner: deck:deck
+    Permissions: 600
+```
+
+The credential value must never be printed during inspection.
+
+The Shyrka security principle is that its Agent must not receive credential access or credential sharing.
+
+The implementation of this requirement must be evaluated at both application and operating-system levels.
+
+## 16.4 Other projects
+
+Other project environments, such as LocalAI, Stable Diffusion and Pi-hole, maintain their own architectures and operational rules.
+
+Their configurations must not be automatically copied into a new project.
+
+---
+
+# 17. SECURITY VALIDATION CHECKLIST
+
+Before an application is allowed to use a long-lived API credential, verify:
+
+- [ ] Credential is outside the Git repository.
+- [ ] Credential is stored in the intended host-side location.
+- [ ] Directory ownership is correct.
+- [ ] Directory permissions are restrictive.
+- [ ] Key-file permissions are restrictive.
+- [ ] Key contents are not printed during inspection.
+- [ ] Credential is absent from tracked Git files.
+- [ ] Credential is absent from unencrypted session metadata.
+- [ ] Credential is absent from logs.
+- [ ] Credential is absent from browser UI.
+- [ ] Agent tool access is restricted.
+- [ ] Container UID/GID mappings are inspected.
+- [ ] Container mounts are inspected.
+- [ ] Actual process-level access is evaluated.
+- [ ] Credential retrieval is controlled.
+- [ ] Authentication is validated independently of model discovery.
+- [ ] Revocation and rotation procedures are documented.
+
+A checklist is not proof of compliance until each applicable item has been tested.
+
+---
+
+# 18. FINAL ENGINEERING PRINCIPLES
+
+The following principles govern all future projects.
+
+**1. Diagnosis before modification.**
+
+Understand the existing state before changing it.
+
+**2. Isolation before integration.**
+
+Establish clear boundaries before connecting components.
+
+**3. Least privilege by default.**
+
+Applications and Agents receive only the permissions they need.
+
+**4. Credentials belong to controlled security components.**
+
+An Agent should use authorized operations, not unrestricted secret access.
+
+**5. Host and container are different environments.**
+
+Never assume their identities, permissions or Python installations are independent.
+
+**6. Preserve working systems.**
+
+Do not replace a functioning component without a verified reason.
+
+**7. Reproducibility matters.**
+
+Record the versions, dependencies and procedures necessary to reconstruct the environment.
+
+**8. Recovery is mandatory engineering.**
+
+A working application without a recovery strategy is incomplete.
+
+**9. Automation requires authorization.**
+
+No automatic startup, paid services, provider switching, destructive maintenance or public exposure by default.
+
+**10. Verify every important change.**
+
+A command completing without an error is not sufficient proof of the intended outcome.
+
+**11. Keep projects independent.**
+
+Share standards and reusable knowledge, not arbitrary dependencies or application state.
+
+**12. Prefer practical value over unnecessary complexity.**
+
+Engineering effort should produce a measurable improvement in reliability, functionality, security or usability.
+
+---
+
+# 19. DOCUMENT GOVERNANCE
+
+**Document owner:** User / project administrator.
+
+**Scope:** All current and future development projects on the Steam Deck host.
+
+**Review policy:** Update when a global convention changes, a significant security finding emerges or a new reusable engineering practice is established.
+
+**Project adoption:** Every new substantial project should reference this document.
+
+**Change control:** Changes to the global standard should be deliberate, reviewed and versioned.
+
+**Current status:** Initial master-standard draft. Pending user review and approval.
+
+**Important:** This document describes the agreed engineering framework. It does not certify that every listed security measure has already been implemented or validated on the host.
+
+---
+
+**END OF GLOBAL ENGINEERING & SECURITY STANDARD — VERSION 1.0**
