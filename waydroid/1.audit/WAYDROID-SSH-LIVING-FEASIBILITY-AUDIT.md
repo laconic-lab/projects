@@ -4,7 +4,8 @@
 >
 > **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
 >
-> **Last source refresh:** 2026-11-06  
+> **Document version:** 1.1  
+**Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
 
@@ -80,15 +81,15 @@ Use these labels consistently:
 - The three Binder nodes (`binder`, `vndbinder`, `hwbinder`) were created in that disposable BinderFS instance.
 - The Binder device opened and returned protocol version 8 through `BINDER_VERSION`.
 - Host nested user namespace creation succeeded.
-- Nested user namespace creation inside rootless Podman succeeded with `SETUID + SETGID + SETPCAP + SETFCAP` in a disposable Debian 12 container with seccomp unconfined.
+- Nested user namespace creation inside rootless Podman succeeded with `SETUID + SETGID + SETPCAP + SETFCAP` in Test 19.
+- Test 20 then removed `SETPCAP`; nested user namespace creation still succeeded with `SETUID + SETGID + SETFCAP`, with both inner and outer exit codes `0`. This remains a seccomp-unconfined result; default seccomp is still untested.
 - Host-side private user/network namespace bridge, forwarding, and NAT operations succeeded without changing the host's persistent forwarding state.
 - Ordinary outbound networking/DNS from a disposable Podman container succeeded.
 
 ### 1.3 Major unresolved gates
 
-1. Test 20: determine whether `CAP_SETPCAP` can be removed from the successful nested user namespace capability set.
-2. Test the smallest successful capability set with Podman's **default seccomp** profile.
-3. Test nested mount and PID namespaces with that reduced capability set.
+1. Test the smallest successful capability set with Podman's **default seccomp** profile.
+2. Test nested mount and PID namespaces with that reduced capability set.
 4. Resolve the cgroup boundary: read-only cgroup mount and no delegated subtree controllers were observed inside the disposable container.
 5. Only after the prerequisites are understood, test an actual nested LXC runtime in a disposable environment.
 6. Test Binder device handoff through the outer container and LXC boundary.
@@ -419,7 +420,7 @@ Completed through Test 19:
 - Capability groups were isolated sequentially.
 - `CAP_SETFCAP` was identified as sufficient when added to the original `SETUID + SETGID + SETPCAP` trio.
 
-**Current exact stopping point:** Test 20 is pending. Do not rerun Tests 1–19.
+**Current exact stopping point:** Test 20 passed. The smallest successful set identified so far is `SETUID + SETGID + SETFCAP` under `seccomp=unconfined`. Do not rerun Tests 1–20.
 
 ---
 
@@ -501,7 +502,7 @@ The tests below used disposable Debian 12 Slim containers, `--network=none`, and
 | CAP-07 | Base three + `SYS_CHROOT + SETFCAP` (Test 17) | Passed | CONFIRMED |
 | CAP-08 | Base three + `SYS_CHROOT` only (Test 18) | Failed | CONFIRMED FAILURE |
 | CAP-09 | Base three + `SETFCAP` only (Test 19) | Passed | CONFIRMED |
-| CAP-10 | `SETUID + SETGID + SETFCAP` (remove `SETPCAP`; Test 20) | No result in source export | **PENDING** |
+| CAP-10 | `SETUID + SETGID + SETFCAP` (remove `SETPCAP`; Test 20) | Passed; capability mask `00000000800000c0`; inner and outer exit codes `0` | **CONFIRMED** |
 
 Successful Test 19 output:
 
@@ -524,27 +525,37 @@ Nested namespace exit code: 0
 
 Interpretation: `SETFCAP` is sufficient when added to the original three capabilities in this exact test. It is not established as a Waydroid requirement or a permanent permission recommendation.
 
-#### Test 20 — exact pending command
+#### Test 20 — completed: `SETPCAP` removed
 
-**Do not run automatically.** This is the recorded next step; the user must initiate the live audit continuation.
+- **Date:** 2026-11-06
+- **Status:** CONFIRMED
+- **Environment:** Steam Deck host launching a disposable rootless Podman container
+- **Image/runtime:** `docker.io/library/debian:12-slim`; Podman configuration as recorded in §3.4
+- **Prerequisite:** CAP-09 / Test 19
+- **Question:** Can nested user-namespace creation and root UID/GID mapping succeed without `CAP_SETPCAP`?
+- **Why new:** Isolates the necessity of `SETPCAP` after Test 19 established that `SETFCAP` was sufficient when combined with the original three capabilities.
+- **Repeat policy:** Do not repeat unless SteamOS kernel, Podman/crun, user-namespace policy, or the tested capability/security configuration changes.
+- **Side-effect boundary:** Disposable container, `--rm`, `--network=none`, `--pull=never`; no host networking, persistent files, services, or configuration changes.
 
-Run on the Steam Deck host, in a disposable container:
+**Exact command executed**
 
 ```bash
-podman run --rm --pull=never \
-  --name waydroid-map-cap-audit-20 \
-  --network=none \
-  --cap-drop=ALL \
-  --cap-add=SETUID \
-  --cap-add=SETGID \
-  --cap-add=SETFCAP \
-  --security-opt=seccomp=unconfined \
-  docker.io/library/debian:12-slim \
+podman run --rm --pull=never \\
+  --name waydroid-map-cap-audit-20 \\
+  --network=none \\
+  --cap-drop=ALL \\
+  --cap-add=SETUID \\
+  --cap-add=SETGID \\
+  --cap-add=SETFCAP \\
+  --security-opt=seccomp=unconfined \\
+  docker.io/library/debian:12-slim \\
   sh -c '
     echo "===== CAPABILITIES ====="
     grep -E "^(CapPrm|CapEff|CapBnd|NoNewPrivs|Seccomp):" /proc/self/status
+
     echo
     echo "===== NESTED USER NAMESPACE TEST ====="
+
     unshare --user --map-root-user sh -c "
       echo Namespace created successfully
       echo UID map:
@@ -553,20 +564,66 @@ podman run --rm --pull=never \
       cat /proc/self/gid_map
       id
     "
+
     result=$?
+
     echo
     echo "Nested namespace exit code: $result"
-    exit 0
+
+    exit "$result"
   '
+
+PODMAN_EXIT=$?
+echo
+echo "===== OUTER PODMAN EXIT STATUS ====="
+echo "Podman exit code: $PODMAN_EXIT"
 ```
 
-Interpretation:
+**Actual output**
 
-- **Pass:** `SETPCAP` was not needed for this nested mapping operation in this configuration.
-- **Fail:** `SETPCAP` remains part of the smallest successful combination identified so far.
-- Either outcome is limited to this nested user-namespace test; it does not establish LXC compatibility.
+```text
+===== CAPABILITIES =====
+CapPrm: 00000000800000c0
+CapEff: 00000000800000c0
+CapBnd: 00000000800000c0
+NoNewPrivs:     0
+Seccomp:        0
 
-After Test 20, test the resulting smallest successful set with Podman's **default seccomp profile**. Do not leave seccomp unconfined as an assumed permanent design.
+===== NESTED USER NAMESPACE TEST =====
+Namespace created successfully
+UID map:
+         0          0          1
+GID map:
+         0          0          1
+uid=0(root) gid=0(root) groups=0(root)
+
+Nested namespace exit code: 0
+
+===== OUTER PODMAN EXIT STATUS =====
+Podman exit code: 0
+```
+
+**Observed result**
+
+- The capability mask was `00000000800000c0` in permitted, effective, and bounding sets. This corresponds to the requested retained set `SETUID + SETGID + SETFCAP`; `SETPCAP` was absent.
+- Nested user namespace creation succeeded.
+- UID and GID maps each showed `0 -> 0` with a one-ID range inside the disposable container's namespace view.
+- Inner `unshare` exit status: `0`.
+- Outer Podman exit status: `0`.
+
+**Interpretation**
+
+- **What this proves:** `CAP_SETPCAP` is not required for this specific nested user-namespace creation and root mapping operation under the tested Debian 12 Slim / rootless Podman / seccomp-unconfined configuration.
+- **What this does not prove:** It does not establish that this set is sufficient for nested mount/PID namespaces, LXC, Binder handoff, Waydroid startup, or a secure production container. It does not show compatibility with Podman's default seccomp profile.
+- **Security note:** `SETFCAP` remains present in the smallest successful set identified by these tests. It is not yet justified as a permanent runtime capability; subsequent tests must determine whether it can be removed or whether the operation can be redesigned.
+
+**Decision / next step**
+
+- Mark Test 20 passed; do not repeat Tests 1–20 without a changed condition.
+- Next: test the same `SETUID + SETGID + SETFCAP` set with Podman's default seccomp profile (omit `--security-opt=seccomp=unconfined`).
+- Then test nested mount and PID namespaces only if the default-seccomp user-namespace gate passes.
+
+**Evidence-quality correction:** The earlier proposed Test 20 command ended with `exit 0`, which could mask an inner `unshare` failure. The executed command propagated `result` using `exit "$result"` and separately reported `PODMAN_EXIT`; both returned `0`. Future nested tests must preserve this exit-status propagation pattern.
 
 ### 5.6 Networking
 
@@ -741,11 +798,10 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 
 | Order | Gate | Prerequisite | What constitutes evidence | Current status |
 |---:|---|---|---|---|
-| 1 | Test 20: remove `SETPCAP` | None; exact test already defined | Exit code, capability masks, UID/GID maps | **PENDING** |
-| 2 | Default seccomp with smallest successful set | Test 20 result | Nested namespace succeeds under default Podman seccomp | PENDING |
-| 3 | Nested mount namespace | Gate 2 | Mount namespace operation succeeds with same least-privilege set | PENDING |
-| 4 | Nested PID namespace | Gate 2/3 | PID namespace created and process lifecycle observed | PENDING |
-| 5 | Cgroup/LXC strategy | Namespace results and exact LXC version | Demonstrate LXC can work with available cgroup boundary or identify unavoidable delegation requirement | BLOCKED |
+| 1 | Default seccomp with smallest successful set | Test 20 | Nested user namespace succeeds under Podman's default seccomp profile | **NEXT** |
+| 2 | Nested mount namespace | Gate 1 | Mount namespace operation succeeds with same least-privilege set | PENDING |
+| 3 | Nested PID namespace | Gate 1/2 | PID namespace created and process lifecycle observed | PENDING |
+| 4 | Cgroup/LXC strategy | Namespace results and exact LXC version | Demonstrate LXC can work with available cgroup boundary or identify unavoidable delegation requirement | BLOCKED |
 | 6 | Disposable LXC runtime | Gates 2–5 | Inner LXC starts/stops cleanly with no privileged outer container | UNTESTED |
 | 7 | Binder handoff into LXC | Gate 6 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 8 | GPU handoff | Gate 6 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
@@ -901,7 +957,7 @@ Before proposing any command or inspection:
 - Disposable Podman cgroup read-only/no-subtree inspection.
 - Podman outbound network/DNS test.
 - Podman `NET_ADMIN` forwarding sysctl failure.
-- Capability tests through Test 19.
+- Capability tests through Test 20, including successful removal of `SETPCAP`.
 
 ### 11.2 A repeat may be justified only when
 
@@ -959,12 +1015,16 @@ The original exported conversation was supplied as:
 
 ### 13.3 Archive location
 
-The two source documents are retained, unchanged, under:
+The original source documents are retained unchanged under:
 
 - `waydroid/1.audit/archive/2026-11-06/_1.0_ Waydroid SSH Feasibility Audit.md`
 - `waydroid/1.audit/archive/2026-11-06/1.0_Waydroid-SSH-Consolidated-Audit.md`
 
-The archive preserves source history. This living document is the active entry point for future work.
+The initial canonical living audit (version 1.0, before Test 20 was incorporated) is also preserved unchanged as:
+
+- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.0.md`
+
+Version 1.1 is the active canonical record. Archive snapshots are historical and must not be edited to reflect later results.
 
 ### 13.4 Source access and review honesty
 
@@ -986,24 +1046,23 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
 
-**Next exact test:** Test 20 — `SETUID + SETGID + SETFCAP`, removing `SETPCAP` from the successful Test 19 set. The exact disposable command is in §5.5. It has not been executed in the source export.
+**Next exact test:** Test 21 — repeat the nested user-namespace mapping test with `SETUID + SETGID + SETFCAP` but **without** `--security-opt=seccomp=unconfined`, thereby using Podman's default seccomp profile. Keep `--network=none`, `--cap-drop=ALL`, and `--pull=never`; propagate the inner `unshare` exit code and separately report the outer Podman exit code.
 
-**After Test 20:**
-1. Record complete output and exit status.
-2. Test the resulting smallest successful set under Podman's default seccomp profile.
-3. Only then investigate nested mount/PID namespaces.
-4. Resolve cgroup/LXC requirements without changing host configuration.
-5. Proceed to disposable LXC only if the security prerequisites justify it.
+**After Test 21:**
+1. If default seccomp passes, test nested mount namespace creation with the same capability set.
+2. Then test nested PID namespace creation and process lifecycle.
+3. Resolve cgroup/LXC requirements without changing host configuration.
+4. Proceed to disposable LXC only if the security prerequisites justify it.
 
 **Continuation rule:** Before any command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. After the user runs it, interpret only the actual output and update this document's ledger.
-
 ---
 
 ## 15. Change log
 
 | Version | Date | Change |
 |---|---|---|
-| 1.0 | 2026-11-06 | Created canonical living feasibility audit from the original export and prior consolidated audit; added architecture, constraints, historical environment, phase map, detailed test ledger, security rules, continuation gates, test/decision schemas and anti-repetition protocol. |
+| 1.0 | 2026-11-06 | Initial canonical living audit reconstructed from the original export and prior consolidated audit. Preserved as `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.0.md`. |
+| 1.1 | 2026-11-06 | Recorded Test 20 as passed with `SETPCAP` removed; captured exact command/output and both exit statuses; corrected exit-status propagation; advanced the next gate to default-seccomp validation; clarified version/archive provenance. |
 
 ---
 
