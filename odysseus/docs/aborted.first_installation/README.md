@@ -3,10 +3,12 @@
 **Project:** Odysseus  
 **Generation:** v1 — first installation  
 **Status:** Retired; original Distrobox removed  
+**Installation outcome:** Successful  
+**Retirement reason:** Local Agent authority and host-isolation risk  
 **Documentation:** Historical record, reorganized into Markdown  
-**Last reorganized:** 2026-11-06
+**Last corrected:** 2026-11-06
 
-> **Important:** The first installation was successful. It was not abandoned because installation failed. Security issues became apparent during later Cloud AI API integration work. The original Distrobox deployment was subsequently removed, and a separate Odysseus v2 project was initiated. The v2 project is undergoing its own audit.
+> **Important — corrected project history:** The first installation succeeded. The original deployment was retired because the local autonomous Agent had access to powerful tools while its Distrobox execution environment did not provide an adequate security boundary from the Steam Deck host. This was a local Agent/runtime security decision. Cloud AI API integration and provider-credential handling were investigated separately and were not the primary reason for retiring v1.
 
 This directory documents the first Odysseus deployment as historical engineering work. It is not an installation guide, recovery guide or authorization to recreate the former environment.
 
@@ -14,13 +16,13 @@ This directory documents the first Odysseus deployment as historical engineering
 
 | Document | Purpose |
 |---|---|
-| [Installation and Retirement](./ODYSSEUS-V1-INSTALLATION-AND-RETIREMENT.md) | Installation outcome, former architecture, lifecycle and retirement context |
-| [Provider Investigation](./ODYSSEUS-V1-PROVIDER-INVESTIGATION.md) | Provider architecture, discovery findings, credential model and security constraints |
+| [Installation and Retirement](./ODYSSEUS-V1-INSTALLATION-AND-RETIREMENT.md) | Successful installation, former runtime, local Agent security concerns and retirement decision |
+| [Provider Investigation](./ODYSSEUS-V1-PROVIDER-INVESTIGATION.md) | Separate cloud-provider architecture and credential-handling investigation |
 | [Groq Integration Attempt](./ODYSSEUS-V1-GROQ-INTEGRATION-ATTEMPT.md) | Groq preparation, credential setup, observed permission issues and unfinished work |
 
 ## Original source preservation
 
-The original conversation exports are retained byte-for-byte under `archive/originals/`. The Markdown documents above are curated technical records derived from those exports and the related provider architecture reference.
+The original conversation exports are retained byte-for-byte under `archive/originals/`. The Markdown documents above are curated technical records derived from those exports and related project discussions.
 
 The originals may contain outdated paths, commands, partial outputs, corrections and contradictory intermediate states. Treat them as historical evidence, not current instructions.
 
@@ -29,23 +31,25 @@ The originals may contain outdated paths, commands, partial outputs, corrections
 ```text
 Odysseus v1 — first installation
         |
-        | Installation completed successfully
+        | Installation completed and application operated
         v
-Cloud AI API integration work
+Local Agent capabilities and execution authority reviewed
         |
-        | Security issues identified
+        | Host isolation and Agent authority judged inadequate
         v
-Original Distrobox deployment removed
-        |
-        v
-Odysseus v1 deployment retired
+Decision to retire the original deployment
         |
         v
-Odysseus v2 — separate successor project
+Original Distrobox removed
         |
         v
-Current phase: independent security audit
+Odysseus v2 — separate security-first successor
+        |
+        v
+Independent architecture and security audit
 ```
+
+The provider/API-key investigation was a distinct workstream running during the v1 period. It identified credential-storage and request-path concerns, but it is not the causal explanation for the v1 retirement.
 
 ## Historical-use restrictions
 
@@ -56,4 +60,4 @@ Current phase: independent security audit
 - Do not interpret historical test results as evidence about the current v2 environment.
 - Keep v2 audit conclusions and decisions in the v2 documentation tree.
 
-These documents distinguish user-confirmed history, facts recorded in the exports, proposed designs and unfinished work. Where the source does not establish a final result, the Markdown record says so rather than filling gaps with assumptions.
+These documents distinguish user-confirmed history, findings recorded during the original review, proposed designs and unfinished work. Where the source does not establish a final result, the Markdown record says so rather than filling gaps with assumptions.

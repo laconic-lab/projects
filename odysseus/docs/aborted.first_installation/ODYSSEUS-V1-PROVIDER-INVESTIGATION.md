@@ -9,9 +9,9 @@
 | Planned provider set | Seven providers |
 | Implementation outcome | No approved production integration |
 | Current status | Historical / superseded |
-| Last reorganized | 2026-11-06 |
+| Last corrected | 2026-11-06 |
 
-> **WARNING:** This document describes v1 investigation findings and design intent. It is not an implementation specification for v2. The original v1 Distrobox was removed after security issues were identified during Cloud AI API integration.
+> **Scope clarification:** This document records the separate v1 cloud-provider and credential-handling workstream. These findings are not the primary reason the original v1 Distrobox was removed. The v1 retirement decision concerned local Agent authority and inadequate host isolation; see [Installation and Retirement](./ODYSSEUS-V1-INSTALLATION-AND-RETIREMENT.md).
 
 ## 1. Purpose
 
@@ -217,15 +217,11 @@ providers/
 
 The subsequent Groq work exposed a mismatch between intended permissions and an observed file state at one point. See [the Groq integration attempt](./ODYSSEUS-V1-GROQ-INTEGRATION-ATTEMPT.md).
 
-## 10. Historical Distrobox access concern
+## 10. Credential access and the former runtime
 
-The v1 environment used a Distrobox process running as the host user's numeric UID. The investigation recorded a read/write host-home mount.
+The provider work also highlighted a separate credential-access concern: the historical Distrobox process used the host user's UID and had a read/write host-home mount. A same-UID process may access host-user files according to effective permissions, so storing a key outside the Git repository or setting its mode to `600` did not, by itself, isolate it from the application process.
 
-A same-UID process may access host-user files according to effective filesystem permissions. The container boundary must not be assumed to prevent access to host credentials.
-
-Restrictive key-file permissions alone do not create a separate identity or prevent a same-UID application process from reading those files. The actual mount, UID/GID mapping, file permissions and application capabilities must be considered together.
-
-This is a historical security concern, not a recommendation to restore the old mount.
+This overlap is relevant to credential threat modelling, but it does not change the causal history of the retirement decision: the original deployment was retired because the local Agent's effective authority and runtime isolation were unacceptable. Provider credential design remained a separate unfinished workstream.
 
 ## 11. Manual provider selection and cost controls
 
@@ -273,12 +269,12 @@ The historical investigation was recorded as a 56-step discovery phase. It produ
 | Groq key file created | Recorded in the implementation transcript |
 | All seven providers implemented | No evidence |
 | Complete end-to-end integration validated | Not established |
-| v1 deployment approved for continued operation | No; deployment retired |
+| v1 deployment approved for continued operation | No; retired for local Agent/runtime security reasons |
 
 ## 14. Relationship to the current project
 
 This investigation preserves engineering reasoning and historical lessons. It must not be used as a current implementation checklist without review.
 
-Odysseus v2 is a separate project. Its audit must determine the acceptable runtime, trust boundaries, credential access mechanism, agent permissions, filesystem access and network policy independently.
+Odysseus v2 is a separate project. Its audit must determine the acceptable runtime, trust boundaries, credential access mechanism, Agent permissions, filesystem access and network policy independently.
 
 The [v1 provider architecture reference](../ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md) remains available, but its implementation-status statements are historical and must be read in the context of the v1 retirement.

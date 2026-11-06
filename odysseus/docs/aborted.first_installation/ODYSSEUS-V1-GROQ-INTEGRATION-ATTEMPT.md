@@ -10,9 +10,9 @@
 | Historical Distrobox | `odysseus-box` |
 | Final status | Not completed as a production integration |
 | Current purpose | Historical record only |
-| Last reorganized | 2026-11-06 |
+| Last corrected | 2026-11-06 |
 
-> **WARNING — NOT A GROQ SETUP GUIDE.** The original v1 Distrobox was removed after security issues were discovered during Cloud AI API integration. Do not restore the old key file, directory tree, runtime or application configuration based on this record.
+> **Scope clarification:** This is a record of the separate cloud-provider credential workstream. The original v1 Distrobox was retired because of local Agent authority and host-isolation risks, not because the Groq integration or Cloud AI API work was the primary cause. Do not restore the old key file, directory tree, runtime or application configuration based on this record.
 
 ## 1. Objective
 
@@ -118,7 +118,7 @@ The container process used the host user's UID. A same-UID process could potenti
 
 The intended key-file mode of `600` did not by itself isolate the credential from the Odysseus process. If the application process ran as the same UID, it could read that file.
 
-The historical design therefore needed a more carefully defined trust boundary than simply storing a key outside the Git repository.
+The historical design therefore needed a more carefully defined trust boundary than simply storing a key outside the Git repository. This is a credential-handling finding, separate from the broader local Agent/runtime reason for retiring v1.
 
 ## 6. Credential access requirements
 
@@ -165,7 +165,7 @@ See [the provider investigation](./ODYSSEUS-V1-PROVIDER-INVESTIGATION.md) for th
 
 The Groq work progressed through investigation and initial credential preparation. The historical record includes a created Groq key file and a correction of its observed permissions from `644` to `600`.
 
-However, the first Odysseus deployment was later retired after security issues emerged during Cloud AI API integration. The original Distrobox was removed.
+The Groq integration was not completed as a validated production provider. The original v1 deployment was subsequently retired for the separate local Agent/runtime security reasons documented in [Installation and Retirement](./ODYSSEUS-V1-INSTALLATION-AND-RETIREMENT.md).
 
 Therefore:
 
@@ -185,7 +185,7 @@ Therefore:
 5. Session metadata must not become an accidental secret store.
 6. Model discovery, provider reachability and authentication need independent states.
 7. A successful installation does not establish the safety of later integrations.
-8. Security architecture must be reviewed before external credentials are connected to an agent runtime.
+8. Security architecture must be reviewed before external credentials are connected to an Agent runtime.
 
 ## 11. Related historical sources
 

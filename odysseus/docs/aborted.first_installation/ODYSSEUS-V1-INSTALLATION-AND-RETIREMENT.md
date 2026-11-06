@@ -10,28 +10,35 @@
 | Historical recovery path | `/home/deck/OdysseusRecovery` |
 | Installation outcome | Successful |
 | Final deployment status | Retired; original Distrobox removed |
+| Primary retirement reason | Local Agent authority and inadequate host isolation |
+| Separate workstream | Cloud AI provider integration and credential handling |
 | Successor | Odysseus v2, separately initiated |
 | Current purpose | Historical record only |
-| Last reorganized | 2026-11-06 |
+| Last corrected | 2026-11-06 |
 
-> **WARNING — NOT AN INSTALLATION GUIDE.** The first installation worked, but security issues were discovered during subsequent Cloud AI API integration. The original Distrobox deployment was removed. Odysseus v2 is a separate project and is currently undergoing its own audit.
+> **WARNING — NOT AN INSTALLATION GUIDE.** Odysseus v1 installed and operated successfully. It was retired because the local autonomous Agent's available capabilities, combined with the original Distrobox's permissions and host exposure, created an unacceptable security boundary. Cloud AI API credential handling was a separate concern, not the primary reason for removing the original Distrobox.
 
 ## 1. Executive summary
 
-The first Odysseus installation was successfully deployed on the Steam Deck. The project progressed beyond initial setup into provider architecture investigation and Cloud AI API integration preparation.
+The first Odysseus installation was successfully deployed on the Steam Deck. The application worked, and the project progressed into further capability and provider investigations.
 
-The work was discontinued because security concerns emerged while implementing the Cloud AI API integration. The original Distrobox was removed and a separate Odysseus v2 project was initiated.
+A subsequent security review focused on the local Agent: what actions it could request, which tools could execute those actions, which identity the processes used, and how much of the host filesystem and system interface the runtime exposed. The original Distrobox did not provide adequate isolation for an autonomous Agent with powerful local tools.
+
+The concern was not that the model could magically escape a properly isolated container. The concern was that the container already exposed significant host resources and authority. If an Agent tool could invoke shell or filesystem operations inside that environment, those operations could act on resources that were already mounted or otherwise available to the process.
+
+The original Distrobox was therefore removed and the v1 deployment retired. A separate Odysseus v2 project was initiated with a security-first approach.
 
 | Question | Historical outcome |
 |---|---|
 | Did the first installation succeed? | **Yes.** |
-| Did the project reach Cloud AI provider integration? | **Yes.** |
-| Was the original deployment retained? | **No.** |
+| Was the local Agent/runtime security reviewed? | **Yes.** |
+| Was the original execution boundary considered adequate? | **No.** |
 | Was the original Distrobox removed? | **Yes.** |
+| Was Cloud AI API credential work the primary retirement reason? | **No.** It was a separate workstream. |
 | Is v2 simply the old Distrobox restarted? | **No.** It is a separate successor project. |
 | Is v2 approved for deployment? | **No conclusion here.** It is undergoing its own audit. |
 
-Installation success and deployment approval are separate decisions.
+Installation success and deployment security are separate decisions.
 
 ## 2. Project timeline
 
@@ -40,16 +47,17 @@ flowchart TD
     A["Odysseus v1 — initial planning"] --> B["Host and Distrobox preparation"]
     B --> C["Application installation"]
     C --> D["Successful application deployment"]
-    D --> E["Provider architecture investigation"]
-    E --> F["Cloud AI API integration preparation"]
-    F --> G{"Security concerns identified"}
-    G --> H["Original Distrobox removed"]
-    H --> I["v1 deployment retired"]
-    I --> J["Separate Odysseus v2 initiated"]
-    J --> K["v2 security audit in progress"]
+    D --> E["Local Agent capabilities and runtime authority reviewed"]
+    E --> F{"Adequate host isolation?"}
+    F -->|No| G["Retire original deployment"]
+    G --> H["Remove original Distrobox"]
+    H --> I["Initiate separate Odysseus v2"]
+    I --> J["Independent v2 security audit"]
+    D --> K["Separate provider/API credential investigation"]
+    K --> L["Credential and integration findings retained as history"]
 ```
 
-This is a project-history diagram, not a deployment procedure.
+This is a project-history diagram, not a deployment procedure. The provider investigation is shown separately to avoid implying that it caused the v1 retirement.
 
 ## 3. Former environment — historical reference
 
@@ -74,88 +82,153 @@ The intended model was manual: no automatic start at Steam Deck boot; enter the 
 
 These names are recorded for identification only. Do not recreate or execute the scripts on the basis of this document.
 
-## 4. Installation outcome
+## 4. Why the local Agent/runtime was retired
 
-The first installation was successful. The project was installed and operated within the intended Distrobox-based environment, and work progressed to the next phase: integrating external Cloud AI providers.
+The decisive concern was the combination of autonomous Agent behavior, powerful local tools and an execution environment that did not adequately separate those tools from the host.
 
-A successful application installation did not establish that the overall deployment was safe for every later capability. Adding external API credentials and expanding the application's access to host-side secrets changed the security requirements.
+An LLM-based Agent is not a conventional deterministic script. It interprets goals and context, selects tools and generates tool inputs. Untrusted material—such as web pages, retrieved documents, tool output or prompt-injection text—may influence its decisions. Prompt-injection resistance and approval prompts are useful controls, but they are not substitutes for OS-enforced isolation.
 
-**A working application is not automatically a safely contained application.**
+The technical review of the former `odysseus-box` recorded an excessively permissive configuration, including:
 
-## 5. Why the first deployment was retired
+| Area | Historical finding recorded during review | Security implication |
+|---|---|---|
+| Container privilege | Privileged container configuration | Weakened container isolation from host |
+| Process identity | Container process ran with host-user identity / same UID context | User-owned host files could remain accessible according to permissions |
+| Host home | Read/write access to `/home/deck` | Broad access to user files and configuration |
+| Host root | Host filesystem exposed read/write under `/run/host` | Potential access to host paths beyond the project workspace |
+| Devices and system interfaces | Read/write exposure of `/dev` and `/sys` | Expanded access to host device and kernel-facing interfaces |
+| Network | Host networking | Reduced network namespace separation |
+| AppArmor | Unconfined profile | No effective AppArmor confinement for the container |
+| Masking | `unmask=all` recorded | Removed additional masking restrictions |
 
-Security issues were discovered during Cloud AI API implementation. The original Distrobox deployment was subsequently removed, and a new Odysseus project was initiated.
+These are historical review findings about the former deployment configuration. They are not claims about the current Steam Deck, the current v2 project or every possible Distrobox configuration.
 
-The central lesson is that provider credentials, agent capabilities, host-mounted files and runtime permissions must be reviewed as one effective security boundary.
+### 4.1 Why this mattered for an autonomous Agent
 
-This record does not invent a single root cause or claim that one setting alone caused the retirement. Detailed findings belong to the relevant security review and v2 audit records.
+The application exposed or was intended to expose powerful capabilities such as shell execution, Python execution and filesystem operations. When such tools execute with the application process's effective identity and permissions, their authority is bounded by the process environment—not by the Agent's intended task description.
 
-### 5.1 Consequences
+The practical risk chain was:
 
-- The former v1 Distrobox is not a supported runtime.
-- Historical local files and credentials are not presumed safe to restore.
-- The old runtime must not be reconstructed from transcript snippets.
-- Provider integration plans from v1 are not proof of working integrations.
-- The successor project must establish its own architecture and security evidence.
+```text
+Untrusted or misleading input reaches the Agent
+                  |
+                  v
+Agent selects a powerful local tool
+                  |
+                  v
+Tool executes as the application process
+                  |
+                  v
+Process inherits the runtime's effective permissions
+                  |
+                  v
+Broad host mounts / privileges make host resources reachable
+                  |
+                  v
+Potential host-file access, modification or other unintended actions
+```
 
-## 6. Useful engineering outcomes
+The concern was not a proven successful exploit or a demonstrated container escape. It was that the original runtime gave the Agent tool process access to host resources that should not have been inside its authority boundary in the first place.
 
-The first project produced reusable historical knowledge:
+**Key principle:** a container is not a meaningful security boundary for an Agent if the container is configured to expose the host resources and privileges that the Agent must be prevented from using.
 
-1. A SteamOS/Distrobox installation path was explored and successfully used.
-2. Host and container execution contexts were explicitly distinguished.
-3. The project used a dedicated Python virtual environment rather than assuming host Python was suitable.
-4. Manual lifecycle management was preferred over automatic startup.
-5. Recovery material was separated from the application directory.
-6. Provider architecture investigation identified existing application integration points.
-7. Credential handling exposed important questions about host mounts, file permissions and application access.
-8. Model discovery, authentication and provider health were identified as separate concerns.
+### 4.2 Why prompt instructions alone were insufficient
 
-These are lessons, not blanket approval to reuse the old implementation.
+System prompts, tool descriptions, confirmation steps and application-level role checks can reduce accidental or malicious tool use. They do not provide the same guarantee as operating-system controls.
 
-## 7. What must not be carried forward automatically
+A safer design must enforce restrictions outside the model, including:
+
+- Non-privileged execution identity.
+- No broad host-home or host-root mounts.
+- Workspace-scoped filesystem access.
+- No unnecessary device or kernel-interface access.
+- Network isolation and explicit egress policy.
+- Mandatory access-control confinement where available.
+- Capability reduction and syscall restrictions where appropriate.
+- Default-deny tool availability and narrow per-tool permissions.
+- Human approval for sensitive actions, without treating approval as a sandbox.
+
+These are security requirements and design principles, not a statement that v2 has already implemented or passed each control.
+
+## 5. Separate workstream: Cloud AI providers and credentials
+
+During the v1 period, a separate investigation examined integration with cloud AI providers, initially Groq and later a planned set of providers. That work identified questions around credential storage, request-time resolution, session persistence, logging, provider health and the Distrobox's access to host-side key files.
+
+Those findings remain relevant historical engineering material. They are documented separately in:
+
+- [Provider Investigation](./ODYSSEUS-V1-PROVIDER-INVESTIGATION.md)
+- [Groq Integration Attempt](./ODYSSEUS-V1-GROQ-INTEGRATION-ATTEMPT.md)
+
+**Causal distinction:** provider/API-key handling was not the primary reason the original Odysseus v1 deployment and Distrobox were retired. The retirement decision concerned local Agent authority and insufficient host isolation.
+
+## 6. Installation outcome
+
+The first installation was successful. The application was installed and operated in the historical Distrobox environment. The subsequent retirement was a deliberate security decision, not an installation failure.
+
+A successful application installation does not establish that its later Agent capabilities can safely operate with the same runtime permissions.
+
+## 7. Engineering lessons retained
+
+1. Assess an Agent's effective authority, not only the list of tasks it is intended to perform.
+2. Treat shell, Python and filesystem tools as privileged execution interfaces.
+3. Assume untrusted content may attempt to influence Agent tool selection.
+4. Do not rely on prompt instructions as the primary security boundary.
+5. Do not expose host home, host root, devices or kernel interfaces to an Agent runtime without a compelling and tightly controlled reason.
+6. A same-UID process may access host-user files exposed through mounts, subject to effective permissions.
+7. Container privilege, namespace configuration, mounts, capabilities, MAC profiles and network policy must be reviewed together.
+8. Provider credentials need their own narrow access design; keeping a key outside Git does not isolate it from a process that can read it.
+9. Installation success and security approval are separate milestones.
+10. Rebuild the security boundary before enabling powerful Agent tools.
+
+## 8. What must not be carried forward automatically
 
 | Historical item | Required treatment |
 |---|---|
 | Old Distrobox | Do not recreate |
-| Old container configuration | Reassess from first principles |
+| Old container configuration | Do not reuse; reassess from first principles |
+| Old privileged settings and host mounts | Do not reproduce |
 | Old virtual environment | Do not restore |
 | Old application database | Do not restore without explicit review |
 | Old caches and generated data | Do not restore by default |
 | Old `.env` files | Do not restore |
 | Old API keys and credential files | Do not restore or expose |
 | Old startup/shutdown scripts | Do not assume they are safe |
-| Old host mounts and permissions | Re-evaluate in the successor audit |
 | Old provider integration code | Reassess against v2 architecture and audit |
 
-## 8. Relationship to Odysseus v2
+## 9. Relationship to Odysseus v2
 
 Odysseus v2 is a separate successor project, not a continuation of the old container's runtime state. Its records are maintained separately under [second.installation](../second.installation/).
 
-The v2 audit must establish its own runtime and privilege model, filesystem mounts, network exposure, credential access, agent permissions, lifecycle, logging and recovery boundaries.
+The v2 audit must establish its own evidence for:
 
-No conclusion in this historical v1 record substitutes for v2 evidence.
+- Agent roles, autonomy and tool authority.
+- Shell, Python and filesystem execution boundaries.
+- Runtime identity, privileges, capabilities and namespaces.
+- Host filesystem mounts and device exposure.
+- Network access and egress restrictions.
+- Prompt-injection handling and untrusted-content boundaries.
+- Credential access and secret handling.
+- MCP, email, background tasks and scheduled execution.
+- Lifecycle, logging, backup and recovery.
 
-## 9. Source records
+No conclusion in this historical v1 record substitutes for v2 evidence. The current audit's findings and decisions belong in the v2 documentation tree.
 
-The original exports are preserved in [archive/originals](./archive/originals/):
+## 10. Source records
 
-1. First installation reference and project conversation.
-2. Groq provider inspection and investigation conversation.
-3. Groq provider implementation handover and initial work.
+The original installation and provider conversation exports are preserved in [archive/originals](./archive/originals/). They are primary historical source material, but may contain intermediate or superseded instructions. The curated Markdown documents in this directory are the preferred entry point.
 
-They are large conversation exports. The curated Markdown documents in this directory are the preferred entry point.
-
-## 10. Final status
+## 11. Final status
 
 | Area | Historical status |
 |---|---|
 | First installation | Successful |
-| Cloud AI API integration | Security issues discovered during implementation |
+| Local Agent/runtime security | Inadequate host isolation identified |
+| Primary retirement reason | Local Agent authority and host-isolation risk |
 | Original Distrobox | Removed |
 | v1 deployment | Retired |
+| Cloud AI provider investigation | Separate workstream; incomplete as production integration |
 | Historical records | Preserved |
 | Odysseus v2 | Separate successor project |
 | v2 audit | In progress |
 
-**Final interpretation:** Odysseus v1 was successfully installed and then deliberately retired after security concerns emerged during Cloud AI API integration. Its history is preserved for reference; the current v2 project must be evaluated independently.
+**Final interpretation:** Odysseus v1 worked, but its local autonomous Agent was paired with a runtime that exposed too much host authority. The deployment was deliberately retired and the original Distrobox removed. Cloud AI API and credential work is a separate historical subject. Odysseus v2 must be assessed independently.
