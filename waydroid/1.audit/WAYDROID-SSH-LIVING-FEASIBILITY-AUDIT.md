@@ -1664,9 +1664,9 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 
 | Order | Gate | Prerequisite | What constitutes evidence | Current status |
 |---:|---|---|---|---|
-| 1 | Nested mount namespace under default seccomp | Test 21 | Mount namespace operation succeeds with the same three capabilities and default seccomp | **NEXT — TEST 22** |
-| 2 | Nested PID namespace | Test 21 and mount namespace result | PID namespace created and process lifecycle observed | PENDING |
-| 3 | Cgroup/LXC strategy | Namespace results and exact LXC version | Demonstrate LXC can work with available cgroup boundary or identify unavoidable delegation requirement | BLOCKED |
+| 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
+| 2 | Cgroup/LXC strategy | Tests 24–25 | Correlate container read-only cgroup view with host delegation/path; determine whether a safe delegated subtree is available without host changes | **IN PROGRESS — TEST 25 PARTIAL** |
+| 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | PENDING / SUPPLEMENTAL |
 | 4 | Disposable LXC runtime | Namespace/cgroup prerequisites | Inner LXC starts/stops cleanly with no privileged outer container | UNTESTED |
 | 7 | Binder handoff into LXC | Gate 6 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 8 | GPU handoff | Gate 6 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
@@ -1911,13 +1911,13 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
 
-**Latest completed test:** Test 25 — host cgroup delegation and Podman path inspection. Result: **PARTIALLY CONFIRMED**. Host cgroup2 mount is `rw`; `user@1000.service` reports `Delegate=yes`; the temporary Podman container's host path is under that user service's `user.slice/libpod-….scope/container`. The Podman info template query used an unsupported field and did not establish manager/version. The cleanup trap did not run in the still-open interactive shell, so the temporary container must be explicitly verified/stopped. See §5.5.
+**Latest completed test:** Test 25 — host cgroup delegation and Podman path inspection. Result: **PARTIALLY CONFIRMED**. Host cgroup2 mount is `rw`; `user@1000.service` reports `Delegate=yes`; the temporary Podman container's host path is under that user service's `user.slice/libpod-….scope/container`. The Podman info template query used an unsupported field and did not establish manager/version. Cleanup follow-up is now **CONFIRMED**: Podman escalated from SIGTERM to SIGKILL and the subsequent filtered container listing was empty. See §5.5.
 
-**Next action:** Verify and stop the temporary `waydroid-cgroup-audit-25` container. Then perform the five-test documentation consistency review and preserve an unchanged archive snapshot for Tests 21–25. A supported read-only Podman info query can be done as a supplemental check if still needed. Do not modify host cgroup or systemd settings.
+**Next action:** Perform the five-test consistency review for Tests 21–25; an unchanged v1.7 snapshot is to be preserved. Optionally resolve the Podman info query using supported JSON output. Do not modify host cgroup or systemd settings.
 
 **After Test 25:**
-1. Verify and stop the temporary `waydroid-cgroup-audit-25` container; its interactive-shell EXIT trap did not run automatically.
-2. Perform the five-test consistency review for Tests 21–25 and preserve an unchanged archive snapshot of the updated canonical audit.
+1. Temporary container cleanup is complete and verified: SIGTERM timed out, Podman escalated to SIGKILL, and the filtered listing returned no rows.
+2. Perform the five-test consistency review for Tests 21–25 and preserve an unchanged v1.7 archive snapshot of the updated canonical audit.
 3. Optionally query supported Podman info JSON fields read-only to resolve the unsupported template-field query.
 4. Do not modify host cgroups, systemd properties or delegation settings without explicit review and approval.
 
