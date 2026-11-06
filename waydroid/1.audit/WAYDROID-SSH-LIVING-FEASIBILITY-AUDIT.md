@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Feasibility audit in progress — **conditionally promising, not proven**.
+> **Status:** Feasibility audit in progress — **conditionally promising, but the observed rootless cgroup boundary currently blocks a justified nested-LXC experiment**.
 >
-> **Document version:** 1.8  
+> **Document version:** 1.9  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -72,7 +72,9 @@ Use these labels consistently:
 
 ### 1.1 Current verdict
 
-**Conditionally promising, not yet proven.** There are credible positive results for BinderFS, Binder device creation, Binder protocol identification, rootless Podman networking in ordinary outbound use, and nested user namespaces under a particular capability set. However, the actual Android runtime has not been launched. Nested LXC, usable cgroup delegation, Binder transactions under Android load, GPU rendering from the proposed container, KDE session integration, Android networking, ADB, SSH tunnelling, and scrcpy end-to-end remain unproven.
+**Conditionally promising, but the current secure rootless boundary does not justify proceeding to an LXC experiment.** Positive results remain for BinderFS, Binder device creation, Binder protocol identification, ordinary rootless Podman outbound networking, and selected nested namespace primitives. The supplemental Podman JSON query confirms Podman 6.0.2 uses the systemd cgroup manager with cgroup v2 and \`crun 1.28-dirty\`. However, Test 24 directly observed the cgroup filesystem exposed inside the disposable rootless container as read-only, with no child cgroups visible; Test 25 found no evidence of writable nested delegation. The Podman JSON fields identify the host runtime configuration but do not override or explain away that mount boundary.
+
+The actual Android runtime has not been launched. LXC, Binder transactions under Android load, GPU rendering from the proposed container, KDE session integration, Android networking, ADB, SSH tunnelling, and scrcpy end-to-end remain unproven. Under the current evidence and security constraints, do not install or launch LXC merely to test whether it can bypass the observed cgroup restriction.
 
 ### 1.2 Positive evidence
 
@@ -91,17 +93,16 @@ Use these labels consistently:
 
 ### 1.3 Remaining gates
 
-1. Resolve the cgroup boundary: Test 24 confirmed the disposable container's cgroup v2 mount is read-only; Test 25 correlated its host path with systemd unit delegation, but did not establish writable nested delegation.
-2. Run the supplemental read-only Podman JSON query to identify supported cgroup manager/version fields. This is diagnostic evidence, not a prerequisite for assuming LXC will or will not work.
-3. Decide whether a secure disposable LXC experiment can be attempted without host cgroup/systemd changes, privileged mode, or broad mounts.
-4. If justified, test the minimum disposable LXC runtime and verify cleanup.
-5. Test Binder device handoff through the outer container and LXC boundary.
-6. Test the minimum AMD render-node access required; no GPU workload has been run inside the target boundary.
-7. Test Wayland, D-Bus, audio, and session handoff from a headless SSH-launched process without broad host runtime mounts.
-8. Resolve Android networking without host-wide forwarding/firewall changes or Pi-hole impact.
-9. Test localhost-only ADB plus SSH forwarding and scrcpy end-to-end from both Mint and Windows.
-10. Assess Rust Binder stability under real Android workloads, including large-transaction behavior.
-11. Test Android data persistence/recovery and manual lifecycle only if the runtime passes earlier gates.
+1. Revisit the cgroup boundary only if a supported, narrowly scoped rootless configuration can expose a writable delegated subtree without host-wide changes; current evidence does not show one.
+2. Do not proceed to LXC installation or launch under the current read-only cgroup exposure. Reopen this decision only if Podman/SteamOS configuration changes or authoritative, version-matched LXC evidence identifies a safe no-delegation mode compatible with Waydroid.
+3. If the cgroup gate is legitimately reopened, first design and approve a disposable LXC test with explicit limits, exact cleanup, and no privileged outer container, broad mounts, host namespaces, or host configuration changes.
+4. Test Binder device handoff through the outer container and LXC boundary only after the LXC gate passes.
+5. Test the minimum AMD render-node access required; no GPU workload has been run inside the target boundary.
+6. Test Wayland, D-Bus, audio, and session handoff from a headless SSH-launched process without broad host runtime mounts.
+7. Resolve Android networking without host-wide forwarding/firewall changes or Pi-hole impact.
+8. Test localhost-only ADB plus SSH forwarding and scrcpy end-to-end from both Mint and Windows.
+9. Assess Rust Binder stability under real Android workloads, including large-transaction behavior.
+10. Test Android data persistence/recovery and manual lifecycle only if the runtime passes earlier gates.
 
 **No permanent Waydroid container, package installation, host kernel modification, Binder service, firewall change, or persistent Android data store is justified yet.**
 
@@ -1562,6 +1563,124 @@ Findings:
 **Next action:** Run the supplemental read-only Podman JSON query. It addresses Gate 3 and must not repeat the completed host cgroup/path inspection. Do not modify host cgroup or systemd settings.
 
 
+### 5.8 Supplemental Gate 3 — read-only Podman JSON configuration query
+
+- **Date:** 2026-11-06 (user-reported execution date)
+- **Status:** **CONFIRMED — query and JSON inspection succeeded**
+- **Environment:** Steam Deck host (`deck@Laco`), not inside Distrobox or a Podman container
+- **Prerequisites:** Test 25; Gate 3 supplemental query
+- **Question:** What cgroup manager/version and OCI runtime does the active Podman installation report?
+- **Why new:** Test 25's Go-template expression used an unsupported field (`.Host.CgroupVersion`). This query reads the supported JSON representation and does not repeat the host cgroup path or container mount inspection.
+- **Side-effect boundary:** Read-only `podman info --format json` plus local Python JSON parsing. No container was started or stopped; no cgroup, systemd, service, mount, or persistent configuration was changed.
+- **Repeat policy:** Do not repeat unless Podman, crun, SteamOS, or the cgroup configuration changes.
+
+**Exact command executed**
+
+```bash
+echo "===== PODMAN INFO JSON — READ-ONLY AUDIT ====="
+
+PODMAN_JSON=$(podman info --format json)
+PODMAN_STATUS=$?
+
+echo
+echo "===== PODMAN COMMAND STATUS ====="
+echo "Exit code: $PODMAN_STATUS"
+
+if [ "$PODMAN_STATUS" -ne 0 ]; then
+    echo
+    echo "ERROR: Podman info query failed."
+    echo "Preserve the error output; do not change Podman configuration."
+    exit "$PODMAN_STATUS"
+fi
+
+echo
+echo "===== RELEVANT PODMAN JSON FIELDS ====="
+
+printf '%s\\n' "$PODMAN_JSON" | python -c '
+import json, sys
+
+data = json.load(sys.stdin)
+
+def inspect(obj, prefix=""):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            path = f"{prefix}.{key}" if prefix else key
+
+            if any(term in key.lower() for term in
+                   ("cgroup", "runtime", "version")):
+                print(f"{path} = {value}")
+
+            if isinstance(value, (dict, list)):
+                inspect(value, path)
+
+    elif isinstance(obj, list):
+        for index, value in enumerate(obj):
+            inspect(value, f"{prefix}[{index}]")
+
+print("Top-level keys:", sorted(data.keys()))
+print()
+inspect(data)
+'
+
+PYTHON_STATUS=$?
+
+echo
+echo "===== JSON INSPECTION STATUS ====="
+echo "Python exit code: $PYTHON_STATUS"
+
+echo
+echo "===== INSPECTION COMPLETE ====="
+```
+
+**Actual relevant output**
+
+```text
+===== PODMAN COMMAND STATUS =====
+Exit code: 0
+
+===== RELEVANT PODMAN JSON FIELDS =====
+Top-level keys: ['host', 'plugins', 'registries', 'store', 'version']
+
+host.cgroupManager = systemd
+host.cgroupVersion = v2
+host.cgroupControllers = ['cpu', 'memory', 'pids', 'dmem']
+host.ociRuntime = {'name': 'crun', 'package': 'crun-1.28-1', 'path': '/usr/bin/crun', 'version': 'crun version 1.28-dirty
+commit: 54f16ffbefcd022bf032af768b5c5ce075c18bfc
+rundir: /run/user/1000/crun
+spec: 1.0.0
++SYSTEMD +SELINUX +APPARMOR +CAP +SECCOMP +EBPF +CRIU +LIBKRUN +JSON_C'}
+version.APIVersion = 6.0.2
+version.Version = 6.0.2
+version.GoVersion = go1.26.5-X:nodwarf5
+
+===== JSON INSPECTION STATUS =====
+Python exit code: 0
+```
+
+**Observed result**
+
+- Podman reports version `6.0.2` and API version `6.0.2`.
+- `host.cgroupManager` is `systemd`.
+- `host.cgroupVersion` is `v2`.
+- Host-reported cgroup controllers are `cpu`, `memory`, `pids`, and `dmem`.
+- OCI runtime is `crun 1.28-dirty`, package `crun-1.28-1`, path `/usr/bin/crun`.
+- Podman command exit status: `0`; Python JSON inspection exit status: `0`.
+
+**Interpretation**
+
+- **What this proves:** the active Podman installation reports the manager, cgroup version, controller list, engine version, and OCI runtime shown above.
+- **What this does not prove:** that those controllers are delegated to a rootless container, that the cgroup mount inside that container is writable, or that LXC can create/manage nested cgroups.
+- The controller list is host-level Podman information. It must not be treated as proof that every controller is available inside the container.
+- Combined with Test 24, the decisive observed boundary remains the container's cgroup2 mount with per-mount `ro`, empty `cgroup.subtree_control`, no visible child cgroups, and no writable controller files.
+- Combined with Test 25, `user@1000.service` reporting `Delegate=yes` and Podman using systemd do not prove writable delegation to the nested container.
+
+**Decision**
+
+- Gate 3 is complete.
+- Gate 2 remains blocked under the observed configuration.
+- A disposable LXC experiment is **not justified at this stage**: the required cgroup boundary has not been demonstrated, and trying to overcome it would risk widening permissions or changing host cgroup/systemd configuration. No LXC package was installed, no LXC container was created, and no host setting was changed.
+- Reopen only if a relevant runtime/SteamOS change or reliable version-matched technical evidence establishes a secure rootless LXC path that does not require host changes or broader privileges.
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -1697,9 +1816,9 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | Order | Gate | Prerequisite | What constitutes evidence | Current status |
 |---:|---|---|---|---|
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
-| 2 | Cgroup/LXC strategy | Tests 24–25 | Correlate the container's read-only cgroup view with host delegation/path; determine whether a safe delegated subtree is available without host changes | **IN PROGRESS — evidence reviewed; LXC feasibility not decided** |
-| 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **PENDING / SUPPLEMENTAL** |
-| 4 | Disposable LXC runtime decision and experiment | Gates 1–3 | Decide first whether an experiment is justified; if so, LXC starts/stops cleanly with no privileged outer container, broad mounts, or host changes | **BLOCKED pending gates 2–3 review** |
+| 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
+| 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
+| 4 | Disposable LXC runtime decision and experiment | Gates 1–3 | Decide first whether an experiment is justified; if so, LXC starts/stops cleanly with no privileged outer container, broad mounts, or host changes | **NOT JUSTIFIED under current evidence; no LXC package/runtime installed or experiment attempted** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -1917,12 +2036,13 @@ The original source documents are retained unchanged under:
 - `waydroid/1.audit/archive/2026-11-06/_1.0_ Waydroid SSH Feasibility Audit.md`
 - `waydroid/1.audit/archive/2026-11-06/1.0_Waydroid-SSH-Consolidated-Audit.md`
 
-The initial canonical living audit (version 1.0, before Test 20 was incorporated) is also preserved unchanged as:
+The canonical living audit snapshots are preserved unchanged as:
 
-- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.0.md`
-- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.7.md` — unchanged canonical snapshot immediately after Test 25 cleanup verification and before the v1.8 consistency-review corrections.
+- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.0.md` — initial canonical snapshot, before Test 20 was incorporated.
+- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.7.md` — snapshot immediately after Test 25 cleanup verification and before the v1.8 consistency-review corrections.
+- `waydroid/1.audit/archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md` — unchanged pre-decision snapshot, preserved before the Gate 3 result and cgroup/LXC decision were incorporated into v1.9.
 
-Version 1.8 is the active canonical record. The v1.0 and v1.7 snapshots are historical and must not be edited to reflect later results.
+Version 1.9 is the active canonical record. The v1.0, v1.7, and v1.8 snapshots are historical and must not be edited to reflect later results.
 
 ### 13.4 Source access and review honesty
 
@@ -1934,58 +2054,32 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Project:** Waydroid SSH — container-only feasibility audit.
 
-**Current state:** no Waydroid installation; no permanent host changes authorized by this audit. Existing projects remain protected.
+**Current state:** no Waydroid or LXC installation; no permanent host changes authorized by this audit. Existing projects, especially Pi-hole, remain protected.
 
 **Do not do next:**
-- Do not create a permanent `waydroid-box` yet.
-- Do not install Waydroid or import the old native installer.
-- Do not repeat host/session/GPU/BinderFS/cgroup/network baseline checks.
-- Do not repeat Tests 1–19.
+- Do not create a permanent `waydroid-box`.
+- Do not install Waydroid or LXC under the current cgroup evidence.
+- Do not import the old native installer.
+- Do not repeat host/session/GPU/BinderFS/cgroup/network baseline checks or Tests 1–25.
 - Do not enable host forwarding, change firewall rules, or add persistent services.
 - Do not grant privileged mode, broad mounts, host namespaces, or broad device access.
+- Do not attempt to make the read-only cgroup mount writable or alter systemd delegation.
 
-**Latest completed test:** Test 25 — host cgroup delegation and Podman path inspection. Result: **PARTIALLY CONFIRMED**. Host cgroup2 mount is `rw`; `user@1000.service` reports `Delegate=yes`; the temporary Podman container's host path is under that user service's `user.slice/libpod-….scope/container`. The Podman info template query used an unsupported field and did not establish manager/version. Cleanup follow-up is now **CONFIRMED**: Podman escalated from SIGTERM to SIGKILL and the subsequent filtered container listing was empty. See §5.5.
+**Latest completed evidence:** Gate 3 supplemental read-only Podman JSON query. Result: **CONFIRMED**. Podman reports `6.0.2`, systemd cgroup manager, cgroup v2, host controller list `cpu memory pids dmem`, and OCI runtime `crun 1.28-dirty`. Podman and Python exit statuses were both `0`. See §5.8.
 
-**Next action:** Run the supplemental read-only Podman JSON query described below. The Tests 21–25 consistency review is complete in §5.6, and the pre-edit canonical v1.7 snapshot has been preserved unchanged in the archive. Do not modify host cgroup or systemd settings.
+**Combined cgroup conclusion:** Test 24 observed the cgroup2 mount inside the disposable rootless container as read-only, with empty subtree control, no visible child cgroups, and no writable controller files. Test 25 observed `Delegate=yes` on `user@1000.service` and located the Podman container beneath that hierarchy, but did not demonstrate writable delegation to the container. Gate 3 identifies the host Podman manager/runtime; it does not change the container mount result.
 
-**After Test 25 / documentation review:**
-1. Temporary container cleanup is confirmed: SIGTERM timed out, Podman escalated to SIGKILL, and the subsequent filtered listing returned no rows.
-2. Tests 21–25 were reviewed for evidence/status consistency; see §5.6.
-3. The unchanged v1.7 snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.7.md`.
-4. The next technical action is a read-only Podman info JSON query; it must not modify cgroups, systemd properties, delegation, services, or persistent configuration.
+**Current decision:** Gate 3 is complete. Gate 2 remains blocked. A disposable LXC experiment is **not justified under the current evidence** because the required writable nested cgroup boundary has not been demonstrated. No LXC package was installed, no LXC container was created, and no host configuration was changed. Do not try to bypass the restriction with privileged mode, broad mounts, or host cgroup/systemd changes.
 
-**Next command — supplemental Podman JSON query (PROPOSED; not yet executed):**
+**Next action:** No further host experiment is currently recommended. Pause the technical audit at this cgroup/LXC boundary. Reopen only if:
+1. SteamOS, Podman, or crun changes in a way that materially changes rootless cgroup exposure; or
+2. reliable, version-matched technical evidence establishes a secure Waydroid-compatible LXC mode that does not require writable host delegation, privileged mode, broad host access, or persistent host changes.
 
-Gate: 3 — supported Podman cgroup configuration evidence. This reads Podman JSON output and prints keys whose names suggest cgroup/runtime/version information. It does not change configuration or repeat the host cgroup/path inspection.
+If the gate is reopened, first perform a read-only review of the changed configuration/evidence, then define a narrowly scoped experiment and obtain explicit approval before installing packages or launching LXC.
 
-```bash
-podman info --format json | python -c '
-import json, sys
+**Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-data = json.load(sys.stdin)
-
-def inspect(obj, prefix=""):
-    if isinstance(obj, dict):
-        for key, value in obj.items():
-            path = f"{prefix}.{key}" if prefix else key
-            if any(term in key.lower() for term in
-                   ("cgroup", "runtime", "version")):
-                print(f"{path} = {value}")
-            if isinstance(value, (dict, list)):
-                inspect(value, path)
-    elif isinstance(obj, list):
-        for index, value in enumerate(obj):
-            inspect(value, f"{prefix}[{index}]")
-
-print("Top-level keys:", sorted(data.keys()))
-print()
-inspect(data)
-'
-```
-
-Record the full output and exit status. If JSON parsing or the query fails, preserve the error and stop; do not guess field names or change Podman configuration.
-
-**Continuation rule:** Before any command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. After the user runs it, record the result in this canonical document immediately, before proposing the next test.
+**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -2001,6 +2095,7 @@ Record the full output and exit status. If JSON parsing or the query fails, pres
 | 1.6 | 2026-11-06 | Recorded Test 25 host cgroup path and systemd delegation observations; qualified the unsupported Podman info template query and missing interactive-shell EXIT cleanup; advanced handoff to explicit temporary-container cleanup and five-test documentation/archive review. |
 | 1.7 | 2026-11-06 | Recorded Test 25 cleanup follow-up: the temporary container was present, SIGTERM timed out, Podman escalated to SIGKILL, and the subsequent filtered listing was empty; cleanup is confirmed. |
 | 1.8 | 2026-11-06 | Completed the Tests 21–25 consistency review; corrected executive/dependency gate statuses and numbering; updated the continuation handoff; preserved the unchanged v1.7 snapshot; added the proposed read-only Podman JSON query. |
+| 1.9 | 2026-11-06 | Recorded the successful supplemental read-only Podman JSON query (Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty); completed Gate 3; reconciled it with Tests 24–25; determined that a disposable LXC experiment is not justified under the observed read-only cgroup boundary; preserved the unchanged v1.8 pre-decision snapshot and updated the continuation handoff. |
 
 ---
 
