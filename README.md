@@ -110,7 +110,8 @@ The repository contains projects at different maturity levels. A project may be 
 
 **Shared Steam Deck standards**
 - [Engineering & Security Baseline](./deck/docs/ENGINEERING-AND-SECURITY-BASELINE.md)
-- [Project Documentation Protocol](./deck/docs/PROJECT-DOCUMENTATION-STANDARD.md)
+- [Project Documentation Standard](./deck/docs/PROJECT-DOCUMENTATION-STANDARD.md)
+- [Python Runtime & Virtual Environment Standard](./deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md)
 - [Deck maintenance scripts](./deck/scripts/)
 
 **SSH — Steam Deck LAN administration**
@@ -130,9 +131,9 @@ The repository contains projects at different maturity levels. A project may be 
 
 **Shyrka**
 - [Documentation directory](./shyrka/docs/)
-- [Agent manifest](./shyrka/docs/SHYRKA-AGENT-MANIFEST.txt)
-- [Release notes](./shyrka/docs/SHYRKA_RELEASE_NOTES.txt)
-- [Python environment reference](./shyrka/docs/PYTHON_VENV.readme)
+- [Agent manifest](./shyrka/docs/AGENT-MANIFEST.md)
+- [Release notes](./shyrka/docs/RELEASE-NOTES.md)
+- [Shyrka Python environment reference](./shyrka/docs/PYTHON-ENVIRONMENT.md)
 
 **Stable Diffusion**
 - [Documentation index](./stable.diffusion/docs/README.md)
@@ -146,6 +147,7 @@ The repository contains projects at different maturity levels. A project may be 
 - [Documentation directory](./odysseus/docs/)
 - [Provider integration architecture](./odysseus/docs/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md)
 - [Deck lifecycle tools](./odysseus/decktools/)
+- [Shared Deck Python Runtime & Virtual Environment Standard](./deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md)
 
 **Waydroid**
 - [Consolidated SSH feasibility audit](./waydroid/1.audit/1.0_Waydroid-SSH-Consolidated-Audit.md)

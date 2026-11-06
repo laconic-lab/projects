@@ -12,14 +12,16 @@ The `deck/` directory groups resources that apply across multiple Steam Deck pro
 |---|---|
 | Shared engineering guidance | Common host, security, lifecycle, persistence and change-management principles |
 | Documentation standard | Consistent structure, status language, evidence and safe publication practices |
+| Python runtime standard | Shared interpreter, virtual-environment, dependency and verification conventions |
 | Maintenance tools | Host-oriented scripts and supporting operational material |
 
 ## Shared standards
 
 - [Engineering & Security Baseline](./docs/ENGINEERING-AND-SECURITY-BASELINE.md) — cross-project engineering, security, execution boundaries, network exposure, credentials, lifecycle and change management.
 - [Project Documentation Standard](./docs/PROJECT-DOCUMENTATION-STANDARD.md) — documentation roles, Markdown conventions, evidence, publication safety and AI-assisted documentation workflow.
+- [Python Runtime & Virtual Environment Standard](./docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md) — reusable Python interpreter, per-project `.venv`, dependency-management, verification and recovery guidance for current and future Deck projects.
 
-Read these standards when starting work that affects the Steam Deck platform or more than one project. They establish shared defaults; they do not replace project-specific instructions.
+Read these standards when starting work that affects the Steam Deck platform or more than one project. They establish shared defaults; they do not replace project-specific instructions. A project's own Python reference remains authoritative for its verified interpreter, runtime path and dependencies.
 
 ## Maintenance resources
 

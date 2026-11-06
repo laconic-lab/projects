@@ -1,16 +1,17 @@
 # PYTHON AND VIRTUAL ENVIRONMENT REFERENCE
 
-> **Document role:** Python interpreter, virtual-environment and dependency reference.  
+> **Document role:** Shyrka-specific Python interpreter, virtual-environment and dependency inventory.  
+> **Shared policy:** [Deck Python Runtime & Virtual Environment Standard](../../deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md).  
 > **Source:** `PYTHON_VENV.readme` (archived unchanged under [archive/originals](./archive/originals/)).  
 > **Conversion scope:** Markdown structure and presentation; underlying technical content retained. No Steam Deck audit or runtime revalidation was performed.
 
-Last verified: 2026-10-28
+Last verified: 2026-10-28  
 Scope: Steam Deck host, localai-box, Shyrka, and planned Kokoro runtime.
 
-Consult this reference before repeating environment discovery. Recheck only
-facts relevant to a change or a reported discrepancy.
+Consult the shared Deck standard for general policy. This document owns the Shyrka-specific paths, interpreter versions, dependency inventory and historical test results. Do not copy these values into another project.
 
 ## 1. ENVIRONMENT MAP
+
 Steam Deck host:
 - Host identity: deck@Laco
 - OS: SteamOS, ID steamos, VERSION_ID 3.9.5
@@ -47,6 +48,7 @@ Shyrka:
   ollama Python package 0.6.3
 
 ## 2. PROJECT PYTHON POLICY
+
 - Label commands with the intended environment.
 - Use localai-box for Shyrka and other container project operations.
 - Do not substitute the SteamOS host interpreter for a project venv.
@@ -54,8 +56,7 @@ Shyrka:
 - Applications may share a compatible base interpreter within localai-box.
 - Keep application dependencies isolated; do not install project packages globally.
 - Host and container Python versions do not need to match.
-- Do not upgrade Python or recreate an existing venv without a diagnosed
-  compatibility reason and an approved plan.
+- Do not upgrade Python or recreate an existing venv without a diagnosed compatibility reason and an approved plan.
 - Planned Kokoro paths:
   /home/deck/LocalAIProject/Kokoro/
   /home/deck/LocalAIProject/Kokoro/.venv/
@@ -63,6 +64,7 @@ Shyrka:
 - Kokoro has not been installed or initialized as of this reference date.
 
 ## 3. SHYRKA CHECKS
+
 Run from the Shyrka project directory in localai-box.
 
 Syntax check:
@@ -71,11 +73,10 @@ Syntax check:
 Unit tests:
 ./.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
 
-The previously recorded test result was 27/27 passing on 2026-10-28.
-That is historical evidence, not a claim that tests were rerun during this
-documentation update. Do not assume pytest is installed.
+The previously recorded test result was 27/27 passing on 2026-10-28. That is historical evidence, not a claim that tests were rerun during this documentation update. Do not assume pytest is installed.
 
 ## 4. MAINTENANCE
+
 - Recheck interpreter versions when the OS, container image, or venv changes.
 - Verify the interpreter path and active venv before installing dependencies.
 - Update this reference and project history when verified facts change.

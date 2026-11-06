@@ -2,6 +2,7 @@
 
 > **Purpose:** Entry point and index for the maintained Shyrka documentation.  
 > **Format:** Markdown (`.md`).  
+> **Shared platform policy:** [Deck Python Runtime & Virtual Environment Standard](../../deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md).  
 > **Conversion note:** Original source files are retained unchanged in [archive/originals](./archive/originals/). This conversion standardized presentation and added explanatory schemas; it did not audit the Steam Deck or revalidate runtime state.
 
 ## Documentation index
@@ -9,7 +10,7 @@
 | Document | Role |
 |---|---|
 | [Agent Manifest](./AGENT-MANIFEST.md) | Recorded components, model profile, capabilities and operating boundaries |
-| [Python Environment](./PYTHON-ENVIRONMENT.md) | Host/container/venv interpreter inventory and Python policy |
+| [Python Environment](./PYTHON-ENVIRONMENT.md) | Shyrka-specific host/container/venv interpreter inventory and Python policy |
 | [Startup and Reliability Protocol](./STARTUP-AND-RELIABILITY-PROTOCOL.md) | Session resumption, environment discipline and safe command generation |
 | [Maintenance and Update Policy](./MAINTENANCE-AND-UPDATE-POLICY.md) | Backup, change, validation and recovery workflow |
 | [Release Notes](./RELEASE-NOTES.md) | Chronological Shyrka feature and maintenance history |
@@ -42,6 +43,7 @@ flowchart TD
     R --> N["Release Notes"]
     R --> V["Project Versions"]
     O["Archived originals"] -. "historical reference only" .-> R
+    G["Deck shared Python standard"] --> P
 ```
 
 ## Content and evidence conventions

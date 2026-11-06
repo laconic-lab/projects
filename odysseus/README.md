@@ -14,7 +14,7 @@ Odysseus has two distinct project generations.
 ## Documentation
 
 - [Provider integration architecture](./docs/ODYSSEUS_PROVIDER_INTEGRATION_ARCHITECTURE.md) — historical provider design reference; verify all status statements against current v2 evidence.
-- [Python virtual environment reference](./docs/ODYSSEUS_PYTHON_VENV.readme)
+- [Shared Deck Python Runtime & Virtual Environment Standard](../deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md) — common Python environment policy for current and future Steam Deck projects.
 - [Deck lifecycle tools](./decktools/)
 - [v1 archive index](./docs/aborted.first_installation/README.md)
 - [v1 installation and retirement](./docs/aborted.first_installation/ODYSSEUS-V1-INSTALLATION-AND-RETIREMENT.md)
