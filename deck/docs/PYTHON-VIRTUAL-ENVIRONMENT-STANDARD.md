@@ -60,7 +60,8 @@ deck/docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md
         |                    |                     |
         v                    v                     v
 shyrka/docs/           odysseus/docs/         future-project/
-PYTHON-ENVIRONMENT.md  PYTHON-ENVIRONMENT.md  PYTHON-ENVIRONMENT.md
+PYTHON-ENVIRONMENT.md  (v2 reference,       PYTHON-ENVIRONMENT.md
+                         when established)
         |                    |                     |
         +--------------------+---------------------+
                              |
