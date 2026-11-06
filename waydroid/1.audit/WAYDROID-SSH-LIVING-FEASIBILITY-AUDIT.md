@@ -743,14 +743,14 @@ Podman exit code: 0
 **Exact command executed**
 
 ```bash
-podman run --rm --pull=never \\
-  --name waydroid-map-cap-audit-22 \\
-  --network=none \\
-  --cap-drop=ALL \\
-  --cap-add=SETUID \\
-  --cap-add=SETGID \\
-  --cap-add=SETFCAP \\
-  docker.io/library/debian:12-slim \\
+podman run --rm --pull=never \
+  --name waydroid-map-cap-audit-22 \
+  --network=none \
+  --cap-drop=ALL \
+  --cap-add=SETUID \
+  --cap-add=SETGID \
+  --cap-add=SETFCAP \
+  docker.io/library/debian:12-slim \
   sh -c '
     echo "===== CAPABILITIES AND SECURITY ====="
     grep -E "^(CapPrm|CapEff|CapBnd|NoNewPrivs|Seccomp):" /proc/self/status
@@ -774,36 +774,36 @@ podman run --rm --pull=never \\
 
       echo
       echo Parent mount namespace:
-      parent_mnt=\\$(readlink /proc/self/ns/mnt)
-      echo \\$parent_mnt
+      parent_mnt=\$(readlink /proc/self/ns/mnt)
+      echo \$parent_mnt
       export parent_mnt
 
       echo
       echo ===== NESTED MOUNT NAMESPACE =====
 
-      unshare --mount sh -c \\\" 
-        child_mnt=\\\\\\$(readlink /proc/self/ns/mnt)
+      unshare --mount sh -c \"
+        child_mnt=\\\$(readlink /proc/self/ns/mnt)
 
         echo Child mount namespace:
-        echo \\\\\\$child_mnt
+        echo \\\$child_mnt
 
         echo Parent mount namespace:
-        echo \\\\\\$parent_mnt
+        echo \\\$parent_mnt
 
-        if [ \\\\\\\"\\\\\\\$child_mnt\\\\\\\" = \\\\\\\"\\\\\\\$parent_mnt\\\\\\\" ]; then
+        if [ \\\\\"\\\$child_mnt\\\\\" = \\\\\"\\\$parent_mnt\\\\\" ]; then
           echo ERROR: Mount namespace did not change
           exit 1
         fi
 
         echo Mount namespace created successfully
-      \\\" 
+      \"
 
-      result=\\$?
+      result=\$?
 
       echo
-      echo Nested mount namespace exit code: \\$result
+      echo Nested mount namespace exit code: \$result
 
-      exit \\$result
+      exit \$result
     "
 
     result=$?
@@ -817,7 +817,7 @@ podman run --rm --pull=never \\
 PODMAN_EXIT=$?
 
 echo
- echo "===== OUTER PODMAN EXIT STATUS ====="
+echo "===== OUTER PODMAN EXIT STATUS ====="
 echo "Podman exit code: $PODMAN_EXIT"
 ```
 
