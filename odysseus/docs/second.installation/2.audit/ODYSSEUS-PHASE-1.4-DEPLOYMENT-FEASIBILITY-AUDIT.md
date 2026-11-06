@@ -3,8 +3,8 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.0  
-> **Record date:** 2026-11-06  
+> **Version:** 1.1  
+> **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
@@ -107,7 +107,7 @@ The existing rootless Podman foundation has useful controls, but testing has ide
 - A narrowly scoped bind-mount test demonstrated that the tested `nomap` container root could not read a host-owned mode-700 directory or create a file in it.
 - `--network=none` blocked the tested host SSH, router DNS and public HTTPS destinations.
 - The default rootless Podman bridge allowed tested access to the router DNS service and public HTTPS; DNS name resolution also worked. The default bridge is therefore not an acceptable security boundary for an Agent that must have no general LAN or Internet access.
-- Podman/Netavark support an `--internal` network option, but a dedicated internal network has **not yet been created or runtime-tested**.
+- A dedicated Podman `--internal` network was runtime-tested in NET-03. It blocked the tested host SSH, router DNS, public HTTPS and DNS-name-resolution attempts. Peer-to-peer behavior between two containers remains untested.
 - AppArmor and SELinux are disabled on the inspected host. Seccomp is enabled. Do not claim mandatory access-control protection that is not active.
 - No Odysseus application container, LXC container or production network has been created.
 
@@ -728,11 +728,133 @@ The following entries consolidate actual results recorded in the audit journey a
 
 ### NET-03 — Dedicated internal network
 
-- **Status:** PROPOSED — NOT EXECUTED
-- **Purpose:** Validate whether a Podman `--internal` network blocks the tested host/LAN/Internet egress while allowing only intended internal component communication.
-- **Prerequisite:** Explicit user approval for the named temporary network and disposable test container.
-- **Scope:** Do not alter the existing default network or protected containers. Use only cached image; no pull.
-- **Next:** Present exact create/run/probe/cleanup commands and wait for approval.
+- **Date/time:** 2026-11-07 local time (network creation timestamp: 2026-11-06T23:14:46.865335263Z)
+- **Status:** PARTIAL — tested external egress probes blocked; peer-to-peer communication not tested
+- **Environment:** SteamOS host created/inspected/removed the network; disposable rootless Podman container performed the probes
+- **Runtime/image:** Podman bridge network; cached `docker.io/library/python:3-alpine`; `--pull=never`
+- **Prerequisites:** NET-01 and NET-02; explicit user approval for this exact temporary network/container test
+- **Question:** Does a dedicated Podman `--internal` network block the tested host, router and public Internet destinations and DNS resolution?
+- **Acceptance criterion:** All named external probes fail because no route is available; network inspection confirms `internal: true`; temporary resources are removed without changing the default network.
+- **Why this test is new:** NET-01 tested `--network=none`; NET-02 tested the default bridge. Neither tested a dedicated bridge marked internal.
+- **Repeat policy:** Do not repeat unless Podman/Netavark/network behavior or the tested configuration changes, or a corrected harness is required.
+- **Approval:** Explicit approval received for creating, probing and removing `odysseus-gate-a-internal-test` and disposable container `odysseus-gate-a-net03`.
+- **Risk and side-effect boundary:** One temporary internal bridge and one disposable container only. No host firewall, route, DNS, default-network or protected-project changes.
+- **Resources:** Network `odysseus-gate-a-internal-test`; container `odysseus-gate-a-net03` (automatically removed by `--rm`).
+
+**Exact commands executed**
+
+Network creation:
+```bash
+podman network create --internal odysseus-gate-a-internal-test
+```
+
+Disposable probe (command reconstructed from the supplied terminal transcript; line continuations retained):
+```bash
+podman run --rm \
+  --pull=never \
+  --name odysseus-gate-a-net03 \
+  --network odysseus-gate-a-internal-test \
+  --userns=nomap \
+  --cap-drop=all \
+  --security-opt=no-new-privileges \
+  --pids-limit=64 \
+  --memory=128m \
+  docker.io/library/python:3-alpine \
+  python -c 'import socket; print("=== ROUTES ==="); print(open("/proc/net/route").read()); print("=== RESOLVER ==="); print(open("/etc/resolv.conf").read()); tests=[("host SSH","192.168.1.161",22),("router DNS","192.168.1.254",53),("public HTTPS","1.1.1.1",443)]; print("=== TCP PROBES ==="); [(lambda s: (print(name, "CONNECTED" if s else "BLOCKED/FAILED")))(None) for name,host,port in []]; \
+for name,host,port in tests: \
+ try: \
+  s=socket.create_connection((host,port),timeout=3); s.close(); print(name+": CONNECTED") \
+ except Exception as e: print(name+": BLOCKED/FAILED ("+type(e).__name__+": "+str(e)+")") \
+print("=== DNS LOOKUP ===") \
+try: print("example.com:",socket.getaddrinfo("example.com",443)) \
+except Exception as e: print("DNS FAILED:",type(e).__name__,str(e))'
+```
+
+Network inspection:
+```bash
+podman network inspect odysseus-gate-a-internal-test
+```
+
+Cleanup:
+```bash
+podman network rm odysseus-gate-a-internal-test
+```
+
+**Actual output**
+
+Network creation:
+```text
+odysseus-gate-a-internal-test
+```
+
+Container route table and resolver:
+```text
+=== ROUTES ===
+Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
+eth0    0000590A        00000000        0001    0       0       0       00FFFFFF        0       0       0
+
+=== RESOLVER ===
+search dns.podman .
+nameserver 10.89.0.1
+```
+
+Connectivity and DNS probes:
+```text
+=== TCP PROBES ===
+host SSH: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+router DNS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+public HTTPS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+=== DNS LOOKUP ===
+DNS FAILED: gaierror [Errno -2] Name does not resolve
+```
+
+Network inspection (relevant fields):
+```json
+{
+  "name": "odysseus-gate-a-internal-test",
+  "id": "7ae382cd01dff697c94fb64d5439ad39ab195409c529d2beaa7077152e93c48a",
+  "driver": "bridge",
+  "network_interface": "podman1",
+  "created": "2026-11-06T23:14:46.865335263Z",
+  "subnets": [{"subnet": "10.89.0.0/24", "gateway": "10.89.0.1"}],
+  "ipv6_enabled": false,
+  "internal": true,
+  "dns_enabled": true,
+  "containers": {}
+}
+```
+
+Cleanup output:
+```text
+odysseus-gate-a-internal-test
+```
+
+**Observed result**
+- The container had a directly connected `10.89.0.0/24` route and no default route in the displayed IPv4 route table.
+- All three TCP connection attempts failed with `Network unreachable`.
+- DNS lookup of `example.com` failed with `Name does not resolve`; the configured resolver was `10.89.0.1`.
+- Network inspection confirmed `internal: true`, IPv6 disabled, DNS enabled, and an empty attached-container inventory at inspection time.
+- Numeric exit codes were not separately captured in the supplied transcript; do not infer them from the printed output.
+- The disposable container was run with `--rm` and exited before the network inspection. No separate post-run `podman ps -a` verification was supplied.
+
+**Interpretation**
+- **Confirmed for this configuration:** the dedicated internal bridge blocked the tested host SSH, router DNS, public HTTPS and DNS name-resolution paths.
+- `Network unreachable` indicates that the tested container had no usable route to those destinations; this differs from a reachable destination refusing a connection.
+- The network inspection independently confirms that Podman marked this bridge as internal.
+- **Not established:** peer-to-peer communication between two containers; host-to-container access; published-port behavior; IPv6 egress (IPv6 was disabled on this test network); every possible host/LAN path; DNS behavior under other resolver/network configurations; or enforcement under a production component topology.
+- This establishes only the named outcomes under this recorded configuration, not universal network isolation.
+
+**Cleanup**
+- `podman network rm odysseus-gate-a-internal-test` returned the expected network name.
+- The container used `--rm` and had exited before the network inspection.
+- No explicit post-cleanup inventory output was supplied. Cleanup is supported by the successful removal output and `--rm`, but a separate final inventory check was not recorded.
+- No evidence indicates that the existing default `podman` network or protected containers were changed.
+
+**Conclusion**
+- **PASS for tested external egress isolation behavior.**
+- **PARTIAL for the broader NET-03 gate:** peer-to-peer communication was intentionally not part of this first disposable-container probe and remains untested.
+- Do not yet select the internal network as a complete production boundary.
+- **Next test:** NET-04 — two-container internal communication and egress boundary (proposed; approval required).
 
 ---
 
@@ -742,7 +864,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 
 | Order | Gate / test family | Required evidence | Current status |
 |---:|---|---|---|
-| 1 | Dedicated Podman internal network (NET-03) | Internal-network connectivity behavior for host, router, Internet, DNS and peer containers | **PROPOSED — approval required** |
+| 1 | Dedicated Podman internal network (NET-03) | Tested host/router/Internet/DNS egress blocked; peer communication not included | **PARTIAL — external probes passed; peer test pending** |
 | 2 | Internal component communication | Two disposable containers can communicate only on intended internal network; no unintended egress | NOT TESTED |
 | 3 | Host-service and published-port boundary | Verify host reachability and exposure behavior for candidate network/published-port configuration | NOT TESTED |
 | 4 | IPv6 and DNS behavior | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
@@ -1030,22 +1152,23 @@ Only documents and outputs actually retrieved or recorded may be described as re
 6. Default Podman bridge allowed tested router/LAN and Internet connectivity; do not use it as the Agent/Inspector isolation network.
 7. cgroup v2 and user-level delegation exist, but writable nested cgroup delegation inside the disposable rootless container was not demonstrated.
 8. AppArmor and SELinux are disabled.
-9. No Odysseus container, LXC container or production network has been created.
+9. NET-03 created a temporary Podman bridge marked `internal: true`; the tested container could not reach host SSH, router DNS or public HTTPS, and DNS lookup failed.
+10. The temporary NET-03 network was removed; its disposable container used `--rm`. No Odysseus container, LXC container or production network has been created.
 
 ### 18.2 Immediate next action
 
-The next proposed task is **NET-03 — dedicated Podman internal network validation**.
+NET-03 has been executed. Its external-egress probe passed for the four named behaviors, but the broader test remains partial because peer-to-peer communication was not tested.
 
-Before execution:
-- present exact create/run/probe/cleanup commands;
-- use a unique temporary network name;
-- use only the cached `python:3-alpine` image with `--pull=never`;
-- do not change or reuse the default `podman` network;
-- do not attach, stop or inspect protected project containers;
-- test only the named destinations and behavior required by the test;
-- obtain explicit approval for creation and removal of the named temporary network/container.
+The next dependency is **NET-04 — two-container internal communication and egress boundary**. Before proposing execution:
+- define two uniquely named disposable containers on a newly created, uniquely named temporary internal network;
+- use only cached images and `--pull=never`;
+- test peer-to-peer reachability in the intended direction(s);
+- repeat the host, router, public HTTPS and DNS probes from both peers;
+- inspect network membership and routes without touching protected containers;
+- remove only the two named containers/network and verify cleanup;
+- present exact commands, risks and approval boundary, then wait for explicit approval.
 
-If approval is not given, do not create anything. Continue only with a read-only analysis that does not repeat completed work.
+Do not assume the first NET-03 result proves peer communication or a production network boundary.
 
 ### 18.3 Explicitly not authorized
 
@@ -1076,6 +1199,7 @@ The first assistant action in a new conversation should be:
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-11-06 | Created the canonical Phase 1.4 deployment-feasibility audit. Consolidated the 1.4.0–1.4.14 journey, recorded confirmed UID/mount/network/cgroup/runtime evidence, distinguished Podman/Distrobox/LXC/LXD/Incus/VM architectures, established test and decision schemas, five-test review/archive cadence, anti-repetition protocol and new-chat handoff. Original source exports preserved unchanged under the dated archive. |
+| 1.1 | 2026-11-07 | Recorded NET-03 immediately after execution: dedicated internal bridge confirmed; host SSH, router DNS, public HTTPS and DNS-name-resolution probes blocked; temporary network removal recorded; peer-to-peer communication explicitly left untested. Updated the dependency gate and continuation handoff. No five-test snapshot triggered. |
 
 ---
 
