@@ -69,8 +69,6 @@ Use these labels consistently:
 
 ### 1.1 Current verdict
 
-<badge-placeholder>
-
 **Conditionally promising, not yet proven.** There are credible positive results for BinderFS, Binder device creation, Binder protocol identification, rootless Podman networking in ordinary outbound use, and nested user namespaces under a particular capability set. However, the actual Android runtime has not been launched. Nested LXC, usable cgroup delegation, Binder transactions under Android load, GPU rendering from the proposed container, KDE session integration, Android networking, ADB, SSH tunnelling, and scrcpy end-to-end remain unproven.
 
 ### 1.2 Positive evidence
