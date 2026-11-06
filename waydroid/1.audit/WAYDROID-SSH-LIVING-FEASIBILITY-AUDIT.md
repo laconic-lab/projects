@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Feasibility audit in progress — **conditionally promising, but the observed rootless cgroup boundary currently blocks a justified nested-LXC experiment**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; no installation or runtime experiment has yet been justified or performed**.
 >
-> **Document version:** 1.9  
+> **Document version:** 2.0  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -72,9 +72,9 @@ Use these labels consistently:
 
 ### 1.1 Current verdict
 
-**Conditionally promising, but the current secure rootless boundary does not justify proceeding to an LXC experiment.** Positive results remain for BinderFS, Binder device creation, Binder protocol identification, ordinary rootless Podman outbound networking, and selected nested namespace primitives. The supplemental Podman JSON query confirms Podman 6.0.2 uses the systemd cgroup manager with cgroup v2 and \`crun 1.28-dirty\`. However, Test 24 directly observed the cgroup filesystem exposed inside the disposable rootless container as read-only, with no child cgroups visible; Test 25 found no evidence of writable nested delegation. The Podman JSON fields identify the host runtime configuration but do not override or explain away that mount boundary.
+**Phase 1 cgroup evidence still blocks a justified LXC experiment inside the existing rootless Podman boundary.** Phase 1.5 has inspected current upstream Waydroid LXC integration: its manager generates LXC configuration and directly invokes LXC lifecycle commands. LXC's documented rootless cgroup-v2 procedure instead wraps each relevant lxc-* invocation in a delegated systemd user scope (systemd-run --user --scope -p Delegate=yes). The stock launcher does not show that wrapper. This is an integration gap to investigate, not proof that a wrapper is impossible. Sources: [Waydroid lxc.py](https://github.com/waydroid/waydroid/blob/main/tools/helpers/lxc.py), [LXC Getting Started](https://linuxcontainers.org/lxc/getting-started/). Positive results remain for BinderFS, Binder device creation, Binder protocol identification, ordinary rootless Podman outbound networking, and selected nested namespace primitives. The supplemental Podman JSON query confirms Podman 6.0.2 uses the systemd cgroup manager with cgroup v2 and \`crun 1.28-dirty\`. However, Test 24 directly observed the cgroup filesystem exposed inside the disposable rootless container as read-only, with no child cgroups visible; Test 25 found no evidence of writable nested delegation. The Podman JSON fields identify the host runtime configuration but do not override or explain away that mount boundary.
 
-The actual Android runtime has not been launched. LXC, Binder transactions under Android load, GPU rendering from the proposed container, KDE session integration, Android networking, ADB, SSH tunnelling, and scrcpy end-to-end remain unproven. Under the current evidence and security constraints, do not install or launch LXC merely to test whether it can bypass the observed cgroup restriction.
+The source review confirms dynamic device/session mount generation (Binder nodes, DRM render node, Wayland socket, PulseAudio socket and userdata). Waydroid's base LXC config retains powerful capabilities inside the Android container, including SYS_ADMIN, NET_ADMIN and SYS_TIME; this is not equivalent to granting them to an outer container or host, but requires security review. No LXC package has been installed and no LXC container has been created. The user conditionally authorized installing LXC if a runtime test is shown necessary; this is not blanket approval for Waydroid packages, services, persistent host changes or container creation. Android runtime, Binder transactions under load, GPU rendering, session integration, networking, ADB, SSH and scrcpy remain unproven.
 
 ### 1.2 Positive evidence
 
@@ -93,10 +93,11 @@ The actual Android runtime has not been launched. LXC, Binder transactions under
 
 ### 1.3 Remaining gates
 
-1. Revisit the cgroup boundary only if a supported, narrowly scoped rootless configuration can expose a writable delegated subtree without host-wide changes; current evidence does not show one.
-2. Do not proceed to LXC installation or launch under the current read-only cgroup exposure. Reopen this decision only if Podman/SteamOS configuration changes or authoritative, version-matched LXC evidence identifies a safe no-delegation mode compatible with Waydroid.
-3. If the cgroup gate is legitimately reopened, first design and approve a disposable LXC test with explicit limits, exact cleanup, and no privileged outer container, broad mounts, host namespaces, or host configuration changes.
-4. Test Binder device handoff through the outer container and LXC boundary only after the LXC gate passes.
+1. Complete source/dependency review of Waydroid manager/service assumptions, install-time dependencies, generated LXC configuration, cgroups, Binder, GPU, network, Wayland and D-Bus.
+2. Resolve the architecture boundary: Android itself is an LXC container; the Waydroid manager normally runs as host-side userspace. An outer container does not automatically remove the inner LXC requirement.
+3. Determine whether direct host-level unprivileged LXC can be tested with a temporary delegated user scope, without persistent service enablement or host-wide cgroup changes. Test 24 applies to the Podman boundary, not direct host-level LXC.
+4. Only if necessary, present a bounded installation/test/rollback plan before installing LXC. Conditional permission does not authorize Waydroid packages, services or persistent configuration.
+5. If the LXC gate passes, test Binder device handoff and actual transactions.
 5. Test the minimum AMD render-node access required; no GPU workload has been run inside the target boundary.
 6. Test Wayland, D-Bus, audio, and session handoff from a headless SSH-launched process without broad host runtime mounts.
 7. Resolve Android networking without host-wide forwarding/firewall changes or Pi-hole impact.
@@ -109,6 +110,57 @@ The actual Android runtime has not been launched. LXC, Binder transactions under
 ---
 
 ## 2. Target architecture and acceptance criteria
+
+
+### 2.1A LXC and Waydroid — terminology and runtime boundary
+
+**LXC (Linux Containers)** is a Linux userspace container-management toolset. It uses kernel facilities—namespaces, cgroups, capabilities, mount operations and security modules—to create isolated process environments. It is not a virtual machine and does not provide a separate guest kernel. The liblxc library and lxc-* commands manage container lifecycle and access.
+
+**Waydroid already uses LXC for its Android system container.** The distinction is important:
+
+- **Waydroid manager/userspace:** host-facing software that initializes images, generates LXC configuration, prepares Binder/devices and session mounts, coordinates networking/session state, and calls LXC commands.
+- **Android runtime:** the LXC container named waydroid, containing the Android root filesystem and userdata.
+- In a conventional installation, the manager, helper scripts, D-Bus/service integration and LXC tools are installed on the Linux host; Android itself runs inside LXC. “Waydroid runs in a container” does not necessarily mean its manager is inside an outer container.
+
+This is not yet accepted as satisfying the user's stricter container-only requirement. The working interpretation remains: **do not install the Waydroid manager, Waydroid system service, or Waydroid host integration on SteamOS** unless the user explicitly clarifies otherwise. A host-level LXC runtime alone is not the same as a native Waydroid installation, but whether it is acceptable must be decided before implementation.
+
+#### Current upstream source observations (2026-11-06)
+
+| Source | Directly observed behavior | Feasibility implication |
+|---|---|---|
+| [Waydroid tools/helpers/lxc.py](https://github.com/waydroid/waydroid/blob/main/tools/helpers/lxc.py) | Checks for lxc-info; generates /var/lib/waydroid/lxc/waydroid/config; generates device and session mount snippets; directly invokes lxc-start -F, lxc-stop, lxc-attach, lxc-info, lxc-freeze and lxc-unfreeze. | Stock launcher assumes LXC commands are callable directly; the documented delegated-scope wrapper is not visible in these calls. |
+| [Waydroid data/configs/config_base](https://github.com/waydroid/waydroid/blob/main/data/configs/config_base) | Sets Android rootfs path, lxc.autodev = 0, lxc.mount.auto = cgroup:ro sys:ro proc, and includes generated device/session config. Its lxc.cap.keep includes powerful capabilities such as sys_admin, net_admin and sys_time. | Exact config must be assessed against SteamOS and outer containment. Inner Android-container capabilities are not equivalent to granting those capabilities to the outer container or host. |
+| [Waydroid tools/actions/container_manager.py](https://github.com/waydroid/waydroid/blob/main/tools/actions/container_manager.py) | Coordinates Binder preparation, permission changes, session config, rootfs mounts, LXC startup, hardware manager and networking cleanup/start-stop behavior. | Waydroid is more than lxc-start; a manual launcher must account for lifecycle side effects and cleanup. |
+| [Waydroid tools/actions/initializer.py](https://github.com/waydroid/waydroid/blob/main/tools/actions/initializer.py) | Initialization creates image/rootfs/overlay state, prepares host permissions and LXC config, and can restart the container through manager/service paths. | Initialization and host integration need separate review; do not copy the native installer. |
+| [LXC Getting Started](https://linuxcontainers.org/lxc/getting-started/) | For unprivileged cgroup-v2 containers, LXC documents an empty delegated cgroup and wraps each lxc-* invocation with systemd-run --user --scope -p Delegate=yes. | The Waydroid launcher integration gap is a key review item. |
+| [Debian LXC cgroup-v2 guidance](https://wiki.debian.org/LXC/CGroupV2) | Notes foreground/background lifecycle nuances when invoking LXC through delegated systemd scopes. | Any wrapper must cover start, status/attach/stop and process lifetime—not just a one-off start. |
+
+#### Generated mount/device requirements seen in source
+
+The upstream helper conditionally generates LXC mount entries for Binder/vndbinder/hwbinder nodes; the selected DRM render node and optional graphics/video/device nodes; /dev/net/tun, /dev/uhid, pseudo-terminals and selected sysfs paths; the Wayland socket and PulseAudio native socket; and Android userdata.
+
+This is a **source-level inventory**, not proof that every optional node is required on this Steam Deck. The minimum device and mount set must be established from the Deck's kernel and Android image. Broadly mounting /dev, /sys, the whole user runtime directory or host filesystem is not an acceptable shortcut.
+
+#### Cgroup-v2 delegation distinction
+
+LXC's rootless documentation says unprivileged containers require an empty delegated cgroup; Delegate=yes is normally applied to a systemd user scope wrapping LXC commands. The prior Test 24 result (read-only cgroup mount inside rootless Podman) is evidence about the **Podman outer-container boundary**, not a direct host-level LXC experiment. Test 25's Delegate=yes on user@1000.service is not proof that every process or nested container receives a writable delegated subtree.
+
+- Do not claim direct host-level rootless LXC is impossible based only on Test 24.
+- Do not claim it will work merely because the user manager has Delegate=yes.
+- A direct host-level test, if justified, must use a temporary user scope, inspect its delegated cgroup and avoid persistent systemd changes.
+- The stock Waydroid manager's direct LXC calls must be accounted for; a wrapper/patch would need to cover all lifecycle commands consistently.
+
+#### Architecture alternatives — not yet approved
+
+| Design | Shape | Main issue | Current status |
+|---|---|---|---|
+| A — stock Waydroid manager on SteamOS + LXC Android container | SteamOS has Waydroid manager/tools and LXC CLI; Android is inside LXC | May violate the user's no-native-Waydroid requirement because manager/service/integration are host-installed | **NOT ACCEPTED** |
+| B — Waydroid manager in rootless Podman + inner LXC | SteamOS → Podman → Waydroid userspace → Android LXC | Test 24 showed read-only cgroup view in Podman; nested LXC delegation unproven; stock launcher has no documented delegated-scope wrapper | **BLOCKED / UNPROVEN** |
+| C — Waydroid manager in outer host-level LXC + inner LXC | SteamOS → outer LXC containing Waydroid userspace → inner LXC | Still nested LXC; cgroup delegation and device/session handoff are unproven; may not remove inner LXC requirement | **UNPROVEN** |
+| D — single LXC container directly treated as Android runtime, without Waydroid manager | SteamOS → one LXC container | Not established as a supported Waydroid deployment; would require reproducing image/config/init/device/session/network integration | **UNPROVEN; do not present as supported** |
+
+**Current interpretation:** the container-only requirement rules out the native Waydroid installer, but does not yet tell us whether host-side LXC runtime binaries only are acceptable. Do not install Waydroid host packages or service files. Continue dependency review and ask for clarification only if the viable design requires host-side LXC binaries or Waydroid manager components.
+
 
 ### 2.1 Intended architecture
 
@@ -1818,7 +1870,7 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | Disposable LXC runtime decision and experiment | Gates 1–3 | Decide first whether an experiment is justified; if so, LXC starts/stops cleanly with no privileged outer container, broad mounts, or host changes | **NOT JUSTIFIED under current evidence; no LXC package/runtime installed or experiment attempted** |
+| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Decide whether direct host-level unprivileged LXC can be tested safely; if needed, use a temporary delegated scope and bounded reversible package plan | **REOPENED FOR PHASE 1.5 REVIEW; no installation or LXC container yet** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -2054,7 +2106,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Project:** Waydroid SSH — container-only feasibility audit.
 
-**Current state:** no Waydroid or LXC installation; no permanent host changes authorized by this audit. Existing projects, especially Pi-hole, remain protected.
+**Current state:** no Waydroid or LXC installation; no permanent host changes made. The user has conditionally authorized installing LXC if the audit demonstrates a runtime test is necessary. This does not authorize installing Waydroid, enabling services, creating a persistent container, or changing host cgroups/systemd. Existing projects, especially Pi-hole, remain protected.
 
 **Do not do next:**
 - Do not create a permanent `waydroid-box`.
@@ -2069,13 +2121,9 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Combined cgroup conclusion:** Test 24 observed the cgroup2 mount inside the disposable rootless container as read-only, with empty subtree control, no visible child cgroups, and no writable controller files. Test 25 observed `Delegate=yes` on `user@1000.service` and located the Podman container beneath that hierarchy, but did not demonstrate writable delegation to the container. Gate 3 identifies the host Podman manager/runtime; it does not change the container mount result.
 
-**Current decision:** Gate 3 is complete. Gate 2 remains blocked. A disposable LXC experiment is **not justified under the current evidence** because the required writable nested cgroup boundary has not been demonstrated. No LXC package was installed, no LXC container was created, and no host configuration was changed. Do not try to bypass the restriction with privileged mode, broad mounts, or host cgroup/systemd changes.
+**Current decision:** Phase 1 Gate 3 is complete; the original rootless Podman cgroup limitation remains confirmed. Phase 1.5 is active because current upstream Waydroid/LXC source identifies a direct-launcher versus delegated-scope integration question. This does not yet establish a working architecture. No LXC package was installed and no LXC container was created.
 
-**Next action:** No further host experiment is currently recommended. Pause the technical audit at this cgroup/LXC boundary. Reopen only if:
-1. SteamOS, Podman, or crun changes in a way that materially changes rootless cgroup exposure; or
-2. reliable, version-matched technical evidence establishes a secure Waydroid-compatible LXC mode that does not require writable host delegation, privileged mode, broad host access, or persistent host changes.
-
-If the gate is reopened, first perform a read-only review of the changed configuration/evidence, then define a narrowly scoped experiment and obtain explicit approval before installing packages or launching LXC.
+**Next action:** Continue read-only review of Waydroid service units, installation dependencies, networking scripts, image/rootfs paths, Binder and device setup. Then decide whether a direct host-level unprivileged LXC feasibility test is necessary. The previous Podman cgroup test does not substitute for a direct host-level LXC test. If a test is needed, present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before proceeding. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
@@ -2096,6 +2144,7 @@ If the gate is reopened, first perform a read-only review of the changed configu
 | 1.7 | 2026-11-06 | Recorded Test 25 cleanup follow-up: the temporary container was present, SIGTERM timed out, Podman escalated to SIGKILL, and the subsequent filtered listing was empty; cleanup is confirmed. |
 | 1.8 | 2026-11-06 | Completed the Tests 21–25 consistency review; corrected executive/dependency gate statuses and numbering; updated the continuation handoff; preserved the unchanged v1.7 snapshot; added the proposed read-only Podman JSON query. |
 | 1.9 | 2026-11-06 | Recorded the successful supplemental read-only Podman JSON query (Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty); completed Gate 3; reconciled it with Tests 24–25; determined that a disposable LXC experiment is not justified under the observed read-only cgroup boundary; preserved the unchanged v1.8 pre-decision snapshot and updated the continuation handoff. |
+| 2.0 | 2026-11-06 | Preserved the unchanged v1.9 archive snapshot; added an LXC/Waydroid architecture explanation and source-level review of the upstream LXC launcher, base config, container manager and initializer; documented the delegated-scope integration gap, generated device/session mounts, cgroup-v2 distinction, architecture alternatives and conditional permission for a controlled LXC audit installation; reopened Phase 1.5 without authorizing installation or service changes. |
 
 ---
 
