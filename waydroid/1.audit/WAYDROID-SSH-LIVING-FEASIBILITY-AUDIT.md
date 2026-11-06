@@ -4,7 +4,7 @@
 >
 > **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; no installation or runtime experiment has yet been justified or performed**.
 >
-> **Document version:** 2.0  
+> **Document version:** 2.1  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -134,6 +134,19 @@ This is not yet accepted as satisfying the user's stricter container-only requir
 | [Waydroid tools/actions/initializer.py](https://github.com/waydroid/waydroid/blob/main/tools/actions/initializer.py) | Initialization creates image/rootfs/overlay state, prepares host permissions and LXC config, and can restart the container through manager/service paths. | Initialization and host integration need separate review; do not copy the native installer. |
 | [LXC Getting Started](https://linuxcontainers.org/lxc/getting-started/) | For unprivileged cgroup-v2 containers, LXC documents an empty delegated cgroup and wraps each lxc-* invocation with systemd-run --user --scope -p Delegate=yes. | The Waydroid launcher integration gap is a key review item. |
 | [Debian LXC cgroup-v2 guidance](https://wiki.debian.org/LXC/CGroupV2) | Notes foreground/background lifecycle nuances when invoking LXC through delegated systemd scopes. | Any wrapper must cover start, status/attach/stop and process lifetime—not just a one-off start. |
+| [Waydroid systemd/waydroid-container.service](https://github.com/waydroid/waydroid/blob/main/systemd/waydroid-container.service) | Defines a system service with ExecStart=/usr/bin/waydroid container start and WantedBy=multi-user.target. | Enabling it would create boot-time startup; this is expressly outside the desired manual-only lifecycle. Do not enable it. |
+| [Waydroid data/scripts/waydroid-net.sh](https://github.com/waydroid/waydroid/blob/main/data/scripts/waydroid-net.sh) | Creates/uses waydroid0 and includes host iptables INPUT, FORWARD and NAT rules plus IPv6 forwarding/address operations. | Default network setup is a host networking side effect and conflicts with the no-host-firewall/forwarding-change baseline unless replaced by a separately approved isolated design. |
+| [Waydroid tools/config/__init__.py](https://github.com/waydroid/waydroid/blob/main/tools/config/__init__.py) | Default work paths place images, rootfs, overlays, userdata, LXC config and host-permissions beneath the configured Waydroid work directory (commonly /var/lib/waydroid). | A container-only design must relocate/persist these deliberately; default paths are not automatically suitable for SteamOS updates or the user's no-host-install requirement. |
+
+
+#### Service and network side effects — newly confirmed
+
+Two source findings materially narrow the design:
+
+1. The upstream Waydroid container unit is a **system service** whose ExecStart runs /usr/bin/waydroid container start and whose install target is multi-user.target. Enabling this unit would introduce boot-time startup. It must remain disabled; the user's required lifecycle is manual start/stop only. A manual command can still invoke manager code without enabling the unit, but its dependencies and D-Bus expectations need review.
+2. The upstream waydroid-net.sh script is not a passive container-local network configuration. Its default path manages the waydroid0 bridge and changes host INPUT/FORWARD/NAT firewall rules; IPv6 paths can also alter forwarding and interface settings. This conflicts with the project's no host-wide firewall/forwarding changes and Pi-hole protection. The default script must not be run on SteamOS during audit. A future network design must isolate effects or omit/rewrite this integration and be independently reviewed.
+
+The upstream default work-directory configuration also places images, rootfs, overlays, userdata, LXC configuration and host-permissions under the Waydroid work path (commonly /var/lib/waydroid). A container-only design must explicitly relocate and persist state rather than assume the stock host paths are acceptable.
 
 #### Generated mount/device requirements seen in source
 
@@ -2145,6 +2158,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.8 | 2026-11-06 | Completed the Tests 21–25 consistency review; corrected executive/dependency gate statuses and numbering; updated the continuation handoff; preserved the unchanged v1.7 snapshot; added the proposed read-only Podman JSON query. |
 | 1.9 | 2026-11-06 | Recorded the successful supplemental read-only Podman JSON query (Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty); completed Gate 3; reconciled it with Tests 24–25; determined that a disposable LXC experiment is not justified under the observed read-only cgroup boundary; preserved the unchanged v1.8 pre-decision snapshot and updated the continuation handoff. |
 | 2.0 | 2026-11-06 | Preserved the unchanged v1.9 archive snapshot; added an LXC/Waydroid architecture explanation and source-level review of the upstream LXC launcher, base config, container manager and initializer; documented the delegated-scope integration gap, generated device/session mounts, cgroup-v2 distinction, architecture alternatives and conditional permission for a controlled LXC audit installation; reopened Phase 1.5 without authorizing installation or service changes. |
+| 2.1 | 2026-11-06 | Preserved the unchanged v2.0 archive snapshot; extended upstream source review to the Waydroid systemd unit, network script and work-directory defaults; documented boot-autostart and host firewall/forwarding side effects as explicit blockers for the user's manual-only, no-host-network-change design. |
 
 ---
 
