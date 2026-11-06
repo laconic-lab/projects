@@ -39,7 +39,7 @@ Audit 2 files have only been relocated from `2.installation/` to `2.audit/`. The
 
 Primary document:
 
-[ODYSSEUS — Phase 1.3 Reset & Security Audit](./1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md)
+[ODYSSEUS — Security-First Rebuild: Phase 1.3 Reset & Security Audit](./1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md)
 
 Original source exports:
 
