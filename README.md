@@ -99,6 +99,7 @@ The repository contains projects at different maturity levels. A project may be 
 
 | Project | Purpose | Runtime / access model |
 |---|---|---|
+| [SSH](./SSH/) | Host OpenSSH administration and secure LAN access from client workstations | Existing SteamOS host service; key-based authentication; client access and forwarding are documented separately |
 | [Pi-hole](./pi-hole/) | DNS filtering and LAN network service | Rootless Podman service with persistent host data; DNS and administration access are deliberately published and controlled |
 | [Shyrka](./shyrka/) | Local AI agent and browser dashboard using a local model endpoint | Dedicated Distrobox-based environment; local-first and manually managed; dashboard access is project-specific |
 | [Stable Diffusion](./stable.diffusion/) | Local image generation using stable-diffusion.cpp and the Deck AMD GPU through Vulkan | Dedicated Distrobox; WebUI binds to loopback; remote access uses an SSH tunnel, not direct LAN publication |
@@ -111,6 +112,14 @@ The repository contains projects at different maturity levels. A project may be 
 - [Global Engineering & Security Standard](./deck/docs/GLOBAL%20ENGINEERING%20%26%20SECURITY%20STANDARD.readme)
 - [Project Documentation Protocol](./deck/docs/PROJECT_DOCUMENTATION_PROTOCOL.txt)
 - [Deck maintenance scripts](./deck/scripts/)
+
+**SSH — Steam Deck LAN administration**
+- [Project overview and audited baseline](./SSH/README.md)
+- [Architecture and operations](./SSH/docs/SSH%20on%20SteamOS%20%E2%80%94%20Architecture%20%26%20Operations.md)
+- [Installation and client setup](./SSH/docs/SSH%20on%20SteamOS%20%E2%80%94%20Installation%20%26%20Client%20Setup.md)
+- [Security](./SSH/docs/SSH%20on%20SteamOS%20%E2%80%94%20Security.md)
+- [Backup and recovery](./SSH/docs/SSH%20on%20SteamOS%20%E2%80%94%20Backup%20and%20Recovery.md)
+- [Troubleshooting](./SSH/docs/SSH%20on%20SteamOS%20%E2%80%94%20Troubleshooting.md)
 
 **Pi-hole**
 - [Architecture and operations](./pi-hole/docs/Pi-hole%20on%20SteamOS%20%E2%80%94%20Architecture%20%26%20Operations.md)
@@ -181,6 +190,7 @@ This repository is also intended to be a **technical handoff and context source*
 
 ```text
 .
+├── SSH/               # SteamOS host SSH administration and client-access documentation
 ├── deck/              # Shared host standards, documentation and maintenance scripts
 ├── odysseus/          # Odysseus documentation and Deck lifecycle tools
 ├── pi-hole/           # Pi-hole documentation and recovery material
