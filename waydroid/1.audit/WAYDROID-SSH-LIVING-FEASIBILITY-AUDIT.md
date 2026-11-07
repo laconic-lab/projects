@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained; direct host-level delegated-scope test LXC-SCOPE-01 was rejected before execution because systemd-run does not permit --wait with --scope; no scope payload ran, no LXC installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained; LXC-SCOPE-01 was rejected before execution; LXC-SCOPE-02 successfully created a transient delegated user scope and confirmed process membership, but its cgroup-directory variable was expanded prematurely by systemd-run, so the diagnostic inspected the cgroup mount root rather than the scope directory; delegated-scope write permissions remain untested; no LXC installation or runtime experiment performed**.
 >
-> **Document version:** 2.9  
+> **Document version:** 3.0  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2428,6 +2428,120 @@ Connection to deck closed.
 - Do not advance the LXC installation decision until a direct host-level delegation result is obtained and interpreted.
 ---
 
+#### LXC-SCOPE-02 — transient scope created; cgroup path inspection misdirected
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **PARTIAL / INCONCLUSIVE — scope creation and process membership confirmed; delegated cgroup directory and write permissions not inspected**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), invoked over SSH
+- **Systemd:** `systemd 261 (261.2-1.2-arch)`
+- **Question:** Can a transient user scope with `Delegate=yes` be created, and what cgroup directory and permissions does it expose to the process?
+- **Gate addressed:** Phase 1.5, direct host-level unprivileged LXC feasibility. This is distinct from the rootless Podman cgroup boundary in Tests 24–25.
+- **Prior evidence relied upon:** LXC-SCOPE-01 established only that `--wait` cannot be combined with `--scope`; it did not start a scope. LXC-SCOPE-02 removes the incompatible options and attempts the same bounded read-only diagnostic.
+- **Why new:** This is the first invocation that actually started a transient `--user --scope` unit with `Delegate=yes`.
+- **Side-effect boundary:** A transient scope named `run-p504174-i508745.scope` was created for the diagnostic process. No persistent unit/service was installed or enabled; no cgroup controller or cgroup file was written; no LXC package/container was involved. The SSH connection closed after the command completed.
+- **Repeat policy:** Do not repeat the same malformed path expression. A narrowly corrected LXC-SCOPE-03 may rerun the read-only payload with only the cgroup-directory assignment changed to avoid systemd-run's `${VAR}` environment expansion.
+
+**Invocation and relevant payload**
+
+The invocation used the corrected option set:
+
+~~~bash
+systemd-run \
+  --user \
+  --scope \
+  --property=Delegate=yes \
+  /usr/bin/bash -c '...'
+~~~
+
+The diagnostic read `/proc/self/cgroup`, derived the unified cgroup path, then attempted to inspect:
+
+~~~bash
+CGROUP_DIR="/sys/fs/cgroup${CGROUP_REL}"
+~~~
+
+The remainder queried directory metadata, the cgroup2 mount, controller files, and read/write access predicates. It did not intentionally write to any cgroup file.
+
+**Actual output (complete relevant transcript)**
+
+~~~text
+===== 1. SYSTEMD VERSION =====
+systemd 261 (261.2-1.2-arch)
+
+===== 2. CREATE TEMPORARY DELEGATED USER SCOPE =====
+Running as unit: run-p504174-i508745.scope; invocation ID: 114fd95c021b4cd9bd3912d0d9b3a12c
+Referenced but unset environment variable evaluates to an empty string: CGROUP_REL
+
+===== PROCESS CGROUP MEMBERSHIP =====
+0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope
+
+===== DELEGATED CGROUP PATH =====
+Relative path: /user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope
+Directory: /sys/fs/cgroup
+
+===== CGROUP DIRECTORY METADATA =====
+Owner=root Group=root Mode=555 Type=directory
+
+===== CGROUP MOUNT =====
+TARGET         FSTYPE  OPTIONS
+/sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting
+
+===== AVAILABLE CONTROLLERS =====
+cpuset cpu io memory hugetlb pids rdma misc dmem
+
+===== ENABLED CHILD CONTROLLERS =====
+cpu memory pids dmem
+
+===== READ/WRITE ACCESS PREDICATES =====
+WRITE NO:  /sys/fs/cgroup
+WRITE NO:  /sys/fs/cgroup/cgroup.procs
+WRITE NO:  /sys/fs/cgroup/cgroup.subtree_control
+
+===== SCOPE DIAGNOSTIC COMPLETE =====
+
+===== SYSTEMD-RUN EXIT STATUS =====
+Exit code: 0
+===== END LXC-SCOPE-02 =====
+logout
+Connection to deck closed.
+~~~
+
+**Observed facts**
+
+1. systemd-run successfully created the transient scope `run-p504174-i508745.scope`; it printed the unit name and invocation ID.
+2. The diagnostic process reported unified cgroup membership at `/user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope`.
+3. The cgroup path derivation itself succeeded: `CGROUP_REL` printed that full absolute cgroup path.
+4. The next assignment used the braced expression `${CGROUP_REL}`. systemd-run emitted the explicit warning `Referenced but unset environment variable evaluates to an empty string: CGROUP_REL` before the payload's later output.
+5. Consequently, `CGROUP_DIR` became `/sys/fs/cgroup`, not the scope directory `/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope`.
+6. The `stat`, `findmnt`, controller and write-predicate results therefore describe the cgroup mount root. In particular, `WRITE NO` for the root directory and its files says nothing about write permissions on the delegated scope directory.
+7. The diagnostic and systemd-run both returned exit status 0. That status confirms the script completed its checks; it does not validate that the intended target directory was inspected.
+
+**Interpretation**
+
+- **CONFIRMED:** A transient user scope with `Delegate=yes` was created successfully under systemd 261.
+- **CONFIRMED:** The diagnostic process entered the scope; its unified cgroup membership contains the transient scope path.
+- **CONFIRMED:** systemd-run performed environment expansion on the braced `${CGROUP_REL}` reference in the command payload, where that variable was unset in the caller's environment. The warning and resulting `Directory: /sys/fs/cgroup` demonstrate this.
+- **NOT ESTABLISHED:** Ownership/mode of the delegated scope directory; writable access to that directory, `cgroup.procs`, or `cgroup.subtree_control`; which controllers are available/enabled specifically at the scope; whether the scope's delegated subtree is sufficient for LXC.
+- **Do not interpret** the three `WRITE NO` lines as evidence that delegation failed. They tested the cgroup mount root, not the delegated scope.
+- No cgroup controller activation, cgroup file write, persistent systemd configuration change, LXC installation or LXC runtime test occurred.
+
+**Decision / next step — LXC-SCOPE-03**
+
+The only required correction is the shell variable reference used to construct the cgroup directory. Replace:
+
+~~~bash
+CGROUP_DIR="/sys/fs/cgroup${CGROUP_REL}"
+~~~
+
+with:
+
+~~~bash
+CGROUP_DIR="/sys/fs/cgroup$CGROUP_REL"
+~~~
+
+The unbraced reference avoids systemd-run's observed `${VAR}` expansion while allowing the child Bash process to expand its own `$CGROUP_REL`. Keep the rest of the diagnostic read-only and unchanged. Confirm that the printed directory ends with `run-...scope` and is not merely `/sys/fs/cgroup` before interpreting any metadata or access results.
+
+Do not install LXC, run LXC, change controller state, write cgroup files, create persistent units, or alter host configuration. The package-lock investigation remains parked and separate. The transient scope result is useful but does not yet justify an LXC package installation.
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -2822,7 +2936,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-**Current direct-scope handoff:** LXC-SCOPE-01 did not execute its diagnostic payload: systemd 261 rejected --wait with --scope. The next bounded step, if continuing this gate, is LXC-SCOPE-02: repeat the read-only payload with systemd-run --user --scope --property=Delegate=yes and omit --wait and --collect. No persistent unit, service, cgroup change, LXC launch or package installation is authorized. The package-lock investigation remains parked; do not create test files/locks or retry pacman without a separately approved rationale.\n\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 successfully created transient scope run-p504174-i508745.scope and confirmed process membership at /user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope. However, systemd-run expanded the braced ${CGROUP_REL} reference before the child shell ran, leaving CGROUP_DIR as /sys/fs/cgroup. All directory metadata, controller and WRITE NO results therefore describe the cgroup mount root, not the delegated scope. Delegated-scope permissions remain UNTESTED. The next bounded step is LXC-SCOPE-03: repeat the read-only payload with only CGROUP_DIR assignment corrected to CGROUP_DIR="/sys/fs/cgroup$CGROUP_REL"; verify the printed path ends in the transient scope name before interpreting results. No persistent unit/service, cgroup write/controller change, LXC launch, or package installation is authorized. The package-lock investigation remains parked; do not create test files/locks or retry pacman without a separately approved rationale.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -2849,6 +2963,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.7 | 2026-11-07 | Recorded LXC-PKG-06: inspected the actual configured DBPath; directory exists as root:root mode 755 on the root Btrfs filesystem mounted rw, with no db.lck present at inspection time; kept the original lock failure inconclusive and prohibited an unjustified refresh retry. |
 | 2.8 | 2026-11-07 | Recorded LXC-PKG-07: documented RootDir=/, DBPath contents, Btrfs no-copy-on-write attribute and basic ACL; recorded the unexpected negative sudo write-access predicate without claiming it proves a write failure or explains the original pacman lock error; stopped the investigation pending a justified non-mutating diagnostic or explicit approval for any retry. |
 | 2.9 | 2026-11-07 | Recorded LXC-SCOPE-01 as blocked before execution: systemd 261 rejected --wait with --scope; documented that no scope or diagnostic payload ran and set the next bounded step to a corrected transient delegated-scope invocation without --wait or --collect. |
+| 3.0 | 2026-11-07 | Recorded LXC-SCOPE-02: transient delegated user scope creation and process membership confirmed; identified systemd-run's premature expansion of the braced cgroup-path variable, which caused all directory/access checks to target /sys/fs/cgroup rather than the scope; qualified the WRITE NO results as non-evidence about delegated permissions; advanced the handoff to the narrowly corrected read-only LXC-SCOPE-03. |
 
 ---
 
