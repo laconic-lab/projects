@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-03 confirmed positive access predicates; LXC-CGROUP-01 confirmed actual empty child-cgroup creation/inspection/removal; LXC-CGROUP-02 confirmed actual process placement into and removal from a delegated child cgroup; controller activation, LXC runtime behavior and nested LXC inside rootless Podman remain untested; no LXC installation performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.4  
+> **Document version:** 3.5  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -72,9 +72,13 @@ Use these labels consistently:
 
 ### 1.1 Current verdict
 
-**Phase 1 cgroup evidence still blocks a justified LXC experiment inside the existing rootless Podman boundary.** Phase 1.5 has inspected current upstream Waydroid LXC integration: its manager generates LXC configuration and directly invokes LXC lifecycle commands. LXC's documented rootless cgroup-v2 procedure instead wraps each relevant lxc-* invocation in a delegated systemd user scope (systemd-run --user --scope -p Delegate=yes). The stock launcher does not show that wrapper. This is an integration gap to investigate, not proof that a wrapper is impossible. Sources: [Waydroid lxc.py](https://github.com/waydroid/waydroid/blob/main/tools/helpers/lxc.py), [LXC Getting Started](https://linuxcontainers.org/lxc/getting-started/). Positive results remain for BinderFS, Binder device creation, Binder protocol identification, ordinary rootless Podman outbound networking, and selected nested namespace primitives. The supplemental Podman JSON query confirms Podman 6.0.2 uses the systemd cgroup manager with cgroup v2 and \`crun 1.28-dirty\`. However, Test 24 directly observed the cgroup filesystem exposed inside the disposable rootless container as read-only, with no child cgroups visible; Test 25 found no evidence of writable nested delegation. The Podman JSON fields identify the host runtime configuration but do not override or explain away that mount boundary.
+**The direct-host cgroup primitives now pass, but the stock Waydroid launch path does not enter LXC 7.0.0's unprivileged systemd-delegation path.** The Deck-reported package candidate is LXC 1:7.0.0-1 (not installed); the matching upstream v7.0.0 release source was inspected. In a pure unified cgroup-v2 system, when LXC runs with a non-root effective UID, LXC 7.0.0 can create its own transient systemd user scope with Delegate=yes, move its launcher process into an init child cgroup, and write every controller listed in cgroup.controllers into the scope's cgroup.subtree_control. It then creates monitor/container cgroups, moves processes between them, and removes those trees during teardown. LXC-CGROUP-01/02 proved the host's delegated child-cgroup create/remove and single-process placement primitives, but did not test controller activation, whole-parent process migration, LXC monitor/payload lifecycle, or device BPF operations.
 
-The source review confirms dynamic device/session mount generation (Binder nodes, DRM render node, Wayland socket, PulseAudio socket and userdata). Waydroid's base LXC config retains powerful capabilities inside the Android container, including SYS_ADMIN, NET_ADMIN and SYS_TIME; this is not equivalent to granting them to an outer container or host, but requires security review. No LXC package has been installed and no LXC container has been created. The user conditionally authorized installing LXC if a runtime test is shown necessary; this is not blanket approval for Waydroid packages, services, persistent host changes or container creation. Android runtime, Binder transactions under load, GPU rendering, session integration, networking, ADB, SSH and scrcpy remain unproven.
+The stock Waydroid path is materially different: the system D-Bus activation service and systemd unit run the Waydroid container manager as root. That manager invokes lxc-start directly as a background child process. LXC 7.0.0 explicitly skips its unprivileged systemd user-scope creation when geteuid() is 0. Therefore, putting a user-side waydroid CLI request inside systemd-run --user --scope does not place the root D-Bus-activated service or its lxc-start child in that user scope. The source evidence identifies a real privilege-context/integration mismatch; it does not prove that a redesigned split-privilege architecture is impossible.
+
+The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
+
+**Decision:** Do not install or launch LXC/Waydroid yet. The package file manifest remains blocked and the original pacman DB lock failure unexplained. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. A future implementation would require an explicit design for the privilege split between Waydroid's host preparation and the actual unprivileged LXC process, plus a safe resolution of the package-manifest prerequisite.
 
 ### 1.2 Positive evidence
 
@@ -3077,6 +3081,88 @@ No controller activation performed.
 - The package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained. Do not retry pacman, refresh file lists, install LXC, or install Waydroid on the basis of this result.
 - Do not change the read-only nested Podman cgroup mount, systemd configuration, host cgroup configuration, firewall, forwarding, services, or existing project containers.
 
+
+
+#### LXC-INT-01 — version-matched cgroup-v2 and Waydroid launch-path source reconciliation
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / SOURCE RECONCILIATION — no host command, package operation, cgroup write, installation or runtime launch performed**
+- **Deck package evidence:** LXC candidate 1:7.0.0-1 from extra-3.9, reported by LXC-PKG-01; package is not installed and its file manifest remains blocked.
+- **Version-matched upstream source:** LXC tag v7.0.0, release commit e4415af07e3ec291205bc828e2b4e8141f91a499 (signed tag verification reported valid by GitHub).
+- **Waydroid source snapshot:** main commit db7294c4c2bd43157bab94cf8a3015e22d9f1ad8 (2026-10-16).
+- **Question:** Which concrete cgroup-v2 operations does LXC 7.0.0 perform, which have the host tests actually demonstrated, and does stock Waydroid launch the LXC process in the non-root systemd user context required by LXC's built-in delegated-scope path?
+- **Why new:** LXC-CGROUP-01/02 proved child creation/removal and one process move, but did not reconcile these primitives against the exact candidate release or Waydroid's actual D-Bus/systemd execution identity and process-launch path.
+- **Side-effect boundary:** Public source and project-document inspection only. No Steam Deck command was run. No package metadata/cache was refreshed; no cgroup file was written; no process was moved; no controller was activated; no service, configuration, package or container was changed.
+- **Repeat policy:** Do not repeat unless the Deck candidate version, LXC package build/patch set, Waydroid source commit, or relevant SteamOS/systemd behavior changes. This is not a runtime test.
+
+**Version and provenance qualification**
+
+The Deck's reported candidate is 1:7.0.0-1. The inspected upstream source is the corresponding v7.0.0 release tag. The exact SteamOS package build/patch set could not be compared because LXC-PKG-02's file manifest remains unavailable and the package has not been installed. Findings below are therefore version-matched upstream source findings, not proof of the exact Deck binary's build flags or downstream patches.
+
+**LXC 7.0.0 cgroup-v2 lifecycle observed in source**
+
+1. **Unprivileged systemd scope creation is conditional.** The source checks that systemd is running, that the hierarchy is pure unified cgroup v2, and that the effective UID is not root. If the process is root, LXC returns SYSTEMD_SCOPE_UNSUPP and does not use this unprivileged user-scope path.
+2. **The scope is created by LXC itself.** LXC calls systemd's user manager over the user D-Bus, creates a transient scope named lxc-<container>-<index>.scope, assigns its own PID to the scope, sets Delegate=yes, and uses CollectMode=inactive-or-failed. The source falls back to /run/user/1000/bus when DBUS_SESSION_BUS_ADDRESS is absent.
+3. **LXC prepares the delegated parent.** It creates an init child cgroup, reads the parent cgroup.procs, moves those listed processes into init/cgroup.procs, reads cgroup.controllers, constructs a +controller entry for every available controller, and writes that list to the parent cgroup.subtree_control.
+4. **LXC creates separate monitor and payload/container cgroups.** The cgroup backend uses mkdirat/openat operations to create the monitor cgroup and container cgroup (and optional limit/leaf hierarchy where configured).
+5. **LXC moves processes.** It writes the monitor PID and, where applicable, a transient launcher PID to the monitor cgroup's cgroup.procs; it then writes the container PID to the payload cgroup's cgroup.procs. A separate systemd-scope path may ask systemd to attach the payload PID to its scope.
+6. **LXC tears down cgroups.** It can move the monitor into a pivot child before pruning the monitor tree. Payload teardown detaches any attached cgroup2 device BPF program and removes the container cgroup tree.
+7. **Device policy is a separate conditional operation.** LXC 7.0.0's cgroup2 device implementation loads a BPF program with BPF_PROG_LOAD and attaches/detaches it using BPF_PROG_ATTACH/BPF_PROG_DETACH. LXC's userns template explicitly notes that CAP_SYS_ADMIN in the initial user namespace is required for cgroup.devices. Waydroid's inspected config_base does not itself contain lxc.cgroup2.devices.allow/deny entries; the effective package defaults and full generated configuration are not established, so do not assume this BPF path is necessarily invoked by Waydroid.
+
+**Comparison with completed host evidence**
+
+| LXC operation | Host evidence | Result / limitation |
+|---|---|---|
+| Create a delegated child cgroup | LXC-CGROUP-01 and 02 created a child below a transient Delegate=yes scope | **CONFIRMED primitive** |
+| Move a process via child cgroup.procs | LXC-CGROUP-02 moved one sleep PID from parent to child and verified both /proc/PID/cgroup and child cgroup.procs | **CONFIRMED primitive** |
+| Remove an empty child cgroup | LXC-CGROUP-01 and 02 removed the child after confirming it was empty | **CONFIRMED primitive** |
+| Create LXC's init child and move all parent-scope PIDs into it | Not tested; prior test moved one deliberately selected process only | **UNTESTED** |
+| Read cgroup.controllers | LXC-SCOPE-03 / CGROUP-01 / CGROUP-02 observed cpu memory pids dmem | **READ CONFIRMED** |
+| Enable every available controller by writing +cpu +memory +pids +dmem to cgroup.subtree_control | No test wrote to subtree_control; it remained empty in all completed tests | **UNTESTED / MUTATING GATE** |
+| Create LXC monitor and payload cgroups and run the monitor/payload lifecycle | No LXC process/container was launched | **UNTESTED** |
+| Move monitor, transient launcher and container payload processes through LXC's complete lifecycle | Only one standalone sleep process was moved | **UNTESTED as an LXC lifecycle** |
+| Attach/detach cgroup-v2 device BPF policy | No BPF operation was attempted; Waydroid's effective device rules are not fully known | **CONDITIONAL / UNTESTED** |
+| LXC cgroup teardown and failure recovery | Only an empty test child was removed | **UNTESTED as an LXC lifecycle** |
+
+**Waydroid's actual launch identity and process path**
+
+- The Waydroid D-Bus activation file declares User=root and starts /usr/bin/waydroid container start; the systemd unit is a system service and runs that command without a User= override.
+- The Waydroid container manager's D-Bus object receives Start requests on the system bus. Its do_start path performs host preparation and then calls helpers.lxc.start.
+- helpers.lxc.start invokes lxc-start -P <lxc-path> -F -n waydroid -- /init with output="background". The helper creates a subprocess with Popen; it does not change UID or request a user systemd scope.
+- The manager's status, stop, freeze, unfreeze and attach/shell paths also invoke lxc-info, lxc-stop, lxc-freeze, lxc-unfreeze and lxc-attach directly.
+- Consequently, stock Waydroid's actual lxc-start process is launched by its root D-Bus/systemd service. LXC 7.0.0's unprivileged systemd-scope routine explicitly skips when effective UID is root.
+- Wrapping a user-side Waydroid CLI request in systemd-run --user --scope --property=Delegate=yes does not change the identity or cgroup of the separate root D-Bus-activated service and its lxc-start child. It is not a valid integration fix by itself.
+- A non-root direct LXC invocation could use LXC 7.0.0's own systemd user-scope integration, but Waydroid's current manager performs privileged host preparation (device permission changes, mounts, networking and service interactions). Splitting that work from an unprivileged LXC process would be a new architecture requiring separate design and security review; it is not a simple wrapper and is not approved here.
+- Waydroid's network helper and host-permission operations remain independent blockers under the project's no-host-network-change and least-privilege constraints. A cgroup scope does not neutralize those side effects.
+
+**Decision**
+
+- The direct-host primitive tests are useful and valid, but they do not demonstrate that stock Waydroid can use the unprivileged LXC systemd-scope path.
+- The exact unresolved cgroup mutation in LXC 7.0.0 is controller activation: it writes all names exposed by cgroup.controllers into cgroup.subtree_control. The Deck scope reported cpu memory pids dmem, so the source routine would attempt to enable those available controllers. Do not emulate this write or activate controllers without a separate explicit approval.
+- Do not use a root-side systemd scope wrapper as a presumed fix; LXC's source explicitly skips its unprivileged user-scope path for euid 0.
+- Do not change Waydroid's D-Bus service identity, systemd unit, helper code, device permissions, network helper, Podman cgroup mount or host configuration.
+- Do not install LXC yet: the package manifest remains blocked, and exact SteamOS package files/install hooks/service footprint have not been reviewed. Do not retry pacman or refresh file-list metadata without a separately approved and justified plan.
+- A future path must first choose and review a privilege architecture: (A) a redesigned split between narrowly privileged Waydroid host preparation and a deck-user-owned LXC process, or (B) stop the container-only Waydroid project if that split cannot meet the security constraints. Neither option is established as working by this source review.
+
+**Primary source links**
+
+- [LXC v7.0.0 cgroup backend](https://github.com/lxc/lxc/blob/v7.0.0/src/lxc/cgroups/cgfsng.c)
+- [LXC v7.0.0 cgroup2 device BPF implementation](https://github.com/lxc/lxc/blob/v7.0.0/src/lxc/cgroups/cgroup2_devices.c)
+- [LXC v7.0.0 user-namespace configuration template](https://github.com/lxc/lxc/blob/v7.0.0/config/templates/userns.conf.in)
+- [LXC v7.0.0 cgroup2 device-rule documentation](https://github.com/lxc/lxc/blob/v7.0.0/doc/lxc.container.conf.sgml.in)
+- [Waydroid lxc.py](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/tools/helpers/lxc.py)
+- [Waydroid run.py](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/tools/helpers/run.py)
+- [Waydroid run_core.py](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/tools/helpers/run_core.py)
+- [Waydroid container_manager.py](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/tools/actions/container_manager.py)
+- [Waydroid D-Bus activation service](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/dbus/id.waydro.Container.service)
+- [Waydroid systemd container unit](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/systemd/waydroid-container.service)
+- [Waydroid base LXC configuration](https://github.com/waydroid/waydroid/blob/db7294c4c2bd43157bab94cf8a3015e22d9f1ad8/data/configs/config_base)
+- [LXC Getting Started — unprivileged cgroup-v2 procedure](https://linuxcontainers.org/lxc/getting-started/)
+
+**Next action**
+
+No further generic cgroup primitive test is justified. The source review is complete. The next decision is whether to investigate a split-privilege Waydroid architecture (root-only preparation plus a deck-user LXC lifecycle) at design level. Package-manifest recovery remains a separate blocked prerequisite. Controller activation, LXC installation/launch and any Waydroid service/launcher modification require separate approval.
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -3119,6 +3205,22 @@ Pi-hole demonstrates a working rootless Podman service and SSH-accessible projec
 The original export contains links to additional historical files/directories, including a former `_1.1_` export, a text export, and a Waydroid docs directory. At the refresh that produced this record, the current `waydroid/1.audit` directory contained the original exported Markdown and the consolidated audit Markdown. Some historical paths were unavailable at their referenced locations. Do not claim those unavailable files were reviewed. The two prior audit documents are preserved under the archive directory; this living record replaces them as the current continuation entry point.
 
 ---
+
+
+
+### 6.6 Version-matched LXC 7.0.0 and current Waydroid launch-path reconciliation
+
+The source review was pinned to the Deck-reported LXC candidate's upstream version and a specific Waydroid main commit:
+
+- LXC release tag: [v7.0.0](https://github.com/lxc/lxc/tree/v7.0.0), commit e4415af07e3ec291205bc828e2b4e8141f91a499 (tag verification reported valid).
+- Waydroid main snapshot: commit db7294c4c2bd43157bab94cf8a3015e22d9f1ad8, dated 2026-10-16.
+- Exact SteamOS package build/patch equivalence remains unverified because the candidate is not installed and its package file manifest could not be retrieved.
+
+The version-matched LXC source implements its own unprivileged systemd-scope creation. It only takes this path when systemd is running, the hierarchy is pure unified cgroup v2, and the LXC process is not root. It starts a transient user scope with Delegate=yes, moves the LXC launcher into an init child, enables all controllers listed by cgroup.controllers in cgroup.subtree_control, then manages monitor and payload cgroups. It performs cgroup.procs moves during startup and can detach device BPF policy and prune cgroup trees during teardown. The complete comparison and observed/unobserved operation matrix are in §5.11.
+
+Waydroid's current system D-Bus activation service declares User=root and is backed by a systemd system unit. Its root container manager calls lxc-start directly through a background subprocess. Therefore, the stock launcher does not run LXC as the deck user; LXC 7.0.0's unprivileged user-scope creation path is explicitly skipped for this root process. Wrapping the user CLI request with systemd-run --user does not move the separately activated root service or its child process into that scope. A split-privilege redesign would be required to make the LXC process non-root while retaining the privileged host preparation Waydroid currently performs; no such redesign has been implemented or approved.
+
+The Waydroid base config reviewed here does not explicitly set lxc.cgroup2.devices.allow/deny. LXC's cgroup-v2 device BPF implementation and userns template were inspected, but whether the exact package's effective configuration triggers BPF attach/detach remains unknown until package defaults and generated configuration are resolved. Do not infer a BPF runtime requirement from source presence alone.
 
 ## 7. Decisions, rejected approaches and corrections
 
@@ -3214,7 +3316,7 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether direct host-level unprivileged LXC can safely create/manage a delegated cgroup subtree; reconcile package manifest before any installation proposal | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED (LXC-CGROUP-01/02); controller activation, LXC runtime, nested-Podman delegation and package manifest remain unproven/blocked** |
+| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether LXC 7.0.0 controller activation and monitor/payload lifecycle can run in an approved non-root scope, and whether Waydroid can launch that LXC process without its stock root D-Bus service | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED; SOURCE REVIEW IDENTIFIES ROOT-SERVICE / UNPRIVILEGED-SCOPE MISMATCH; controller activation, LXC runtime, split-privilege design, nested-Podman delegation and package manifest remain unproven/blocked** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -3471,9 +3573,11 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-**Latest source-level reconciliation and operations:** §5.9 reviewed upstream LXC, systemd and Linux kernel cgroup-v2 requirements. LXC-CGROUP-01 (§5.10) created, inspected and removed one empty child cgroup inside transient delegated scope run-p511103-i506154.scope; the cgroup2 mount reported rw, the child was empty (populated 0), and rmdir succeeded. LXC-CGROUP-02 then passed actual process placement in transient delegated scope run-p515138-i514057.scope: test PID 515140 began in the parent, was moved into lxc-audit-probe-process, and its new membership was confirmed independently through /proc/515140/cgroup and the child cgroup.procs. The process was terminated/reaped with return code -15, the child became empty and was removed. Parent available controllers remained cpu memory pids dmem; cgroup.subtree_control remained empty before and after. No controller activation occurred. The direct-host delegated child-cgroup create/remove and process-placement primitives are now CONFIRMED. This does not establish LXC compatibility, controller/device-rule behavior, Waydroid startup, or writable nested cgroups inside rootless Podman; the earlier Podman cgroup2 mount remains read-only.
+**Latest source-level reconciliation and operations:** §5.9 reviewed upstream LXC/systemd/kernel cgroup-v2 requirements. LXC-CGROUP-01 and LXC-CGROUP-02 confirmed direct-host delegated child-cgroup creation/removal and single-process placement/cleanup. LXC-INT-01 (§5.11) then pinned the Deck-reported LXC candidate 1:7.0.0-1 to upstream LXC v7.0.0 source and reconciled its cgroup lifecycle with current Waydroid source commit db7294c4c2bd43157bab94cf8a3015e22d9f1ad8. LXC 7.0.0's unprivileged systemd integration creates a transient user scope with Delegate=yes, moves its own process into an init child, and writes all available controllers into cgroup.subtree_control; it only does this when effective UID is non-root. Stock Waydroid's D-Bus activation service and systemd container unit run as root, and its container manager directly spawns lxc-start in the background. A user-side systemd-run wrapper around the Waydroid CLI does not wrap the separate root service or its LXC child. This is a concrete privilege-context/integration mismatch, not proof that a redesigned split-privilege architecture is impossible. Device BPF use remains conditional because the exact effective LXC defaults/config are unknown.
 
-**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 created transient scope run-p504174-i508745.scope and confirmed process membership, but systemd-run expanded ${CGROUP_REL} prematurely and all directory/access checks targeted /sys/fs/cgroup; those permission results were invalid for the scope. LXC-SCOPE-03 corrected the expression and confirmed transient scope run-p505279-i516648.scope, process membership, a deck:deck mode-755 scope directory, available child controllers cpu memory pids dmem, empty cgroup.subtree_control, and positive shell write-access predicates. LXC-CGROUP-01 confirmed actual empty child-cgroup creation/removal. LXC-CGROUP-02 confirmed actual process movement into a delegated child and verified cleanup. **Next possible gate:** assess the exact cgroup controller/device operations required by the installed LXC version and the integration gap between Waydroid's direct LXC launcher and transient delegated scopes. Any controller activation or LXC runtime test requires separate explicit approval; do not run it automatically. The package file manifest remains blocked and the original pacman database-lock failure unexplained. No pacman retry/file-list refresh, LXC installation/launch, Waydroid installation, persistent service, host cgroup change, or package-manager retry is authorized.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Current decision:** do not install or launch LXC/Waydroid yet. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and a safe Waydroid split-privilege design remain untested/unresolved. The nested rootless Podman cgroup2 mount remains read-only. Package manifest inspection remains blocked and the original pacman DB lock failure unexplained. Do not retry pacman/file-list refresh, activate controllers, run LXC, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup configuration. The next step is a design-level review of whether Waydroid's privileged host preparation can be separated from a deck-user-owned LXC process without broadening privileges or changing host networking; this is not authorization to implement it.
+
+**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -3505,6 +3609,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.2 | 2026-11-07 | Completed read-only source reconciliation of upstream LXC, systemd and Linux cgroup-v2 requirements; confirmed that an empty subtree_control is normal initial state but actual delegated-subtree operations remain untested; distinguished direct-host scope feasibility from the blocked nested-Podman cgroup boundary; retained the package-manifest blocker and explicitly gated any actual cgroup mutation behind separate approval. |
 | 3.3 | 2026-11-07 | Recorded LXC-CGROUP-01: a transient delegated systemd scope successfully created, inspected and removed one empty child cgroup; captured rw cgroup2 mount, available controllers, empty child process list and populated 0 state; noted the reported literal-looking dollar suffix and absent separately captured systemd-run exit status; confirmed no controller activation or process movement; advanced the next possible gate to a separately approved process-placement test while retaining the package-manifest blocker. |
 | 3.4 | 2026-11-07 | Recorded LXC-CGROUP-02: confirmed actual process placement into a delegated child cgroup, independently verified membership through /proc/PID/cgroup and child cgroup.procs, terminated/reaped the test process, and removed the empty child; confirmed controller availability unchanged and subtree_control still empty; updated Gate 4 and the continuation handoff while retaining the nested-Podman and package-manifest blockers. |
+| 3.5 | 2026-11-07 | Completed LXC-INT-01 source reconciliation against upstream LXC v7.0.0 and pinned Waydroid main commit; documented LXC's non-root systemd-scope/controller activation and monitor/payload cgroup lifecycle; established that stock Waydroid's root D-Bus/systemd service bypasses LXC's unprivileged scope path and that wrapping the user CLI does not wrap the actual root lxc-start process; kept controller activation, LXC runtime, split-privilege design and package manifest blocked; updated executive verdict, Gate 4, source index and continuation handoff. |
 
 ---
 
