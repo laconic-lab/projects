@@ -2,12 +2,12 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review — split-privilege design reviewed and held; no implementation recommended under current constraints — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.7  
+> **Document version:** 3.8  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
-> **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
+> **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
 
 ---
 
@@ -3244,6 +3244,76 @@ This is an architectural sketch, **not a recommendation to implement a privilege
 - **Consequences:** No Waydroid package, service, container, Android data store, host network helper, privileged broker or persistent host configuration is to be introduced under this project decision. Existing Pi-hole and Odysseus deployments remain outside scope and protected.
 - **Revisit condition:** User explicitly reopens the project after a material change in upstream support or requirements, and approves a new bounded plan. A separately scoped temporary LXC-only experiment may be considered as an evidence-gathering activity, but it is not part of this closure decision and is not authorized by it.
 
+
+#### DECISION-LXC-EXP-01 — close read-only phase; open temporary LXC-only experimental investigation
+
+- **Date:** 2026-11-07
+- **Decision owner:** User
+- **Status:** **ACCEPTED**
+- **Decision:** Close the read-only feasibility phase as complete for its current purpose. Open a separately scoped **LXC-only experimental investigation**. The user accepts that temporary test installations may be necessary to obtain runtime evidence and explicitly requests this new investigation chapter.
+- **Scope:** LXC package and runtime only. No Waydroid package, service, manager, Android rootfs, Android boot, network helper, bridge, firewall rule, forwarding change, persistent host service, privileged broker, or automatic startup is included.
+- **Approval boundary:** The user has approved proceeding with the experimental investigation and temporary-test-installation approach in principle. This is **not** blanket approval to bypass the unresolved pacman database-lock problem, refresh package metadata again, install an unverified package build, alter SteamOS permissions/attributes/mounts, activate controllers, or make persistent configuration changes. Before the first package mutation, present the exact candidate, manifest, transaction, host paths, expected changes, backup/recovery method, uninstall/rollback plan and cleanup verification for explicit confirmation.
+- **Reason:** Source inspection and primitive cgroup tests cannot establish whether the actual SteamOS LXC package can run its complete runtime lifecycle in a transient non-root delegated scope. A bounded LXC-only runtime experiment is the next evidence-producing step.
+- **Preserved closure:** DECISION-WD-01 remains valid: the Waydroid feasibility effort is closed under the current constraints. This new LXC-only investigation is an independent foundational experiment and does not reopen Waydroid implementation.
+- **Protected systems:** Pi-hole, Odysseus, other containers, SSH, host networking and the desktop session must remain unaffected.
+- **Revisit condition:** Stop if safe package installation/rollback cannot be established, if LXC requires broad privileges or persistent host changes, or if the test risks protected services.
+
+#### LXC-EXP-00 — experimental investigation charter and safety gates
+
+- **Date:** 2026-11-07
+- **Status:** **OPEN / PLAN ONLY — no package operation or host change performed**
+- **Environment:** SteamOS host, direct LXC CLI/runtime (not nested in Podman for the first runtime experiment).
+- **Prerequisites:** LXC-PKG-01 through LXC-PKG-07; LXC-SCOPE-03; LXC-CGROUP-01/02; LXC-INT-01; DECISION-WD-01; DECISION-LXC-EXP-01.
+- **Question:** Can the exact SteamOS LXC package be safely introduced temporarily, then run a minimal non-root LXC lifecycle inside a transient systemd user scope with delegated cgroup v2, and be completely cleaned up?
+- **Why this is new:** Existing host tests exercised cgroup primitives, not the LXC binary, package files, LXC monitor, payload, namespace setup, storage backend or teardown. Source reconciliation does not prove the packaged executable behaves identically.
+- **Repeat policy:** One controlled run per package build/kernel/systemd combination. Repeat only after a material version/configuration change or a documented inconclusive result.
+- **Side-effect boundary:** Package installation is a host package-database and filesystem mutation even when described as temporary. No install command is to be proposed until the package-manager lock issue and package manifest/provenance are resolved and an exact transaction/rollback plan is approved.
+- **Approval required:** Explicit confirmation of the exact install transaction and later of any test that writes cgroup controller files or creates cgroups/mounts/devices. The user's general approval for temporary LXC experiments does not waive these staged approvals.
+
+**Experimental phases and stop gates**
+
+| Phase | ID | Activity | Required evidence | Current state |
+|---|---|---|---|---|
+| 0 | EXP-00A | Freeze read-only phase and establish baseline references | Preserve all prior test IDs; no generic inventory repetition | **COMPLETE by decision** |
+| 1 | EXP-01 | Resolve package provenance and installation safety without changing package state | Exact sync candidate, package signature/source, file manifest, dependency/transaction preview, pacman DBPath/lock cause safely understood | **BLOCKED** — manifest unavailable; prior pacman lock error unexplained |
+| 2 | EXP-02 | Prepare explicit temporary installation and rollback plan | Exact package files/paths, transaction list, SteamOS overlay/update implications, backup/recovery and removal plan | **PENDING** |
+| 3 | EXP-03 | Install only LXC package after separate exact approval | Actual package transaction output, package version/build, installed file list, no unrelated packages | **NOT AUTHORIZED YET** |
+| 4 | EXP-04 | Read-only post-install identity and binary audit | LXC version/build, executable/library paths, package ownership, config paths, available backends | **PENDING** |
+| 5 | EXP-05 | Minimal non-root LXC smoke test in transient delegated user scope | LXC's own scope creation, cgroup controller activation result, exact process/cgroup membership | **PENDING / MUTATING TEST — separate command approval** |
+| 6 | EXP-06 | Minimal disposable container lifecycle | Start, inspect, stop, monitor/payload cgroup placement and clean teardown; no Waydroid payload | **PENDING / requires EXP-05 success** |
+| 7 | EXP-07 | Failure-path and cleanup verification | No remaining test processes, cgroups, mounts, namespaces, network objects or persistent services | **PENDING** |
+| 8 | EXP-08 | Package removal and host-state comparison | LXC package removed if approved; package DB and file state reconciled; no collateral changes | **PENDING / removal separately reviewed** |
+| 9 | EXP-09 | Final evidence review and decision | LXC feasibility verdict; explicit separation from Waydroid feasibility | **PENDING** |
+
+**Phase 1 prerequisite — package-manager safety**
+
+The previous pacman metadata refresh attempt failed to acquire the database lock. Subsequent read-only checks identified DBPath=/usr/lib/holo/pacmandb, no db.lck at inspection time, root:root mode 755, root Btrfs mount reported rw, and a negative `sudo test -w` predicate. These observations do not explain the original lock failure. The repository file-list database was unavailable, so the exact LXC package manifest remains unknown.
+
+Do not:
+- retry `pacman -Fy` or any package operation merely to see whether the lock problem disappeared;
+- create a test lock/file, remove a lock, alter DBPath permissions/ACL/attributes, remount, or terminate package processes;
+- refresh repository databases or file lists without a new justified plan and explicit approval;
+- infer the package manifest from upstream Arch metadata or the upstream source tag;
+- install LXC until the exact SteamOS candidate and package contents are known and a safe transaction/rollback plan is approved.
+
+A safe next diagnostic must be narrowly justified, read-only, and demonstrably different from LXC-PKG-04 through LXC-PKG-07. If no such diagnostic can explain the pacman failure, stop and report that the installation prerequisite remains blocked rather than bypassing it.
+
+**Runtime experiment design constraints**
+
+- Use a dedicated test rootfs created only for this experiment; never point at Waydroid data or an existing project directory.
+- No `--privileged`, host network/PID/IPC namespace sharing, broad host filesystem mounts, host runtime-directory mount, or broad `/dev` passthrough.
+- No LXC network helper/service, bridge, NAT, dnsmasq, firewall or forwarding changes.
+- No boot enablement, linger changes, persistent systemd units, daemon autostart or persistent delegation configuration.
+- Begin with the narrowest possible LXC configuration. Do not assume a successful LXC run requires all controllers; inspect actual LXC behavior and distinguish default/config-driven controller activation from optional features.
+- Any write to `cgroup.subtree_control`, creation of a cgroup tree, mount, device node, or namespace is an experiment with explicit scope and cleanup. Controller activation is not covered by the prior child-cgroup/process-placement approvals.
+- Preserve exact stdout, stderr, exit statuses, process IDs, scope names, cgroup paths, mount records and cleanup results.
+- If the package or runtime requires broad capabilities, persistent host configuration, network changes, or interference with Pi-hole/Odysseus, stop. A negative result is acceptable.
+
+**Success criteria**
+
+LXC-only feasibility is established only if the exact SteamOS package can be installed and removed safely, a non-root LXC process creates/uses its delegated transient user scope, a minimal disposable payload starts and stops, cgroup/monitor/payload teardown is clean, and no protected service or persistent host configuration is changed. This does not establish Waydroid compatibility, Binder/GPU support, Android networking, or Android boot.
+
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -3390,14 +3460,14 @@ Pi-hole's existing port 53 arrangement is a different problem from Waydroid's An
 
 ## 9. Next work — ordered dependency gates
 
-Do not skip ahead to installation. Complete one gate at a time and update this document after each result.
+The read-only feasibility phase is closed. The active workstream is now the LXC-only experimental investigation in §5.13. Do not jump to installation: complete package provenance/safety gates first, then obtain explicit confirmation of the exact transaction. Record each experiment immediately.
 
 | Order | Gate | Prerequisite | What constitutes evidence | Current status |
 |---:|---|---|---|---|
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether LXC 7.0.0 controller activation and monitor/payload lifecycle can run in an approved non-root scope, and whether Waydroid can launch that LXC process without its stock root D-Bus service | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED; SPLIT-ARCH-01 DESIGN REVIEW COMPLETED — custom split is not recommended under current constraints; controller activation, LXC runtime, nested-Podman delegation and package manifest remain unproven/blocked** |
+| 4 | LXC-only experimental investigation | LXC-EXP-00 charter; package provenance and pacman safety prerequisite | Safely install exact LXC package temporarily, test non-root delegated-scope LXC lifecycle, then verify cleanup/removal | **OPEN — read-only phase closed; package manifest unavailable and prior pacman lock failure unexplained; no install yet** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -3631,13 +3701,13 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 ## 14. Current continuation handoff
 
-**Project:** Waydroid SSH — container-only feasibility audit.
+**Project:** Waydroid SSH — closed read-only feasibility record; LXC-only experimental investigation now active.
 
-**Current state:** no Waydroid or LXC installation; no permanent host changes made. The user has conditionally authorized installing LXC if the audit demonstrates a runtime test is necessary. This does not authorize installing Waydroid, enabling services, creating a persistent container, or changing host cgroups/systemd. Existing projects, especially Pi-hole, remain protected.
+**Current state:** no Waydroid or LXC installation; no permanent host changes made. The user has accepted closing the read-only phase and opening an LXC-only experimental investigation, including temporary LXC test installations if needed. This approval is in principle only: it does not authorize bypassing the unresolved pacman lock problem, retrying metadata refresh, or installing before the exact package manifest, transaction, host changes and rollback plan are reviewed and separately confirmed. It does not authorize Waydroid installation, Android boot, persistent services, host networking changes or persistent cgroup/systemd changes. Pi-hole, Odysseus and all existing projects remain protected.
 
 **Do not do next:**
 - Do not create a permanent `waydroid-box`.
-- Do not install Waydroid or LXC under the current cgroup evidence.
+- Do not install Waydroid. LXC installation is a future gated experiment, not an immediate action; do not proceed until EXP-01/02 and exact install confirmation.
 - Do not import the old native installer.
 - Do not repeat host/session/GPU/BinderFS/cgroup/network baseline checks or Tests 1–25.
 - Do not enable host forwarding, change firewall rules, or add persistent services.
@@ -3658,7 +3728,9 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** do not install or launch LXC/Waydroid yet. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and a safe Waydroid split-privilege design remain untested/unresolved. The nested rootless Podman cgroup2 mount remains read-only. Package manifest inspection remains blocked and the original pacman DB lock failure unexplained. Do not retry pacman/file-list refresh, activate controllers, run LXC, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup configuration. The next step is a design-level review of whether Waydroid's privileged host preparation can be separated from a deck-user-owned LXC process without broadening privileges or changing host networking; this is not authorization to implement it.
 
-**Latest user decision:** DECISION-WD-01 accepted on 2026-11-07. The current Waydroid feasibility effort is closed as blocked under the existing constraints; preserve the audit, make no Waydroid installation or host changes, and protect Pi-hole/Odysseus. This closure does not preclude the user later authorizing a separately scoped temporary LXC-only experiment, but none is currently authorized.\n\n**Latest architecture review:** SPLIT-ARCH-01 (§5.12) completed a design-only assessment. Stock root Waydroid service remains unsuitable for LXC's non-root scope path. A custom manual-only split with deck-owned LXC and a narrowly allowlisted preparation broker is technically conceivable, but it does not solve rootfs/data mount ownership, Binder/GPU handoff, crash cleanup, or the default Waydroid network helper's host bridge/forwarding/firewall changes. The current no-host-network-change and least-privilege constraints are not met. Recommendation: **HOLD / do not implement**; closing the effort as blocked is a valid outcome. No command, package operation, cgroup write, installation, service change or host modification was performed for this review. No archive snapshot was due: this was a design review, not a runtime test, and the five-test snapshot threshold was not reached.\n\n**Current decision:** do not install or launch LXC/Waydroid. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and package manifest remain untested/blocked. The nested rootless Podman cgroup2 mount remains read-only. Do not retry pacman/file-list refresh, activate controllers, run LXC, create a privileged helper, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup/network configuration. The design-only split-privilege review is complete; further work requires a new user decision about whether to close the project or explicitly relax a named constraint.\n\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Latest user decisions:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. DECISION-LXC-EXP-01 now separately authorizes an LXC-only experimental investigation, including temporary LXC-only test installation in principle. It does not reopen Waydroid or authorize a package transaction before package provenance, pacman safety, exact scope and rollback are verified and explicitly confirmed.\n\n**Latest architecture review:** SPLIT-ARCH-01 (§5.12) completed a design-only assessment. Stock root Waydroid service remains unsuitable for LXC's non-root scope path. A custom manual-only split with deck-owned LXC and a narrowly allowlisted preparation broker is technically conceivable, but it does not solve rootfs/data mount ownership, Binder/GPU handoff, crash cleanup, or the default Waydroid network helper's host bridge/forwarding/firewall changes. The current no-host-network-change and least-privilege constraints are not met. Recommendation: **HOLD / do not implement**; closing the effort as blocked is a valid outcome. No command, package operation, cgroup write, installation, service change or host modification was performed for this review. No archive snapshot was due: this was a design review, not a runtime test, and the five-test snapshot threshold was not reached.\n\n**Current decision:** do not install or launch LXC/Waydroid. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and package manifest remain untested/blocked. The nested rootless Podman cgroup2 mount remains read-only. Do not retry pacman/file-list refresh, activate controllers, run LXC, create a privileged helper, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup/network configuration. The design-only split-privilege review is complete; further work requires a new user decision about whether to close the project or explicitly relax a named constraint.\n\n**Active next gate:** LXC-EXP-01 — resolve package provenance and installation safety without changing package state. The package manifest is still unavailable and the earlier pacman DB lock failure remains unexplained. Do not retry pacman or mutate DBPath. First determine whether a distinct, read-only diagnostic can explain the lock failure; if not, report the prerequisite blocked. Only after exact package contents and transaction are known should an installation/rollback plan be presented for explicit confirmation. See §5.13 for the complete staged experiment plan.
+
+**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -3692,7 +3764,8 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.4 | 2026-11-07 | Recorded LXC-CGROUP-02: confirmed actual process placement into a delegated child cgroup, independently verified membership through /proc/PID/cgroup and child cgroup.procs, terminated/reaped the test process, and removed the empty child; confirmed controller availability unchanged and subtree_control still empty; updated Gate 4 and the continuation handoff while retaining the nested-Podman and package-manifest blockers. |
 | 3.5 | 2026-11-07 | Completed LXC-INT-01 source reconciliation against upstream LXC v7.0.0 and pinned Waydroid main commit; documented LXC's non-root systemd-scope/controller activation and monitor/payload cgroup lifecycle; established that stock Waydroid's root D-Bus/systemd service bypasses LXC's unprivileged scope path and that wrapping the user CLI does not wrap the actual root lxc-start process; kept controller activation, LXC runtime, split-privilege design and package manifest blocked; updated executive verdict, Gate 4, source index and continuation handoff. |
 | 3.6 | 2026-11-07 | Completed SPLIT-ARCH-01 design-only review of a manual split-privilege Waydroid architecture; mapped manager, LXC, rootfs/data, Binder/GPU, networking, session and cleanup responsibilities; concluded a custom deck-owned LXC launcher plus optional fixed-API privileged broker is technically conceivable but does not meet current no-host-network-change/least-privilege acceptance criteria and is not recommended for implementation; updated executive verdict, Gate 4 and continuation handoff. No runtime test or host change was performed; no archive snapshot was due. |\n
-| 3.7 | 2026-11-07 | Recorded user-accepted DECISION-WD-01: close the current Waydroid feasibility effort as blocked under existing constraints; preserve the audit and prohibit Waydroid installation/host changes under this decision; explicitly distinguish a possible future, separately approved temporary LXC-only experiment from the closure decision; updated document version and continuation handoff. |\n
+| 3.7 | 2026-11-07 | Recorded user-accepted DECISION-WD-01: close the current Waydroid feasibility effort as blocked under existing constraints; preserve the audit and prohibit Waydroid installation/host changes under this decision; explicitly distinguish a possible future, separately approved temporary LXC-only experiment from the closure decision; updated document version and continuation handoff. |
+| 3.8 | 2026-11-07 | Closed the read-only feasibility phase and opened a separate LXC-only experimental investigation under DECISION-LXC-EXP-01; documented staged package provenance/safety, exact-install approval, temporary non-root LXC runtime, cgroup/monitor/payload lifecycle, cleanup and removal gates; retained the unresolved pacman lock and package-manifest blockers; clarified that temporary LXC testing does not reopen Waydroid or authorize an immediate package transaction; updated executive status, Gate 4 and new-chat handoff. |\n
 ---
 
 *End of living audit record.*
