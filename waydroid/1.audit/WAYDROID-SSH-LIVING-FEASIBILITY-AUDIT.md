@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and authenticated signature verification remain blocked. LXC-EXP-01K-J confirmed the configured package DB and atomupd directories exist, but its package-record glob was one directory level too shallow; its zero-match result is invalid. Corrective gate 01K-K is prepared. Atomupd contains rootfs.caibx, a rootfs symlink whose target is not yet known, and five dated etc_backup archives. The endpoint holo.gpg hash still matches 01K-I. No LXC installation performed.
 >
-> **Document version:** 5.8  
+> **Document version:** 5.9  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -6528,5 +6528,30 @@ Recommended next step: a bounded read-only metadata inspection of the exact syml
 ### 16.6 Change log entry
 
 | 5.8 | 2026-11-07 | Recorded 01K-K results: corrected local holo-keyring record and its files manifest, atomupd rootfs link text to partset B, rootfs.caibx metadata, and unchanged keyring SHA-256. Distinguished local package-database claims from independent signature/signer authentication and did not infer active slot. Marked 01K-K complete and proposed bounded link-component metadata gate 01K-L. No host state changed. |
+
+
+### 16.7 01K-L observed findings and interpretation
+
+User executed LXC-EXP-01K-L on SteamOS host deck@Laco as ordinary user, without sudo. The bounded component inspection completed without a stop condition:
+
+- /dev, /dev/disk, /dev/disk/by-partsets, and /dev/disk/by-partsets/B were each observed as real directories (not symlinks), root:root mode 0755.
+- The final entry /dev/disk/by-partsets/B/rootfs was observed as a symbolic link, root:root, link mode 0777, size 18 bytes, mtime 2026-11-05 21:52:13.475094550 +0100.
+- Its literal relative link text is ../../../nvme0n1p5.
+- By lexical normalization of that relative link against its parent directory, the implied pathname is /dev/nvme0n1p5. This is a path calculation only: the link was not followed, and the target was not checked for existence, type, identity, mount status, or active/inactive slot.
+- Directory metadata: /dev mtime 2026-11-05 21:52:18.960674793 +0100; /dev/disk mtime 2026-11-05 21:52:13.476900801 +0100; /dev/disk/by-partsets mtime 2026-11-05 21:52:11.555139293 +0100; /dev/disk/by-partsets/B mtime 2026-11-05 21:52:13.493107973 +0100. All root:root mode 0755.
+
+**Interpretation and boundary:** The partset-B directory chain itself contains no symlink components. The B/rootfs entry is a relative symlink whose text lexically points to /dev/nvme0n1p5. This supports documenting the intended pathname association, but it does not prove the device node exists, that it represents a particular partition, that it is mounted, or that B is the currently active root slot. Do not infer updater semantics from this link alone.
+
+01K-L has answered its bounded question. No additional traversal of this link or inspection of the implied block-device path is justified for the current metadata objective. Further progress on updater behavior would require a separately scoped investigation with explicit boundaries; this audit does not authorize opening block devices, inspecting rootfs contents, mounting, or modifying deployment state.
+
+No device node was opened; no block-device data was read; no mount, service, package, GPG, network, write, extraction, installation, or LXC runtime operation occurred. The user supplied the command output; no separate shell exit status was included.
+
+### 16.8 Next investigation decision
+
+Close the narrow atomupd symlink-metadata thread for now. The confirmed facts are the local holo-keyring package record and file manifest, the atomupd rootfs symlink text to partset B, and its relative link text lexically indicating /dev/nvme0n1p5. These do not resolve package signature provenance or the configured pacman DBPath/write-access limitation. The next meaningful work should return to the outstanding LXC-specific blockers (package-manager transaction feasibility and independent signer authentication), not further chase the rootfs symlink. Any proposed test must remain design-only until its exact host impact, privilege boundary, rollback, and authorization are documented.
+
+### 16.9 Change log entry
+
+| 5.9 | 2026-11-07 | Recorded 01K-L non-dereferencing path-component results: real directory chain through partset B and relative rootfs symlink text ../../../nvme0n1p5. Documented lexical implied pathname /dev/nvme0n1p5 without asserting target existence, device identity, mount status, or active slot. Closed the narrow symlink-metadata thread and redirected subsequent work to unresolved LXC package-manager and signer-trust blockers. No host state changed. |
 
 *End of living audit record.*
