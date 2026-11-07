@@ -2,10 +2,10 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; no installation or runtime experiment has yet been justified or performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection blocked because repository file-list databases are absent; no installation or runtime experiment performed**.
 >
-> **Document version:** 2.2  
-> **Last source refresh:** 2026-11-06  
+> **Document version:** 2.3  
+> **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
 
@@ -134,7 +134,7 @@ The manager code uses the system D-Bus, exports methods to start/stop/freeze/unf
 
 #### LXC package scope versus Waydroid package scope
 
-The upstream Arch LXC package metadata currently describes LXC as a standalone package with runtime dependencies including bash, dbus, libcap, libseccomp, perl, Python, rsync and wget; dnsmasq is listed as optional for lxc-net.service. The listed package installed size is about 2.8 MB in that Arch metadata. This is a reference for likely package shape, **not a verified SteamOS transaction**. SteamOS's exact LXC package version, repository availability, dependency versions, already-installed dependencies, conflicts and transaction size must be resolved against the Deck's own current package database before any install.
+The upstream Arch LXC package metadata currently describes LXC as a standalone package with runtime dependencies including bash, dbus, libcap, libseccomp, perl, Python, rsync and wget; dnsmasq is listed as optional for lxc-net.service. The listed package installed size is about 2.8 MB in that Arch metadata. This is a reference for likely package shape, **not a verified SteamOS transaction**. Deck-local LXC-PKG-01 reported candidate lxc version 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only lxc, with all seven listed dependencies already installed. LXC-PKG-02 could not inspect the file manifest because the repository file-list databases were absent locally; this does not invalidate the sync-database candidate. The raw PKG-01 output was not included in the current continuation handoff, so those values remain reported rather than independently reverified.
 
 The optional LXC network helper/service is not required merely to run the LXC CLI. Do not enable lxc-net, lxc-containers, or any LXC autostart/network unit. Waydroid's own default network script independently creates a bridge, configures forwarding, starts dnsmasq and adds firewall rules; that script remains prohibited for this project.
 
