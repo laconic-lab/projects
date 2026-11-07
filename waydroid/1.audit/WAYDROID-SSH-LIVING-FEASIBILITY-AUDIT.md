@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; 01K-D confirmed that the temporary GPG home remained after the 01K-C EXIT trap; approved 01K-E exact-path cleanup removed the two verified GnuPG database files and directory, and absence was confirmed; 01K-F/01K-G mapped public signer/keyring provenance but did not establish an independent trust anchor; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and authenticated signature verification remain blocked. LXC-EXP-01K-J confirmed the configured package DB and atomupd directories exist, but its package-record glob was one directory level too shallow; its zero-match result is invalid. Corrective gate 01K-K is prepared. Atomupd contains rootfs.caibx, a rootfs symlink whose target is not yet known, and five dated etc_backup archives. The endpoint holo.gpg hash still matches 01K-I. No LXC installation performed.
 >
-> **Document version:** 5.6  
+> **Document version:** 5.7  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -6412,5 +6412,96 @@ The exact keyring digest is a local comparison target, not an authenticated chec
 | 5.1 | 2026-11-07 | Recorded LXC-EXP-01K-F public signer-provenance research. Reconciled prior evidence for the exact LXC archive, matching detached signature and archive SHA-256; classified the ValveSoftware/SteamOS issue report as user-submitted corroboration only, and third-party fingerprint/keyring-hash references as non-authoritative. No independent authoritative Valve trust anchor was located in the bounded search; signature verification remains blocked. Advanced the handoff to 01K-G, focused on the `holo-keyring` trust-anchor provenance chain. No host command, download, key import, trust change, pacman action, installation or runtime test occurred. |
 
 ---
+
+## 16. Continuation addendum — LXC-EXP-01K-J result and correction (2026-11-07)
+
+**Superseding continuation state:** LXC-EXP-01K-J is completed, with a package-record lookup defect. The next active gate is LXC-EXP-01K-K below. This addendum takes precedence over the older handoff text in Section 14 until the next full consistency edit.
+
+### 16.1 01K-J observed findings
+
+- Both /usr/lib/holo/pacmandb and /var/lib/steamos-atomupd exist as root:root mode 0755 directories.
+- The configured package DB contains local/ and package-version directories beneath it.
+- The search glob in 01K-J was "$DB"/*/desc, but the observed record layout is "$DB"/local/<package-version>/desc. The reported HOLO_KEYRING_PACKAGE_RECORDS_FOUND: 0 is therefore an invalid negative result. Package ownership/version and its files record remain unknown.
+- Atomupd contains rootfs.caibx (regular file, root:root, mode 0644, 2,421,664 bytes), a rootfs symlink (root:root, link mode 0777; target not printed), and five dated etc_backup .tar.xz files.
+- The holo.gpg file remains root:root mode 0755, 39,295 bytes, mtime 2026-08-06 07:19:06 +0200; SHA-256 408454d076d3a71c0bbbb435c84ee1682eab5e9eb7b93669c5c5a4a4d0abfb97, identical to 01K-I.
+- The supplied transcript did not separately capture the shell exit status. No updater contents were read and no host state was changed.
+
+### 16.2 Corrective gate — LXC-EXP-01K-K
+
+Purpose: repeat only the exact holo-keyring package-record lookup at the observed local/ depth, and print the atomupd rootfs symlink target as link text without following it. The rootfs.caibx file remains metadata-only. This does not authorize package-manager operations, updater/archive extraction, GPG, signature verification, writes or LXC runtime work.
+
+Execution: SteamOS host deck@Laco, ordinary user, no sudo, not Distrobox. Read-only.
+
+```bash
+echo "===== LXC-EXP-01K-K: CORRECTED PACKAGE RECORD / ATOMUPD LINK INSPECTION ====="
+set -u
+DB="/usr/lib/holo/pacmandb"
+LOCAL="$DB/local"
+ATOM="/var/lib/steamos-atomupd"
+KEYREL="usr/share/pacman/keyrings/holo.gpg"
+
+echo "===== 1. VERIFY EXACT PACKAGE-RECORD DIRECTORY ====="
+if [ -L "$LOCAL" ]; then
+    echo "LOCAL_DB_IS_SYMLINK — STOP"
+elif [ ! -d "$LOCAL" ]; then
+    echo "LOCAL_DB_DIRECTORY_NOT_FOUND — STOP"
+else
+    stat -c 'LOCAL_DB_META: %n | %F | %U:%G | mode=%a | mtime=%y' "$LOCAL"
+    echo "===== 2. EXACT HOLO-KEYRING RECORD — CORRECTED DEPTH ====="
+    MATCH_COUNT=0
+    for pkgdir in "$LOCAL"/*; do
+        [ -d "$pkgdir" ] && [ ! -L "$pkgdir" ] || continue
+        desc="$pkgdir/desc"
+        [ -f "$desc" ] && [ ! -L "$desc" ] || continue
+        if awk '/^%NAME%$/ { getline; if ($0 == "holo-keyring") found=1 } END { exit !found }' "$desc"; then
+            MATCH_COUNT=$((MATCH_COUNT + 1))
+            echo "PACKAGE_DESC: $desc"
+            stat -c 'DESC_META: OWNER=%U:%G MODE=%a SIZE=%s MTIME=%y' "$desc"
+            awk '/^%(NAME|VERSION|BASE|PACKAGER|BUILDDATE|INSTALLDATE|VALIDATION)%$/ { key=$0; if (getline > 0) print key " " $0 }' "$desc"
+            files="${desc%/desc}/files"
+            if [ -f "$files" ] && [ ! -L "$files" ]; then
+                echo "PACKAGE_FILES_RECORD: $files"
+                stat -c 'FILES_META: OWNER=%U:%G MODE=%a SIZE=%s MTIME=%y' "$files"
+                grep -nF "$KEYREL" "$files" || echo "EXACT_KEYRING_PATH_NOT_LISTED"
+            else
+                echo "PACKAGE_FILES_RECORD_NOT_FOUND_OR_NOT_REGULAR"
+            fi
+        fi
+    done
+    echo "HOLO_KEYRING_PACKAGE_RECORDS_FOUND: $MATCH_COUNT"
+fi
+
+echo "===== 3. ATOMUPD ROOTFS LINK — DO NOT FOLLOW ====="
+if [ -L "$ATOM/rootfs" ]; then
+    stat -c 'ROOTFS_LINK_META: %n | %F | %U:%G | mode=%a | size=%s | mtime=%y' "$ATOM/rootfs"
+    printf 'ROOTFS_LINK_TARGET: '
+    readlink -- "$ATOM/rootfs"
+elif [ -e "$ATOM/rootfs" ]; then
+    echo "ROOTFS_PATH_EXISTS_BUT_IS_NOT_A_SYMLINK"
+    stat -c 'ROOTFS_PATH_META: %n | %F | %U:%G | mode=%a | size=%s | mtime=%y' "$ATOM/rootfs"
+else
+    echo "ROOTFS_PATH_NOT_FOUND"
+fi
+
+echo "===== 4. ROOTFS IMAGE FILE — METADATA ONLY ====="
+if [ -f "$ATOM/rootfs.caibx" ] && [ ! -L "$ATOM/rootfs.caibx" ]; then
+    stat -c 'ROOTFS_CAIBX_META: %n | %F | %U:%G | mode=%a | size=%s | mtime=%y' "$ATOM/rootfs.caibx"
+else
+    echo "ROOTFS_CAIBX_NOT_A_REGULAR_NON_SYMLINK_FILE"
+fi
+
+echo "===== 5. KEYRING CONSISTENCY CHECK ====="
+stat -c 'KEYRING_META: %n | %F | %U:%G | mode=%a | size=%s | mtime=%y' /usr/share/pacman/keyrings/holo.gpg 2>&1 || true
+sha256sum /usr/share/pacman/keyrings/holo.gpg 2>&1 || true
+echo "===== END LXC-EXP-01K-K ====="
+```
+
+Stop if /usr/lib/holo/pacmandb/local is a symlink, missing or not a directory. The scan ignores symlink package directories and symlink desc/files records. A matching local record is not an independent trust anchor. Do not dereference rootfs or inspect rootfs.caibx or the backup archives.
+
+**01K-K STATUS: PREPARED; USER EXECUTION PENDING.** After its output, reassess package ownership and whether the symlink target provides a justified, exact-path updater metadata lead. The pacman DBPath/write-access failure and independent signer-authentication blocker remain unresolved.
+
+### 16.3 Change log entry
+
+| 5.7 | 2026-11-07 | Recorded user-supplied LXC-EXP-01K-J results and identified the package-record glob depth defect; classified the zero-match result as invalid; recorded atomupd rootfs.caibx/rootfs/backup metadata and unchanged keyring hash; updated the continuation state and prepared bounded corrective gate 01K-K. No updater contents, package operations, writes, installation or runtime actions occurred. |
 
 *End of living audit record.*
