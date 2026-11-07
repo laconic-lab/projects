@@ -1010,8 +1010,244 @@ The listeners did not terminate within Podman's 10-second SIGTERM grace period; 
 **Conclusion**
 NET-04 **passes its defined two-peer internal communication and named external-egress criteria**. The temporary resources were removed and their absence verified. Preserve the SIGTERM-to-SIGKILL observation as an open lifecycle concern. The next dependency is NET-05 — host-service and published-port boundary. No production network or Odysseus deployment is authorized.
 
-**Exact executed command families**
-The complete commands were the approved NET-04 Stage A–I commands supplied immediately before execution: read-only image/name preflight; `podman network create --internal odysseus-net04-internal-test`; two `podman run -d --rm --pull=never` Python TCP listeners using the approved namespace/capability/security/resource options; readiness logs; two directional `podman exec` Python DNS/TCP probes; separate host/router/public/DNS probes in each peer; network and container inspection; named stop/remove loop; and independent absence checks. The transcript preserves the full exact command text. No numeric shell exit codes were captured for every stage; do not infer them.
+**Exact commands executed**
+
+Read-only preflight:
+```bash
+echo "===== NET-04 READ-ONLY PREFLIGHT ====="
+echo
+echo "===== CACHED IMAGE ====="
+podman image exists docker.io/library/python:3-alpine
+echo "Image check exit code: $?"
+echo
+echo "===== NETWORK NAME COLLISION CHECK ====="
+podman network ls --filter name=odysseus-net04-internal-test
+echo
+echo "===== CONTAINER NAME COLLISION CHECK ====="
+podman ps -a \
+  --filter name=odysseus-net04-peer-a \
+  --filter name=odysseus-net04-peer-b
+```
+
+Network creation:
+```bash
+podman network create --internal odysseus-net04-internal-test
+```
+
+Peer A listener:
+```bash
+podman run -d --rm --pull=never \
+  --name odysseus-net04-peer-a \
+  --network odysseus-net04-internal-test \
+  --network-alias net04-peer-a \
+  --userns=nomap \
+  --cap-drop=all \
+  --security-opt=no-new-privileges \
+  --pids-limit=64 \
+  --memory=128m \
+  docker.io/library/python:3-alpine \
+  python -u -c '
+import socket
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("0.0.0.0", 18080))
+s.listen(8)
+print("NET04 PEER A READY", flush=True)
+while True:
+    conn, addr = s.accept()
+    print("Peer A received connection from:", addr, flush=True)
+    conn.sendall(b"NET04 RESPONSE FROM PEER A")
+    conn.close()
+'
+```
+
+Peer B listener (same command with B identity and response):
+```bash
+podman run -d --rm --pull=never \
+  --name odysseus-net04-peer-b \
+  --network odysseus-net04-internal-test \
+  --network-alias net04-peer-b \
+  --userns=nomap \
+  --cap-drop=all \
+  --security-opt=no-new-privileges \
+  --pids-limit=64 \
+  --memory=128m \
+  docker.io/library/python:3-alpine \
+  python -u -c '
+import socket
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(("0.0.0.0", 18080))
+s.listen(8)
+print("NET04 PEER B READY", flush=True)
+while True:
+    conn, addr = s.accept()
+    print("Peer B received connection from:", addr, flush=True)
+    conn.sendall(b"NET04 RESPONSE FROM PEER B")
+    conn.close()
+'
+```
+
+Readiness logs:
+```bash
+echo "===== PEER A LOG ====="
+podman logs odysseus-net04-peer-a
+echo
+echo "===== PEER B LOG ====="
+podman logs odysseus-net04-peer-b
+```
+
+Peer A to B:
+```bash
+podman exec -i odysseus-net04-peer-a python - <<'PY'
+import socket
+target = "net04-peer-b"
+port = 18080
+print("=== A -> B ===")
+try:
+    addresses = socket.getaddrinfo(target, port, type=socket.SOCK_STREAM)
+    print("DNS:", addresses)
+    with socket.create_connection((target, port), timeout=3) as s:
+        print("TCP: CONNECTED")
+        print("RESPONSE:", s.recv(1024).decode())
+except Exception as e:
+    print("FAILED:", type(e).__name__, str(e))
+PY
+```
+
+Peer B to A:
+```bash
+podman exec -i odysseus-net04-peer-b python - <<'PY'
+import socket
+target = "net04-peer-a"
+port = 18080
+print("=== B -> A ===")
+try:
+    addresses = socket.getaddrinfo(target, port, type=socket.SOCK_STREAM)
+    print("DNS:", addresses)
+    with socket.create_connection((target, port), timeout=3) as s:
+        print("TCP: CONNECTED")
+        print("RESPONSE:", s.recv(1024).decode())
+except Exception as e:
+    print("FAILED:", type(e).__name__, str(e))
+PY
+```
+
+External probes were run separately in each peer with the same Python body and different display labels. The executed Peer A command:
+```bash
+podman exec -i odysseus-net04-peer-a python - <<'PY'
+import socket
+print("=== PEER A: ROUTES ===")
+print(open("/proc/net/route").read())
+print("=== PEER A: RESOLVER ===")
+print(open("/etc/resolv.conf").read())
+targets = [
+    ("Host SSH", "192.168.1.161", 22),
+    ("Router DNS", "192.168.1.254", 53),
+    ("Public HTTPS", "1.1.1.1", 443),
+]
+print("=== PEER A: TCP PROBES ===")
+for name, host, port in targets:
+    try:
+        with socket.create_connection((host, port), timeout=3):
+            print(name + ": CONNECTED")
+    except Exception as e:
+        print(name + ": BLOCKED/FAILED (" +
+              type(e).__name__ + ": " + str(e) + ")")
+print("=== PEER A: DNS LOOKUP ===")
+try:
+    print("example.com:", socket.getaddrinfo("example.com", 443))
+except Exception as e:
+    print("DNS FAILED:", type(e).__name__, str(e))
+PY
+```
+
+Peer B used the identical body with `odysseus-net04-peer-b` and the `PEER B` labels:
+```bash
+podman exec -i odysseus-net04-peer-b python - <<'PY'
+import socket
+print("=== PEER B: ROUTES ===")
+print(open("/proc/net/route").read())
+print("=== PEER B: RESOLVER ===")
+print(open("/etc/resolv.conf").read())
+targets = [
+    ("Host SSH", "192.168.1.161", 22),
+    ("Router DNS", "192.168.1.254", 53),
+    ("Public HTTPS", "1.1.1.1", 443),
+]
+print("=== PEER B: TCP PROBES ===")
+for name, host, port in targets:
+    try:
+        with socket.create_connection((host, port), timeout=3):
+            print(name + ": CONNECTED")
+    except Exception as e:
+        print(name + ": BLOCKED/FAILED (" +
+              type(e).__name__ + ": " + str(e) + ")")
+print("=== PEER B: DNS LOOKUP ===")
+try:
+    print("example.com:", socket.getaddrinfo("example.com", 443))
+except Exception as e:
+    print("DNS FAILED:", type(e).__name__, str(e))
+PY
+```
+
+Inspection:
+```bash
+echo "===== NET-04 NETWORK INSPECTION ====="
+podman network inspect odysseus-net04-internal-test
+echo
+echo "===== NET-04 PEER A INSPECTION ====="
+podman inspect odysseus-net04-peer-a
+echo
+echo "===== NET-04 PEER B INSPECTION ====="
+podman inspect odysseus-net04-peer-b
+```
+
+Cleanup:
+```bash
+echo "===== STOP NET-04 PEERS ====="
+for name in \
+  odysseus-net04-peer-a \
+  odysseus-net04-peer-b
+do
+  if podman container exists "$name"; then
+    podman stop "$name"
+  else
+    echo "$name already absent"
+  fi
+done
+echo
+echo "===== REMOVE NET-04 NETWORK ====="
+if podman network exists odysseus-net04-internal-test; then
+  podman network rm odysseus-net04-internal-test
+else
+  echo "NET-04 network already absent"
+fi
+```
+
+Independent cleanup verification:
+```bash
+echo "===== VERIFY NET-04 CONTAINER CLEANUP ====="
+for name in \
+  odysseus-net04-peer-a \
+  odysseus-net04-peer-b
+do
+  if podman container exists "$name"; then
+    echo "ERROR: $name STILL EXISTS"
+  else
+    echo "OK: $name ABSENT"
+  fi
+done
+echo
+echo "===== VERIFY NET-04 NETWORK CLEANUP ====="
+if podman network exists odysseus-net04-internal-test; then
+  echo "ERROR: NET-04 NETWORK STILL EXISTS"
+else
+  echo "OK: NET-04 NETWORK ABSENT"
+fi
+```
+
+No numeric shell exit codes were captured for every stage; do not infer them.
 
 ---
 
@@ -1043,20 +1279,21 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 
 ```mermaid
 flowchart TD
-    A[UID mapping evidence] --> B[Internal network validation]
-    B --> C[Peer / host / egress boundary]
-    C --> D[Application identity + mount allowlist]
-    D --> E[Resource limits]
-    E --> F[Reproducible restricted build]
-    F --> G[Execution bypass review]
-    G --> H[Credential / broker boundary]
-    H --> I[Local model route]
-    I --> J[Manual lifecycle + recovery]
-    J --> K[Final negative and positive acceptance tests]
-    K --> L{Architecture decision}
-    L -->|Pass| M[Prepare installation plan; request separate approval]
-    L -->|Revise| N[Update architecture and retest changed boundary]
-    L -->|Fail| O[Stop and document infeasibility]
+    A[UID mapping evidence] --> B[NET-03 internal egress]
+    B --> C[NET-04 peer communication + egress]
+    C --> D[NET-05 host service + published ports]
+    D --> E[Application identity + mount allowlist]
+    E --> F[Resource limits]
+    F --> G[Reproducible restricted build]
+    G --> H[Execution bypass review]
+    H --> I[Credential / broker boundary]
+    I --> J[Local model route]
+    J --> K[Manual lifecycle + recovery]
+    K --> L[Final negative and positive acceptance tests]
+    L --> M{Architecture decision}
+    M -->|Pass| N[Prepare installation plan; request separate approval]
+    M -->|Revise| O[Update architecture and retest changed boundary]
+    M -->|Fail| P[Stop and document infeasibility]
 ```
 
 Dependencies may be rearranged only when a documented reason shows that the proposed test does not rely on an unresolved prerequisite.
