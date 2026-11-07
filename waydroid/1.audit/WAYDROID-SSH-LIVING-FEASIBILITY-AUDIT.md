@@ -1,13 +1,13 @@
 # Waydroid SSH — Living Container Feasibility Audit & Continuation Record
 
-> **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
+> **Document role:** Canonical, cumulative engineering record and final closure record for the Waydroid-on-Steam-Deck / remote-client feasibility project. It preserves the original requirements, test evidence, source analysis, decisions, limitations and final disposition. Historical sections are retained as evidence; they are not instructions to resume testing.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and independent signer authentication remain BLOCKED. 01K-O confirmed from Valve's own SteamOS page that FOSS source code is hosted at gitlab.steamos.cloud. In 01K-P, the user searched the official GitLab instance for holo-keyring, ci-package-builder-1, and the complete candidate fingerprint; all three searches returned “No results found.” This is a user-observed search result, not proof that the project/key does not exist or that the official instance lacks it. The evlaV public repositories explicitly describe themselves as unofficial mirrors of Valve SteamOS source repositories; this does not provide an independently authenticated Valve-to-key fingerprint binding. Candidate fingerprint 889B5EBDDD505A683621900DAF1D2199EF0A3CCF remains unauthenticated independently. Exact LXC archive signature remains unverified. No LXC installation performed.
+> **Status:** **AUDIT CLOSED — NOT FEASIBLE UNDER THE CURRENT REQUIREMENTS AND SECURITY BOUNDARY.** Both the Waydroid feasibility workstream and the separate LXC-only investigation are closed. The unresolved LXC package provenance, pacman DBPath/write-access and runtime gates are recorded as blockers, not as pending work. No LXC or Waydroid installation was performed. No further experiment is authorized or planned by this closure.
 >
-> **Document version:** 5.13  
+> **Document version:** 5.14  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
-> **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
+> **Scope:** Finalized historical feasibility audit and project conclusion. Reopening requires a materially changed requirement or architecture and a new, explicit project decision.
 
 ---
 
@@ -45,9 +45,10 @@ Run Android on the Steam Deck OLED, with the Deck doing Android CPU/GPU work, wh
 - It is not an installation guide.
 - Historical environment values are not automatically current values.
 - A passed primitive test is not proof that the complete Waydroid workflow works.
-- When a new test is performed, append its exact command, complete relevant output, exit status, scope, interpretation, limitations, and repeat policy to this document **immediately, before proposing or running the next test**.
-- **Approved maintenance cadence:** every completed test is recorded immediately in this canonical document. After every five completed tests, perform a documentation consistency review and preserve an unchanged versioned archive snapshot. Create an earlier snapshot before a significant architecture/security decision or material restructuring.
-- Every new ChatGPT conversation must begin from this canonical handoff and current test ledger; never rely on assumed conversation memory. The handoff must identify the next exact gate and current document version.
+- This document is **closed**. Historical test commands and proposed gates are retained for auditability and must not be executed as a continuation checklist.
+- The latest recorded experimental evidence and its limitations remain part of the historical record; closure does not convert untested requirements into confirmed passes or failures.
+- No package installation, LXC runtime test, Waydroid launch, cgroup-controller mutation, Binder workload, rootfs mount, netfilter mutation, host service change or network/firewall change is authorized by this document.
+- Reopening requires a materially changed architecture or security boundary, a new written scope, and explicit user approval. Do not silently resume the former LXC-only branch.
 
 ### 0.4 Status vocabulary
 
@@ -70,15 +71,23 @@ Use these labels consistently:
 
 ## 1. Executive assessment
 
-### 1.1 Current verdict
+### 1.1 Final verdict
 
-**The direct-host cgroup primitives now pass, but the stock Waydroid launch path does not enter LXC 7.0.0's unprivileged systemd-delegation path.** The Deck-reported package candidate is LXC 1:7.0.0-1 (not installed); the matching upstream v7.0.0 release source was inspected. In a pure unified cgroup-v2 system, when LXC runs with a non-root effective UID, LXC 7.0.0 can create its own transient systemd user scope with Delegate=yes, move its launcher process into an init child cgroup, and write every controller listed in cgroup.controllers into the scope's cgroup.subtree_control. It then creates monitor/container cgroups, moves processes between them, and removes those trees during teardown. LXC-CGROUP-01/02 proved the host's delegated child-cgroup create/remove and single-process placement primitives, but did not test controller activation, whole-parent process migration, LXC monitor/payload lifecycle, or device BPF operations.
+**FINAL DISPOSITION: NOT FEASIBLE UNDER THE CURRENT REQUIREMENTS — AUDIT CLOSED.**
 
-The stock Waydroid path is materially different: the system D-Bus activation service and systemd unit run the Waydroid container manager as root. That manager invokes lxc-start directly as a background child process. LXC 7.0.0 explicitly skips its unprivileged systemd user-scope creation when geteuid() is 0. Therefore, putting a user-side waydroid CLI request inside systemd-run --user --scope does not place the root D-Bus-activated service or its lxc-start child in that user scope. The source evidence identifies a real privilege-context/integration mismatch; it does not prove that a redesigned split-privilege architecture is impossible.
+The target was not simply to start Android somewhere on the Steam Deck. It was to run Waydroid inside the required container boundary, preserve SteamOS and existing services, avoid privileged outer-container operation and broad host integration, and provide SSH-controlled remote display/input to Linux Mint and Windows.
 
-The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
+The evidence supports a negative project decision because the required components do not align with the approved deployment boundary:
 
-**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection. LXC-EXP-01G/01H completed the static content review of the AppArmor payload. LXC-EXP-01I then established that AppArmor is disabled and unavailable on the current SteamOS host: `/sys/module/apparmor/parameters/enabled` returned `N`, AppArmor was absent from `/sys/kernel/security/lsm`, no AppArmor securityfs interface, parser/status utilities, or checked policy directories were present, and the service was inactive. LXC-EXP-01J traced upstream v7.0.0: the packaged `usr.bin.lxc-start` profile includes `abstractions/lxc/start-container`; that abstraction authorizes transitions to LXC profiles and `unconfined`; LXC's spawned child applies the configured label to itself immediately before executing container init. An explicit `lxc.apparmor.profile = unconfined` can therefore cause the child/container init to leave the launcher profile's confinement, while the monitor parent remains in its inherited launcher profile. With no explicit override, upstream LXC chooses its default container profile (or cgroup-namespace variant), not `unconfined`. This is a deliberate configuration capability, not an automatic transition or proof of host escape. Exact SteamOS package build-feature/patch equivalence remains unverified. Signature trust, package-manager safety, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
+1. **Waydroid's normal architecture is host-integrated.** Its manager/control plane expects host-side LXC, system D-Bus/systemd integration, Binder/device preparation, rootfs handling and networking setup. The stock root-owned manager path does not naturally enter LXC's non-root systemd user-scope delegation path.
+2. **Rootless Podman is a hard boundary, not a transparent mini-host.** The nested cgroup2 mount observed in the disposable rootless container was read-only. Positive host-side delegated-cgroup primitives do not prove that LXC can manage its required subtree inside that container.
+3. **SteamOS is a constrained appliance-style host.** Its image-based update model, managed system paths, package-manager/DBPath behavior and host service/network boundaries make installing and maintaining Waydroid's normal host integration inappropriate for this project. The exact LXC package signer was not independently authenticated and the package-manager write/lock issue remained unresolved.
+4. **The missing runtime foundations are coupled.** Rootfs mounting or extraction, LXC cgroups, Binder handoff, GPU access, Android netfilter/networking, Wayland/D-Bus/audio session handoff and cleanup all need to work together. Solving one primitive does not establish an operational Android runtime.
+5. **The compliant alternatives were not persuasive.** A custom split-privilege manager/launcher is technically conceivable, but it adds substantial custom integration and leaves rootfs/data ownership, device handoff, failure cleanup and network behavior unresolved. The normal Waydroid network helper conflicts with the no-host bridge/forwarding/firewall-change requirement. Relaxing the boundary with a privileged outer container or broad host access would violate D-07/D-08.
+
+This is an **architecture-level feasibility conclusion**, not a claim that every Waydroid component was experimentally shown to fail. Several end-to-end gates were deliberately never run. They are not needed to justify closure: the project cannot currently demonstrate a secure, maintainable route that satisfies all mandatory constraints, and the known blockers sit at foundational integration boundaries.
+
+**No further LXC-only experiments are planned.** The separate LXC investigation is closed as historical supporting work, not left open as an alternate route. The package signer and package-manager blockers remain unresolved historical facts; they are not a to-do list.
 
 ### 1.2 Positive evidence
 
@@ -95,22 +104,34 @@ The separate rootless Podman route remains blocked by the read-only cgroup2 moun
 - Host-side private user/network namespace bridge, forwarding, and NAT operations succeeded without changing the host's persistent forwarding state.
 - Ordinary outbound networking/DNS from a disposable Podman container succeeded.
 
-### 1.3 Remaining gates
+### 1.3 Why the project is closed
 
-1. Complete source/dependency review of Waydroid manager/service assumptions, install-time dependencies, generated LXC configuration, cgroups, Binder, GPU, network, Wayland and D-Bus.
-2. Resolve the architecture boundary: Android itself is an LXC container; the Waydroid manager normally runs as host-side userspace. An outer container does not automatically remove the inner LXC requirement.
-3. Determine whether direct host-level unprivileged LXC can be tested with a temporary delegated user scope, without persistent service enablement or host-wide cgroup changes. Test 24 applies to the Podman boundary, not direct host-level LXC.
-4. Only if necessary, present a bounded installation/test/rollback plan before installing LXC. Conditional permission does not authorize Waydroid packages, services or persistent configuration.
-5. If the LXC gate passes, test Binder device handoff and actual transactions.
-5. Test the minimum AMD render-node access required; no GPU workload has been run inside the target boundary.
-6. Test Wayland, D-Bus, audio, and session handoff from a headless SSH-launched process without broad host runtime mounts.
-7. Resolve Android networking without host-wide forwarding/firewall changes or Pi-hole impact.
-8. Test localhost-only ADB plus SSH forwarding and scrcpy end-to-end from both Mint and Windows.
-9. Assess Rust Binder stability under real Android workloads, including large-transaction behavior.
-10. Test Android data persistence/recovery and manual lifecycle only if the runtime passes earlier gates.
+| Constraint area | Evidence / limitation | Effect on target |
+|---|---|---|
+| Steam Deck platform | AMD GPU and render node were identified; the hardware is not the primary blocker. The target depends on host session, device, kernel and service integration. | Capable hardware does not remove host integration constraints. |
+| SteamOS | Image-based updates and managed system paths; pacman DBPath/write-access issue remained unexplained; package provenance was not independently authenticated. | A host-installed LXC/Waydroid stack is not a safe or maintainable fallback under this scope. |
+| Rootless Podman | Nested cgroup2 mount observed read-only; direct-host cgroup tests do not establish nested delegation. | Required inner LXC lifecycle has no demonstrated compliant cgroup path. |
+| Waydroid manager | Normal manager uses host-side root D-Bus/systemd control path and invokes LXC as root. | Stock launch path bypasses the non-root systemd-delegation path. |
+| Rootfs and storage | Actual Waydroid image mounting/extraction as a usable LXC rootfs was not validated inside the approved boundary. | Fundamental runtime prerequisite remains unproven. |
+| Binder and GPU | BinderFS primitives and Binder protocol-version query passed in limited disposable tests; no Android Binder workload or real GPU workload was run. | Primitive success is not Android compatibility evidence. |
+| Networking | Waydroid's standard helper creates host bridge/firewall/forwarding state; no compliant isolated Android networking implementation was established. | Conflicts with host-network protection and Pi-hole isolation requirements. |
+| Session and remote client | Wayland/D-Bus/audio handoff, actual Android boot, localhost ADB, SSH tunnel and scrcpy on Mint/Windows were not reached. | The user-visible product outcome was never demonstrated. |
+| Security and operations | A split design would require custom manager/launcher, device and data ownership, and failure-cleanup integration. | Complexity and privilege pressure exceed the approved risk boundary. |
 
-**No permanent Waydroid container, package installation, host kernel modification, Binder service, firewall change, or persistent Android data store is justified yet.**
+### 1.4 Positive evidence retained
 
+The following remain valid but narrowly scoped: BinderFS mounting/node creation and BINDER_VERSION query in a disposable rootless container with explicitly granted CAP_SYS_ADMIN; nested user/mount/PID namespace operations under the tested capability/seccomp combinations; ordinary container networking/DNS; host-side transient delegated-scope and child-cgroup primitives; and one-process placement/cleanup. None demonstrates a complete nested LXC or Waydroid runtime.
+
+### 1.5 Final disposition
+
+- **Waydroid implementation:** CLOSED — NOT FEASIBLE under the current requirements.
+- **LXC-only experimental branch:** CLOSED — no installation and no runtime test.
+- **Package provenance / pacman safety:** unresolved historical blockers; no further work scheduled.
+- **Uncompleted Android/runtime/client gates:** intentionally untested; no implied pass/fail.
+- **Host state:** no LXC or Waydroid package installed; no permanent Waydroid service, network, firewall, cgroup or kernel change made.
+- **Protected projects:** Pi-hole, Odysseus and the existing Steam Deck environment remain outside the project and must not be disturbed.
+
+Reconsideration is appropriate only if a materially different delivery model is accepted (for example, a supported host integration with an explicitly revised security boundary, or a different Android virtualization/remote-display architecture). Such a change is a new project decision, not a continuation of this closed audit.
 ---
 
 ## 2. Target architecture and acceptance criteria
@@ -5161,42 +5182,21 @@ Pi-hole's existing port 53 arrangement is a different problem from Waydroid's An
 
 ---
 
-## 9. Next work — ordered dependency gates
+## 9. Final project disposition — closed
 
-The read-only feasibility phase is closed. The active workstream is now the LXC-only experimental investigation in §5.13. Do not jump to installation: complete package provenance/safety gates first, then obtain explicit confirmation of the exact transaction. Record each experiment immediately.
+There is no next experiment in this audit. The ordered gates below are retained in the earlier test ledger as historical planning context only; they are superseded by the closure decision in §17 and the standalone conclusion document.
 
-| Order | Gate | Prerequisite | What constitutes evidence | Current status |
-|---:|---|---|---|---|
-| 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
-| 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
-| 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC-only experimental investigation | LXC-EXP-00 charter; package provenance and pacman safety prerequisite | Safely install exact LXC package temporarily, test non-root delegated-scope LXC lifecycle, then verify cleanup/removal | **BLOCKED — LXC-EXP-01A did not explain the pacman lock/write-access discrepancy; package manifest unavailable; no install** |
-| 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
-| 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
-| 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
-| 8 | Android network | LXC/Binder runtime | Android networking works without host-wide forwarding/firewall changes or Pi-hole impact | UNTESTED |
-| 9 | Actual Waydroid boot | Gates 4–8 | Android services boot and remain stable | UNTESTED |
-| 10 | ADB local binding | Waydroid boot | ADB listener is localhost-only; authenticated local client works | UNTESTED |
-| 11 | SSH tunnel + scrcpy on Mint | ADB local binding | Remote window and input work over SSH tunnel | UNTESTED |
-| 12 | SSH tunnel + scrcpy on Windows | ADB local binding | Same on Windows client | UNTESTED |
-| 13 | Android app/window behavior | Remote display | Determine whether desired individual-app window is possible | UNTESTED |
-| 14 | Data persistence / recovery | Stable runtime | Tested backup/restore and container recreation | UNTESTED |
-| 15 | Manual lifecycle / final security review | All functional gates | Start/stop, no autostart, least privilege, cleanup, no collateral service impact | UNTESTED |
+### Closure rules
 
-### Stop conditions
+- Do not install LXC or Waydroid.
+- Do not retry pacman, alter the configured DBPath, change permissions/ACLs, remount system paths, or manipulate package locks.
+- Do not activate cgroup controllers, launch LXC, or create a Waydroid rootfs.
+- Do not run Waydroid's network helper or change host forwarding, NAT, firewall, bridges or Pi-hole configuration.
+- Do not widen the container boundary with privileged mode, broad host mounts, host namespace sharing or persistent delegation.
+- Do not pursue Binder, GPU, Wayland, D-Bus, audio, Android boot, ADB or scrcpy tests as continuation work.
+- Preserve the historical evidence and this closure record. Reopen only through a new scope and explicit decision after a material change to requirements or architecture.
 
-Stop and report rather than widen permissions if:
-
-- the only working design requires `--privileged`;
-- the only working design requires broad host filesystem mounts or host namespaces;
-- Binder requires a persistent host-wide modification not approved by the user;
-- networking requires unapproved host forwarding/firewall changes;
-- LXC requires unsafe cgroup or device delegation;
-- the graphical session can only be reached by exposing the entire host runtime directory;
-- the design interferes with Pi-hole or other protected projects.
-
-A secure infeasibility finding is a valid outcome.
-
+The project is closed because no compliant, maintainable end-to-end route was established—not because every possible implementation was exhaustively tested.
 ---
 
 ## 10. Command and experiment documentation schema
@@ -6315,49 +6315,21 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 
 ---
 
-## 14. Current continuation handoff
+## 14. Final handoff — audit closed
 
-**Project:** Waydroid SSH — read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN but package-safety gate BLOCKED.
+**Project:** Waydroid SSH on Steam Deck — **CLOSED / NOT FEASIBLE UNDER CURRENT REQUIREMENTS**.
 
-**Current state:** No LXC or Waydroid package has been installed. No LXC container has been created. No persistent host change was made. The user approved a separate LXC-only experimental investigation, including the possibility of a temporary LXC installation, in principle only. This is not approval to bypass the package-manager blocker or install before exact package provenance, manifest, transaction, host paths, SteamOS persistence implications and rollback are reviewed and separately confirmed. It does not authorize Waydroid installation, Android boot, persistent services, host networking changes, or persistent cgroup/systemd changes. Pi-hole, Odysseus, SSH and all existing projects remain protected.
+**Canonical conclusion:** [WAYDROID-SSH-FEASIBILITY-CONCLUSION.md](../2.conclusion/WAYDROID-SSH-FEASIBILITY-CONCLUSION.md).
 
-**Do not do next:**
-- Do not install Waydroid or reopen the closed Waydroid implementation effort.
-- Do not install LXC while the exact SteamOS package manifest and package-safety gate remain blocked.
-- Do not retry pacman -Fy or any other package operation; do not create a test lock/file, remove a lock, alter DBPath permissions/ACL/attributes, remount, or terminate package processes.
-- Do not infer the exact SteamOS package manifest from upstream Arch metadata or the upstream LXC source tag.
-- Do not activate cgroup controllers, launch LXC, or perform cgroup/mount/device mutations without a separately reviewed command and explicit approval.
-- Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
-- Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
+**Current state:** No LXC or Waydroid package was installed. No LXC container or Android runtime was created. No permanent host configuration, service, cgroup, firewall, forwarding, Binder, kernel or network change was made for this project. The existing Steam Deck projects and services remain protected.
 
-**Latest completed work:** LXC-EXP-01K-P — user-mediated search of Valve's official GitLab instance. Valve's SteamOS download/EULA page explicitly says SteamOS FOSS source code can be found at `https://gitlab.steamos.cloud/` and names the Valve-hosted package mirror. A direct research-interface open of the candidate path `https://gitlab.steamos.cloud/holo/holo-keyring` returned an access error; this is not evidence that the project is absent or that this guessed path is canonical. The public evlaV organization describes itself as an unofficial SteamOS mirror; its current GitHub holo README says it is automatically updated from SteamOS source packages and that PKGBUILD URLs pointing to private Valve repositories are replaced with mirror repositories. Its older GitLab holo-PKGBUILD README describes evlaV repositories as public mirrors of Valve's then-private repositories. This context supports that evlaV is a source mirror, not a Valve-controlled origin; it still does not authenticate the candidate OpenPGP fingerprint or key material. No official Valve key declaration/digest found. Candidate fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` remains independently unauthenticated; exact LXC archive signature remains unverified. The user followed the official-source path and searched the Valve GitLab instance for holo-keyring, ci-package-builder-1, and full fingerprint 889B5EBDDD505A683621900DAF1D2199EF0A3CCF; all three searches returned “No results found.” This does not establish absence: the exact project may be under a different namespace, search may be scoped/index-limited, or access may be restricted. No exact project URL or Valve-controlled fingerprint declaration was obtained. Treat 01K-P as completed with a negative search result, not as proof of nonexistence. No downloads, key imports, GPG, trust changes, or host commands occurred. No host commands, downloads to Deck, GPG, pacman, key import, or trust change occurred.
+**Latest recorded evidence:** The historical experimental record ends with LXC-EXP-01K-P, the user-mediated search of Valve's official GitLab instance. The three exact searches returned “No results found”; this was not proof of project/key absence. Candidate fingerprint 889B5EBDDD505A683621900DAF1D2199EF0A3CCF remains independently unauthenticated and the exact LXC archive signature remains unverified. The configured pacman DBPath/write-access issue also remains unresolved. These are closed historical blockers, not active tasks.
 
-**Package provenance and safety status:**
-- LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
-- LXC-PKG-02 could not inspect the package file manifest because the repository file-list databases were absent.
-- LXC-PKG-03's one approved metadata-only file-list refresh did not complete: the unprivileged invocation was rejected for lack of root privileges, and the sudo invocation failed to acquire the pacman database lock.
-- LXC-PKG-04 initially checked the wrong assumed lock path (/var/lib/pacman/db.lck); that observation was superseded.
-- LXC-PKG-05 identified the configured DBPath as /usr/lib/holo/pacmandb. LXC-PKG-06 found it root:root mode 755 on the root Btrfs filesystem reported rw, with no db.lck at inspection time. LXC-PKG-07 inspected its contents, basic ACL and Btrfs no-COW attribute and recorded the unexpected sudo test -w result of NO.
-- LXC-EXP-01A established that sudo itself was running as root with a broad capability set and identity UID/GID maps, but did not explain the negative write-access predicate or the original pacman lock failure. The security-context readout was unavailable.
-- LXC-EXP-01B confirmed the configured extra-3.9 endpoint and x86_64 architecture. LXC-EXP-01C located the exact lxc-1:7.0.0-1 archive, matching .sig filename, and repository file-list metadata.
-- LXC-EXP-01D inspected the exact archive: version 1:7.0.0-1, Arch packager metadata, seven declared runtime dependencies, optional dnsmasq for lxc-net.service, no .INSTALL member, and 202 regular payload entries.
-- LXC-EXP-01E identified the exact AppArmor, systemd, /etc, /var, and executable paths. LXC-EXP-01F inspected the five service units and two configuration files, revealing autostart defaults, LXC network helper integration, AppArmor loading, monitoring and per-container systemd units. LXC-EXP-01G inspected nine AppArmor archive members; the default and optional profile distinctions were identified, but two long abstractions remain partially reviewed.
-- **Disposition:** the earlier missing-manifest finding is superseded by direct archive inspection. The pacman DBPath/write-access cause remains INCONCLUSIVE; signature validity remains unverified; service/AppArmor integration and rollback remain under review. Package-manager safety and the installation gate therefore remain **BLOCKED**. The generic lock investigation is closed on current evidence. No further generic diagnostics or package retries are justified.
+**Final technical rationale:** The approved rootless Podman boundary did not demonstrate writable nested cgroup delegation; Waydroid's stock root-owned manager/LXC launch path does not enter the non-root systemd-delegation path; rootfs, Binder/GPU, isolated networking and session handoff were not validated end-to-end; the standard host network helper conflicts with the no-host-network-change boundary; and a custom split-privilege design would require substantial unvalidated integration. Host-level LXC installation would also depart from the intended container-only deployment path and remains blocked by package trust/safety issues.
 
-**Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. The exact SteamOS repository archive has been inspected directly: 202 regular payload entries, no .INSTALL, AppArmor profiles, five systemd units, configuration defaults and LXC state paths. LXC-EXP-01I confirms AppArmor is disabled/unavailable on the current host; 01J traced the upstream transition mechanism and established that `unconfined` is an explicit configurable target for the container-init child, not the default and not an automatic monitor transition. This removes current AppArmor enforcement as a viable protection layer for this package but does not by itself determine LXC runtime viability. No LXC binary has been installed or run.
+**Do not do next:** There is no next command or experiment. Do not resume the old LXC-only workstream, repeat signer searches, retry pacman, install packages, change host settings, or attempt a privileged workaround.
 
-**Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
-
-**Active next gate:** No further user-side GitLab search is currently justified: 01K-P returned no results for all three exact search terms. The signer-provenance branch is now **BLOCKED / no public Valve declaration located**. Do not repeat the same searches, guess project paths, or substitute third-party mirrors. Resume only if a new authoritative locator or Valve-controlled fingerprint/keyring digest becomes available. Otherwise, any future LXC installation proposal must treat signer authentication as an unresolved hard blocker and must not proceed to package installation. The separate pacman DBPath/write-access safety blocker also remains unresolved.
-
-**01K-I result:** SteamOS build `20261023.100`; kernel `7.2.7-valve2-2-neptune-72-g31504582a073`. Keyring `/usr/share/pacman/keyrings/holo.gpg`, root:root, mode 0755, 39,295 bytes, mtime 2026-08-06 07:19:06 +0200; SHA-256 `408454d076d3a71c0bbbb435c84ee1682eab5e9eb7b93669c5c5a4a4d0abfb97`. Root and keyring resolve to `/dev/nvme0n1p4`, Btrfs, mounted with `rw` options. Candidate `/var/lib/steamos-atomupd` exists.
-
-**DBPath correction:** `/etc/pacman.conf` reports `DBPath = /usr/lib/holo/pacmandb/`. The earlier absence of `/var/lib/pacman/local` does not establish that the configured package DB is absent. 01K-J inspects the configured path directly without invoking pacman. This does not resolve the previous pacman write-access blocker.
-
-The exact keyring digest is a local comparison target, not an authenticated checksum. Package ownership and deployment mapping remain unknown. The candidate signer fingerprint remains locally identified/publicly corroborated but not independently authenticated; the exact LXC archive signature remains unverified.
-
-**Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
-
+**Reopening condition:** Only a materially changed requirement or architecture, documented as a new project scope and explicitly approved by the user, can reopen this subject. The present audit remains closed.
 
 ## 15. Change log
 
@@ -6654,4 +6626,5 @@ No further search using the same three terms is justified. Resume signer-provena
 ### 16.20 Change log entry
 
 | 5.13 | 2026-11-07 | Recorded user-mediated 01K-P browser searches on Valve's official GitLab instance: all three exact queries (`holo-keyring`, `ci-package-builder-1`, and the complete candidate fingerprint) returned “No results found.” Qualified this as a negative search result, not proof of project/key absence; closed repeated-search path pending new authoritative locator; refreshed status and Section 14 handoff. No host commands or state changes. |
+| 5.14 | 2026-11-07 | Finalized the feasibility decision: closed both the Waydroid workstream and the separate LXC-only experimental branch as NOT FEASIBLE under current requirements/security constraints. Replaced stale OPEN/PENDING continuation language with a final disposition, consolidated the platform/container/Waydroid integration blockers, retained all historical evidence and explicitly distinguished untested gates from demonstrated failures. Added final handoff and linked the standalone feasibility conclusion. No installation, runtime experiment or host change occurred. |
 *End of living audit record.*
