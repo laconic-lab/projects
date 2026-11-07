@@ -1797,6 +1797,126 @@ Python exit code: 0
 - A disposable LXC experiment is **not justified at this stage**: the required cgroup boundary has not been demonstrated, and trying to overcome it would risk widening permissions or changing host cgroup/systemd configuration. No LXC package was installed, no LXC container was created, and no host setting was changed.
 - Reopen only if a relevant runtime/SteamOS change or reliable version-matched technical evidence establishes a secure rootless LXC path that does not require host changes or broader privileges.
 
+### 5.9 LXC package metadata and file-manifest audit
+
+#### LXC-PKG-01 — completed: Deck-local package candidate and transaction audit
+
+- **Date:** 2026-11-07 (reported in the preceding ChatGPT session)
+- **Status:** **CONFIRMED AS REPORTED — package candidate and print-only transaction**
+- **Environment:** Steam Deck SteamOS host (deck@Laco)
+- **Question:** Is an LXC package available from the Deck's configured SteamOS repositories, and what would the package manager install?
+- **Why new:** Phase 1.5 source review established that an isolated LXC runtime test might be a separate audit instrument. This check evaluates the Deck's own configured package metadata rather than inferring from upstream Arch metadata.
+- **Side-effect boundary:** Package metadata query and print-only transaction only. No package installation, upgrade, removal, service activation or configuration change.
+- **Evidence provenance:** The user supplied the preceding assistant's summarized result, not the complete raw PKG-01 command/output. Preserve the values below as reported; do not represent the raw transcript as independently rechecked in this continuation.
+- **Repeat policy:** Repeat only if SteamOS build/branch or configured repositories change, or if the package candidate/transaction needs revalidation immediately before an explicitly approved installation.
+
+**Reported result**
+
+| Item | Result |
+|---|---|
+| Candidate | lxc |
+| Version | 1:7.0.0-1 |
+| Repository | extra-3.9 |
+| Download size | 832.72 KiB |
+| Installed size | 2,827.64 KiB |
+| Proposed transaction | lxc only |
+| Required dependencies | All seven listed dependencies already installed |
+| Optional dnsmasq | Not installed; optional for lxc-net.service, not required for the LXC package itself |
+
+**Interpretation**
+
+- The reported sync-database query found an LXC candidate in the Deck's configured extra-3.9 repository.
+- The reported print-only transaction proposed only lxc; no dependency installation or upgrade was proposed.
+- This is package metadata evidence only. It does not establish that LXC will run, that a delegated cgroup is available, or that Waydroid can be deployed securely.
+- The optional dnsmasq package and lxc-net.service are outside this audit. Do not install dnsmasq, enable LXC network helpers, or start LXC services.
+- Installation remains **NOT APPROVED**. Any future installation requires a separate bounded plan and explicit user approval.
+
+#### LXC-PKG-02 — attempted: package file manifest unavailable locally
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **PARTIAL / BLOCKED — local file-list databases absent; package contents not inspected**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), command issued over SSH from Windows PowerShell
+- **Prerequisite:** LXC-PKG-01 reported candidate and one-package print-only transaction
+- **Question:** Which executables, systemd units, hooks, configuration files and network helpers are supplied by this exact SteamOS LXC package?
+- **Why new:** The package candidate and transaction do not reveal the package's installed file manifest or host-integration surface.
+- **Side-effect boundary:** The attempted commands were package metadata/list queries. No install, file-list database refresh, service action or configuration edit was performed.
+- **Repeat policy:** Do not repeat pacman -Fl until the relevant repository file-list database has been made available. Do not use pacman -Fy without first explaining that it downloads and writes package file-list metadata into the local pacman cache.
+
+**Exact command executed**
+
+~~~bash
+echo "===== LXC-PKG-02: PACKAGE CONTENTS AUDIT ====="
+
+echo
+echo "===== 1. PACKAGE FILE MANIFEST ====="
+pacman -Fl lxc
+
+echo
+echo "===== 2. SERVICE AND SOCKET FILES ====="
+pacman -Fl lxc | grep -Ei \
+  'systemd|\.service$|\.socket$|\.timer$|preset|tmpfiles|sysusers'
+
+echo
+echo "===== 3. NETWORK AND FIREWALL COMPONENTS ====="
+pacman -Fl lxc | grep -Ei \
+  'lxc-net|dnsmasq|iptables|nftables|network'
+
+echo
+echo "===== 4. EXECUTABLES ====="
+pacman -Fl lxc | grep -E '/(bin|sbin)/'
+
+echo
+echo "===== 5. PACKAGE INSTALL SCRIPT METADATA ====="
+pacman -Si lxc | grep -Ei \
+  '^(Name|Version|Depends On|Optional Deps|Install Script)'
+
+echo
+echo "===== END LXC-PKG-02 ====="
+~~~
+
+**Actual output**
+
+~~~text
+===== LXC-PKG-02: PACKAGE CONTENTS AUDIT =====
+
+===== 1. PACKAGE FILE MANIFEST =====
+warning: database file for 'jupiter-3.9' does not exist (use '-Fy' to download)
+warning: database file for 'holo-3.9' does not exist (use '-Fy' to download)
+warning: database file for 'core-3.9' does not exist (use '-Fy' to download)
+warning: database file for 'extra-3.9' does not exist (use '-Fy' to download)
+warning: database file for 'multilib-3.9' does not exist (use '-Fy' to download)
+error: package 'lxc' was not found
+Connection to deck closed.
+PS C:\Users\Laco>
+~~~
+
+**Observed result**
+
+- The configured repository file-list databases were absent locally for jupiter-3.9, holo-3.9, core-3.9, extra-3.9 and multilib-3.9.
+- pacman -Fl lxc therefore could not find the package in the local file-list metadata and returned the package-not-found error.
+- The warning explains the missing prerequisite and identifies pacman -Fy as the mechanism to download file-list metadata.
+- This does **not** establish that the LXC package is absent from the sync databases; it does not contradict LXC-PKG-01's reported pacman -Si candidate and print-only transaction.
+- The transcript ends with the SSH connection closing. No evidence was supplied that the Deck rebooted, crashed, installed a package or changed configuration. Do not infer a causal relationship between the metadata query and the connection closure.
+- The supplied transcript shows only the first manifest invocation's output before the connection closed. Do not infer unseen output from later pipelines.
+- No file-list database refresh was attempted; no package contents were retrieved.
+
+**Interpretation**
+
+- **What this proves:** the local pacman file-list databases needed by pacman -Fl were not present at the time of the command.
+- **What this does not prove:** that the package candidate disappeared, that the sync databases are invalid, that the package cannot be downloaded, or that any LXC executable/service/hook is installed.
+- Keep package sync metadata and package file-list metadata conceptually separate: the former supported the reported -Si / -Sp result; the latter was unavailable to -Fl.
+- No install, service activation, network helper, cgroup change or persistent host configuration change occurred.
+
+**Decision / next step**
+
+- Preserve LXC-PKG-01 as a favourable package-candidate/transaction result, with its raw-output provenance limitation.
+- Mark LXC-PKG-02 **PARTIAL / BLOCKED**; package contents remain unknown.
+- Do not install LXC, dnsmasq or any Waydroid package.
+- The next possible step is a narrowly scoped file-list metadata refresh for extra-3.9 using pacman -Fy extra-3.9, followed by pacman -Fl lxc and targeted manifest filtering. This is **not a strictly read-only operation**: it downloads and writes repository file-list metadata to the local pacman cache, but does not install or upgrade packages. Obtain the user's approval for this metadata-only cache change before running it. If the user does not approve, stop here and retain the manifest as uninspected.
+- After a successful manifest retrieval, inspect the package's exact service/unit, network/firewall, executable, configuration and install-script footprint. Only then decide whether a bounded LXC-only installation proposal is warranted. No installation is authorized by this result.
+
+---
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -2187,7 +2307,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** Phase 1 Gate 3 is complete; the original rootless Podman cgroup limitation remains confirmed. Phase 1.5 is active because current upstream Waydroid/LXC source identifies a direct-launcher versus delegated-scope integration question. This does not yet establish a working architecture. No LXC package was installed and no LXC container was created.
 
-**Next action:** Continue read-only review of Waydroid service units, installation dependencies, networking scripts, image/rootfs paths, Binder and device setup. Then decide whether a direct host-level unprivileged LXC feasibility test is necessary. The previous Podman cgroup test does not substitute for a direct host-level LXC test. If a test is needed, present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before proceeding. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
+**Latest package evidence:** LXC-PKG-01 reports candidate lxc 1:7.0.0-1 from extra-3.9, with a print-only transaction containing only lxc; all seven listed dependencies were already installed. LXC-PKG-02 could not inspect the file manifest because the configured repository file-list databases were absent. No package was installed. **Next action:** Ask whether the user approves the metadata-only cache update pacman -Fy extra-3.9; this downloads file-list metadata but does not install/upgrade packages. Only after approval, retrieve and inspect the manifest. If not approved, stop at the current evidence. The previous Podman cgroup test does not substitute for a direct host-level LXC test. Even a favourable package manifest does not itself justify installation; present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before any install approval. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
@@ -2211,6 +2331,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.0 | 2026-11-06 | Preserved the unchanged v1.9 archive snapshot; added an LXC/Waydroid architecture explanation and source-level review of the upstream LXC launcher, base config, container manager and initializer; documented the delegated-scope integration gap, generated device/session mounts, cgroup-v2 distinction, architecture alternatives and conditional permission for a controlled LXC audit installation; reopened Phase 1.5 without authorizing installation or service changes. |
 | 2.1 | 2026-11-06 | Preserved the unchanged v2.0 archive snapshot; extended upstream source review to the Waydroid systemd unit, network script and work-directory defaults; documented boot-autostart and host firewall/forwarding side effects as explicit blockers for the user's manual-only, no-host-network-change design. |
 | 2.2 | 2026-11-07 | Preserved the unchanged v2.1 archive snapshot; reviewed upstream Debian packaging, Makefile install targets, D-Bus activation, PolicyKit, systemd unit, container-manager lifecycle, Arch LXC package dependency metadata, and Valve/SteamOS update behavior; distinguished LXC-only from Waydroid package scope; concluded LXC installation is not yet justified pending Deck-local read-only package/dependency verification. |
+| 2.3 | 2026-11-07 | Recorded LXC-PKG-01's reported Deck-local candidate/version and print-only one-package transaction; recorded LXC-PKG-02's missing repository file-list databases and connection-close transcript without misclassifying it as package absence or a system failure; established that the next manifest step requires approval for a metadata-only pacman file-list cache refresh. |
 
 ---
 
