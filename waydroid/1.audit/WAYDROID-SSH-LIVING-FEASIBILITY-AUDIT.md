@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; 01K-D confirmed that the temporary GPG home remained after the 01K-C EXIT trap; approved 01K-E exact-path cleanup removed the two verified GnuPG database files and directory, and absence was confirmed; 01K-F/01K-G mapped public signer/keyring provenance but did not establish an independent trust anchor; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 5.3  
+> **Document version:** 5.4  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -4615,6 +4615,150 @@ The pacman DBPath/write-access blocker remains separate and unresolved. Do not r
 
 ---
 
+
+## 5.23 LXC-EXP-01K-I — read-only local SteamOS deployment and holo-keyring provenance inventory
+
+### 5.23.1 Purpose and authorization boundary
+
+01K-I is the first local-host gate following the public documentation review in 01K-H. Its purpose is to map the currently installed `holo-keyring` file to local package-database metadata, SteamOS build identity, filesystem/mount state, and any locally discoverable deployment/update metadata. This is a forensic inventory only; it does not authenticate the package signer or the origin of the installed bytes.
+
+**Execution target:** SteamOS host `deck@Laco`, not Distrobox.  
+**Privilege:** ordinary user only; no `sudo`.  
+**Writes:** none intended. No temporary files, redirections to files, package operations, mounts, boot changes, recovery actions, or service changes.  
+**Prohibited:** pacman/pacman-key commands (including read-only queries, given the previously observed DBPath/write-access discrepancy and the explicit no-retry boundary), GPG/GPGV, key imports, trust edits, downloads, package installs, updates, remounts, recovery/rollback, and LXC runtime operations.
+
+### 5.23.2 Public image-repository clue discovered during gate preparation
+
+The public Valve-hosted image repository exposes dated Steam Deck deployment directories containing files named `*.manifest.json`, `*.manifest.pacman`, `*.chunks_details.json`, and `*.raucb`. For example, the indexed 2026-09-25 deployment directory lists `steamdeck-20260925.100-3.9.2.manifest.pacman`, a JSON manifest, chunk details and a RAUC bundle. The 2026-08-07 directory also lists the same artifact classes. These are promising candidate metadata for a later public-to-local comparison, but their filenames and presence alone do not establish a cryptographic signature, trust anchor, or mapping to the user's currently installed deployment. No such artifact was downloaded or verified in 01K-I preparation.
+
+### 5.23.3 Approved read-only inventory command — pending user execution
+
+The following is the proposed single command card. It reads the local package database files directly instead of invoking pacman. It does not assume that a package query through pacman is safe in light of the separate DBPath/write-access discrepancy.
+
+```bash
+echo "===== LXC-EXP-01K-I: READ-ONLY STEAMOS DEPLOYMENT / KEYRING INVENTORY ====="
+
+set -u
+
+KEYRING="/usr/share/pacman/keyrings/holo.gpg"
+LOCALDB="/var/lib/pacman/local"
+
+echo
+echo "===== 1. HOST AND OS BUILD IDENTITY ====="
+grep -E '^(NAME|PRETTY_NAME|VERSION|BUILD_ID|IMAGE_ID|IMAGE_VERSION)=' /etc/os-release 2>/dev/null || true
+for f in /etc/steamos-release /usr/lib/os-release; do
+    if [ -r "$f" ]; then
+        echo "--- $f"
+        grep -E '^(NAME|PRETTY_NAME|VERSION|BUILD_ID|IMAGE_ID|IMAGE_VERSION)=' "$f" 2>/dev/null || true
+    fi
+done
+uname -a
+printf 'BOOT_ID: '
+cat /proc/sys/kernel/random/boot_id
+
+echo
+echo "===== 2. EXACT HOLO KEYRING FILE METADATA ====="
+if [ -f "$KEYRING" ]; then
+    stat -c 'PATH=%n | TYPE=%F | OWNER=%U:%G | MODE=%a | SIZE=%s | MTIME=%y' "$KEYRING"
+    sha256sum "$KEYRING"
+else
+    echo "HOLO_KEYRING_FILE_NOT_FOUND: $KEYRING"
+fi
+
+echo
+echo "===== 3. KEYRING DIRECTORY INVENTORY ====="
+if [ -d /usr/share/pacman/keyrings ]; then
+    find /usr/share/pacman/keyrings -maxdepth 1 -type f \
+        -printf '%f | %s bytes | %TY-%Tm-%Td %TH:%TM:%TS\n' | sort
+else
+    echo "KEYRING_DIRECTORY_NOT_FOUND"
+fi
+
+echo
+echo "===== 4. LOCAL PACKAGE DATABASE — DIRECT FILE INSPECTION ONLY ====="
+if [ -d "$LOCALDB" ]; then
+    echo "LOCAL_PACKAGE_DB_PRESENT: $LOCALDB"
+    MATCH_COUNT=0
+    for desc in "$LOCALDB"/*/desc; do
+        [ -f "$desc" ] || continue
+        if awk '/^%NAME%$/ { getline; if ($0 == "holo-keyring") found=1 } END { exit !found }' "$desc"; then
+            MATCH_COUNT=$((MATCH_COUNT + 1))
+            echo "--- PACKAGE DESC: $desc"
+            awk '/^%(NAME|VERSION|BASE|PACKAGER|BUILDDATE|INSTALLDATE|VALIDATION)%$/ { key=$0; if (getline > 0) print key " " $0 }' "$desc"
+            files="${desc%/desc}/files"
+            if [ -f "$files" ]; then
+                echo "--- KEYRING FILE OWNERSHIP ENTRY"
+                grep -nF 'usr/share/pacman/keyrings/holo.gpg' "$files" || echo "EXACT_KEYRING_PATH_NOT_LISTED_IN_PACKAGE_FILES"
+            else
+                echo "PACKAGE_FILES_RECORD_MISSING"
+            fi
+        fi
+    done
+    echo "HOLO_KEYRING_PACKAGE_RECORDS_FOUND: $MATCH_COUNT"
+else
+    echo "LOCAL_PACKAGE_DB_NOT_FOUND: $LOCALDB"
+fi
+
+echo
+echo "===== 5. ROOT AND KEYRING MOUNT / FILESYSTEM VIEW ====="
+findmnt -T / -o TARGET,SOURCE,FSTYPE,OPTIONS 2>&1 || true
+findmnt -T "$KEYRING" -o TARGET,SOURCE,FSTYPE,OPTIONS 2>&1 || true
+
+echo
+echo "===== 6. LOCAL DEPLOYMENT / UPDATE METADATA DISCOVERY ====="
+echo "--- /var/lib top-level directories"
+if [ -d /var/lib ]; then
+    find /var/lib -mindepth 1 -maxdepth 1 -type d \
+        -printf '%f | %p\n' | sort
+fi
+echo "--- candidate metadata paths under /var/lib (names only)"
+if [ -d /var/lib ]; then
+    find /var/lib -mindepth 1 -maxdepth 3 \
+        \( -iname '*steam*' -o -iname '*steamos*' -o -iname '*rauc*' \
+           -o -iname '*atomic*' -o -iname '*update*' \) \
+        -printf '%y | %p\n' 2>/dev/null | sort
+fi
+echo "--- /boot top-level inventory"
+if [ -d /boot ]; then
+    find /boot -mindepth 1 -maxdepth 2 \
+        -printf '%y | %p | %s bytes\n' 2>/dev/null | sort | head -n 160
+else
+    echo "BOOT_DIRECTORY_NOT_FOUND"
+fi
+
+echo
+echo "===== 7. PACMAN CONFIG — DBPATH DIRECTIVE ONLY ====="
+if [ -r /etc/pacman.conf ]; then
+    grep -nE '^[[:space:]]*(DBPath|RootDir|Architecture)[[:space:]]*=' /etc/pacman.conf || echo "NO_EXPLICIT_DBPATH_ROOTDIR_ARCHITECTURE_DIRECTIVES"
+else
+    echo "PACMAN_CONFIG_NOT_READABLE"
+fi
+
+echo
+echo "===== END LXC-EXP-01K-I ====="
+```
+
+### 5.23.4 Interpretation rules
+
+- A package `desc` record and `files` entry can map the keyring file to a locally recorded package name/version/build metadata. The local database is mutable state and is not an independent authenticity proof.
+- A SHA-256 digest records the exact current file bytes. Without an independently authenticated expected digest, it is an identity/fingerprint for comparison only.
+- `/etc/os-release`, kernel/build strings, mount sources and local deployment metadata identify the running environment; they do not prove the authenticity of its source image.
+- A directory or file whose name includes `rauc`, `update`, `steam`, or `steamos` is only a candidate for later inspection. Do not assume a file's purpose from its name.
+- The package database may be absent, overlayed, incomplete or inconsistent with the active deployment. Record that result; do not repair it or invoke pacman.
+- If a manifest or deployment record is found, preserve its exact path, filename, size, timestamps and any displayed identifiers. Do not edit, copy, download, parse with a mutating tool, or verify signatures during this gate.
+
+### 5.23.5 Pending result and next decision
+
+**01K-I STATUS: COMMAND PREPARED; USER EXECUTION AND OUTPUT PENDING.** No local host result is claimed in this section yet.
+
+After the user supplies the complete output, record the exact observed package/version, keyring hash, OS/build identity, mount state, and candidate metadata paths. Then decide whether a separate public-source comparison is justified. If local records cannot map the file to a deployment, do not infer a relationship. If a deployment manifest is found, a later gate must separately establish its authenticity and determine whether it records the exact package or keyring bytes.
+
+The public image index's `manifest.pacman` and RAUC bundle names are investigative leads only. Do not assume they are signed or that a local installed deployment uses the same revision.
+
+The independent signer trust anchor remains unresolved; the exact LXC archive signature remains unverified; and the pacman DBPath/write-access blocker remains separate and untouched. No package installation or LXC runtime test is authorized.
+
+---
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -5946,13 +6090,15 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01K-I — perform a strictly read-only local provenance inventory on the running SteamOS host, limited to the installed `holo-keyring` package and keyring file, OS/build identity, filesystem/mount layout, and locally present SteamOS deployment/update metadata. Establish whether exact keyring bytes can be mapped to an installed package and deployment/build record. This is local forensic mapping, not signature verification or independent authentication.
+**Active next gate:** LXC-EXP-01K-I — user execution pending. Run the exact non-privileged read-only command in §5.23.3 on the SteamOS host (not Distrobox) and return the complete output. It reads the installed `holo-keyring` file/hash, directly inspects local pacman database text files without invoking pacman, records OS/build and mount identity, and discovers candidate local deployment/update metadata. No sudo, writes, package-manager commands, GPG, downloads, mounts, recovery or runtime actions.
 
-**01K-H result:** Valve's public SteamOS Installation and Repair and Recovery/Troubleshooting articles document downloading and writing a recovery image, re-image/repair choices, and rollback. Valve's Steam Deck FAQ states that OS updates are distributed as a whole OS image and that the system filesystem is immutable/read-only by default. The user-facing documents reviewed do not publish an expected recovery-image checksum, signed manifest, signing certificate/fingerprint, or user-verifiable verification procedure, and do not tie an authenticated image to exact `holo-keyring` bytes. This bounded documentation finding does not prove SteamOS lacks internal cryptographic update verification; its implementation/trust anchors were not established from these sources.
+**01K-H result:** Valve's public Installation and Repair and Recovery/Troubleshooting articles document recovery-image download/write, repair/re-image and rollback. Valve's Steam Deck FAQ describes whole-OS-image updates and a read-only/immutable default system filesystem. The reviewed user-facing documents do not publish a user-verifiable image checksum, signed manifest, signing fingerprint, or verification procedure that ties an authenticated image to exact `holo-keyring` bytes. This bounded documentation finding does not prove SteamOS lacks internal cryptographic updater verification.
 
-**Latest completed test:** LXC-EXP-01K-H (§5.22) — public SteamOS recovery/update authentication review. No Steam Deck host command/download, recovery-media creation, recovery/rollback action, key import, trust change, GPG/GPGV verification, pacman action, installation or runtime test occurred. Independent signer/image trust remains unresolved. The candidate fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` is still only locally identified and publicly corroborated. The exact LXC archive SHA-256 remains `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e`; its detached signature remains unverified.
+**New public lead:** Valve's Steam Deck image server index exposes dated deployment directories containing `*.manifest.json`, `*.manifest.pacman`, `*.chunks_details.json` and `*.raucb` files (including indexed 2026-09-25 and 2026-08-07 deployments). These are candidate sources for a later exact deployment/package mapping, not yet an authenticated trust anchor. No image metadata was downloaded or verified in preparation for 01K-I.
 
-Do not import keys, change trust, run `gpg --recv-keys`, verify the LXC signature, retry pacman, alter mounts/boot entries, invoke recovery/rollback, or install/run LXC. The next gate is a non-privileged read-only inventory only. The pacman DBPath/write-access blocker remains separate and unresolved.
+**Latest completed test:** LXC-EXP-01K-H (§5.22) — public SteamOS recovery/update authentication review. **01K-I is prepared but not executed**; no local Steam Deck result is claimed. The candidate fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` remains locally identified and publicly corroborated, not independently authenticated. The exact LXC archive SHA-256 remains `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e`; its detached signature remains unverified.
+
+Do not invoke pacman/pacman-key, GPG/GPGV, import keys, change trust, download artifacts, write files, change mounts/boot entries, invoke recovery/rollback, or install/run LXC. The package-manager DBPath/write-access blocker remains separate and unresolved.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -6002,6 +6148,7 @@ Do not import keys, change trust, run `gpg --recv-keys`, verify the LXC signatur
 | 4.8 | 2026-11-07 | Added external provenance corroboration for the locally observed GitLab CI Package Builder fingerprint: a ValveSoftware/SteamOS issue report references that fingerprint for verification of a different Valve package, and the SteamOS package mirror lists signed holo-keyring packages. Explicitly classified both as corroboration only, not as a Valve-published fingerprint statement or proof that the exact LXC archive was signed by this key. The exact archive signature remains unverified; no Deck action or package operation occurred. |
 | 4.9 | 2026-11-07 | Recorded LXC-EXP-01K-D: exact-path read-only inspection confirmed `/tmp/lxc-gpg-audit.eWVvii` still exists as a `deck:deck` mode-0700 directory containing only `pubring.kbx` and `trustdb.gpg`, both `deck:deck` mode 0600. No cleanup was performed. Marked cleanup outstanding and advanced to 01K-E, requiring explicit approval and strict exact-path revalidation before deletion. No package-manager, key-import, trust, signature-verification, installation or runtime action occurred. |
 | 5.0 | 2026-11-07 | Recorded LXC-EXP-01K-E: after explicit user approval, exact-path preconditions confirmed the disposable GPG directory and its two expected files (UID 1000, directory mode 0700, file modes 0600); removed only those files and the exact directory, then verified the target absent. Updated the test ledger, superseded cleanup handoffs, executive status and continuation gate to independent signer-provenance research (01K-F). No key import/trust change, package signature verification, pacman action, installation or runtime test occurred. |
+| 5.4 | 2026-11-07 | Prepared LXC-EXP-01K-I as a non-privileged read-only local inventory, deliberately avoiding pacman due to the unresolved DBPath/write-access discrepancy. The proposed command reads the exact holo.gpg metadata/hash, inspects the local pacman package database text files directly for holo-keyring ownership/version, records OS/build and mount identity, and discovers candidate deployment/update metadata. Added a public Valve image-server lead: dated deployment indexes expose manifest.json, manifest.pacman, chunks_details.json and RAUC bundle artifacts. These are investigative leads only, not authenticated metadata. 01K-I remains pending user execution; no host command was run. |
 | 5.3 | 2026-11-07 | Recorded LXC-EXP-01K-H: reviewed Valve's recovery/repair, recovery/troubleshooting and Steam Deck FAQ documentation. Confirmed Valve documents whole-OS-image updates and a read-only/immutable default system filesystem, but the reviewed user-facing docs do not provide a user-verifiable recovery-image checksum/signature, signing fingerprint, signed manifest, or chain to exact holo-keyring bytes. Explicitly bounded this finding: it does not prove internal SteamOS updater verification is absent. Advanced to 01K-I for a non-privileged read-only local inventory of package/file/build/mount/deployment metadata. No host commands/downloads or system changes occurred. |
 | 5.2 | 2026-11-07 | Recorded LXC-EXP-01K-G: traced Valve's official SteamOS source/distribution references, inspected Valve-hosted holo-keyring source archive/signature listings, and reconciled the community PKGBUILD/source tag and matching CI public-key file. Determined that this maps the publication chain but does not independently authenticate the candidate signer because the key and checksum evidence is community-mirrored and the Valve-hosted source signatures remain unverified. Advanced the handoff to 01K-H, focused on an independently authenticated SteamOS update/recovery-image provenance route. No host command/download, key import, trust change, GPG verification, pacman action, installation or runtime test occurred. |
 | 5.1 | 2026-11-07 | Recorded LXC-EXP-01K-F public signer-provenance research. Reconciled prior evidence for the exact LXC archive, matching detached signature and archive SHA-256; classified the ValveSoftware/SteamOS issue report as user-submitted corroboration only, and third-party fingerprint/keyring-hash references as non-authoritative. No independent authoritative Valve trust anchor was located in the bounded search; signature verification remains blocked. Advanced the handoff to 01K-G, focused on the `holo-keyring` trust-anchor provenance chain. No host command, download, key import, trust change, pacman action, installation or runtime test occurred. |
