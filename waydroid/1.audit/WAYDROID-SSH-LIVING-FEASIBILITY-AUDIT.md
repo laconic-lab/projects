@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; read-only diagnostics identified the configured pacman DBPath as /usr/lib/holo/pacmandb; PKG-07 found an unexpected negative root write-access predicate despite root ownership/mode 755, but did not establish the cause; the original database-lock failure remains unexplained; no installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained; direct host-level delegated-scope test LXC-SCOPE-01 was rejected before execution because systemd-run does not permit --wait with --scope; no scope payload ran, no LXC installation or runtime experiment performed**.
 >
-> **Document version:** 2.8  
+> **Document version:** 2.9  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2368,6 +2368,66 @@ Root write-access check: NO
 - Any future metadata refresh retry must first be presented with its exact scope and rationale and receive explicit user approval. The earlier approval was for the single metadata-only refresh attempt; it is not blanket approval for troubleshooting changes.
 ---
 
+### 5.10 Direct host-level temporary systemd delegated-scope feasibility
+
+#### LXC-SCOPE-01 — attempted; rejected before scope creation
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **BLOCKED — systemd-run rejected mutually incompatible command-line options; diagnostic payload did not execute**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), invoked over SSH
+- **Question:** Can a temporary user systemd scope with Delegate=yes expose a writable delegated cgroup subtree to a direct host-level user process?
+- **Gate addressed:** Phase 1.5, remaining gate 3 in §1.3. This tests direct host-level user-systemd delegation, not Podman's nested cgroup boundary.
+- **Prior evidence relied upon:** Tests 24–25 and §5.8 establish the Podman cgroup v2 boundary and host unit properties, but do not establish direct scope delegation.
+- **Why new:** It attempts a direct temporary systemd scope rather than inferring behavior from a Podman container or from Delegate=yes on user@1000.service.
+- **Side-effect boundary:** The requested command was rejected during option validation. No diagnostic process or scope was started; no cgroup files were read or written by the payload; no persistent systemd configuration was changed.
+- **Repeat policy:** Do not repeat this exact invocation. A corrected invocation may omit --wait and --collect while retaining --user --scope --property=Delegate=yes. It must remain a short-lived diagnostic only.
+
+**Exact command form executed**
+
+~~~bash
+systemd-run \
+  --user \
+  --scope \
+  --property=Delegate=yes \
+  --wait \
+  --collect \
+  /usr/bin/bash -c '...'
+~~~
+
+The payload was the full read-only cgroup diagnostic supplied in this conversation: it would have printed /proc/self/cgroup, the scope cgroup directory metadata and mount, available/enabled controllers, and write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control.
+
+**Actual output**
+
+~~~text
+systemd 261 (261.2-1.2-arch)
+--wait may not be combined with --scope.
+Exit code: 1
+logout
+Connection to deck closed.
+~~~
+
+**Observed result**
+
+- SteamOS host reports systemd 261 (261.2-1.2-arch).
+- systemd-run rejected the option combination --wait and --scope.
+- Overall shell exit status was 1.
+- The SSH session closed after the command sequence.
+- The command did not reach the diagnostic payload; no cgroup membership, mount, controller or access result was obtained.
+
+**Interpretation**
+
+- **What this proves:** this installed systemd-run does not accept --wait together with --scope; the attempted invocation failed before launching the requested process.
+- **What this does not prove:** it says nothing about whether a temporary delegated user scope can be created, whether its cgroup subtree is writable, or whether LXC can use it.
+- No persistent configuration or host cgroup setting was changed. No LXC package or container was involved.
+
+**Decision / next step**
+
+- Record LXC-SCOPE-01 as **BLOCKED / NOT EXECUTED**, not as a delegation failure.
+- A corrected, separately numbered LXC-SCOPE-02 may retry the same read-only diagnostic using systemd-run --user --scope --property=Delegate=yes without --wait or --collect. Keep the command payload bounded and read-only.
+- Do not use --service, create a persistent unit, enable a service, alter cgroup/systemd configuration, or run LXC. The corrected scope must be transient and must not change existing Podman/Pi-hole workloads.
+- Do not advance the LXC installation decision until a direct host-level delegation result is obtained and interpreted.
+---
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -2762,7 +2822,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Current direct-scope handoff:** LXC-SCOPE-01 did not execute its diagnostic payload: systemd 261 rejected --wait with --scope. The next bounded step, if continuing this gate, is LXC-SCOPE-02: repeat the read-only payload with systemd-run --user --scope --property=Delegate=yes and omit --wait and --collect. No persistent unit, service, cgroup change, LXC launch or package installation is authorized. The package-lock investigation remains parked; do not create test files/locks or retry pacman without a separately approved rationale.\n\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -2788,6 +2848,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.6 | 2026-11-07 | Recorded LXC-PKG-05: identified SteamOS's configured pacman DBPath as /usr/lib/holo/pacmandb and established that /var/lib/pacman does not exist; corrected the interpretation of PKG-04's lock-path check, left the original lock failure inconclusive, advanced to read-only inspection of the actual DBPath, and completed the five-test package-series documentation review. |
 | 2.7 | 2026-11-07 | Recorded LXC-PKG-06: inspected the actual configured DBPath; directory exists as root:root mode 755 on the root Btrfs filesystem mounted rw, with no db.lck present at inspection time; kept the original lock failure inconclusive and prohibited an unjustified refresh retry. |
 | 2.8 | 2026-11-07 | Recorded LXC-PKG-07: documented RootDir=/, DBPath contents, Btrfs no-copy-on-write attribute and basic ACL; recorded the unexpected negative sudo write-access predicate without claiming it proves a write failure or explains the original pacman lock error; stopped the investigation pending a justified non-mutating diagnostic or explicit approval for any retry. |
+| 2.9 | 2026-11-07 | Recorded LXC-SCOPE-01 as blocked before execution: systemd 261 rejected --wait with --scope; documented that no scope or diagnostic payload ran and set the next bounded step to a corrected transient delegated-scope invocation without --wait or --collect. |
 
 ---
 
