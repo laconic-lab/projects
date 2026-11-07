@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and independent signer authentication remain BLOCKED. LXC-EXP-01K-K found the local holo-keyring 20250801-2 package record and its files manifest; 01K-L documented the atomupd partset-B rootfs symlink chain without following it. The candidate signer fingerprint 889B5EBDDD505A683621900DAF1D2199EF0A3CCF is locally present and publicly corroborated, but no independent Valve-controlled fingerprint declaration or authenticated keyring digest has been located. Exact LXC archive signature remains unverified. No LXC installation performed.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and independent signer authentication remain BLOCKED. LXC-EXP-01K-K/01K-L findings are recorded. 01K-M/N research located the candidate public-key file in a third-party GitLab namespace (`evlaV/holo-keyring`), not in an authenticated Valve-controlled project. Its UID is visible, but this does not establish Valve ownership or independently authenticate the fingerprint. No official SteamOS GitLab declaration or authenticated keyring digest has been located. Exact LXC archive signature remains unverified. No LXC installation performed.
 >
-> **Document version:** 5.10  
+> **Document version:** 5.11  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -6330,7 +6330,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed work:** LXC-EXP-01K-L (§16.7) — non-dereferencing partset-B symlink metadata inspection. The link text ../../../nvme0n1p5 lexically implies /dev/nvme0n1p5, but the target was not resolved or inspected. LXC-EXP-01K-M — follow-up public signer-provenance research — confirms Valve identifies its package mirror and GitLab source location, and the Valve-hosted mirror lists signed holo-keyring source archives; however, the official SteamOS GitLab project could not be retrieved through the available research interface, and no Valve-controlled publication of the candidate fingerprint or authenticated keyring digest was located. The ValveSoftware issue report is user-submitted corroboration only. Candidate fingerprint 889B5EBDDD505A683621900DAF1D2199EF0A3CCF remains unauthenticated independently; exact LXC signature remains unverified. The disposable GPG home `/tmp/lxc-gpg-audit.eWVvii` was removed and its absence confirmed by 01K-E (§5.19); do not repeat cleanup. No package signature was verified; no keys were imported, trust changed or package-manager commands invoked.
+**Latest completed work:** LXC-EXP-01K-N — public source search for the candidate `ci-package-builder-1` key. A public project `gitlab.com/evlaV/holo-keyring` contains a file named `ci-package-builder-1.pub`; the indexed file view attributes its 2022-02-02 commit to Emil Velikov (`emil.velikov@collabora.com`) and shows the UID `GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>`. However, the namespace is `evlaV`, not `gitlab.steamos.cloud/SteamOS`; this is not an authenticated Valve-controlled source declaration. The exact key fingerprint has not been independently recomputed from this file in this audit. The official SteamOS GitLab project remains uninspected/inaccessible through the available research interface. Candidate fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` remains locally observed and publicly corroborated, but not independently authenticated as Valve's signer. Exact LXC archive signature remains unverified. No host commands, downloads to the Deck, key imports, trust changes, GPG or pacman operations occurred.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -6578,5 +6578,33 @@ Close the narrow atomupd symlink-metadata thread for now. The confirmed facts ar
 ### 16.11 Change log entry
 
 | 5.10 | 2026-11-07 | Updated stale header and Section 14 handoff to reflect completed 01K-K/01K-L results and confirmed 01K-E cleanup; recorded additional independent signer-provenance research, official Valve source/mirror evidence, issue-report corroboration limits, GitLab access limitation, and user-mediated official-source inspection proposal. Independent signer trust and exact LXC signature verification remain blocked. No host state changed. |
+
+
+### 16.12 LXC-EXP-01K-N — public search for the candidate signer key file
+
+**Purpose:** Continue the independent signer-authentication investigation by searching public GitLab sources for the locally observed key identity and candidate key file. Research only; no Steam Deck host command was run.
+
+**Search result:** Public search located [gitlab.com/evlaV/holo-keyring](https://gitlab.com/evlaV/holo-keyring), a GitLab project in the `evlaV` namespace, with a file named `ci-package-builder-1.pub`. The indexed file page [ci-package-builder-1.pub](https://gitlab.com/evlaV/holo-keyring/-/blob/master/ci-package-builder-1.pub?ref_type=heads) reports a commit dated 2022-02-02, authored and committed by Emil Velikov (`emil.velikov@collabora.com`), with a Signed-off-by line for the same identity. The displayed public-key block includes the UID text `GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>`. The project README describes the Arch Linux keyring project/tooling; its presence in this namespace does not itself establish Valve ownership or official SteamOS source status.
+
+**Critical provenance distinction:** This is not a project URL under `gitlab.steamos.cloud/SteamOS`, and the available public evidence does not establish that `evlaV` is a Valve-controlled namespace or an official mirror with authenticated provenance. The key file's UID text is self-asserted OpenPGP metadata. This audit did not independently calculate the fingerprint from the file's complete key material, verify a signed commit/tag, authenticate the GitLab account, or establish a trusted chain from Valve to the file. Therefore, do not treat this repository or key file as an independent trust anchor. Do not import the key or alter local trust.
+
+**Official-source search outcome:** Searches restricted to `gitlab.steamos.cloud` did not surface an indexed public project/file declaring the candidate fingerprint or exposing the relevant key file. This is a search/indexing limitation, not proof that the official project or file does not exist. The earlier direct research-interface access failure remains unresolved.
+
+**Evidence classification:**
+
+- Official Valve source/distribution location: Valve's SteamOS download page identifies the Valve-hosted package mirror and `gitlab.steamos.cloud` source location (01K-M).
+- Official Valve mirror publication: Valve-hosted source index lists holo-keyring source archives and detached `.sig` files (01K-M).
+- Third-party corroboration: `evlaV/holo-keyring` contains a public-key file with the expected UID; the indexed file page attributes its commit to Emil Velikov. This does not authenticate the signer as Valve-controlled.
+- Missing trust anchor: no Valve-controlled, independently authenticated publication of the complete fingerprint or keyring digest has been located.
+
+**Disposition:** 01K-N completed as public-source research. Independent signer authentication remains BLOCKED; exact LXC archive signature remains unverified. No package signature was verified; no key was imported; no trust database changed; no host state changed.
+
+### 16.13 Next step proposal — user-mediated official GitLab inspection
+
+Because the public search result is a third-party namespace and must not be substituted for the official source, the next useful step remains a user-mediated browser inspection. Open Valve's SteamOS download page and follow its explicit `gitlab.steamos.cloud` source link. In that official instance, search for `holo-keyring` and inspect project namespace, ownership/group, default branch or commit, and any public key file or source declaration that states the complete fingerprint. Capture the exact URL and visible evidence. Do not download/import the key, execute GPG, or change trust. If the official project is inaccessible or does not publish a fingerprint declaration, record that outcome and stop; do not elevate the `evlaV` mirror.
+
+### 16.14 Change log entry
+
+| 5.11 | 2026-11-07 | Recorded 01K-N public search result for gitlab.com/evlaV/holo-keyring and its ci-package-builder-1.pub file; distinguished third-party namespace and self-asserted UID from an authenticated Valve trust anchor; refreshed status and Section 14 handoff; preserved official GitLab user-mediated inspection as the next proposed step. No host commands or state changes. |
 
 *End of living audit record.*
