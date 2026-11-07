@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.8  
+> **Document version:** 3.9  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -3298,6 +3298,116 @@ Do not:
 
 A safe next diagnostic must be narrowly justified, read-only, and demonstrably different from LXC-PKG-04 through LXC-PKG-07. If no such diagnostic can explain the pacman failure, stop and report that the installation prerequisite remains blocked rather than bypassing it.
 
+
+#### LXC-EXP-01A — read-only sudo privilege-context diagnostic
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — sudo privilege context confirmed; pacman DBPath write-access discrepancy remains unexplained**
+- **Environment:** SteamOS host (deck@Laco); each diagnostic ran through a separate sudo sh -c invocation.
+- **Prerequisites:** LXC-PKG-03 through LXC-PKG-07; LXC-EXP-00.
+- **Question:** Does the earlier sudo test -w "$DBPATH" result of NO arise because sudo is running with a non-root identity, a restricted capability set, a subordinate user-namespace mapping, or an exposed security context?
+- **Why this test is new:** LXC-PKG-04 through LXC-PKG-07 inspected processes, the configured DBPath, mount, ownership, ACL and attributes, but did not record the actual UID/GID, capability masks, user-namespace maps or security-context readout of a sudo-launched diagnostic process.
+- **Repeat policy:** Do not repeat unless sudo configuration, user-namespace policy, capability policy, or the relevant host security configuration materially changes.
+- **Side-effect boundary:** Read-only process metadata only. No pacman invocation, DBPath access test, file creation, lock operation, permission/ACL/attribute change, mount change, service change, process termination, or package operation.
+- **Approval required:** No; this was a read-only diagnostic within the already approved investigation.
+
+**Exact command executed**
+
+~~~bash
+echo "===== LXC-EXP-01A: SUDO PRIVILEGE CONTEXT ====="
+
+echo
+echo "===== 1. EFFECTIVE PROCESS IDENTITY ====="
+sudo sh -c 'id'
+
+echo
+echo "===== 2. REAL AND EFFECTIVE UID/GID ====="
+sudo sh -c '
+grep -E "^(Uid|Gid|Groups):" /proc/self/status
+'
+
+echo
+echo "===== 3. EFFECTIVE CAPABILITIES ====="
+sudo sh -c '
+grep -E "^(CapInh|CapPrm|CapEff|CapBnd|NoNewPrivs):" /proc/self/status
+'
+
+echo
+echo "===== 4. USER NAMESPACE MAPPING ====="
+sudo sh -c '
+cat /proc/self/uid_map
+cat /proc/self/gid_map
+'
+
+echo
+echo "===== 5. SECURITY CONTEXT ====="
+sudo sh -c '
+cat /proc/self/attr/current 2>/dev/null \
+    || echo "Security context unavailable"
+'
+
+echo
+echo "===== END LXC-EXP-01A ====="
+~~~
+
+**Actual user-reported output**
+
+~~~text
+===== LXC-EXP-01A: SUDO PRIVILEGE CONTEXT =====
+
+===== 1. EFFECTIVE PROCESS IDENTITY =====
+[sudo] password for deck:
+uid=0(root) gid=0(root) groups=0(root)
+
+===== 2. REAL AND EFFECTIVE UID/GID =====
+Uid:    0       0       0       0
+Gid:    0       0       0       0
+Groups: 0
+
+===== 3. EFFECTIVE CAPABILITIES =====
+CapInh: 0000000000000000
+CapPrm: 000001ffffffffff
+CapEff: 000001ffffffffff
+CapBnd: 000001ffffffffff
+NoNewPrivs:     0
+
+===== 4. USER NAMESPACE MAPPING =====
+         0          0 4294967295
+         0          0 4294967295
+
+===== 5. SECURITY CONTEXT =====
+Security context unavailable
+
+===== END LXC-EXP-01A =====
+~~~
+
+**Observed result**
+
+- The sudo-launched shell reported uid=0(root), gid=0(root), and supplementary group 0.
+- The four UID fields and four GID fields in /proc/self/status were all zero; the supplementary group list contained only 0.
+- CapInh was zero. CapPrm, CapEff, and CapBnd were each 000001ffffffffff.
+- NoNewPrivs was 0.
+- Both UID and GID maps reported 0 0 4294967295, an identity mapping across the reported range; no subordinate mapping was exposed by this readout.
+- Reading /proc/self/attr/current did not return a security-context label; the command printed Security context unavailable.
+- No separate overall shell exit status was included in the transcript. Do not invent one. The command reached its final completion marker.
+
+**Interpretation**
+
+- **CONFIRMED:** sudo launched the diagnostic shell with real/effective/saved/filesystem UID and GID values all set to zero, root supplementary group, a broad permitted/effective/bounding capability mask, and NoNewPrivs=0.
+- **CONFIRMED:** The displayed UID/GID maps do not indicate a subordinate or shifted user-namespace mapping for this process.
+- **INCONCLUSIVE:** The security-context readout was unavailable. This does not prove that no LSM or other security policy is active; it only means this particular proc attribute did not provide a label.
+- **NOT EXPLAINED:** These results do not account for the earlier sudo test -w "$DBPATH" result of NO, nor do they establish why pacman previously failed to acquire its database lock. They are identity/capability observations, not a write attempt against DBPath.
+- This test does not authorize any attempt to create a file or lock, change DBPath metadata, retry pacman, or refresh repository file lists.
+
+**Decision / next step**
+
+- The distinct read-only sudo-context diagnostic is complete and did not explain the discrepancy.
+- **Formally classify the pacman DBPath/lock failure as INCONCLUSIVE and the LXC-EXP-01 package-safety prerequisite as BLOCKED.** No further generic lock diagnostics are justified on the current evidence.
+- Do not retry pacman -Fy, run another package operation, create a test file/lock, alter DBPath permissions/ACL/attributes, remount, or terminate processes.
+- The exact SteamOS package file manifest remains unavailable. Do not infer it from upstream Arch metadata or the upstream LXC source tag.
+- No LXC package was installed. Do not proceed to EXP-02/EXP-03 until a genuinely new, safe source of exact package provenance/manifest evidence is available and the full transaction/rollback plan is reviewed. Any installation still requires separate explicit confirmation.
+- Waydroid remains closed and out of scope; this LXC-only investigation does not reopen it.
+
 **Runtime experiment design constraints**
 
 - Use a dedicated test rootfs created only for this experiment; never point at Waydroid data or an existing project directory.
@@ -3728,7 +3838,9 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** do not install or launch LXC/Waydroid yet. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and a safe Waydroid split-privilege design remain untested/unresolved. The nested rootless Podman cgroup2 mount remains read-only. Package manifest inspection remains blocked and the original pacman DB lock failure unexplained. Do not retry pacman/file-list refresh, activate controllers, run LXC, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup configuration. The next step is a design-level review of whether Waydroid's privileged host preparation can be separated from a deck-user-owned LXC process without broadening privileges or changing host networking; this is not authorization to implement it.
 
-**Latest user decisions:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. DECISION-LXC-EXP-01 now separately authorizes an LXC-only experimental investigation, including temporary LXC-only test installation in principle. It does not reopen Waydroid or authorize a package transaction before package provenance, pacman safety, exact scope and rollback are verified and explicitly confirmed.\n\n**Latest architecture review:** SPLIT-ARCH-01 (§5.12) completed a design-only assessment. Stock root Waydroid service remains unsuitable for LXC's non-root scope path. A custom manual-only split with deck-owned LXC and a narrowly allowlisted preparation broker is technically conceivable, but it does not solve rootfs/data mount ownership, Binder/GPU handoff, crash cleanup, or the default Waydroid network helper's host bridge/forwarding/firewall changes. The current no-host-network-change and least-privilege constraints are not met. Recommendation: **HOLD / do not implement**; closing the effort as blocked is a valid outcome. No command, package operation, cgroup write, installation, service change or host modification was performed for this review. No archive snapshot was due: this was a design review, not a runtime test, and the five-test snapshot threshold was not reached.\n\n**Current decision:** do not install or launch LXC/Waydroid. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and package manifest remain untested/blocked. The nested rootless Podman cgroup2 mount remains read-only. Do not retry pacman/file-list refresh, activate controllers, run LXC, create a privileged helper, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup/network configuration. The design-only split-privilege review is complete; further work requires a new user decision about whether to close the project or explicitly relax a named constraint.\n\n**Active next gate:** LXC-EXP-01 — resolve package provenance and installation safety without changing package state. The package manifest is still unavailable and the earlier pacman DB lock failure remains unexplained. Do not retry pacman or mutate DBPath. First determine whether a distinct, read-only diagnostic can explain the lock failure; if not, report the prerequisite blocked. Only after exact package contents and transaction are known should an installation/rollback plan be presented for explicit confirmation. See §5.13 for the complete staged experiment plan.
+**Latest user decisions:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. DECISION-LXC-EXP-01 now separately authorizes an LXC-only experimental investigation, including temporary LXC-only test installation in principle. It does not reopen Waydroid or authorize a package transaction before package provenance, pacman safety, exact scope and rollback are verified and explicitly confirmed.\n\n**Latest architecture review:** SPLIT-ARCH-01 (§5.12) completed a design-only assessment. Stock root Waydroid service remains unsuitable for LXC's non-root scope path. A custom manual-only split with deck-owned LXC and a narrowly allowlisted preparation broker is technically conceivable, but it does not solve rootfs/data mount ownership, Binder/GPU handoff, crash cleanup, or the default Waydroid network helper's host bridge/forwarding/firewall changes. The current no-host-network-change and least-privilege constraints are not met. Recommendation: **HOLD / do not implement**; closing the effort as blocked is a valid outcome. No command, package operation, cgroup write, installation, service change or host modification was performed for this review. No archive snapshot was due: this was a design review, not a runtime test, and the five-test snapshot threshold was not reached.\n\n**Current decision:** do not install or launch LXC/Waydroid. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and package manifest remain untested/blocked. The nested rootless Podman cgroup2 mount remains read-only. Do not retry pacman/file-list refresh, activate controllers, run LXC, create a privileged helper, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup/network configuration. The design-only split-privilege review is complete; further work requires a new user decision about whether to close the project or explicitly relax a named constraint.\n\n**Latest completed test:** LXC-EXP-01A (§5.13) — read-only sudo privilege-context diagnostic. It confirmed UID/GID 0, broad permitted/effective/bounding capabilities, NoNewPrivs=0, and identity UID/GID maps; the security-context readout was unavailable. This did not explain the negative sudo test -w "$DBPATH" predicate or the original pacman lock failure. No DBPath write was attempted and no package state changed.
+
+**Active gate:** LXC-EXP-01 remains **BLOCKED**. The exact SteamOS package file manifest is unavailable, and the original pacman DB lock failure remains INCONCLUSIVE after LXC-PKG-04 through LXC-PKG-07 and LXC-EXP-01A. The sudo diagnostic did not explain the discrepancy; stop the generic lock investigation. Do not retry pacman -Fy or any package operation, create a test lock/file, alter DBPath permissions/ACL/attributes, remount, or terminate processes. Do not infer the exact manifest from upstream Arch metadata/source. Proceed only if a genuinely new, safe source of exact SteamOS package provenance and file-manifest evidence becomes available. Then review the exact transaction, host paths, SteamOS persistence implications, backup/recovery and uninstall/rollback plan before seeking separate explicit installation confirmation. See the LXC-EXP-00 charter and §5.13 staged experiment plan.
 
 **Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
@@ -3767,6 +3879,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 | 3.7 | 2026-11-07 | Recorded user-accepted DECISION-WD-01: close the current Waydroid feasibility effort as blocked under existing constraints; preserve the audit and prohibit Waydroid installation/host changes under this decision; explicitly distinguish a possible future, separately approved temporary LXC-only experiment from the closure decision; updated document version and continuation handoff. |
 | 3.8 | 2026-11-07 | Closed the read-only feasibility phase and opened a separate LXC-only experimental investigation under DECISION-LXC-EXP-01; documented staged package provenance/safety, exact-install approval, temporary non-root LXC runtime, cgroup/monitor/payload lifecycle, cleanup and removal gates; retained the unresolved pacman lock and package-manifest blockers; clarified that temporary LXC testing does not reopen Waydroid or authorize an immediate package transaction; updated executive status, Gate 4 and new-chat handoff. |
+| 3.9 | 2026-11-07 | Recorded LXC-EXP-01A's read-only sudo identity/capability/user-namespace diagnostic; confirmed sudo runs as root with a broad capability set and identity UID/GID maps, but the result did not explain the DBPath write-access predicate or pacman lock failure; formally classified the package-safety prerequisite as BLOCKED and prohibited further generic lock diagnostics or pacman retries; updated the continuation handoff. |
 
 ---
 
