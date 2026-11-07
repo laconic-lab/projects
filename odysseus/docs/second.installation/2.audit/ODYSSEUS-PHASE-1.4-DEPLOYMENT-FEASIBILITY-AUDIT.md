@@ -590,6 +590,44 @@ The test demonstrated a host-to-container HTTP path through the loopback-publish
 
 ---
 
+
+### 8.5 NET-06 host preflight — Stage A (read-only; not a completed test)
+
+**Execution date:** 2026-11-07  
+**Execution location:** SteamOS host, user shell `deck@Laco`.  
+**Status:** PREFLIGHT COMPLETE — no test network/container created; no host state changed. This preflight is not counted as a completed NET-06 test for the five-test checkpoint.
+
+The user executed the read-only NET-06 Stage A command covering Podman version/backend/network inventory, host IPv6 addresses/routes/kernel switches, resolver configuration/status, DNS listeners, supported Podman network options and temporary resource-name availability.
+
+Relevant exact observations:
+
+| Probe | Observed output / result |
+|---|---|
+| `hostname` | `-bash: hostname: command not found`; the command sequence continued. Hostname must be read from `/etc/hostname` in a later read-only check if needed. |
+| Podman | Client/engine `6.0.2`; API `6.0.2`; backend `netavark`. |
+| Existing network | Only `podman`; bridge `podman0`; IPv4 subnet `10.88.0.0/16`, gateway `10.88.0.1`; `ipv6_enabled: false`, `internal: false`, `dns_enabled: false`; no attached containers reported. |
+| Host IPv6 | `enp4s0f3u1u4` UP with global addresses `2001:861:3013:b730:36b5:6919:aa3d:9e94/64` and `2001:861:3013:b730:9e86:f740:ab73:ae13/64`, plus link-local address. |
+| IPv6 routes | Connected prefix `2001:861:3013:b730::/64`; default route via `fe80::b292:4aff:fe4f:f855` on `enp4s0f3u1u4`. |
+| Public IPv6 route lookup | `ip -6 route get 2606:4700:4700::1111` selected the default route and source `2001:861:3013:b730:36b5:6919:aa3d:9e94`. This proves route selection only, not packet delivery or public reachability. |
+| IPv6 kernel switches | `net.ipv6.conf.all.disable_ipv6=0`, `default.disable_ipv6=0`, and `enp4s0f3u1u4.disable_ipv6=0`. |
+| Host resolver | `/etc/resolv.conf` is the systemd-resolved stub configuration; nameserver `127.0.0.53`. |
+| Active uplink DNS | `resolvectl status`: global current server `9.9.9.9`; wired link current server `1.1.1.1`; link DNS servers include `1.1.1.1`, `8.8.8.8`, `2606:4700:4700::1111`, `2001:4860:4860::8888`. Fallback list also includes Quad9, Cloudflare and Google IPv4/IPv6 resolvers. |
+| Host DNS listeners | UDP/TCP port 53 listeners include `192.168.1.161:53` owned by `passt.avx2`, and local stubs `127.0.0.53:53` and `127.0.0.54:53`. Ownership/function of the `passt.avx2` listener is not inferred from this output. |
+| Podman options | Help output confirms `--ipv6`, `--subnet`, `--internal` and `--disable-dns` options exist. This is capability discovery, not enforcement evidence. |
+| Temporary names | `odysseus-net06-ipv6-dns-test` and `odysseus-net06-probe` both reported available. |
+
+**Interpretation and constraints**
+
+1. The SteamOS host has active IPv6 addressing and a selected default IPv6 route. Actual IPv6 egress remains untested.
+2. The existing default Podman bridge has IPv6 disabled. NET-06 must use a separate temporary network and must not modify the default bridge.
+3. Podman/Netavark exposes the option to enable IPv6 on a network. This does not yet prove address allocation, container routing, DNS behavior or enforcement.
+4. Host DNS is not a blank slate: systemd-resolved stubs and a separate listener on `192.168.1.161:53` are already present. NET-06 must not bind to, stop, inspect protected service internals, or alter host port 53, resolver configuration, Pi-hole, or DNS forwarding.
+5. Do not infer that the `passt.avx2` listener is Pi-hole or any other named service from the process name alone.
+6. The route lookup is not an IPv6 connectivity test. DNS resolution is not a substitute for direct numeric-address TCP/UDP probes.
+7. No resource was created, no image was pulled, and no host/container configuration was changed. No cleanup was required.
+
+**Next:** define and request explicit approval for a temporary IPv6-enabled internal Podman network and one disposable probe container. Use the cached image only (`--pull=never`); do not use host networking, published ports, mounts, or host DNS changes. The next stage must separately test assigned IPv6 configuration, DNS resolver behavior and direct IPv6 egress.  
+
 ## 9. Cgroups, resource controls and host security
 
 ### 9.1 Recorded host observations
@@ -1434,7 +1472,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
-| 4 | IPv6 and DNS behavior | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
+| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
@@ -1730,7 +1768,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 ### 18.2 Immediate next action
 
-NET-03, NET-04 and NET-05 are complete. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
+NET-03, NET-04 and NET-05 are complete. NET-06 Stage A read-only host preflight is complete but is not counted as a completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; actual IPv6 packet delivery remains untested. Podman uses Netavark and supports an `--ipv6` network option; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; do not modify or interfere with it. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
 The next dependency is **IPv6 and DNS behavior**. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
 
@@ -1766,6 +1804,7 @@ The first assistant action in a new conversation should be:
 | 1.1 | 2026-11-07 | Recorded NET-03 immediately after execution: dedicated internal bridge confirmed; host SSH, router DNS, public HTTPS and DNS-name-resolution probes blocked; temporary network removal recorded; peer-to-peer communication explicitly left untested. Updated the dependency gate and continuation handoff. No five-test snapshot triggered. |
 | 1.2 | 2026-11-07 | Recorded NET-04 immediately after execution: two disposable peers resolved and reached each other bidirectionally; both peers were blocked from the named host/router/public/DNS probes; inspection confirmed internal bridge membership and restricted container settings; cleanup independently verified. Recorded SIGTERM timeout/SIGKILL escalation as a lifecycle caveat. Advanced the next gate to NET-05. No five-test snapshot triggered. |
 | 1.3 | 2026-11-07 | Recorded NET-05: loopback-only published listener returned HTTP 200 from the host while the same published port was refused through the host LAN address; recorded distinct internal-IP timeout and container gateway/host probe results; preserved final configuration inspection limitations; recorded exact Stage D cleanup command/output, SIGTERM timeout/SIGKILL escalation, successful resource removal and independent port-release verification. Advanced the next dependency to IPv6/DNS behavior. One completed test since the v1.2 checkpoint; no five-test snapshot triggered. |
+| 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |
 
 ---
 
