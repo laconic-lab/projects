@@ -4,7 +4,7 @@
 >
 > **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; no installation or runtime experiment has yet been justified or performed**.
 >
-> **Document version:** 2.1  
+> **Document version:** 2.2  
 > **Last source refresh:** 2026-11-06  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -110,6 +110,57 @@ The source review confirms dynamic device/session mount generation (Binder nodes
 ---
 
 ## 2. Target architecture and acceptance criteria
+
+
+
+### 2.1B Upstream packaging, D-Bus control plane and SteamOS package implications
+
+#### Waydroid packaging is a host integration bundle
+
+The upstream Debian control file declares the Waydroid package dependencies as LXC, Python runtime, python3-gbinder, python3-gi, GTK introspection, python3-dbus, D-Bus, PolicyKit, PipeWire PulseAudio or PulseAudio, and iptables. This is the dependency set for the **Waydroid manager package**, not a requirement list for an isolated LXC-only audit. Distribution package dependencies vary; Debian names must not be copied as SteamOS/Arch package names.
+
+The upstream Makefile defaults to PREFIX=/usr, USE_SYSTEMD=1 and USE_DBUS_ACTIVATION=1. A normal install copies manager code/data to /usr/lib/waydroid, creates /usr/bin/waydroid, installs desktop integration and icons under /usr/share, a system D-Bus policy under /usr/share/dbus-1/system.d, a PolicyKit action under /usr/share/polkit-1/actions, a D-Bus activation service under /usr/share/dbus-1/system-services, and a systemd unit under /usr/lib/systemd/system. This confirms that the normal Waydroid install is not a self-contained payload inside an outer container.
+
+#### D-Bus and PolicyKit behavior inspected
+
+| File | Source behavior | Project implication |
+|---|---|---|
+| [dbus/id.waydro.Container.service](https://github.com/waydroid/waydroid/blob/main/dbus/id.waydro.Container.service) | D-Bus activation names id.waydro.Container; executes /usr/bin/waydroid container start as User=root; associates activation with waydroid-container.service. | D-Bus activation can request root-owned manager startup. Do not install this host activation file. |
+| [dbus/id.waydro.Container.conf](https://github.com/waydroid/waydroid/blob/main/dbus/id.waydro.Container.conf) | Allows root to own id.waydro.Container and default-context clients to send to/receive from that name. | System-bus access policy is part of the host trust boundary. Do not install. |
+| [dbus/id.waydro.Container.policy](https://github.com/waydroid/waydroid/blob/main/dbus/id.waydro.Container.policy) | Declares a PolicyKit action for Waydroid initialization, with administrator authentication defaults. | Another host-level privilege integration; not needed for an LXC-only test. |
+| [systemd/waydroid-container.service](https://github.com/waydroid/waydroid/blob/main/systemd/waydroid-container.service) | Starts /usr/bin/waydroid container start, claims BusName=id.waydro.Container, and has WantedBy=multi-user.target. | Would provide system-service lifecycle and can be enabled for boot startup. Must not be installed/enabled as part of this audit. |
+
+The manager code uses the system D-Bus, exports methods to start/stop/freeze/unfreeze and query the container, checks caller UID/session PID for session starts, and starts a GLib main loop. The container manager then performs host-side preparation (Binder probing/node permissions, optional driver loading, network script, session-specific config, rootfs mount, LXC start, hardware manager). Therefore a custom manual-only manager would still need a deliberate replacement for this host control plane and its privilege boundary; simply invoking lxc-start does not reproduce Waydroid lifecycle behavior.
+
+#### LXC package scope versus Waydroid package scope
+
+The upstream Arch LXC package metadata currently describes LXC as a standalone package with runtime dependencies including bash, dbus, libcap, libseccomp, perl, Python, rsync and wget; dnsmasq is listed as optional for lxc-net.service. The listed package installed size is about 2.8 MB in that Arch metadata. This is a reference for likely package shape, **not a verified SteamOS transaction**. SteamOS's exact LXC package version, repository availability, dependency versions, already-installed dependencies, conflicts and transaction size must be resolved against the Deck's own current package database before any install.
+
+The optional LXC network helper/service is not required merely to run the LXC CLI. Do not enable lxc-net, lxc-containers, or any LXC autostart/network unit. Waydroid's own default network script independently creates a bridge, configures forwarding, starts dnsmasq and adds firewall rules; that script remains prohibited for this project.
+
+#### SteamOS package persistence and update behavior
+
+Valve states that SteamOS updates deliver a complete OS image and that software installed outside Flatpak (including with pacman) may be wiped by the next SteamOS update. Valve recommends Flatpak for desktop applications. Third-party SteamOS partition/update research describes the A/B image slots, persistent /home and special handling/synchronization of /var and /etc; treat those implementation details as corroboration rather than a guarantee for every future build.
+
+Implications for LXC:
+- A normal pacman installation places LXC executables, libraries, templates and related files under system paths such as /usr. Those changes are not update-stable; assume they may be removed or replaced by a SteamOS image update.
+- LXC package data/config under /etc or /var must not be assumed durable merely because those paths are writable; SteamOS synchronizes /var as part of its update process and /etc is an overlay backed by /var.
+- Keep any future container rootfs, userdata, audit scripts, logs and backups in a deliberately chosen persistent /home path, not in /usr, /var/lib/waydroid or transient locations.
+- Do not use a broad pacman -Syu or change the host's package-management state for this audit.
+- A portable/custom LXC install under /home or /opt is not yet demonstrated to be safe or maintainable: dynamic library compatibility, helper binaries, system integration, security updates and the exact delegated-scope behavior still need evidence. Do not assume it solves the update problem.
+- A post-update check/recovery script could verify package/runtime versions and kernel/cgroup/device prerequisites, but it cannot make an unsupported host package installation update-proof.
+
+#### What is known versus what still requires a Deck-local read-only check
+
+| Item | Current evidence | Remaining requirement |
+|---|---|---|
+| LXC package dependencies | Arch upstream package metadata gives a reference dependency set. | Query the Deck's own installed/sync package metadata to calculate the exact transaction and dependency delta. |
+| LXC package availability/version in the user's configured SteamOS repos | Public Valve mirror indexes are not sufficient to prove the package candidate for the user's exact active branch/build. | Read-only local package metadata check against the user's configured repositories. |
+| Existing required libraries/tools | General host context is known, but not a complete current package ownership/dependency inventory. | Read-only local package query; do not assume dbus, libcap, libseccomp, perl, rsync or wget are all present at compatible versions. |
+| Package install persistence | Valve explicitly warns pacman-installed packages may be wiped by SteamOS updates. | Treat conventional /usr package installation as temporary and potentially requiring reinstallation after updates. |
+| Waydroid manager host dependencies | Upstream package and Makefile show broad host integrations. | None of these are approved for installation; manager architecture remains unresolved. |
+
+**Installation decision at this stage: NOT YET.** The read-only review has established that an LXC-only install can be scoped independently from Waydroid, but it has not yet established the exact SteamOS package transaction or shown that direct host-level LXC will pass the cgroup and namespace gates. Before installing anything, obtain a Deck-local read-only package/dependency report. If the package delta is small and does not upgrade/remove core system packages, a temporary LXC-only install may be proposed for explicit confirmation. Any such install would be treated as a temporary audit instrument that may be lost on SteamOS update—not as a durable deployment.
 
 
 ### 2.1A LXC and Waydroid — terminology and runtime boundary
@@ -2159,6 +2210,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 1.9 | 2026-11-06 | Recorded the successful supplemental read-only Podman JSON query (Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty); completed Gate 3; reconciled it with Tests 24–25; determined that a disposable LXC experiment is not justified under the observed read-only cgroup boundary; preserved the unchanged v1.8 pre-decision snapshot and updated the continuation handoff. |
 | 2.0 | 2026-11-06 | Preserved the unchanged v1.9 archive snapshot; added an LXC/Waydroid architecture explanation and source-level review of the upstream LXC launcher, base config, container manager and initializer; documented the delegated-scope integration gap, generated device/session mounts, cgroup-v2 distinction, architecture alternatives and conditional permission for a controlled LXC audit installation; reopened Phase 1.5 without authorizing installation or service changes. |
 | 2.1 | 2026-11-06 | Preserved the unchanged v2.0 archive snapshot; extended upstream source review to the Waydroid systemd unit, network script and work-directory defaults; documented boot-autostart and host firewall/forwarding side effects as explicit blockers for the user's manual-only, no-host-network-change design. |
+| 2.2 | 2026-11-07 | Preserved the unchanged v2.1 archive snapshot; reviewed upstream Debian packaging, Makefile install targets, D-Bus activation, PolicyKit, systemd unit, container-manager lifecycle, Arch LXC package dependency metadata, and Valve/SteamOS update behavior; distinguished LXC-only from Waydroid package scope; concluded LXC installation is not yet justified pending Deck-local read-only package/dependency verification. |
 
 ---
 
