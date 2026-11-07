@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN. Package-manager safety and authenticated signature verification remain blocked. LXC-EXP-01K-J confirmed the configured package DB and atomupd directories exist, but its package-record glob was one directory level too shallow; its zero-match result is invalid. Corrective gate 01K-K is prepared. Atomupd contains rootfs.caibx, a rootfs symlink whose target is not yet known, and five dated etc_backup archives. The endpoint holo.gpg hash still matches 01K-I. No LXC installation performed.
 >
-> **Document version:** 5.7  
+> **Document version:** 5.8  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -6498,10 +6498,35 @@ echo "===== END LXC-EXP-01K-K ====="
 
 Stop if /usr/lib/holo/pacmandb/local is a symlink, missing or not a directory. The scan ignores symlink package directories and symlink desc/files records. A matching local record is not an independent trust anchor. Do not dereference rootfs or inspect rootfs.caibx or the backup archives.
 
-**01K-K STATUS: PREPARED; USER EXECUTION PENDING.** After its output, reassess package ownership and whether the symlink target provides a justified, exact-path updater metadata lead. The pacman DBPath/write-access failure and independent signer-authentication blocker remain unresolved.
+**01K-K STATUS: COMPLETED.** User-supplied output is recorded in Section 16.4. The corrected local package record identifies holo-keyring version 20250801-2, with %VALIDATION% pgp, and its files record lists the installed keyring path. The atomupd rootfs symlink text is /dev/disk/by-partsets/B/rootfs; this is a link-text observation only and does not establish which slot is active or what the target resolves to. The keyring hash remains unchanged. The pacman DBPath/write-access failure and independent signer-authentication blocker remain unresolved.
 
 ### 16.3 Change log entry
 
 | 5.7 | 2026-11-07 | Recorded user-supplied LXC-EXP-01K-J results and identified the package-record glob depth defect; classified the zero-match result as invalid; recorded atomupd rootfs.caibx/rootfs/backup metadata and unchanged keyring hash; updated the continuation state and prepared bounded corrective gate 01K-K. No updater contents, package operations, writes, installation or runtime actions occurred. |
+
+
+### 16.4 01K-K observed findings and interpretation
+
+User executed LXC-EXP-01K-K on the SteamOS host as ordinary user deck, without sudo. The complete supplied output is summarized below:
+
+- The configured local package database directory /usr/lib/holo/pacmandb/local is a real directory, root:root mode 0755; mtime 2026-10-23 23:10:00.031333854 +0200.
+- The corrected-depth scan found exactly one package record: /usr/lib/holo/pacmandb/local/holo-keyring-20250801-2/desc.
+- Record metadata: root:root mode 0644, 374 bytes; mtime 2026-10-23 23:10:58.121707225 +0200. Recorded fields: NAME holo-keyring; VERSION 20250801-2; BASE holo-keyring; BUILDDATE 1785993546; INSTALLDATE 0515070000; PACKAGER GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>; VALIDATION pgp.
+- The matching files record is root:root mode 0644, 183 bytes; mtime 2026-10-23 23:08:49.212898974 +0200. Line 8 lists usr/share/pacman/keyrings/holo.gpg.
+- The atomupd rootfs path is a root:root symbolic link, link mode 0777, size 30, mtime 2026-10-24 01:34:01.447846431 +0200. Its literal link text, obtained with readlink, is /dev/disk/by-partsets/B/rootfs. The target was not dereferenced or inspected. This alone does not identify the active boot slot, prove the target exists, or establish updater behavior.
+- rootfs.caibx is reported as a regular file, root:root mode 0644, 2,421,664 bytes, mtime 2026-10-24 01:34:37.983919848 +0200. No contents were read.
+- /usr/share/pacman/keyrings/holo.gpg remains a regular file, root:root mode 0755, 39,295 bytes, mtime 2026-08-06 07:19:06 +0200. SHA-256 remains 408454d076d3a71c0bbbb435c84ee1682eab5e9eb7b93669c5c5a4a4d0abfb97, matching 01K-I and 01K-J.
+
+**Interpretation and limits:** The corrected lookup resolves the earlier 01K-J glob-depth false negative: a local package record exists and claims PGP validation; its recorded file manifest associates that package with the current keyring path. These are local pacman database claims, not independent proof that the installed package archive was authentic, that the recorded signature was valid, or that the packager identity is independently trusted. The literal atomupd link target suggests a SteamOS A/B partset path, but no active/inactive-slot conclusion is justified from this observation. The package record and symlink do not resolve the configured DBPath/write-access problem or independent signer-authentication blocker.
+
+No pacman command, GPG operation, signature check, network access, file write, extraction, mount, service change, installation, or LXC runtime operation occurred. The user supplied the command output; no separate shell exit status was included.
+
+### 16.5 Next gate proposal — LXC-EXP-01K-L
+
+Recommended next step: a bounded read-only metadata inspection of the exact symlink path components, without dereferencing into the root filesystem or reading the block device. The scope should be limited to lstat-style metadata for /dev/disk/by-partsets, its B entry, and the final rootfs entry; print literal link text for symlink components only. Do not run readlink -e, realpath, findmnt, lsblk, blkid, mount, or any command that resolves or opens the rootfs target. Do not inspect /dev/disk/by-partsets/B/rootfs contents or device data. This can establish whether the link chain is itself composed of symlinks and document their literal text, but cannot establish active slot or updater trust. Prepare the command only after confirming the intended non-dereferencing semantics; no package or LXC installation is authorized.
+
+### 16.6 Change log entry
+
+| 5.8 | 2026-11-07 | Recorded 01K-K results: corrected local holo-keyring record and its files manifest, atomupd rootfs link text to partset B, rootfs.caibx metadata, and unchanged keyring SHA-256. Distinguished local package-database claims from independent signature/signer authentication and did not infer active slot. Marked 01K-K complete and proposed bounded link-component metadata gate 01K-L. No host state changed. |
 
 *End of living audit record.*
