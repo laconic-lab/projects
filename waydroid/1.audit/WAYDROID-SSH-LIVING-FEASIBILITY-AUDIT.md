@@ -2,7 +2,7 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); signature verification and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G partially reviewed packaged AppArmor policies, with two abstractions still incomplete; signature trust and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
 > **Document version:** 4.1  
 > **Last source refresh:** 2026-11-07  
@@ -4270,7 +4270,6 @@ profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_de
   mount options=(rw,rbind) -> /run/systemd/mount-rootfs/**,
   mount options=(rw,rbind) -> /run/systemd/unit-root/,
   mount options=(rw,rbind) -> /run/systemd/unit-root/**,
-  mount options=(rw,rshared) -> /,
   mount options=(rw,rshared) -> /,
   mount fstype=cgroup -> /sys/fs/cgroup/**,
   mount fstype=cgroup2 -> /sys/fs/cgroup/**,
