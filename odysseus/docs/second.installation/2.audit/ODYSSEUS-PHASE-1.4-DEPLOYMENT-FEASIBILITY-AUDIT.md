@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.7  
+> **Version:** 1.8  
 > **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1038,7 +1038,101 @@ NET-06 STAGE C2 PROBES COMPLETE
 
 **What this does not prove:** every public destination/port is unreachable under every possible configuration; all Podman internal networks behave identically; or the host itself lacks IPv6 connectivity. The host preflight had a default IPv6 route; this test is specifically the isolated container namespace.
 
-**Cleanup:** not performed yet. The approved temporary network and container remain available for any final read-only verification and then explicit scoped cleanup.
+**Cleanup:** completed by the user after Stage C2. The exact scoped cleanup command and actual output are recorded in §8.9. Podman escalated from SIGTERM to SIGKILL after the 10-second grace period; container and network removal then succeeded and independent absence checks passed.
+
+
+### 8.9 NET-06 Stage D — scoped cleanup and independent absence verification
+
+**Execution date:** 2026-11-07  
+**Execution location:** SteamOS host, user shell `deck@Laco`.  
+**Status:** **COMPLETED — cleanup PASS.** Both temporary resources were removed and independently verified absent. The stop operation required SIGKILL escalation after the 10-second SIGTERM timeout.
+
+**Exact command executed**
+ 
+```bash
+set -e
+
+NETWORK="odysseus-net06-ipv6-dns-test"
+CONTAINER="odysseus-net06-probe"
+
+echo "===== NET-06: SCOPED CLEANUP ====="
+
+echo
+echo "===== 1. VERIFY TARGET CONTAINER IDENTITY ====="
+podman inspect "$CONTAINER" \\
+  --format 'Name={{.Name}} ID={{.Id}} Image={{.ImageName}}'
+
+echo
+echo "===== 2. STOP ONLY THE TEST CONTAINER ====="
+podman stop --time 10 "$CONTAINER"
+
+echo
+echo "===== 3. REMOVE ONLY THE TEST CONTAINER ====="
+podman rm "$CONTAINER"
+
+echo
+echo "===== 4. REMOVE ONLY THE TEST NETWORK ====="
+podman network rm "$NETWORK"
+
+echo
+echo "===== 5. INDEPENDENT ABSENCE VERIFICATION ====="
+
+if podman container exists "$CONTAINER"; then
+    echo "FAIL: test container still exists"
+    exit 1
+else
+    echo "PASS: test container absent"
+fi
+
+if podman network exists "$NETWORK"; then
+    echo "FAIL: test network still exists"
+    exit 1
+else
+    echo "PASS: test network absent"
+fi
+
+echo
+echo "===== NET-06 CLEANUP COMPLETE ====="
+```
+
+**Actual output**
+ 
+```text
+===== NET-06: SCOPED CLEANUP =====
+
+===== 1. VERIFY TARGET CONTAINER IDENTITY =====
+Name=odysseus-net06-probe ID=15474ed0963e6ebf8d94a27bce770cdf8235fbed24e28f7f5fbc67559f7a4fec Image=docker.io/library/python:3-alpine
+
+===== 2. STOP ONLY THE TEST CONTAINER =====
+WARN[0010] StopSignal SIGTERM failed to stop container odysseus-net06-probe in 10 seconds, resorting to SIGKILL
+odysseus-net06-probe
+
+===== 3. REMOVE ONLY THE TEST CONTAINER =====
+odysseus-net06-probe
+
+===== 4. REMOVE ONLY THE TEST NETWORK =====
+odysseus-net06-ipv6-dns-test
+
+===== 5. INDEPENDENT ABSENCE VERIFICATION =====
+PASS: test container absent
+PASS: test network absent
+
+===== NET-06 CLEANUP COMPLETE =====
+```
+
+**Exit status:** The command completed through the final marker and returned to the shell prompt. Because the script began with `set -e`, no command in the sequence returned a non-zero status.
+
+**Interpretation**
+ 
+1. The inspected container identity matched the exact NET-06 disposable probe: name `odysseus-net06-probe`, ID `15474ed0963e6ebf8d94a27bce770cdf8235fbed24e28f7f5fbc67559f7a4fec`, image `docker.io/library/python:3-alpine`.
+2. Podman could not stop the process with SIGTERM within 10 seconds and escalated to SIGKILL. The stop command nevertheless completed successfully.
+3. The named test container and named test network were both removed successfully.
+4. Independent `podman container exists` and `podman network exists` checks both returned false, producing the two explicit PASS messages.
+5. No image-removal command was issued. No default Podman network, unrelated container, host DNS listener, host route, firewall or persistent configuration was targeted.
+
+**Cleanup verdict: PASS.** NET-06 is complete. The SIGTERM timeout/SIGKILL escalation is retained as a lifecycle caveat, not misclassified as a cleanup failure.
+
+**NET-06 overall evidence boundary:** The test demonstrated that this specific temporary IPv6-enabled internal network allocated IPv4 and ULA IPv6 addresses, exposed reachable internal DNS gateways that returned NXDOMAIN for the tested external name, and provided no default IPv4 or IPv6 route in the probe container. The selected public numeric IPv4/IPv6 TCP destinations and direct public DNS endpoints were network-unreachable. This does not prove all destinations, protocols, resolver names or future configurations behave identically, nor does it test host IPv6 egress. The temporary resources are now absent.
 
 ## 9. Cgroups, resource controls and host security
 
@@ -1884,7 +1978,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
-| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | IN PROGRESS — Stages B/C1/C2: IPv4+IPv6 addresses allocated; DNS gateways reachable but returned NXDOMAIN for tested external name; no container default route in either family; selected public numeric TCP destinations network-unreachable. Cleanup remains open |
+| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
@@ -2155,7 +2249,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.7  
+**Canonical version:** 1.8  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2180,9 +2274,11 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 ### 18.2 Immediate next action
 
-NET-03, NET-04 and NET-05 are complete. NET-06 Stage A read-only host preflight is complete but is not counted as a completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; actual IPv6 packet delivery remains untested. Podman uses Netavark and supports an `--ipv6` network option; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; do not modify or interfere with it. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
+NET-03, NET-04, NET-05 and NET-06 are complete. NET-06 Stage A was a read-only preflight and is not counted as a separate completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; host IPv6 packet delivery was not tested by NET-06. Podman uses Netavark; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; it was not modified or used as a target. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Its cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-NET-06 Stage B created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. Stage C1 found that the internal DNS gateways answer but return NXDOMAIN for the tested `example.com` A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the container; direct public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Next: complete any justified read-only verification, then clean up both temporary resources and independently verify absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
+NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary IPv6-enabled internal network. Stage C1 found that both internal DNS gateways answered the tested `example.com` A/AAAA UDP/TCP queries with NXDOMAIN; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the probe container; selected public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Stage D cleanup removed the exact temporary container and network; independent absence checks passed. Podman escalated to SIGKILL after the 10-second SIGTERM timeout. **NET-06 is complete with scoped findings and a lifecycle caveat.**
+
+**Next open dependency:** Gate 5 — exact candidate UID/application identity. Before defining a test, read the corresponding source export and the recorded `nomap` evidence; determine the intended non-root application UID, entrypoint and ownership requirements. Do not create a container or change resources until the exact test and approval boundary are presented. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -2219,6 +2315,7 @@ The first assistant action in a new conversation should be:
 | 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |\n| 1.5 | 2026-11-07 | Recorded approved NET-06 Stage B setup: cached-image guard, dedicated `--internal --ipv6` Netavark bridge, assigned IPv4 and ULA IPv6 addresses, DNS plugin enabled, restricted disposable container configuration, and inspection limitations. Temporary network/container remain in place for Stage C; DNS and IPv6 packet behavior are not yet tested. No five-test checkpoint triggered. |
 | 1.6 | 2026-11-07 | Recorded NET-06 Stage C1 DNS results: container resolver points to both internal gateways; both gateways returned NXDOMAIN for the tested external A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Updated remaining gate and handoff to Stage C2 numeric connectivity. No five-test checkpoint triggered. |
 | 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
+| 1.8 | 2026-11-07 | Recorded NET-06 Stage D exact cleanup command and output: Podman escalated from SIGTERM to SIGKILL after 10 seconds, then removed the exact probe container and temporary network; independent absence checks passed. Marked NET-06 complete, updated Gate 4 and the handoff to Gate 5 (candidate UID/application identity). Two completed tests since the v1.2 checkpoint (NET-05 and NET-06); no five-test snapshot triggered. |
 
 ---
 
