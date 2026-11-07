@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-01 rejected before execution; LXC-SCOPE-02 created a transient scope but inspected the wrong cgroup directory; LXC-SCOPE-03 successfully inspected the actual transient delegated scope and confirmed positive write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control; available child controllers cpu, memory, pids and dmem, none enabled; no actual cgroup write/controller activation, LXC installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-03 confirmed positive access predicates in a transient delegated scope; upstream LXC/systemd/kernel documentation confirms that a delegated subtree is required for unprivileged LXC on cgroup v2, while an initially empty subtree_control is normal; actual child-cgroup creation/process movement/controller behavior remain untested; no LXC installation or runtime experiment performed**.
 >
-> **Document version:** 3.1  
+> **Document version:** 3.2  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2641,6 +2641,48 @@ Next, reconcile the still-blocked package manifest with LXC's precise cgroup-v2 
 No actual cgroup write/controller activation is authorized by this result. Do not install LXC, launch LXC, install Waydroid, create persistent units, alter host cgroups, or modify Podman/Pi-hole on this evidence alone. Present any further test as a separate bounded proposal and obtain approval before cgroupfs writes or package-state changes.
 
 
+
+## 5.9 Phase 1.5 — read-only reconciliation of LXC cgroup-v2 requirements
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED — source-level requirements reconciled; runtime operation remains untested**
+- **Scope:** Public upstream documentation/source review only. No Steam Deck command was run for this investigation.
+- **Question:** Given LXC-SCOPE-03, what does upstream LXC require from cgroup v2, what does an empty `cgroup.subtree_control` mean, and is the evidence sufficient to claim LXC compatibility?
+- **Why new:** LXC-SCOPE-03 corrected the scope-path error and established positive shell access predicates. This investigation interprets those observations against upstream requirements without repeating the host test or writing to cgroup files.
+- **Side-effect boundary:** Read-only web/source review. No host files, packages, cgroups, services, containers, permissions, or package-manager state were changed.
+- **Repeat policy:** Do not repeat unless LXC/systemd/kernel behavior materially changes or a relevant upstream source changes.
+
+### Upstream findings
+
+1. **LXC requires a delegated cgroup subtree for an unprivileged user on cgroup v2.** The upstream LXC “Getting started” documentation says the user must be allocated an empty delegated cgroup and documents wrapping LXC commands with a transient `systemd-run --user --scope -p Delegate=yes` scope. It identifies the cgroup-v2 leaf-node/delegation model as the reason. Source: https://linuxcontainers.org/lxc/getting-started/
+2. **Systemd delegation and controller activation are distinct.** Systemd's cgroup interface documentation says `Delegate=yes` allows a scope/service to manage its own subtree and gives the unprivileged unit's user access to its delegated cgroup directory and relevant files. It also states that controllers are made available but are not automatically enabled in `cgroup.subtree_control`. Source: https://systemd.io/CONTROL_GROUP_INTERFACE/ and https://github.com/systemd/systemd/blob/main/docs/CGROUP_DELEGATION.md
+3. **An empty `cgroup.subtree_control` is normal initial state.** The Linux kernel cgroup-v2 documentation says the file starts empty; controllers must be available in `cgroup.controllers` and can be enabled only subject to hierarchy and no-internal-process constraints. The empty value alone is not evidence of a failure. Source: https://docs.kernel.org/admin-guide/cgroup-v2.html
+4. **LXC's start path does perform cgroup operations.** Current upstream LXC source shows creation/delegation/entry of its monitor cgroup, setting up limits, and activating cgroup-v2 device rules during container startup. This source-level observation does not prove every operation is required in the exact Deck configuration, nor that the current candidate package matches the inspected upstream branch. Source: https://github.com/lxc/lxc/blob/main/src/lxc/start.c
+5. **The controller set is promising but not a compatibility proof.** LXC-SCOPE-03 observed `cpu memory pids dmem` in the scope's available child controllers. Whether the intended minimal LXC configuration needs any particular controller depends on the actual config and startup path. No controller was enabled in the test, and no controller file was written.
+
+### Evidence matrix
+
+| Requirement / observation | Evidence | Interpretation |
+|---|---|---|
+| LXC command runs inside a dedicated transient delegated scope | LXC-SCOPE-03 | **CONFIRMED** |
+| Correct scope cgroup path exists and is distinct from cgroup root | LXC-SCOPE-03 | **CONFIRMED** |
+| Scope directory, `cgroup.procs`, and `cgroup.subtree_control` pass shell `[ -w ]` predicates | LXC-SCOPE-03 | **PROMISING, NOT A WRITE TEST** |
+| Available child controllers are `cpu memory pids dmem` | LXC-SCOPE-03 | **CONFIRMED AS OBSERVED** |
+| `cgroup.subtree_control` starts empty | LXC-SCOPE-03; kernel documentation | **NORMAL INITIAL STATE; NOT ITSELF A BLOCKER** |
+| Actual child cgroup creation and process movement succeed | Not tested | **UNTESTED** |
+| Controller activation/device-controller behavior works for LXC | Not tested | **UNTESTED** |
+| Candidate Deck package matches the current upstream source reviewed | Package version is reported as LXC 7.0.0-1; source review uses upstream main | **NOT FULLY RECONCILED** |
+| Exact Deck-local package file manifest | Repository file-list databases unavailable | **BLOCKED** |
+
+### Decision after this investigation
+
+- The direct-host delegated-scope approach is **technically plausible**, and is a distinct path from the blocked nested-rootless-Podman cgroup mount.
+- The evidence is **not sufficient to claim unprivileged LXC compatibility**. The positive `[ -w ]` checks do not establish that a child cgroup can be created, that a process can be moved, or that LXC's cgroup setup will succeed.
+- A bounded, real cgroup operation inside a fresh transient delegated scope would close an important prerequisite before installing LXC, but that would mutate a temporary cgroup hierarchy. It is **outside this read-only investigation** and requires separate explicit approval and a predeclared cleanup/verification plan.
+- The exact package manifest remains blocked. Do not retry pacman, refresh file-list databases, install LXC, launch LXC, or change any persistent configuration on the basis of this source review.
+- The rootless Podman cgroup limitation remains unchanged. A successful direct-host test would not establish that LXC can run nested inside the existing Podman boundary.
+
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -2778,7 +2820,7 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Decide whether direct host-level unprivileged LXC can be tested safely; if needed, use a temporary delegated scope and bounded reversible package plan | **REOPENED FOR PHASE 1.5 REVIEW; no installation or LXC container yet** |
+| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether direct host-level unprivileged LXC can safely create/manage a delegated cgroup subtree; reconcile package manifest before any installation proposal | **SOURCE RECONCILIATION COMPLETE; runtime operation and exact package manifest remain unproven/blocked** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -3035,6 +3077,8 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
+**Latest source-level reconciliation:** §5.9 reviewed upstream LXC, systemd and Linux kernel cgroup-v2 documentation. Upstream LXC requires an empty delegated cgroup subtree for unprivileged operation on cgroup v2 and documents a transient `systemd-run --user --scope -p Delegate=yes` wrapper. Systemd delegation makes the subtree available but does not automatically enable its controllers; an empty `cgroup.subtree_control` is normal initial state. Upstream LXC startup source does perform cgroup operations, including monitor-cgroup setup, limits and cgroup-v2 device-rule setup. Therefore LXC-SCOPE-03 is promising but not proof of compatibility: no child cgroup creation, process movement, or controller operation was tested. A bounded real operation inside a transient scope is a potential next gate, but is a mutation and is NOT authorized by the read-only investigation approval. Package manifest remains blocked; no pacman retry or installation is authorized.
+
 **Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 created transient scope run-p504174-i508745.scope and confirmed process membership, but systemd-run expanded ${CGROUP_REL} prematurely and all directory/access checks targeted /sys/fs/cgroup; those permission results were invalid for the scope. LXC-SCOPE-03 corrected the expression and confirmed transient scope run-p505279-i516648.scope, process membership, a deck:deck mode-755 scope directory, available child controllers cpu/memory/pids/dmem, an empty cgroup.subtree_control, and positive shell write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control. These are access predicates only: no actual cgroup write, child-cgroup creation, process movement or controller activation was tested. Direct systemd delegation is promising and materially demonstrated at the permission-predicate level, but LXC compatibility remains unproven. Next: reconcile the blocked package manifest and LXC cgroup-v2 requirements; propose any further test separately with its side effects and approval gate. No LXC installation/launch, Waydroid installation, persistent service, host cgroup change, or package-manager retry is authorized. The package-lock investigation remains parked.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
@@ -3064,6 +3108,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.9 | 2026-11-07 | Recorded LXC-SCOPE-01 as blocked before execution: systemd 261 rejected --wait with --scope; documented that no scope or diagnostic payload ran and set the next bounded step to a corrected transient delegated-scope invocation without --wait or --collect. |
 | 3.0 | 2026-11-07 | Recorded LXC-SCOPE-02: transient delegated user scope creation and process membership confirmed; identified systemd-run's premature expansion of the braced cgroup-path variable, which caused all directory/access checks to target /sys/fs/cgroup rather than the scope; qualified the WRITE NO results as non-evidence about delegated permissions; advanced the handoff to the narrowly corrected read-only LXC-SCOPE-03. |
 | 3.1 | 2026-11-07 | Recorded LXC-SCOPE-03: corrected cgroup path resolved to the actual transient delegated scope; confirmed deck:deck ownership, mode 755, available cpu/memory/pids/dmem child controllers, no enabled child controllers, and positive write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control; distinguished access predicates from actual writes; advanced the handoff to package-manifest and LXC cgroup-v2 requirement reconciliation without authorizing writes, controller activation or installation. |
+| 3.2 | 2026-11-07 | Completed read-only source reconciliation of upstream LXC, systemd and Linux cgroup-v2 requirements; confirmed that an empty subtree_control is normal initial state but actual delegated-subtree operations remain untested; distinguished direct-host scope feasibility from the blocked nested-Podman cgroup boundary; retained the package-manifest blocker and explicitly gated any actual cgroup mutation behind separate approval. |
 
 ---
 
