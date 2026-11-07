@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Phase 1.5 architecture feasibility review — split-privilege design reviewed and held; no implementation recommended under current constraints — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.5  
+> **Document version:** 3.6  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -78,7 +78,7 @@ The stock Waydroid path is materially different: the system D-Bus activation ser
 
 The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
 
-**Decision:** Do not install or launch LXC/Waydroid yet. The package file manifest remains blocked and the original pacman DB lock failure unexplained. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. A future implementation would require an explicit design for the privilege split between Waydroid's host preparation and the actual unprivileged LXC process, plus a safe resolution of the package-manifest prerequisite.
+**Decision:** Do not install or launch LXC/Waydroid yet. The package file manifest remains blocked and the original pacman DB lock failure unexplained. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. A safe resolution of the package-manifest prerequisite also remains necessary for any future LXC runtime work.
 
 ### 1.2 Positive evidence
 
@@ -3163,6 +3163,75 @@ The Deck's reported candidate is 1:7.0.0-1. The inspected upstream source is the
 
 No further generic cgroup primitive test is justified. The source review is complete. The next decision is whether to investigate a split-privilege Waydroid architecture (root-only preparation plus a deck-user LXC lifecycle) at design level. Package-manifest recovery remains a separate blocked prerequisite. Controller activation, LXC installation/launch and any Waydroid service/launcher modification require separate approval.
 
+
+#### SPLIT-ARCH-01 — design-only review of split-privilege Waydroid architecture
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / DESIGN REVIEW — no host command, package operation, cgroup write, installation, service change or runtime launch performed**
+- **Evidence base:** LXC-INT-01; LXC-SCOPE-03; LXC-CGROUP-01/02; upstream Waydroid service, D-Bus activation, container-manager and LXC launch-path source reviewed there.
+- **Question:** Can Waydroid's privileged host preparation be separated from a deck-user-owned LXC lifecycle without broad host privileges, persistent host changes, or host networking changes?
+- **Why new:** LXC-INT-01 established that stock Waydroid launches lxc-start from a root-owned D-Bus/systemd service, bypassing LXC 7.0.0's non-root user-scope path. This review evaluates whether a deliberate architecture split could remove that mismatch.
+- **Side-effect boundary:** Design analysis only. No Steam Deck command was run and no external source state or host state was changed.
+- **Repeat policy:** Revisit only if the user's security constraints change, Waydroid materially changes its service/manager architecture, or a documented upstream unprivileged launch mode becomes available.
+
+**A. Responsibility map**
+
+| Responsibility | Stock Waydroid behavior / likely privilege | Can it safely be delegated to the Deck user? | Design assessment |
+|---|---|---|---|
+| Control plane and lifecycle | Root system D-Bus service owns start/stop/freeze/unfreeze/status and spawns lxc-start | The user can own a replacement manual launcher and LXC lifecycle, but stock manager cannot simply be wrapped; it must not remain the owner of the root LXC process | **Requires manager/launcher adaptation** |
+| LXC cgroup delegation | LXC 7.0.0's built-in systemd user-scope path is selected only for non-root execution | Yes in principle: direct LXC execution by deck can request a transient user scope with Delegate=yes | **Plausible, not runtime-proven**; controller activation and full LXC lifecycle remain untested |
+| Rootfs/data preparation | Waydroid manager prepares/mounts rootfs and data paths before LXC start | Some directory preparation can be done once with carefully assigned ownership; mount/image setup may require privileged operations and namespace coordination | **Unresolved**; ownership, idmapping, mount propagation and recovery must be designed |
+| Binder access | Manager probes Binder and performs host-side node/permission preparation | Only if the required Binder nodes already exist and can be exposed with narrow, temporary access; do not assume userns ownership mapping or BPF device policy works | **Unresolved**; no broad /dev mount or persistent permission changes |
+| GPU access | Container needs selected DRM render device(s) and matching group access | Potentially via a narrowly mapped render node and group ID, if host permissions already permit it | **Conditional**; no broad /dev/dri access and no GPU workload evidence |
+| Kernel modules / host device setup | Manager can perform optional driver/module and host-device preparation | Not safely delegated to arbitrary user code; any privileged action would need a fixed, audited broker interface | **High-risk helper boundary**; not justified for this project |
+| Android networking | Default Waydroid network helper creates a bridge, configures forwarding, starts dnsmasq and modifies firewall rules | Not under the current no-host-network-change constraint. User-mode networking would require a supported Waydroid/LXC adaptation and is not established by the reviewed source | **Current hard blocker** |
+| Session integration | Manager generates session-specific config and coordinates mounts/runtime integration | A manual user launcher could pass only selected session values and sockets | **Possible in principle**, but do not expose the whole host runtime directory or broad D-Bus access |
+| Stop/freeze/attach/status | Stock manager invokes LXC lifecycle commands as root | A replacement deck-owned controller could invoke these as the same unprivileged owner as lxc-start | **Requires one consistent owner**; root and user lifecycle managers must not race |
+| Failure cleanup | Root manager currently owns host prep and LXC lifecycle | Split ownership creates orphan-mount, stale ACL, stale network, and partially-started-container recovery problems | **Unresolved operational risk**; cleanup must be idempotent and bounded |
+
+**B. Candidate architecture**
+
+The only concept worth evaluating further is a custom, manual-only split with three sharply separated parts:
+
+1. **Deck-user controller (long-lived only while requested):** runs as deck; owns the Waydroid control state and all LXC lifecycle commands; starts LXC directly so LXC can use its non-root systemd user-scope path. No root D-Bus service may spawn or supervise the LXC process.
+2. **Optional privileged preparation broker (short-lived, fixed API):** if absolutely unavoidable, performs only a small, statically enumerated set of preparation/cleanup operations. It must not accept shell strings, arbitrary executable paths, arbitrary mount sources/targets, arbitrary device paths, arbitrary network commands, or user-supplied LXC configuration. No wildcard sudoers rule, setuid wrapper, general root shell, or root-owned long-running Waydroid manager.
+3. **Unprivileged LXC payload:** runs as deck in a delegated transient user scope. Its rootfs/data, device mappings, cgroup tree, process ownership and teardown must be demonstrably compatible with the user's namespace and filesystem boundaries.
+
+This is an architectural sketch, **not a recommendation to implement a privileged broker**. A broker would itself become security-critical code and would need a separate threat model, fixed request schema, caller authentication, path/device allowlists, concurrency control, crash recovery, audit logging without secrets, and explicit user approval.
+
+**C. Why the split is not presently acceptable**
+
+- The split removes only the root-vs-user LXC launch mismatch. It does not solve Waydroid's host preparation requirements.
+- Rootfs/data mount and ownership semantics are not established for a deck-owned LXC process. A root-prepared mount visible in the correct mount namespace is not automatic; neither is safe writable access to Android data.
+- Binder and GPU device handoff remain untested. A permission broker could widen access or leave stale permissions after a crash.
+- Stock Waydroid's default network helper conflicts directly with the no-host-network-change rule. No compatible user-mode network backend has been demonstrated.
+- Replacing the manager means reimplementing or adapting lifecycle/config/session behavior. A thin lxc-start wrapper is not equivalent to Waydroid's manager.
+- LXC's source path attempts to enable every available controller in the delegated subtree. The Deck's available list was observed as cpu, memory, pids and dmem, but no controller activation was attempted. Writable access predicates and successful movement of one process do not prove this activation sequence or full LXC startup will work.
+- The package file manifest remains unavailable; the exact SteamOS LXC package build/patch set is not verified. This is an independent blocker, not solved by architecture design.
+
+**D. Required conditions before this design could be reconsidered**
+
+| Gate | Minimum evidence / constraint | Current state |
+|---|---|---|
+| D1 — supported launch ownership | Waydroid manager/launcher can run all LXC lifecycle commands as deck; no root service spawns lxc-start | **NOT MET** |
+| D2 — cgroup lifecycle | Approved direct-host LXC test proves controller activation, monitor/payload placement and clean teardown in a transient user scope | **UNTESTED / NOT AUTHORIZED** |
+| D3 — rootfs/data | Exact mount, ownership, idmap, persistence and crash-recovery design works without broad host mounts | **UNRESOLVED** |
+| D4 — Binder/GPU | Narrow device access works without privileged container mode, broad /dev access or persistent host permission changes | **UNTESTED** |
+| D5 — network | Android networking works without host forwarding/firewall/bridge changes or impact to Pi-hole | **NOT MET** |
+| D6 — privileged broker (if needed) | Fixed allowlisted operations, no arbitrary command interface, auditable cleanup and explicit approval | **NOT DESIGNED / NOT AUTHORIZED** |
+| D7 — package provenance | Exact SteamOS LXC package manifest/build is inspected and install/rollback implications are understood | **BLOCKED** |
+
+**E. Alternatives and verdict**
+
+| Architecture | Assessment |
+|---|---|
+| Stock Waydroid root service + LXC 7.0.0 | **Rejected for this target:** actual LXC process runs as root and bypasses the non-root user-scope path; also retains stock privileged network/host preparation behavior |
+| Rootless Podman + nested LXC | **Blocked:** the observed nested cgroup2 mount is read-only; no approved basis to change it |
+| Custom split-privilege manager + deck-owned LXC | **Technically conceivable, not presently acceptable:** requires custom manager work, unresolved mounts/devices, and a network solution that respects the user's hard constraints |
+| Stop container-only Waydroid effort | **Valid and currently recommended default** unless the user explicitly relaxes a constraint or a supported upstream design resolves the blockers |
+
+**Conclusion:** The split-privilege idea is not a small integration fix. It would be a custom Waydroid manager/launcher architecture with a potentially security-critical privileged preparation broker. Under the current requirements—container-only, manual lifecycle, no broad privilege, no broad host mounts, no persistent host changes, no host network/firewall changes, and protection of Pi-hole and other projects—it does **not** currently meet the acceptance criteria. Recommend **HOLD / do not implement**. The user may either close the Waydroid feasibility effort as blocked by the current security/network constraints, or explicitly reconsider one named constraint before any new design work. This review does not authorize installation, controller activation, helper creation, service changes, or host modifications.
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -3316,7 +3385,7 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether LXC 7.0.0 controller activation and monitor/payload lifecycle can run in an approved non-root scope, and whether Waydroid can launch that LXC process without its stock root D-Bus service | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED; SOURCE REVIEW IDENTIFIES ROOT-SERVICE / UNPRIVILEGED-SCOPE MISMATCH; controller activation, LXC runtime, split-privilege design, nested-Podman delegation and package manifest remain unproven/blocked** |
+| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether LXC 7.0.0 controller activation and monitor/payload lifecycle can run in an approved non-root scope, and whether Waydroid can launch that LXC process without its stock root D-Bus service | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED; SPLIT-ARCH-01 DESIGN REVIEW COMPLETED — custom split is not recommended under current constraints; controller activation, LXC runtime, nested-Podman delegation and package manifest remain unproven/blocked** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -3577,7 +3646,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** do not install or launch LXC/Waydroid yet. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and a safe Waydroid split-privilege design remain untested/unresolved. The nested rootless Podman cgroup2 mount remains read-only. Package manifest inspection remains blocked and the original pacman DB lock failure unexplained. Do not retry pacman/file-list refresh, activate controllers, run LXC, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup configuration. The next step is a design-level review of whether Waydroid's privileged host preparation can be separated from a deck-user-owned LXC process without broadening privileges or changing host networking; this is not authorization to implement it.
 
-**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Latest architecture review:** SPLIT-ARCH-01 (§5.12) completed a design-only assessment. Stock root Waydroid service remains unsuitable for LXC's non-root scope path. A custom manual-only split with deck-owned LXC and a narrowly allowlisted preparation broker is technically conceivable, but it does not solve rootfs/data mount ownership, Binder/GPU handoff, crash cleanup, or the default Waydroid network helper's host bridge/forwarding/firewall changes. The current no-host-network-change and least-privilege constraints are not met. Recommendation: **HOLD / do not implement**; closing the effort as blocked is a valid outcome. No command, package operation, cgroup write, installation, service change or host modification was performed for this review. No archive snapshot was due: this was a design review, not a runtime test, and the five-test snapshot threshold was not reached.\n\n**Current decision:** do not install or launch LXC/Waydroid. Direct-host cgroup primitives pass, but LXC controller activation, full monitor/payload lifecycle, device BPF behavior and package manifest remain untested/blocked. The nested rootless Podman cgroup2 mount remains read-only. Do not retry pacman/file-list refresh, activate controllers, run LXC, create a privileged helper, alter the Waydroid D-Bus service/systemd unit/launcher, or change Podman/host cgroup/network configuration. The design-only split-privilege review is complete; further work requires a new user decision about whether to close the project or explicitly relax a named constraint.\n\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -3610,6 +3679,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.3 | 2026-11-07 | Recorded LXC-CGROUP-01: a transient delegated systemd scope successfully created, inspected and removed one empty child cgroup; captured rw cgroup2 mount, available controllers, empty child process list and populated 0 state; noted the reported literal-looking dollar suffix and absent separately captured systemd-run exit status; confirmed no controller activation or process movement; advanced the next possible gate to a separately approved process-placement test while retaining the package-manifest blocker. |
 | 3.4 | 2026-11-07 | Recorded LXC-CGROUP-02: confirmed actual process placement into a delegated child cgroup, independently verified membership through /proc/PID/cgroup and child cgroup.procs, terminated/reaped the test process, and removed the empty child; confirmed controller availability unchanged and subtree_control still empty; updated Gate 4 and the continuation handoff while retaining the nested-Podman and package-manifest blockers. |
 | 3.5 | 2026-11-07 | Completed LXC-INT-01 source reconciliation against upstream LXC v7.0.0 and pinned Waydroid main commit; documented LXC's non-root systemd-scope/controller activation and monitor/payload cgroup lifecycle; established that stock Waydroid's root D-Bus/systemd service bypasses LXC's unprivileged scope path and that wrapping the user CLI does not wrap the actual root lxc-start process; kept controller activation, LXC runtime, split-privilege design and package manifest blocked; updated executive verdict, Gate 4, source index and continuation handoff. |
+| 3.6 | 2026-11-07 | Completed SPLIT-ARCH-01 design-only review of a manual split-privilege Waydroid architecture; mapped manager, LXC, rootfs/data, Binder/GPU, networking, session and cleanup responsibilities; concluded a custom deck-owned LXC launcher plus optional fixed-API privileged broker is technically conceivable but does not meet current no-host-network-change/least-privilege acceptance criteria and is not recommended for implementation; updated executive verdict, Gate 4 and continuation handoff. No runtime test or host change was performed; no archive snapshot was due. |\n
 
 ---
 
