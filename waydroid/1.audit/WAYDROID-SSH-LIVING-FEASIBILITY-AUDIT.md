@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; package file-manifest inspection remains blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); signature verification and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.9  
+> **Document version:** 4.0  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -78,7 +78,7 @@ The stock Waydroid path is materially different: the system D-Bus activation ser
 
 The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
 
-**Decision:** Do not install or launch LXC/Waydroid yet. The package file manifest remains blocked and the original pacman DB lock failure unexplained. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. A safe resolution of the package-manifest prerequisite also remains necessary for any future LXC runtime work.
+**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection; signature trust, package-manager safety, service/AppArmor integration, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
 
 ### 1.2 Positive evidence
 
@@ -3424,6 +3424,312 @@ Security context unavailable
 LXC-only feasibility is established only if the exact SteamOS package can be installed and removed safely, a non-root LXC process creates/uses its delegated transient user scope, a minimal disposable payload starts and stops, cgroup/monitor/payload teardown is clean, and no protected service or persistent host configuration is changed. This does not establish Waydroid compatibility, Binder/GPU support, Android networking, or Android boot.
 
 
+
+#### LXC-EXP-01B — configured SteamOS repository endpoint
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — exact configured repository endpoint confirmed**
+- **Environment:** SteamOS host (deck@Laco).
+- **Question:** Which exact repository endpoint and architecture supply the Deck's extra-3.9 package candidate?
+- **Side-effect boundary:** Read-only pacman-conf queries; no network access, package database operation, or configuration change.
+- **Exact command executed**
+~~~bash
+echo "===== LXC-EXP-01B: REPOSITORY ENDPOINT ====="
+echo
+echo "===== 1. REPOSITORY SERVER ====="
+pacman-conf --repo extra-3.9 Server
+echo
+echo "===== 2. PACMAN ARCHITECTURE ====="
+pacman-conf Architecture
+echo
+echo "===== 3. REPOSITORY LIST ====="
+pacman-conf --repo-list
+echo
+echo "===== END LXC-EXP-01B ====="
+~~~
+- **Actual output**
+~~~text
+Server:
+https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64
+Architecture: x86_64
+Repositories:
+jupiter-3.9
+holo-3.9
+core-3.9
+extra-3.9
+multilib-3.9
+~~~
+- **Interpretation:** The configured extra-3.9 endpoint and x86_64 architecture are confirmed. This ties subsequent archive inspection to the Deck's configured repository rather than an assumed upstream Arch repository.
+- **Limitations:** Endpoint identity does not itself verify archive signature trust, package integrity, or SteamOS-specific review.
+- **Repeat policy:** Repeat only after repository configuration or SteamOS branch changes.
+
+#### LXC-EXP-01C — filtered repository directory evidence
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — exact LXC archive and detached signature located**
+- **Environment:** SteamOS host (deck@Laco); HTTP directory listing fetched and filtered in the shell.
+- **Question:** Does the configured repository directory expose the exact candidate archive, detached signature, and repository file-list metadata?
+- **Side-effect boundary:** HTTP GET and stdout filtering only; no package database access, installation, or persistent file creation. An earlier unfiltered listing generated excessive terminal output; that was a presentation failure, not package activity. The subsequent bounded query used grep and head.
+- **Exact bounded command executed**
+~~~bash
+URL="https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64/"
+echo "===== LXC-EXP-01C: FILTERED REPOSITORY CHECK ====="
+curl -fsSL "$URL" | grep -iE 'lxc|\.files' | head -n 40
+echo "===== END LXC-EXP-01C ====="
+~~~
+- **Relevant actual output**
+~~~text
+extra-3.9.files (48.0 MiB)
+extra-3.9.files.tar.gz (48.0 MiB)
+extra-main.files
+extra-staging.files
+extra.files
+extra.files.tar.gz.old
+lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst (832.7 KiB)
+lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst.sig (566 B)
+lxcfs-7.0.0-1-x86_64.pkg.tar.zst
+nomad-driver-lxc-0.3.0-4-x86_64.pkg.tar.zst
+python-lxc-5.0.0-6-any.pkg.tar.zst
+~~~
+- **Interpretation:** The exact lxc-1:7.0.0-1 archive, matching .sig, and extra-3.9 file-list metadata are present at the configured endpoint. The archive row matches the earlier Deck-local candidate.
+- **Limitations:** Directory presence is not signature verification. The 48 MiB repository metadata was not downloaded or printed. The listing alone does not disclose package contents.
+- **Repeat policy:** Do not repeat unless the configured repository or candidate version changes.
+
+#### LXC-EXP-01D — exact package archive metadata and inventory
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — exact archive inspected; package-level install script absent**
+- **Environment correction:** The command was labelled off-host but the submitted prompt identifies deck@Laco; record this as a SteamOS-host execution, not Linux Mint. The command downloaded the archive to a mktemp directory and registered cleanup with trap. No installation, extraction to a persistent path, package-manager operation, or package script execution occurred.
+- **Question:** What does the exact SteamOS-repository archive declare, and does it contain a package .INSTALL script?
+- **Exact command executed:** The user-provided LXC-EXP-01D command used curl -fsSL to download lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst into a temporary directory, then ran bsdtar -xOf on .PKGINFO, tested for .INSTALL, counted regular payload entries, and summarized top-level paths.
+- **Observed archive metadata**
+~~~text
+pkgname = lxc
+pkgbase = lxc
+pkgver = 1:7.0.0-1
+pkgdesc = Linux Containers
+url = https://linuxcontainers.org
+builddate = 1777569638
+packager = Sergej Pupykin <spupykin@archlinux.org>
+size = 2895499
+arch = x86_64
+license = LGPL
+backup = etc/lxc/default.conf
+backup = etc/default/lxc
+depend = bash
+depend = perl
+depend = libseccomp
+depend = libcap
+depend = python
+depend = rsync
+depend = wget
+optdepend = dnsmasq: lxc-net.service
+optdepend = lua
+optdepend = lua-filesystem: lxc-top
+optdepend = lua-alt-getopt: lxc-top
+makedepend = docbook2x
+makedepend = systemd
+makedepend = meson
+makedepend = python-setuptools
+makedepend = apparmor
+~~~
+- **Additional observed results**
+~~~text
+Downloaded size: 836K
+INSTALL SCRIPT PRESENCE: NO INSTALL SCRIPT
+FILE COUNT: 202
+TOP-LEVEL INSTALL PATHS:
+168 /usr/share
+27 /usr/bin
+26 /usr/lib
+13 /etc/apparmor.d
+5 /usr/include
+2 /var/lib
+2 /var/cache
+2 /etc/lxc
+2 /etc/default
+~~~
+- **Interpretation:** The exact repository archive is a full LXC package with seven declared runtime dependencies, optional dnsmasq for lxc-net.service, two configuration files marked for backup handling, and 202 regular payload entries. .INSTALL is absent, so there is no package-specific .INSTALL hook in this archive.
+- **Important qualification:** Absence of .INSTALL does not establish installation is side-effect-free. Package file deployment, backup-file handling, package-manager hooks, systemd integration, and security-policy integration remain relevant. The .PKGINFO packager field identifies an Arch Linux packager; it does not prove SteamOS-specific review or endorsement.
+- **Repeat policy:** Do not repeat unless the repository candidate/archive changes. Do not infer signature validity from the .sig filename.
+
+#### LXC-EXP-01E — targeted archive payload manifest
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — host integration paths identified**
+- **Environment correction:** The submitted prompt identifies deck@Laco; this was a SteamOS-host archive inspection, not Linux Mint. The archive was read from a temporary download; no files were extracted into host system paths and no services were invoked.
+- **Question:** Which exact AppArmor, systemd, configuration, state-directory, and executable paths are present in the package?
+- **Exact command executed:** The user-provided LXC-EXP-01E command downloaded the exact archive into mktemp, then used bsdtar -tf and bounded grep/head filters for the five requested path groups. No install or package-manager command was run.
+- **Observed manifest**
+~~~text
+APPARMOR:
+etc/apparmor.d/abstractions/lxc/container-base
+etc/apparmor.d/abstractions/lxc/start-container
+etc/apparmor.d/lxc-containers
+etc/apparmor.d/lxc/lxc-default
+etc/apparmor.d/lxc/lxc-default-cgns
+etc/apparmor.d/lxc/lxc-default-with-mounting
+etc/apparmor.d/lxc/lxc-default-with-nesting
+etc/apparmor.d/usr.bin.lxc-copy
+etc/apparmor.d/usr.bin.lxc-start
+
+SYSTEMD:
+usr/lib/systemd/system/lxc-auto.service
+usr/lib/systemd/system/lxc-monitord.service
+usr/lib/systemd/system/lxc-net.service
+usr/lib/systemd/system/lxc.service
+usr/lib/systemd/system/lxc@.service
+
+CONFIGURATION:
+etc/default/lxc
+etc/lxc/default.conf
+
+STATE DIRECTORIES:
+var/cache/lxc/
+var/lib/lxc/
+
+EXECUTABLES:
+usr/bin/init.lxc
+usr/bin/lxc-attach
+usr/bin/lxc-autostart
+usr/bin/lxc-cgroup
+usr/bin/lxc-checkconfig
+usr/bin/lxc-checkpoint
+usr/bin/lxc-config
+usr/bin/lxc-console
+usr/bin/lxc-copy
+usr/bin/lxc-create
+usr/bin/lxc-destroy
+usr/bin/lxc-device
+usr/bin/lxc-execute
+usr/bin/lxc-freeze
+usr/bin/lxc-info
+usr/bin/lxc-ls
+usr/bin/lxc-monitor
+usr/bin/lxc-snapshot
+usr/bin/lxc-start
+usr/bin/lxc-stop
+usr/bin/lxc-top
+usr/bin/lxc-unfreeze
+usr/bin/lxc-unshare
+usr/bin/lxc-update-config
+usr/bin/lxc-usernsexec
+usr/bin/lxc-wait
+~~~
+- **Interpretation:** This is a full host-integration payload, not only CLI binaries. It contains AppArmor policy files, five systemd units, default configuration, LXC state/cache directories, and lifecycle executables. The AppArmor and systemd payloads require content-level review before any installation proposal.
+- **Repeat policy:** Do not repeat unless the archive changes. Do not extract into /etc, /usr, or /var.
+
+#### LXC-EXP-01F — systemd units and default configuration review
+
+- **Date:** 2026-11-07
+- **Status:** **COMPLETED / READ-ONLY — default service integration conflicts with manual-only policy unless carefully excluded**
+- **Environment correction:** The submitted prompt identifies deck@Laco; this ran on the SteamOS host. The archive was downloaded to a temporary directory, and bsdtar -xOf streamed individual members to stdout. No unit was enabled, started, reloaded, or copied to the host.
+- **Question:** Do the package's service units and defaults introduce automatic startup, host networking, AppArmor loading, or persistent state behavior?
+- **Exact command executed:** The user-provided LXC-EXP-01F command downloaded the exact archive to mktemp; its show_member function printed at most 80 lines per member for five systemd units and two configuration files. The complete relevant output is recorded below.
+- **Observed service/configuration contents**
+~~~ini
+# usr/lib/systemd/system/lxc-auto.service
+[Unit]
+Description=Autostart LXC Container
+After=network.target
+[Service]
+Type=forking
+ExecStart=/usr/bin/lxc-autostart
+ExecStop=/usr/bin/lxc-autostart -s
+Delegate=true
+TasksMax=32768
+RemainAfterExit=true
+[Install]
+WantedBy=multi-user.target
+
+# usr/lib/systemd/system/lxc-monitord.service
+[Unit]
+Description=LXC Container Monitoring Daemon
+After=syslog.service network.target
+Documentation=man:lxc
+[Service]
+Type=simple
+ExecStart=/usr/lib/lxc/lxc-monitord --daemon
+[Install]
+WantedBy=multi-user.target
+
+# usr/lib/systemd/system/lxc-net.service
+[Unit]
+Description=LXC network bridge setup
+After=network-online.target
+Before=lxc.service
+Documentation=man:lxc
+ConditionVirtualization=!lxc
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/lxc/lxc-net start
+ExecStop=/usr/lib/lxc/lxc-net stop
+[Install]
+WantedBy=multi-user.target
+
+# usr/lib/systemd/system/lxc.service
+[Unit]
+Description=LXC Container Initialization and Autoboot Code
+After=network.target lxc-net.service remote-fs.target
+Wants=lxc-net.service
+Documentation=man:lxc-autostart man:lxc
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/lib/lxc/lxc-apparmor-load
+ExecStart=/usr/lib/lxc/lxc-containers start
+ExecStop=/usr/lib/lxc/lxc-containers stop
+ExecReload=/usr/lib/lxc/lxc-apparmor-load
+StateDirectory=lxc
+Delegate=yes
+[Install]
+WantedBy=multi-user.target
+
+# usr/lib/systemd/system/lxc@.service
+[Unit]
+Description=%i LXC
+After=network.target
+[Service]
+Type=forking
+ExecStart=/usr/bin/lxc-start -d -n %i -p /run/lxc-%i.pid
+PIDFile=/run/lxc-%i.pid
+ExecStop=/usr/bin/lxc-stop -n %i
+Delegate=true
+TasksMax=32768
+[Install]
+WantedBy=multi-user.target
+
+# etc/default/lxc (relevant defaults)
+LXC_AUTO="true"
+BOOTGROUPS="onboot,"
+SHUTDOWNDELAY=5
+OPTIONS=
+STOPOPTS="-a -A -s"
+USE_LXC_BRIDGE="false"
+[ ! -f /etc/default/lxc-net ] || . /etc/default/lxc-net
+
+# etc/lxc/default.conf
+lxc.net.0.type = veth
+lxc.net.0.link = lxcbr0
+lxc.net.0.flags = up
+lxc.net.0.hwaddr = 10:66:6a:xx:xx:xx
+~~~
+- **Interpretation and implications:**
+  - lxc-auto.service runs lxc-autostart; /etc/default/lxc sets LXC_AUTO="true". This is a package default, not evidence that the unit is enabled on SteamOS. It conflicts with the project's manual-only policy unless autostart is explicitly prevented in any separately approved design.
+  - lxc.service wants lxc-net.service, runs lxc-apparmor-load before its container initialization script, and has start/stop integration. Starting the general LXC service may therefore pull in the LXC network helper and AppArmor profile loading.
+  - lxc-net.service executes the LXC network bridge helper on start and stop; its actual effects on SteamOS have not been run or tested. Treat bridge/firewall/forwarding mutation as prohibited.
+  - lxc-monitord.service starts a monitoring daemon. lxc@.service supplies a per-container systemd start/stop path. None is required merely to inspect the archive; none may be enabled or started under the current approval.
+  - etc/lxc/default.conf defaults new containers to a veth attached to lxcbr0. This does not prove that the bridge exists or is active.
+  - StateDirectory=lxc requests systemd-managed state under its state-directory mechanism when the service runs; no such state was created by this archive inspection.
+- **Disposition:** The archive's default service/configuration integration is not acceptable as an unreviewed default for this manual-only experiment. Any future package test must explicitly exclude service activation, autostart, LXC networking, and unreviewed AppArmor loading. No override or configuration change is authorized now.
+- **Repeat policy:** Do not repeat unless archive content changes. Never start/enable/reload these units as an inspection shortcut.
+
+**LXC-EXP-01B–01F combined result**
+
+The exact SteamOS-configured repository endpoint, matching LXC archive and detached signature filename, package metadata, archive payload manifest, and systemd/default configuration contents have now been observed. The earlier statement that the package manifest was unavailable is superseded: the archive itself provided a direct payload listing of 202 regular entries. The signature has **not** been cryptographically verified. The pacman DBPath/write-access discrepancy and failed metadata refresh remain unresolved; therefore package-manager safety remains **BLOCKED**. No LXC package has been installed, no LXC executable has been run, no LXC service has been activated, and no Waydroid state has been changed.
+
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -3824,7 +4130,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed test:** LXC-EXP-01A (§5.13) — read-only sudo privilege-context diagnostic. It confirmed UID/GID 0, broad permitted/effective/bounding capabilities, NoNewPrivs=0 and identity UID/GID maps. The security-context readout was unavailable. The diagnostic did not explain the negative sudo test -w "$DBPATH" predicate or the original pacman database-lock failure. No DBPath write was attempted and no package state changed.
+**Latest completed test:** LXC-EXP-01F (§5.9) — read-only inspection of all five packaged systemd units and two default configuration files. It exposed boot-autostart defaults, a general service that wants lxc-net.service and loads AppArmor profiles, an LXC network helper, a monitor daemon, and per-container systemd integration. No unit was enabled, started, reloaded, or copied to the host.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -3833,13 +4139,16 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - LXC-PKG-04 initially checked the wrong assumed lock path (/var/lib/pacman/db.lck); that observation was superseded.
 - LXC-PKG-05 identified the configured DBPath as /usr/lib/holo/pacmandb. LXC-PKG-06 found it root:root mode 755 on the root Btrfs filesystem reported rw, with no db.lck at inspection time. LXC-PKG-07 inspected its contents, basic ACL and Btrfs no-COW attribute and recorded the unexpected sudo test -w result of NO.
 - LXC-EXP-01A established that sudo itself was running as root with a broad capability set and identity UID/GID maps, but did not explain the negative write-access predicate or the original pacman lock failure. The security-context readout was unavailable.
-- **Disposition:** the lock/write-access cause remains INCONCLUSIVE; the exact SteamOS file manifest remains unavailable; LXC-EXP-01 is therefore **BLOCKED**. The generic lock investigation is closed on current evidence. No further generic diagnostics or package retries are justified.
+- LXC-EXP-01B confirmed the configured extra-3.9 endpoint and x86_64 architecture. LXC-EXP-01C located the exact lxc-1:7.0.0-1 archive, matching .sig filename, and repository file-list metadata.
+- LXC-EXP-01D inspected the exact archive: version 1:7.0.0-1, Arch packager metadata, seven declared runtime dependencies, optional dnsmasq for lxc-net.service, no .INSTALL member, and 202 regular payload entries.
+- LXC-EXP-01E identified the exact AppArmor, systemd, /etc, /var, and executable paths. LXC-EXP-01F inspected the five service units and two configuration files, revealing autostart defaults, LXC network helper integration, AppArmor loading, monitoring and per-container systemd units.
+- **Disposition:** the earlier missing-manifest finding is superseded by direct archive inspection. The pacman DBPath/write-access cause remains INCONCLUSIVE; signature validity remains unverified; service/AppArmor integration and rollback remain under review. Package-manager safety and the installation gate therefore remain **BLOCKED**. The generic lock investigation is closed on current evidence. No further generic diagnostics or package retries are justified.
 
-**Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. No LXC binary has been installed or run.
+**Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. The exact SteamOS repository archive has been inspected directly: 202 regular payload entries, no .INSTALL, AppArmor profiles, five systemd units, configuration defaults and LXC state paths. No LXC binary has been installed or run.
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01 remains BLOCKED. Proceed only if a genuinely new, safe source of exact SteamOS package provenance and file-manifest evidence becomes available without retrying pacman or mutating DBPath. If that prerequisite is resolved, prepare the exact transaction, affected paths, SteamOS persistence/update implications, backup/recovery method, temporary test scope, cleanup and uninstall/rollback plan. Present that complete plan for explicit confirmation before any package mutation. A successful manifest lookup alone is not installation approval.
+**Active next gate:** Continue the LXC-EXP-01 package-safety investigation without retrying pacman or mutating DBPath. The next bounded review is the content of the exact archive's AppArmor profiles and verification of the detached package signature against an authenticated SteamOS trust key. Then reconcile the package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -3879,6 +4188,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.7 | 2026-11-07 | Recorded user-accepted DECISION-WD-01: close the current Waydroid feasibility effort as blocked under existing constraints; preserve the audit and prohibit Waydroid installation/host changes under this decision; explicitly distinguish a possible future, separately approved temporary LXC-only experiment from the closure decision; updated document version and continuation handoff. |
 | 3.8 | 2026-11-07 | Closed the read-only feasibility phase and opened a separate LXC-only experimental investigation under DECISION-LXC-EXP-01; documented staged package provenance/safety, exact-install approval, temporary non-root LXC runtime, cgroup/monitor/payload lifecycle, cleanup and removal gates; retained the unresolved pacman lock and package-manifest blockers; clarified that temporary LXC testing does not reopen Waydroid or authorize an immediate package transaction; updated executive status, Gate 4 and new-chat handoff. |
 | 3.9 | 2026-11-07 | Recorded LXC-EXP-01A's read-only sudo identity/capability/user-namespace diagnostic; confirmed sudo runs as root with a broad capability set and identity UID/GID maps, but the result did not explain the DBPath write-access predicate or pacman lock failure; formally classified the package-safety prerequisite as BLOCKED and prohibited further generic lock diagnostics or pacman retries; updated the continuation handoff. |
+| 4.0 | 2026-11-07 | Completed the five-test LXC-EXP-01B–01F documentation cycle and consistency review; preserved unchanged v3.9 snapshot; confirmed the exact SteamOS repository endpoint, archive and detached-signature filename; directly inspected package metadata and 202-entry payload manifest; identified AppArmor policy, five systemd units, default autostart/network configuration and state paths; inspected all five service units and two default configuration files; superseded the missing-archive-manifest finding while retaining package-manager safety BLOCKED due unresolved DBPath/write-access failure and unverified signature; corrected the host/off-host execution record and updated the executive assessment and continuation handoff. |
 
 ---
 
