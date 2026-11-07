@@ -725,6 +725,193 @@ echo "===== NET-06 STAGE B SETUP COMPLETE ====="
 
 **Evidence boundary:** Stage B proves that the configured network and container were created and that Podman assigned IPv4 and ULA IPv6 addresses. It does not prove DNS resolution, DNS forwarding, IPv6 packet delivery, IPv6 egress blocking, or the effective runtime capability set. Those are separate Stage C questions.
 
+### 8.7 NET-06 Stage C1 — container resolver and DNS query behavior
+
+**Execution date:** 2026-11-07  
+**Execution location:** SteamOS host invoking the temporary `odysseus-net06-probe` container.  
+**Status:** PARTIAL — internal DNS gateway answered queries, but the tested external name did not resolve; direct public DNS probes were network-unreachable. The temporary resources remain in place.
+
+**Exact command executed**
+
+```bash
+echo "===== NET-06 STAGE C1: CONTAINER DNS CONFIGURATION ====="
+
+echo
+echo "===== 1. CONTAINER RESOLVER CONFIGURATION ====="
+podman exec odysseus-net06-probe cat /etc/resolv.conf
+
+echo
+echo "===== 2. CONTAINER DNS AND RESOLVER PROBES ====="
+
+podman exec -i odysseus-net06-probe python - <<'PY'
+import socket
+import struct
+
+NAME = "example.com"
+PORT = 53
+TIMEOUT = 3
+
+def dns_packet(qname, qtype):
+    ident = 0x4e06
+    header = struct.pack("!HHHHHH", ident, 0x0100, 1, 0, 0, 0)
+    encoded = b"".join(
+        bytes([len(label)]) + label.encode("ascii")
+        for label in qname.split(".")
+    ) + b"\\x00"
+    question = encoded + struct.pack("!HH", qtype, 1)
+    return ident, header + question
+
+def read_exact(sock, length):
+    data = b""
+    while len(data) < length:
+        part = sock.recv(length - len(data))
+        if not part:
+            raise RuntimeError("connection closed before full DNS response")
+        data += part
+    return data
+
+def query(server, qtype, transport):
+    family = socket.AF_INET6 if ":" in server else socket.AF_INET
+    ident, packet = dns_packet(NAME, qtype)
+    sock = socket.socket(family, socket.SOCK_DGRAM if transport == "UDP" else socket.SOCK_STREAM)
+    sock.settimeout(TIMEOUT)
+
+    try:
+        if transport == "UDP":
+            sock.sendto(packet, (server, PORT))
+            response, _ = sock.recvfrom(4096)
+        else:
+            sock.connect((server, PORT))
+            sock.sendall(struct.pack("!H", len(packet)) + packet)
+            size = struct.unpack("!H", read_exact(sock, 2))[0]
+            response = read_exact(sock, size)
+
+        if len(response) < 12:
+            raise RuntimeError("short DNS response")
+
+        rid, flags, questions, answers, authority, additional = struct.unpack(
+            "!HHHHHH", response[:12]
+        )
+        if rid != ident:
+            raise RuntimeError("DNS transaction ID mismatch")
+
+        rcode = flags & 0x000F
+        print(
+            f"{transport:3} {server:39} "
+            f"{'A' if qtype == 1 else 'AAAA':4} "
+            f"rcode={rcode} answers={answers} "
+            f"response_bytes={len(response)}"
+        )
+    except Exception as exc:
+        print(
+            f"{transport:3} {server:39} "
+            f"{'A' if qtype == 1 else 'AAAA':4} "
+            f"FAILED: {type(exc).__name__}: {exc}"
+        )
+    finally:
+        sock.close()
+
+print("----- System resolver getaddrinfo -----")
+for family_name, family in (("IPv4", socket.AF_INET), ("IPv6", socket.AF_INET6)):
+    try:
+        results = socket.getaddrinfo(NAME, 443, family, socket.SOCK_STREAM)
+        addresses = sorted({item[4][0] for item in results})
+        print(f"{family_name}: SUCCESS {addresses}")
+    except Exception as exc:
+        print(f"{family_name}: FAILED {type(exc).__name__}: {exc}")
+
+print()
+print("----- Explicit DNS server probes -----")
+
+with open("/etc/resolv.conf", encoding="utf-8") as f:
+    configured = [
+        line.split()[1]
+        for line in f
+        if line.strip().startswith("nameserver ")
+    ]
+
+servers = list(dict.fromkeys(
+    configured + [
+        "10.89.0.1",
+        "fdba:b7cb:d144:4e86::1",
+        "1.1.1.1",
+        "2606:4700:4700::1111",
+    ]
+))
+
+for server in servers:
+    print(f"\\nDNS server: {server}")
+    for qtype in (1, 28):
+        for transport in ("UDP", "TCP"):
+            query(server, qtype, transport)
+
+print("\\nNET-06 STAGE C1 PROBES COMPLETE")
+PY
+
+echo
+echo "===== NET-06 STAGE C1 COMPLETE ====="
+```
+
+**Actual output**
+
+```text
+===== NET-06 STAGE C1: CONTAINER DNS CONFIGURATION =====
+
+===== 1. CONTAINER RESOLVER CONFIGURATION =====
+search dns.podman .
+nameserver 10.89.0.1
+nameserver fdba:b7cb:d144:4e86::1
+
+===== 2. CONTAINER DNS AND RESOLVER PROBES =====
+----- System resolver getaddrinfo -----
+IPv4: FAILED gaierror: [Errno -2] Name does not resolve
+IPv6: FAILED gaierror: [Errno -2] Name does not resolve
+
+----- Explicit DNS server probes -----
+
+DNS server: 10.89.0.1
+UDP 10.89.0.1                               A    rcode=3 answers=0 response_bytes=29
+TCP 10.89.0.1                               A    rcode=3 answers=0 response_bytes=29
+UDP 10.89.0.1                               AAAA rcode=3 answers=0 response_bytes=29
+TCP 10.89.0.1                               AAAA rcode=3 answers=0 response_bytes=29
+
+DNS server: fdba:b7cb:d144:4e86::1
+UDP fdba:b7cb:d144:4e86::1                  A    rcode=3 answers=0 response_bytes=29
+TCP fdba:b7cb:d144:4e86::1                  A    rcode=3 answers=0 response_bytes=29
+UDP fdba:b7cb:d144:4e86::1                  AAAA rcode=3 answers=0 response_bytes=29
+TCP fdba:b7cb:d144:4e86::1                  AAAA rcode=3 answers=0 response_bytes=29
+
+DNS server: 1.1.1.1
+UDP 1.1.1.1                                 A    FAILED: OSError: [Errno 101] Network unreachable
+TCP 1.1.1.1                                 A    FAILED: OSError: [Errno 101] Network unreachable
+UDP 1.1.1.1                                 AAAA FAILED: OSError: [Errno 101] Network unreachable
+TCP 1.1.1.1                                 AAAA FAILED: OSError: [Errno 101] Network unreachable
+
+DNS server: 2606:4700:4700::1111
+UDP 2606:4700:4700::1111                    A    FAILED: OSError: [Errno 101] Network unreachable
+TCP 2606:4700:4700::1111                    A    FAILED: OSError: [Errno 101] Network unreachable
+UDP 2606:4700:4700::1111                    AAAA FAILED: OSError: [Errno 101] Network unreachable
+TCP 2606:4700:4700::1111                    AAAA FAILED: OSError: [Errno 101] Network unreachable
+
+NET-06 STAGE C1 PROBES COMPLETE
+
+===== NET-06 STAGE C1 COMPLETE =====
+```
+
+**Observed result and interpretation**
+
+- Container resolver configuration lists both internal network gateways: IPv4 `10.89.0.1` and IPv6 `fdba:b7cb:d144:4e86::1`.
+- Normal `socket.getaddrinfo("example.com")` failed for both requested address families with `gaierror: [Errno -2] Name does not resolve`.
+- Both internal gateway addresses answered the four explicit DNS queries (A and AAAA over UDP and TCP), each with DNS RCODE 3 (NXDOMAIN) and zero answers.
+- Direct queries to public DNS endpoints `1.1.1.1` and `2606:4700:4700::1111` failed for both transports and query types with `OSError: [Errno 101] Network unreachable`.
+- No DNS settings, host listeners, routes, or network configuration were changed.
+
+**What this proves:** in this test, the container's configured internal DNS gateways responded, but did not resolve the tested external name; direct public DNS endpoints were unreachable from the container.
+
+**What this does not prove:** whether NXDOMAIN is specific to `example.com` or general to external names; whether Podman DNS forwards any external names; whether the internal resolver's behavior is caused solely by `internal: true`; or whether IPv6 packets can reach any non-DNS destination. This is one test name and one query implementation, not a comprehensive DNS conformance test.
+
+**Cleanup:** not performed; the approved temporary network and probe container are retained for the next read-only Stage C probe. No cleanup failure or resource leak is implied.
+
 ## 9. Cgroups, resource controls and host security
 
 ### 9.1 Recorded host observations
@@ -1569,7 +1756,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
-| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
+| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | IN PROGRESS — Stage B setup complete; Stage C1 external-name resolution failed (internal gateway NXDOMAIN; direct public DNS network-unreachable); numeric IPv6 connectivity remains open |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
@@ -1840,7 +2027,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.3  
+**Canonical version:** 1.6  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -1867,7 +2054,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 NET-03, NET-04 and NET-05 are complete. NET-06 Stage A read-only host preflight is complete but is not counted as a completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; actual IPv6 packet delivery remains untested. Podman uses Netavark and supports an `--ipv6` network option; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; do not modify or interfere with it. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-NET-06 Stage B has now created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. DNS resolution/forwarding and direct IPv6 egress remain untested. The next action is Stage C read-only container/network inspection and separately scoped DNS and numeric-address connectivity probes; then clean up both temporary resources and verify their absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
+NET-06 Stage B created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. Stage C1 found that the internal DNS gateways answer but return NXDOMAIN for the tested `example.com` A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Next: Stage C2 read-only numeric IPv4/IPv6 connectivity probes, with DNS kept separate, then cleanup both temporary resources and independently verify absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -1902,6 +2089,7 @@ The first assistant action in a new conversation should be:
 | 1.2 | 2026-11-07 | Recorded NET-04 immediately after execution: two disposable peers resolved and reached each other bidirectionally; both peers were blocked from the named host/router/public/DNS probes; inspection confirmed internal bridge membership and restricted container settings; cleanup independently verified. Recorded SIGTERM timeout/SIGKILL escalation as a lifecycle caveat. Advanced the next gate to NET-05. No five-test snapshot triggered. |
 | 1.3 | 2026-11-07 | Recorded NET-05: loopback-only published listener returned HTTP 200 from the host while the same published port was refused through the host LAN address; recorded distinct internal-IP timeout and container gateway/host probe results; preserved final configuration inspection limitations; recorded exact Stage D cleanup command/output, SIGTERM timeout/SIGKILL escalation, successful resource removal and independent port-release verification. Advanced the next dependency to IPv6/DNS behavior. One completed test since the v1.2 checkpoint; no five-test snapshot triggered. |
 | 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |\n| 1.5 | 2026-11-07 | Recorded approved NET-06 Stage B setup: cached-image guard, dedicated `--internal --ipv6` Netavark bridge, assigned IPv4 and ULA IPv6 addresses, DNS plugin enabled, restricted disposable container configuration, and inspection limitations. Temporary network/container remain in place for Stage C; DNS and IPv6 packet behavior are not yet tested. No five-test checkpoint triggered. |
+| 1.6 | 2026-11-07 | Recorded NET-06 Stage C1 DNS results: container resolver points to both internal gateways; both gateways returned NXDOMAIN for the tested external A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Updated remaining gate and handoff to Stage C2 numeric connectivity. No five-test checkpoint triggered. |
 
 ---
 
