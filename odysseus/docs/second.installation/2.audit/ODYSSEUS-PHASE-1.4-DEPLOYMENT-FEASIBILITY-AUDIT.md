@@ -912,6 +912,134 @@ NET-06 STAGE C1 PROBES COMPLETE
 
 **Cleanup:** not performed; the approved temporary network and probe container are retained for the next read-only Stage C probe. No cleanup failure or resource leak is implied.
 
+### 8.8 NET-06 Stage C2 — numeric IPv4/IPv6 routes and connectivity
+
+**Execution date:** 2026-11-07  
+**Execution location:** SteamOS host invoking the existing temporary `odysseus-net06-probe` container.  
+**Status:** COMPLETED — the container had no default route in either address family; direct numeric public TCP probes were network-unreachable. Both internal DNS gateway TCP port-53 probes connected.
+
+**Exact command executed**
+
+```bash
+echo "===== NET-06 STAGE C2: ROUTE AND NUMERIC CONNECTIVITY ====="
+
+podman exec -i odysseus-net06-probe python - <<'PY'
+import socket
+
+print("===== 1. INTERFACES =====")
+for index, name in socket.if_nameindex():
+    print(f"{index}: {name}")
+
+print()
+print("===== 2. IPV4 ROUTE TABLE =====")
+try:
+    with open("/proc/net/route") as f:
+        print(f.read())
+except Exception as exc:
+    print(f"ERROR: {exc}")
+
+print()
+print("===== 3. IPV6 ROUTE TABLE =====")
+try:
+    with open("/proc/net/ipv6_route") as f:
+        print(f.read())
+except Exception as exc:
+    print(f"ERROR: {exc}")
+
+def tcp_probe(label, family, address, port=443):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    sock.settimeout(3)
+    try:
+        result = sock.connect_ex((address, port))
+        print(f"{label}: connect_ex={result}")
+    except Exception as exc:
+        print(f"{label}: FAILED {type(exc).__name__}: {exc}")
+    finally:
+        sock.close()
+
+print()
+print("===== 4. DIRECT NUMERIC TCP PROBES =====")
+
+tcp_probe("IPv4 public 1.1.1.1:443", socket.AF_INET, "1.1.1.1")
+tcp_probe(
+    "IPv6 public 2606:4700:4700::1111:443",
+    socket.AF_INET6,
+    "2606:4700:4700::1111"
+)
+
+print()
+print("===== 5. INTERNAL DNS GATEWAY TCP REACHABILITY =====")
+
+tcp_probe("IPv4 gateway 10.89.0.1:53", socket.AF_INET, "10.89.0.1", 53)
+tcp_probe(
+    "IPv6 gateway fdba:b7cb:d144:4e86::1:53",
+    socket.AF_INET6,
+    "fdba:b7cb:d144:4e86::1",
+    53
+)
+
+print()
+print("NET-06 STAGE C2 PROBES COMPLETE")
+PY
+
+echo
+echo "===== NET-06 STAGE C2 COMPLETE ====="
+```
+
+**Actual output**
+
+```text
+===== NET-06 STAGE C2: ROUTE AND NUMERIC CONNECTIVITY =====
+===== 1. INTERFACES =====
+1: lo
+2: eth0
+
+===== 2. IPV4 ROUTE TABLE =====
+Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT            
+eth0    0000590A        00000000        0001    0       0       0       00FFFFFF        0       0       0               
+
+===== 3. IPV6 ROUTE TABLE =====
+fdbab7cbd1444e860000000000000000 40 00000000000000000000000000000000 00 00000000000000000000000000000000 00000100 00000005 00000000 00000001     eth0
+fe800000000000000000000000000000 40 00000000000000000000000000000000 00 00000000000000000000000000000000 00000100 00000001 00000000 00000001     eth0
+00000000000000000000000000000000 00 00000000000000000000000000000000 00 00000000000000000000000000000000 ffffffff 00000001 00000000 00200200       lo
+00000000000000000000000000000001 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000000 00000002 00000000 80200001       lo
+fdbab7cbd1444e860000000000000002 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000000 00000006 00000000 80200001     eth0
+fe800000000000002c8071fffe73ed62 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000000 00000003 00000000 80200001     eth0
+ff000000000000000000000000000000 08 00000000000000000000000000000000 00 00000000000000000000000000000000 00000100 00000004 00000000 00000001     eth0
+00000000000000000000000000000000 00 00000000000000000000000000000000 00 00000000000000000000000000000000 ffffffff 00000001 00000000 00200200       lo
+
+===== 4. DIRECT NUMERIC TCP PROBES =====
+IPv4 public 1.1.1.1:443: connect_ex=101
+IPv6 public 2606:4700:4700::1111:443: connect_ex=101
+
+===== 5. INTERNAL DNS GATEWAY TCP REACHABILITY =====
+IPv4 gateway 10.89.0.1:53: connect_ex=0
+IPv6 gateway fdba:b7cb:d144:4e86::1:53: connect_ex=0
+
+NET-06 STAGE C2 PROBES COMPLETE
+
+===== NET-06 STAGE C2 COMPLETE =====
+```
+
+**Observed result and interpretation**
+
+- Interfaces visible in the container: loopback `lo` and `eth0`.
+- IPv4 route table contains the connected route only; no default route is present.
+- IPv6 route table contains the connected ULA prefix, link-local and local/multicast entries; no IPv6 default route is present.
+- Direct TCP connect to public numeric IPv4 `1.1.1.1:443` returned `connect_ex=101` (`Network is unreachable`).
+- Direct TCP connect to public numeric IPv6 `2606:4700:4700::1111:443` returned `connect_ex=101` (`Network is unreachable`).
+- TCP connect to IPv4 internal gateway `10.89.0.1:53` returned `connect_ex=0`.
+- TCP connect to IPv6 internal gateway `fdba:b7cb:d144:4e86::1:53` returned `connect_ex=0`.
+- These numeric tests bypass DNS. They independently corroborate that public IPv4 and IPv6 destinations tested are unroutable from this container, while both internal DNS gateways are reachable.
+- Combined with Stage C1, this explains why the internal DNS gateway can answer the container but cannot provide successful external-name resolution in this isolated network. The Stage C1 NXDOMAIN response remains an observed resolver result; the test does not establish the internal DNS proxy's implementation or all possible query-name behavior.
+- No host or container routes, DNS settings, firewall rules, or network configuration were modified.
+
+**What this proves:** no default IPv4 or IPv6 route was present in the inspected container tables; the two selected public numeric TCP destinations were unreachable; both internal DNS gateway TCP listeners were reachable.
+
+**What this does not prove:** every public destination/port is unreachable under every possible configuration; all Podman internal networks behave identically; or the host itself lacks IPv6 connectivity. The host preflight had a default IPv6 route; this test is specifically the isolated container namespace.
+
+**Cleanup:** not performed yet. The approved temporary network and container remain available for any final read-only verification and then explicit scoped cleanup.
+
 ## 9. Cgroups, resource controls and host security
 
 ### 9.1 Recorded host observations
@@ -1756,7 +1884,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
-| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | IN PROGRESS — Stage B setup complete; Stage C1 external-name resolution failed (internal gateway NXDOMAIN; direct public DNS network-unreachable); numeric IPv6 connectivity remains open |
+| 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | IN PROGRESS — Stages B/C1/C2: IPv4+IPv6 addresses allocated; DNS gateways reachable but returned NXDOMAIN for tested external name; no container default route in either family; selected public numeric TCP destinations network-unreachable. Cleanup remains open |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
@@ -2027,7 +2155,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.6  
+**Canonical version:** 1.7  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2054,7 +2182,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 NET-03, NET-04 and NET-05 are complete. NET-06 Stage A read-only host preflight is complete but is not counted as a completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; actual IPv6 packet delivery remains untested. Podman uses Netavark and supports an `--ipv6` network option; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; do not modify or interfere with it. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-NET-06 Stage B created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. Stage C1 found that the internal DNS gateways answer but return NXDOMAIN for the tested `example.com` A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Next: Stage C2 read-only numeric IPv4/IPv6 connectivity probes, with DNS kept separate, then cleanup both temporary resources and independently verify absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
+NET-06 Stage B created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. Stage C1 found that the internal DNS gateways answer but return NXDOMAIN for the tested `example.com` A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the container; direct public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Next: complete any justified read-only verification, then clean up both temporary resources and independently verify absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -2090,6 +2218,7 @@ The first assistant action in a new conversation should be:
 | 1.3 | 2026-11-07 | Recorded NET-05: loopback-only published listener returned HTTP 200 from the host while the same published port was refused through the host LAN address; recorded distinct internal-IP timeout and container gateway/host probe results; preserved final configuration inspection limitations; recorded exact Stage D cleanup command/output, SIGTERM timeout/SIGKILL escalation, successful resource removal and independent port-release verification. Advanced the next dependency to IPv6/DNS behavior. One completed test since the v1.2 checkpoint; no five-test snapshot triggered. |
 | 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |\n| 1.5 | 2026-11-07 | Recorded approved NET-06 Stage B setup: cached-image guard, dedicated `--internal --ipv6` Netavark bridge, assigned IPv4 and ULA IPv6 addresses, DNS plugin enabled, restricted disposable container configuration, and inspection limitations. Temporary network/container remain in place for Stage C; DNS and IPv6 packet behavior are not yet tested. No five-test checkpoint triggered. |
 | 1.6 | 2026-11-07 | Recorded NET-06 Stage C1 DNS results: container resolver points to both internal gateways; both gateways returned NXDOMAIN for the tested external A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Updated remaining gate and handoff to Stage C2 numeric connectivity. No five-test checkpoint triggered. |
+| 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
 
 ---
 
