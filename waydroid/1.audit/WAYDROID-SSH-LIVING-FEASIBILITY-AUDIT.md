@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked after a pacman database-lock failure; read-only process/lock-path diagnosis found no matching process and no lock file; no installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; read-only diagnostics identified the configured pacman DBPath as /usr/lib/holo/pacmandb and confirmed /var/lib/pacman is not present; the original database-lock failure remains unexplained; no installation or runtime experiment performed**.
 >
-> **Document version:** 2.5  
+> **Document version:** 2.6  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2050,6 +2050,94 @@ stat: cannot statx '/var/lib/pacman/db.lck': No such file or directory
 - Next perform a second, strictly read-only diagnostic of the configured pacman DBPath, its parent-directory permissions and the filesystem mount options. Do not create test files, remove locks, remount filesystems, change permissions, terminate processes or retry `pacman -Fy` yet.
 - If the next diagnostic still does not explain the failure, stop and reassess rather than forcing the package database operation.
 
+
+### LXC-PKG-05 — read-only configured pacman DBPath and filesystem diagnostic
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **COMPLETED — configured DBPath identified; queried /var/lib/pacman path was not the configured database directory; actual database-directory permissions and mount options remain uninspected**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), command issued over SSH from Windows PowerShell
+- **Prerequisite:** LXC-PKG-04 found no matching package-management process and no lock file at the assumed /var/lib/pacman/db.lck path after LXC-PKG-03's unable to lock database error.
+- **Question:** What database path does pacman actually use, and what do the directory and mount diagnostics show?
+- **Why new:** LXC-PKG-04 checked a conventional Arch path without first confirming SteamOS's configured DBPath. This test reads pacman's effective configuration and checks the previously assumed path; it does not repeat the earlier process query.
+- **Side-effect boundary:** Read-only configuration, directory, metadata and mount queries. No file was created or removed; no permissions or mount state were changed; no package operation was attempted.
+- **Repeat policy:** Do not repeat unless the SteamOS build/configuration changes or a later diagnostic needs to verify a changed DBPath.
+
+**Exact command executed**
+
+~~~bash
+echo "===== LXC-PKG-05: PACMAN DATABASE PATH DIAGNOSTIC ====="
+
+echo
+echo "===== 1. CONFIGURED PACMAN DBPATH ====="
+pacman-conf DBPath
+
+echo
+echo "===== 2. DIRECTORY PERMISSIONS ====="
+ls -ld /var /var/lib /var/lib/pacman
+namei -l /var/lib/pacman
+
+echo
+echo "===== 3. DATABASE DIRECTORY METADATA ====="
+sudo stat -c \
+  'Path=%n Type=%F Owner=%U Group=%G Mode=%a' \
+  /var/lib/pacman
+
+echo
+echo "===== 4. FILESYSTEM MOUNT OPTIONS ====="
+findmnt -T /var/lib/pacman -o TARGET,FSTYPE,OPTIONS
+
+echo
+echo "===== END LXC-PKG-05 ====="
+~~~
+
+**Actual output**
+
+~~~text
+===== LXC-PKG-05: PACMAN DATABASE PATH DIAGNOSTIC =====
+
+===== 1. CONFIGURED PACMAN DBPATH =====
+/usr/lib/holo/pacmandb
+
+===== 2. DIRECTORY PERMISSIONS =====
+ls: cannot access '/var/lib/pacman': No such file or directory
+drwxr-xr-x 14 root root 1024 Oct 24 01:35 /var
+drwxr-xr-x 42 root root 1024 Oct 24 01:35 /var/lib
+f: /var/lib/pacman
+dr-xr-xr-x root root /
+drwxr-xr-x root root var
+drwxr-xr-x root root lib
+                      pacman - No such file or directory
+
+===== 3. DATABASE DIRECTORY METADATA =====
+stat: cannot statx '/var/lib/pacman': No such file or directory
+
+===== 4. FILESYSTEM MOUNT OPTIONS =====
+
+===== END LXC-PKG-05 =====
+(deck@Laco ~)$
+~~~
+
+**Observed result**
+
+- pacman-conf DBPath returned /usr/lib/holo/pacmandb.
+- The queried /var/lib/pacman directory does not exist. ls, namei and stat consistently reported that the path was absent.
+- Because findmnt -T was also given the nonexistent /var/lib/pacman path, it returned no mount row. No mount options for the configured database directory were collected.
+- The command did not inspect /usr/lib/holo/pacmandb, its parent-directory permissions, or a lock file beneath the configured DBPath.
+- No package database refresh or installation was performed.
+
+**Interpretation**
+
+- **What this proves:** the effective pacman database path is /usr/lib/holo/pacmandb; the earlier LXC-PKG-04 check of /var/lib/pacman/db.lck was aimed at a nonexistent, non-configured location and therefore did not inspect the actual pacman lock path.
+- **What this does not prove:** whether a lock file exists under the configured DBPath; whether the configured path or its parents are writable; whether the relevant filesystem is mounted read-only; or why LXC-PKG-03 failed to acquire the database lock.
+- Correct the interpretation of LXC-PKG-04: its process-list result remains valid as a point-in-time observation, but its lock-path observation is **SUPERSEDED as a diagnostic of pacman's active database**, because it queried the wrong path.
+- The original lock failure remains **INCONCLUSIVE**. Do not infer a stale lock, permission fault or read-only mount from this test.
+
+**Decision / next step**
+
+- Mark LXC-PKG-05 **COMPLETED** as a read-only configuration/path diagnostic.
+- Keep LXC-PKG-02 and LXC-PKG-03 **PARTIAL / BLOCKED**; the package manifest remains uninspected.
+- Next perform a narrowly scoped read-only inspection of /usr/lib/holo/pacmandb, its parent path, the mount containing it, and the candidate lock path derived from the configured DBPath. Do not create/remove files, change permissions, remount, terminate processes or retry pacman -Fy.
+- The user's prior approval remains limited to the metadata-only pacman -Fy extra-3.9 operation. A retry is not yet justified until the actual configured database path and its access/mount state are understood.
 ---
 
 ## 6. Upstream and project documentation review
@@ -2442,7 +2530,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** Phase 1 Gate 3 is complete; the original rootless Podman cgroup limitation remains confirmed. Phase 1.5 is active because current upstream Waydroid/LXC source identifies a direct-launcher versus delegated-scope integration question. This does not yet establish a working architecture. No LXC package was installed and no LXC container was created.
 
-**Latest package evidence:** LXC-PKG-01 reports candidate lxc 1:7.0.0-1 from extra-3.9, with a print-only transaction containing only lxc; all seven listed dependencies were already installed. LXC-PKG-02 could not inspect the file manifest because the configured repository file-list databases were absent. LXC-PKG-03 attempted the user-approved metadata-only refresh: the unprivileged invocation was rejected for lack of root privileges, and the sudo invocation failed because pacman could not acquire the database lock. LXC-PKG-04 found no matching package-management process and no /var/lib/pacman/db.lck at the time of the read-only inspection; the original lock failure remains unexplained. The file-list refresh remains incomplete; no package was installed. **Next action:** perform a read-only inspection of the configured pacman DBPath, parent-directory permissions and filesystem mount options. Do not create test files, remove locks, remount filesystems, change permissions, terminate processes or retry the refresh yet. The existing approval covers only pacman -Fy extra-3.9, not lock removal, broad repository refreshes, upgrades or installation. After the cause is understood and a safe retry is justified, inspect the manifest only after a successful refresh. The previous Podman cgroup test does not substitute for a direct host-level LXC test. Even a favourable package manifest does not itself justify installation; present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before any install approval. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
+**Latest package evidence:** LXC-PKG-01 reports candidate lxc 1:7.0.0-1 from extra-3.9, with a print-only transaction containing only lxc; all seven listed dependencies were already installed. LXC-PKG-02 could not inspect the file manifest because the configured repository file-list databases were absent. LXC-PKG-03 attempted the user-approved metadata-only refresh: the unprivileged invocation was rejected for lack of root privileges, and the sudo invocation failed because pacman could not acquire the database lock. LXC-PKG-04 found no matching package-management process, but its check of /var/lib/pacman/db.lck did not inspect the actual database because that path is not configured on this SteamOS host. LXC-PKG-05 identified the configured DBPath as /usr/lib/holo/pacmandb; the incorrectly queried /var/lib/pacman path does not exist, and no mount or permission data for the actual DBPath was collected. The original lock failure therefore remains unexplained. The file-list refresh remains incomplete; no package was installed. **Next action:** perform a read-only inspection of /usr/lib/holo/pacmandb, its parent directories, the mount containing it, and the lock path derived from that DBPath. Do not create test files, remove locks, remount filesystems, change permissions, terminate processes or retry the refresh yet. The existing approval covers only pacman -Fy extra-3.9, not lock removal, broad repository refreshes, upgrades or installation. After the cause is understood and a safe retry is justified, inspect the manifest only after a successful refresh. The previous Podman cgroup test does not substitute for a direct host-level LXC test. Even a favourable package manifest does not itself justify installation; present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before any install approval. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
@@ -2469,6 +2557,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.3 | 2026-11-07 | Recorded LXC-PKG-01's reported Deck-local candidate/version and print-only one-package transaction; recorded LXC-PKG-02's missing repository file-list databases and connection-close transcript without misclassifying it as package absence or a system failure; established that the next manifest step requires approval for a metadata-only pacman file-list cache refresh. |
 | 2.4 | 2026-11-07 | Recorded LXC-PKG-03: the unprivileged file-list refresh was rejected for lack of root privileges and the sudo invocation could not acquire the pacman database lock; clarified that the approved refresh remains incomplete and set a read-only lock/process inspection as the next action. |
 | 2.5 | 2026-11-07 | Recorded LXC-PKG-04: read-only process inspection found no matching package-management process and no lock file at /var/lib/pacman/db.lck; kept the original pacman lock failure unexplained and advanced to read-only DBPath, directory-permission and mount-option diagnostics. |
+| 2.6 | 2026-11-07 | Recorded LXC-PKG-05: identified SteamOS's configured pacman DBPath as /usr/lib/holo/pacmandb and established that /var/lib/pacman does not exist; corrected the interpretation of PKG-04's lock-path check, left the original lock failure inconclusive, advanced to read-only inspection of the actual DBPath, and completed the five-test package-series documentation review. |
 
 ---
 
