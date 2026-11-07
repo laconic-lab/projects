@@ -71,7 +71,7 @@ The following rules are mandatory:
 6. A repeated test requires a documented changed condition or a previously untested behavior.
 7. The parent README must be updated when the canonical handoff, archive structure or audit status changes.
 
-The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.2 (2026-11-07). NET-03's named external-egress probes passed. NET-04 then confirmed bidirectional peer communication on a dedicated internal bridge while both peers remained blocked from the named host/router/public/DNS probes. NET-04 cleanup was verified; both listeners required SIGKILL after the 10-second SIGTERM timeout, which is recorded as a lifecycle caveat. NET-05 (host-service and published-port boundary) is next.
+The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.3 (2026-11-07). NET-03's named external-egress probes passed. NET-04 confirmed bidirectional peer communication on a dedicated internal bridge while both peers remained blocked from the named host/router/public/DNS probes; both listeners required SIGKILL after the 10-second SIGTERM timeout. NET-05 confirmed a host-to-container HTTP 200 path through a loopback-only published port (`127.0.0.1:18085` → container `18080/tcp`), while the same published port was refused through the host LAN address. Other host/container probes produced distinct timeout, refusal and unreachable results; see the canonical ledger for evidence limits. NET-05 cleanup independently verified the temporary container and network absent and port `18085` released. The listener again required SIGKILL after the 10-second SIGTERM timeout. The next open dependency is IPv6 and DNS behavior.
 
 ## 5. Current recorded position
 
@@ -83,11 +83,12 @@ The detailed rules and templates are in §0 and §13–§18 of the canonical aud
 - The default Podman bridge allowed tested router/LAN and public Internet connectivity and is unsuitable as the Agent/Inspector boundary.
 - NET-03 tested a single container on a temporary dedicated Podman internal bridge; the named host SSH, router DNS, public HTTPS and DNS lookup paths were blocked.
 - NET-04 tested two disposable peers on a new temporary internal bridge. Peer DNS/TCP communication succeeded in both directions; both peers were blocked from the same named external probes. Inspection confirmed the internal bridge, two expected peers, no published ports and no mounts. Cleanup independently verified both containers and the network absent. Both listeners required SIGKILL after the 10-second SIGTERM timeout; see the canonical audit for the lifecycle caveat.
+- NET-05 tested host-service and published-port behavior on a temporary internal network. The host received HTTP 200 through `127.0.0.1:18085` mapped to container `18080/tcp`; access through the host LAN address was refused. The host-to-container internal-IP probe timed out; container-to-gateway published-port and SSH probes were refused; container-to-host-LAN SSH was network-unreachable. Final inspection confirmed loopback-only rootlessport binding and the recorded resource limits. Cleanup independently verified the container/network absent and port `18085` released. The listener required SIGKILL after the 10-second SIGTERM timeout; see the canonical audit for evidence limits and lifecycle caveat.
 - cgroup v2/systemd delegation exists at host level, but writable nested delegation in the disposable container was not demonstrated.
 - Seccomp is enabled; AppArmor and SELinux are disabled.
 - No Odysseus or LXC installation has been performed.
 
-These are scoped findings, not a final security certification. NET-05 — host-service and published-port boundary — is the next open dependency. Consult the canonical audit for test IDs, evidence limits and the next approval boundary.
+These are scoped findings, not a final security certification. IPv6 and DNS behavior is the next open dependency. Consult the canonical audit for test IDs, evidence limits and the next approval boundary.
 
 ## 6. Naming and phase policy
 
