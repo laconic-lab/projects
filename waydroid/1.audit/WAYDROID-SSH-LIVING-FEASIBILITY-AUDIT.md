@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions that require tracing; signature trust and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing, signature trust and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 4.2  
+> **Document version:** 4.3  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -78,7 +78,7 @@ The stock Waydroid path is materially different: the system D-Bus activation ser
 
 The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
 
-**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection. LXC-EXP-01G now provides a partial content review of the AppArmor payload; complete abstraction review, SteamOS parser/policy compatibility, signature trust, package-manager safety, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
+**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection. LXC-EXP-01G/01H completed the static content review of the AppArmor payload. LXC-EXP-01I then established that AppArmor is disabled and unavailable on the current SteamOS host: `/sys/module/apparmor/parameters/enabled` returned `N`, AppArmor was absent from `/sys/kernel/security/lsm`, no AppArmor securityfs interface, parser/status utilities, or checked policy directories were present, and the service was inactive. The packaged profiles are therefore not currently enforceable through host AppArmor. This does not prove LXC itself cannot run, nor does it establish that installing/enabling AppArmor is safe or authorized. Signature trust, package-manager safety, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
 
 ### 1.2 Positive evidence
 
@@ -4722,6 +4722,233 @@ Signature trust remains a separate gate: identify an authenticated SteamOS signi
 
 ---
 
+## 5.13 LXC-EXP-01I — SteamOS AppArmor host compatibility audit
+
+**Date:** 2026-11-07  
+**Gate:** Determine whether the current SteamOS host exposes an enabled AppArmor kernel/userspace environment capable of supporting the AppArmor policy assets found in the exact LXC 1:7.0.0-1 package archive. This is a read-only host audit.  
+**Execution context:** SteamOS host, ordinary `deck` user; no sudo.  
+**Host:** SteamOS build `20261023.100`; kernel `7.2.7-valve2-2-neptune-72-g31504582a073`.  
+**Side-effect boundary:** Read-only package queries, executable discovery, version query, mount/sysfs inspection, bounded policy-path listing, systemd state query. No parser invocation against policy files, no profile load/replace/unload, no package operation, no service change, no boot-parameter edit, no keyring change, and no cgroup mutation.
+
+### 5.13.1 Exact command executed
+
+The user executed the following command. It queried installed package names `apparmor`, `apparmor-parser`, and `apparmor-utils`; searched for `apparmor_parser`, `aa-status`, and `apparmor_status`; queried parser version only if found; inspected securityfs, kernel parameters, LSM list, AppArmor securityfs paths, loaded-profile list, selected policy directories, boot security parameters, and service state.
+
+```bash
+echo "===== LXC-EXP-01I: STEAMOS APPARMOR HOST AUDIT ====="
+set -u
+
+echo
+echo "===== 1. OS / KERNEL ====="
+grep -E '^(NAME|PRETTY_NAME|VERSION|BUILD_ID)=' /etc/os-release
+uname -r
+
+echo
+echo "===== 2. INSTALLED APPARMOR COMPONENTS ====="
+for pkg in apparmor apparmor-parser apparmor-utils; do
+    echo "--- pacman -Q $pkg"
+    pacman -Q "$pkg" 2>&1 || true
+done
+
+echo
+echo "===== 3. AVAILABLE READ-ONLY TOOLS ====="
+for tool in apparmor_parser aa-status apparmor_status; do
+    echo "--- $tool"
+    if command -v "$tool" >/dev/null 2>&1; then
+        command -v "$tool"
+    else
+        echo "NOT FOUND"
+    fi
+done
+
+if command -v apparmor_parser >/dev/null 2>&1; then
+    echo
+    echo "===== 4. PARSER VERSION ONLY ====="
+    apparmor_parser --version 2>&1
+fi
+
+echo
+echo "===== 5. SECURITYFS MOUNT ====="
+findmnt -M /sys/kernel/security -o TARGET,FSTYPE,OPTIONS 2>&1 || true
+
+echo
+echo "===== 6. APPARMOR KERNEL INTERFACES ====="
+for f in \
+    /sys/module/apparmor/parameters/enabled \
+    /sys/module/apparmor/parameters/audit \
+    /sys/module/apparmor/parameters/debug \
+    /sys/kernel/security/lsm
+do
+    echo "--- $f"
+    if [ -r "$f" ]; then
+        cat "$f"
+    else
+        echo "ABSENT OR NOT READABLE"
+    fi
+done
+
+echo
+echo "===== 7. APPARMOR SECURITYFS CONTENTS ====="
+if [ -d /sys/kernel/security/apparmor ]; then
+    find /sys/kernel/security/apparmor -maxdepth 2 -type f -print 2>&1 | sort
+else
+    echo "APPARMOR SECURITYFS DIRECTORY ABSENT"
+fi
+
+echo
+echo "===== 8. LOADED PROFILE LIST ====="
+if [ -r /sys/kernel/security/apparmor/profiles ]; then
+    sed -n '1,120p' /sys/kernel/security/apparmor/profiles
+else
+    echo "NO READABLE LOADED-PROFILE LIST"
+fi
+
+echo
+echo "===== 9. INSTALLED POLICY PATHS ====="
+for d in \
+    /etc/apparmor.d \
+    /usr/share/apparmor \
+    /usr/share/apparmor/extra-profiles \
+    /etc/apparmor
+do
+    echo "--- $d"
+    if [ -d "$d" ]; then
+        find "$d" -maxdepth 2 -type f -print 2>&1 | sort | head -n 100
+    else
+        echo "ABSENT"
+    fi
+done
+
+echo
+echo "===== 10. BOOT SECURITY PARAMETERS ====="
+grep -oE '(^| )(apparmor|security|lsm)=[^ ]+' /proc/cmdline || true
+
+echo
+echo "===== 11. APPARMOR SERVICE STATE ====="
+systemctl is-active apparmor.service 2>&1 || true
+systemctl list-unit-files --no-legend 2>/dev/null | grep -i apparmor || true
+
+echo
+echo "===== 12. OPTIONAL STATUS UTILITIES ====="
+if command -v aa-status >/dev/null 2>&1; then
+    aa-status 2>&1 || true
+elif command -v apparmor_status >/dev/null 2>&1; then
+    apparmor_status 2>&1 || true
+else
+    echo "NO STATUS UTILITY AVAILABLE"
+fi
+
+echo
+echo "===== END LXC-EXP-01I ====="
+```
+
+### 5.13.2 Complete observed output
+
+```text
+===== LXC-EXP-01I: STEAMOS APPARMOR HOST AUDIT =====
+
+===== 1. OS / KERNEL =====
+NAME="SteamOS"
+PRETTY_NAME="SteamOS"
+BUILD_ID=20261023.100
+7.2.7-valve2-2-neptune-72-g31504582a073
+
+===== 2. INSTALLED APPARMOR COMPONENTS =====
+--- pacman -Q apparmor
+error: package 'apparmor' was not found
+--- pacman -Q apparmor-parser
+error: package 'apparmor-parser' was not found
+--- pacman -Q apparmor-utils
+error: package 'apparmor-utils' was not found
+
+===== 3. AVAILABLE READ-ONLY TOOLS =====
+--- apparmor_parser
+NOT FOUND
+--- aa-status
+NOT FOUND
+--- apparmor_status
+NOT FOUND
+
+===== 5. SECURITYFS MOUNT =====
+TARGET               FSTYPE     OPTIONS
+/sys/kernel/security securityfs rw,nosuid,nodev,noexec,relatime
+
+===== 6. APPARMOR KERNEL INTERFACES =====
+--- /sys/module/apparmor/parameters/enabled
+N
+--- /sys/module/apparmor/parameters/audit
+ABSENT OR NOT READABLE
+--- /sys/module/apparmor/parameters/debug
+ABSENT OR NOT READABLE
+--- /sys/kernel/security/lsm
+capability,landlock,lockdown,yama,bpf
+
+===== 7. APPARMOR SECURITYFS CONTENTS =====
+APPARMOR SECURITYFS DIRECTORY ABSENT
+
+===== 8. LOADED PROFILE LIST =====
+NO READABLE LOADED-PROFILE LIST
+
+===== 9. INSTALLED POLICY PATHS =====
+--- /etc/apparmor.d
+ABSENT
+--- /usr/share/apparmor
+ABSENT
+--- /usr/share/apparmor/extra-profiles
+ABSENT
+--- /etc/apparmor
+ABSENT
+
+===== 10. BOOT SECURITY PARAMETERS =====
+
+===== 11. APPARMOR SERVICE STATE =====
+inactive
+
+===== 12. OPTIONAL STATUS UTILITIES =====
+NO STATUS UTILITY AVAILABLE
+
+===== END LXC-EXP-01I =====
+```
+
+### 5.13.3 Findings
+
+| Check | Observed result | Assessment |
+|---|---|---|
+| Host identity | SteamOS build `20261023.100`; kernel `7.2.7-valve2-2-neptune-72-g31504582a073` | **CONFIRMED** |
+| AppArmor packages | All three package queries reported package not found | No queried AppArmor package is installed |
+| Parser/status tools | `apparmor_parser`, `aa-status`, `apparmor_status` all not found | No AppArmor userspace parser/status utility found |
+| securityfs | Mounted at `/sys/kernel/security`, type `securityfs`, rw | securityfs itself is available; this does not imply AppArmor support |
+| AppArmor kernel parameter | `/sys/module/apparmor/parameters/enabled` returned `N` | AppArmor kernel feature reports disabled |
+| Active LSM list | `capability,landlock,lockdown,yama,bpf` | AppArmor is not listed among active LSMs |
+| AppArmor securityfs | `/sys/kernel/security/apparmor` absent | No AppArmor control/profile interface exposed |
+| Loaded-profile list | Not readable/absent | No loaded-profile inventory available; combined with disabled kernel state, no evidence of active AppArmor profiles |
+| Policy directories | All four checked paths absent | No host AppArmor policy tree found in the inspected locations |
+| Boot parameters | No matching `apparmor=`, `security=`, or `lsm=` parameter printed | No such parameter observed in this command's filtered output; this alone does not establish all kernel build/boot configuration |
+| Service | `apparmor.service` inactive; no matching unit-file row printed | No active AppArmor service or listed unit file found |
+
+### 5.13.4 Interpretation and scope
+
+1. **AppArmor is not available as an active enforcement mechanism on this SteamOS host in its observed state.** The decisive evidence is the kernel parameter value `N` and absence of AppArmor from the active LSM list. The missing securityfs interface, parser/utilities, policy directories and service corroborate that conclusion.
+2. The LXC package's nine AppArmor policy assets reviewed in 01G/01H are static files inside the downloaded package archive. They are not currently loaded or enforceable through AppArmor on this host.
+3. The explicit `change_profile -> unconfined` permissions found in 01H remain a **static policy/code-path review issue**, not evidence of an active profile transition, host escape, or currently weakened AppArmor enforcement. There is no active AppArmor profile environment shown here in which those rules could presently be enforced.
+4. This result does **not** prove that LXC itself cannot run. It establishes that the packaged AppArmor integration cannot provide host AppArmor confinement in the current SteamOS state.
+5. It also does not establish whether the SteamOS kernel could be rebuilt/reconfigured with AppArmor, whether a different LSM stack is supported, or whether enabling AppArmor would be compatible with SteamOS. Those questions were not tested and are outside this read-only step.
+6. Do not install AppArmor userspace, change boot parameters, alter kernel/LSM configuration, load profiles, or attempt to activate the packaged policy as a follow-on inferred from this result. Such changes would require a separate feasibility and security review, exact package provenance, rollback plan, and explicit approval.
+
+### 5.13.5 Disposition
+
+- **Host AppArmor compatibility in current state:** **NOT AVAILABLE / DISABLED**.
+- **Static LXC AppArmor package review:** **COMPLETE** for the nine selected members (01G/01H).
+- **Host profile parser compatibility:** **NOT TESTED**; no parser exists, and no parser invocation was attempted.
+- **Profile load/enforcement:** **NOT AVAILABLE** in the observed host state; no profile was loaded.
+- **LXC runtime viability:** **UNDETERMINED by this test**; do not equate AppArmor absence with LXC runtime failure.
+- **Package installation gate:** remains **BLOCKED** by unresolved pacman DBPath/write-access failure and unauthenticated package signature provenance.
+- **Side effects:** none reported; no host state was changed.
+
+**Next bounded work:** source-only trace of LXC v7.0.0's launcher/profile-transition code paths to determine which process carries the `start-container` abstraction and under what conditions the `change_profile -> unconfined` rules are exercised. This will be a source review only: no parser, package operation, profile activation, LXC launch, or host mutation. Authenticated SteamOS signing-key provenance remains a separate prerequisite before detached-signature verification.
+
+---
+
 ## 14. Current continuation handoff
 
 **Project:** Waydroid SSH — read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN but package-safety gate BLOCKED.
@@ -4737,7 +4964,7 @@ Signature trust remains a separate gate: identify an authenticated SteamOS signi
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed test:** LXC-EXP-01H (§5.12) — completed the two AppArmor abstractions truncated in 01G, with the exact archive SHA-256 reverified. The full 242-line container-base and 53-line start-container abstractions are now recorded. The policy includes broad mount/propagation permissions, path-specific proc/sys denials, unrestricted umount in the start abstraction, and explicit change_profile transitions to unconfined. No parser validation or profile load was performed.
+**Latest completed test:** LXC-EXP-01I (§5.13) — read-only SteamOS AppArmor host audit. AppArmor is disabled (`/sys/module/apparmor/parameters/enabled` = `N`), absent from the active LSM list, and has no exposed securityfs interface, installed parser/status tools, checked policy directories, or active service. The nine packaged AppArmor members remain fully reviewed statically (01G/01H), but cannot currently be enforced through host AppArmor. No parser compatibility test, profile load, package installation, service activation, or host mutation occurred.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -4751,11 +4978,11 @@ Signature trust remains a separate gate: identify an authenticated SteamOS signi
 - LXC-EXP-01E identified the exact AppArmor, systemd, /etc, /var, and executable paths. LXC-EXP-01F inspected the five service units and two configuration files, revealing autostart defaults, LXC network helper integration, AppArmor loading, monitoring and per-container systemd units. LXC-EXP-01G inspected nine AppArmor archive members; the default and optional profile distinctions were identified, but two long abstractions remain partially reviewed.
 - **Disposition:** the earlier missing-manifest finding is superseded by direct archive inspection. The pacman DBPath/write-access cause remains INCONCLUSIVE; signature validity remains unverified; service/AppArmor integration and rollback remain under review. Package-manager safety and the installation gate therefore remain **BLOCKED**. The generic lock investigation is closed on current evidence. No further generic diagnostics or package retries are justified.
 
-**Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. The exact SteamOS repository archive has been inspected directly: 202 regular payload entries, no .INSTALL, AppArmor profiles, five systemd units, configuration defaults and LXC state paths. No LXC binary has been installed or run.
+**Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. The exact SteamOS repository archive has been inspected directly: 202 regular payload entries, no .INSTALL, AppArmor profiles, five systemd units, configuration defaults and LXC state paths. LXC-EXP-01I confirms AppArmor is disabled/unavailable on the current host; this removes current AppArmor enforcement as a viable protection layer for this package but does not by itself determine LXC runtime viability. No LXC binary has been installed or run.
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01I — perform a read-only SteamOS AppArmor host compatibility audit: determine availability/enabled state, installed parser/package version, policy paths, active policy state and relevant kernel feature interfaces. Do not invoke parser load mode, load/replace profiles, install packages or modify host configuration. In parallel, trace the exact LXC 7.0.0 code path and launcher attachment semantics for the packaged `change_profile -> unconfined` permissions; source review does not authorize profile activation. Separately establish authenticated SteamOS signing-key provenance before detached-signature verification; do not import keys or modify the Deck keyring. Then reconcile package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
+**Active next gate:** LXC-EXP-01J — source-only trace of LXC v7.0.0's AppArmor launcher/profile-transition path for the packaged `change_profile -> unconfined` permissions. Determine which process carries `abstractions/lxc/start-container`, which transition requests are issued, whether the transitions apply to the launcher or container process, and under what configuration/runtime conditions they can be exercised. No parser, package operation, profile activation, LXC launch, or host mutation. Separately establish authenticated SteamOS signing-key provenance before detached-signature verification; do not import keys or modify the Deck keyring. Then reconcile package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -4798,6 +5025,7 @@ Signature trust remains a separate gate: identify an authenticated SteamOS signi
 | 4.0 | 2026-11-07 | Completed the five-test LXC-EXP-01B–01F documentation cycle and consistency review; preserved unchanged v3.9 snapshot; confirmed the exact SteamOS repository endpoint, archive and detached-signature filename; directly inspected package metadata and 202-entry payload manifest; identified AppArmor policy, five systemd units, default autostart/network configuration and state paths; inspected all five service units and two default configuration files; superseded the missing-archive-manifest finding while retaining package-manager safety BLOCKED due unresolved DBPath/write-access failure and unverified signature; corrected the host/off-host execution record and updated the executive assessment and continuation handoff. |
 | 4.1 | 2026-11-07 | Recorded LXC-EXP-01G with the exact command, observed archive SHA-256 and supplied output; reviewed the visible profile distinctions and mount/capability/DBus/signal/ptrace policy classes; explicitly marked container-base and start-container incomplete because each was truncated at 35 lines; retained signature and package-manager blockers; updated the executive status, package-safety handoff and next bounded review. No AppArmor parser/load, package install, service activation, cgroup mutation or LXC runtime test occurred. |
 | 4.2 | 2026-11-07 | Recorded LXC-EXP-01H exact command and complete supplied output; verified the same package SHA-256 as 01G; completed the remaining lines of both AppArmor abstractions; analyzed mount/propagation, proc/sys restrictions, umount, pivot_root and explicit unconfined profile-transition permissions; updated test disposition, executive status and next gate to read-only SteamOS AppArmor compatibility plus source-path tracing. No parser validation/load, installation, service activation or runtime test occurred. |
+| 4.3 | 2026-11-07 | Recorded LXC-EXP-01I exact read-only command and complete user-supplied output; confirmed AppArmor disabled (`enabled=N`), absent from the active LSM list and securityfs interface, with no queried userspace packages/tools, checked policy directories, loaded-profile interface or active service; distinguished static packaged policy findings from current host enforcement; retained the package-manager and signature-trust blockers; advanced the next gate to source-only LXC v7.0.0 launcher/profile-transition tracing (01J). No parser invocation, profile load, package/service change, LXC runtime or host mutation occurred. |
 
 ---
 
