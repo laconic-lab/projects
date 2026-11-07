@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the first local GPG key-display attempts (01K-B/BR) are inconclusive because the default GPG home is absent and the system keyring directory is read-only; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; temporary GPG-home cleanup is unconfirmed; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 4.6  
+> **Document version:** 4.7  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -3940,6 +3940,135 @@ The 01K-B attempt remains incomplete. The latest completed test remains 01K-A. T
 **LXC-EXP-01K-C — choose a strictly bounded, disposable GPG working-home strategy.** Before execution, decide whether a temporary private directory under a writable temporary filesystem is acceptable. Such a test would create temporary files and must use a dedicated mode-0700 directory, must not import keys or change trust, and must remove only that exact directory after confirming its path and contents. Because this introduces filesystem writes, obtain explicit approval before running it. If that boundary is not approved, stop this local GPG inspection path and pursue independent signer provenance through authoritative public documentation without changing the Deck keyring. The pacman DBPath/write-access blocker remains separate and unchanged.
 
 
+## 5.17 LXC-EXP-01K-C — disposable GPG home inspection
+
+### 5.17.1 Purpose and scope
+
+This approved test repeated the read-only inspection of the existing `/usr/share/pacman/keyrings/holo.gpg` input while giving GnuPG a dedicated writable temporary home. It did not import keys, alter trust, invoke `pacman-key`, verify a package signature, invoke pacman, install software, or change host configuration.
+
+The user supplied the command and output transcript. The script created `/tmp/lxc-gpg-audit.eWVvii`, owned by `deck:deck` with mode `0700`. The cleanup result expected from the script's EXIT trap is **not present in the supplied transcript**; successful cleanup must therefore not be inferred.
+
+### 5.17.2 Exact command executed
+
+The command was the LXC-EXP-01K-C disposable-home inspection script previously approved in the conversation. Its operative steps were:
+
+1. Set `KEYRING=/usr/share/pacman/keyrings/holo.gpg`.
+2. Record the input file metadata and SHA-256.
+3. Create a unique `/tmp/lxc-gpg-audit.XXXXXX` directory, set mode `0700`, and check owner/mode.
+4. Register an EXIT trap intended to remove only that exact-prefix temporary directory after verifying that it is a directory owned by the current UID.
+5. Run both `gpg --no-options --homedir "$GHOME" --batch --no-tty --show-keys --with-fingerprint --with-subkey-fingerprint --keyid-format long "$KEYRING"` and the corresponding colon-format inspection with `--with-colons --fingerprint --fingerprint`.
+6. Recompute the input SHA-256 and compare it with the initial value.
+
+The full script is preserved in the user-supplied conversation transcript for this test; no additional host command or package operation was performed.
+
+### 5.17.3 Complete observed key identity output
+
+```text
+File: /usr/share/pacman/keyrings/holo.gpg | Owner: root:root | Mode: 755 | Size: 39295 bytes
+SHA256_BEFORE: 408454d076d3a71c0bbbb435c84ee1682eab5e9eb7b93669c5c5a4a4d0abfb97
+GPG_HOME: /tmp/lxc-gpg-audit.eWVvii
+Owner: deck:deck | Mode: 700
+
+pub   rsa4096/DE5ADAE0004B20B8 2022-02-02 [SC]
+      Key fingerprint = 21CC B1E3 7CDE DA6E 7F85  27BE DE5A DAE0 004B 20B8
+uid                            Jeremy Whiting <jeremy.whiting@collabora.com>
+sub   rsa4096/D66678F81359168F 2022-02-02 [E]
+      Key fingerprint = A833 0D61 059C 89FB 60DD  869D D666 78F8 1359 168F
+
+pub   rsa4096/E016D87C776DA51F 2010-12-06 [SC]
+      Key fingerprint = 21F9 4268 CDDE 1750 B5A5  7834 E016 D87C 776D A51F
+uid                            Vivek Das Mohapatra (fledermaus) <vivek@etla.org>
+uid                            Vivek Dasmohapatra (fledermaus) <vivek.dasmohapatra@collabora.co.uk>
+uid                            Vivek Dasmohapatra (fledermaus) <vivek@collabora.co.uk>
+uid                            Vivek Dasmohapatra (fledermaus) <vivek@collabora.com>
+uid                            Vivek Dasmohapatra <vivek@collabora.co.uk>
+uid                            Vivek Dasmohapatra <vivek@collabora.com>
+uid                            Vivek Das Mohapatra <vivek@collabora.com>
+sub   rsa4096/184E037CBF2D3FB4 2010-12-06 [E]
+      Key fingerprint = E97A 0358 62C4 C2DC D3DB  1E70 184E 037C BF2D 3FB4
+
+pub   ed25519/974E9966847B6169 2022-02-02 [SC]
+      Key fingerprint = 5684 7CCF B6F5 8BEB 9554  50AC 974E 9966 847B 6169
+uid                            Alvaro Soliverez (Alvaro's Collabora Key) <alvaro.soliverez@collabora.com>
+sub   cv25519/4A89CF9B5595C6CA 2022-02-02 [E]
+      Key fingerprint = ADE9 8595 F867 7CDF D6A0  8204 4A89 CF9B 5595 C6CA
+
+pub   rsa4096/EDAE37B02CEB490D 2014-08-31 [C]
+      Key fingerprint = 8703 B670 0E7E E06D 7A39 B8D6 EDAE 37B0 2CEB 490D
+uid                            Emil Velikov <emil.l.velikov@gmail.com>
+uid                            Emil Velikov <emil.velikov@collabora.com>
+sub   rsa4096/21F683DBB8F43DE8 2014-08-31 [E]
+      Key fingerprint = 122D D823 296A 96EE BFDF 91A6 21F6 83DB B8F4 3DE8
+sub   rsa4096/1427CD8D660CD365 2018-11-10 [A]
+      Key fingerprint = 337E 0E70 CD77 1438 1565 0136 1427 CD8D 660C D365
+
+pub   rsa4096/AF1D2199EF0A3CCF 2021-12-01 [SC]
+      Key fingerprint = 889B 5EBD DD50 5A68 3621 900D AF1D 2199 EF0A 3CCF
+uid                            GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>
+
+pub   rsa4096/4DE8FF2A63C7CC90 2009-05-08 [SC] [expires: 2029-05-04]
+      Key fingerprint = DA98 F25C 0871 C49A 59EA FF2C 4DE8 FF2A 63C7 CC90
+uid                            Simon McVittie <smcv@pseudorandom.co.uk>
+uid                            Simon James McVittie (born 1983-08-25)
+uid                 [ revoked] Simon McVittie <simon.mcvittie@collabora.co.uk>
+uid                            Simon McVittie <smcv@debian.org>
+sub   rsa4096/47827FE4DB8B0139 2017-07-01 [A] [expired: 2022-12-18]
+      Key fingerprint = 87FB DC2F 62DF 4AEC 3B37 5504 4782 7FE4 DB8B 0139
+sub   rsa4096/E05AE1478F814C4F 2017-07-01 [S] [expired: 2022-12-18]
+      Key fingerprint = 36EC 5A64 48A4 F5EF 79BE FE98 E05A E147 8F81 4C4F
+sub   rsa4096/0AB3FDF720FB245D 2009-05-08 [E] [expired: 2022-12-18]
+      Key fingerprint = DB3A 64D8 EC43 4CFF AF5A F821 0AB3 FDF7 20FB 245D
+
+gpg: WARNING: No valid encryption subkey left over.
+HUMAN_READABLE_GPG_STATUS: SUCCESS
+```
+
+### 5.17.4 Machine-readable record summary
+
+Both colon-format inspection and human-readable inspection returned success. The colon output contained these six primary-key fingerprints and primary user identities:
+
+| Primary key ID | Full primary fingerprint | Primary UID |
+|---|---|---|
+| `DE5ADAE0004B20B8` | `21CCB1E37CDEDA6E7F8527BEDE5ADAE0004B20B8` | Jeremy Whiting <jeremy.whiting@collabora.com> |
+| `E016D87C776DA51F` | `21F94268CDDE1750B5A57834E016D87C776DA51F` | Vivek Das Mohapatra (fledermaus) <vivek@etla.org> |
+| `974E9966847B6169` | `56847CCFB6F58BEB955450AC974E9966847B6169` | Alvaro Soliverez <alvaro.soliverez@collabora.com> |
+| `EDAE37B02CEB490D` | `8703B6700E7EE06D7A39B8D6EDAE37B02CEB490D` | Emil Velikov <emil.l.velikov@gmail.com> |
+| `AF1D2199EF0A3CCF` | `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` | GitLab CI Package Builder <ci-package-builder-1@steamos.cloud> |
+| `4DE8FF2A63C7CC90` | `DA98F25C0871C49A59EAFF2C4DE8FF2A63C7CC90` | Simon McVittie <smcv@pseudorandom.co.uk> |
+
+The colon output also contained subkey fingerprints and showed Simon McVittie's revoked UID and expired subkeys. The original complete machine-readable output is recorded in the user-supplied test transcript. The warning `No valid encryption subkey left over` also appeared after this command; both command status markers were SUCCESS.
+
+### 5.17.5 Integrity and cleanup observations
+
+```text
+SHA256_AFTER:  408454d076d3a71c0bbbb435c84ee1682eab5e9eb7b93669c5c5a4a4d0abfb97
+KEYRING_INTEGRITY_CHECK: UNCHANGED
+===== END LXC-EXP-01K-C =====
+```
+
+- The before/after SHA-256 values match exactly. The source `holo.gpg` file is confirmed unchanged by this test.
+- The temporary directory was confirmed as `deck:deck`, mode `0700`.
+- **Cleanup is unconfirmed:** the supplied output stops after the test's end marker and shell prompt; it does not contain the EXIT trap's expected “TEMPORARY DIRECTORY CLEANUP”, “TEMP_DIRECTORY_REMOVED”, or “SCRIPT_EXIT_STATUS” lines. Do not claim the directory was removed until separately checked.
+- The GPG warning is not a failed identity-listing status; it concerns the inspected key material's encryption subkeys.
+
+### 5.17.6 Findings, limits and disposition
+
+**01K-C: PARTIAL PASS.** GnuPG successfully extracted six primary public-key identities, full primary fingerprints, associated UIDs and subkey fingerprints from the local Holo keyring using a dedicated writable temporary home. The input keyring remained unchanged.
+
+The keyring contains a primary key labelled **GitLab CI Package Builder** with fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. This is a candidate identity for provenance investigation, not proof that it signed the exact LXC archive. A local UID label and local keyring membership are not independent authentication. The output does not establish that the exact archive's detached signature validates against this key, nor that this fingerprint is authentic from an independent trust anchor.
+
+No archive signature was verified; no key was imported; no trust was changed; `pacman-key` and pacman were not invoked; no package was installed; no service, cgroup controller, mount, device or runtime was changed. The package-manager DBPath/write-access discrepancy remains a separate blocker.
+
+### 5.17.7 Next gate — LXC-EXP-01K-D
+
+Before more signer analysis, establish whether the exact temporary GPG directory was removed. This is a narrow cleanup-verification gate, not a repeat of the key inspection. Inspect only the exact path `/tmp/lxc-gpg-audit.eWVvii`; do not use a wildcard cleanup. If it remains, verify its path, directory type, owner and contents before deciding whether the already-approved exact-directory cleanup is safe.
+
+After cleanup is resolved, investigate independent authoritative provenance for the candidate fingerprint and the exact archive/signature pair. Do not run a package signature verification unless the exact archive and matching detached signature are available and the trust anchor has been independently authenticated. Do not retry pacman, mutate DBPath, import keys or change trust. LXC installation remains blocked.
+
+Repeat policy: do not repeat 01K-C unless its output is shown to be incomplete for a specific field or the keyring materially changes. Preserve this result as the current completed inspection.
+
+---
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -5253,7 +5382,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed test:** LXC-EXP-01K-A (§5.15) — read-only local signing-key inventory. GPG 2.4.9 is available; `/usr/share/pacman/keyrings/holo.gpg` and `archlinux.gpg` are present; `/etc/pacman.d/gnupg` yielded no matching top-level keyring/trust files; the package cache directory is absent and the bounded `/home/deck` search found no local LXC archive/signature. No key identity/fingerprint was extracted or authenticated and no signature was verified. No keyring changes or package-manager commands occurred.
+**Latest completed test:** LXC-EXP-01K-C (§5.17) — disposable GPG-home inspection. GPG 2.4.9 successfully extracted six primary key fingerprints and UIDs from `/usr/share/pacman/keyrings/holo.gpg`; the `GitLab CI Package Builder` UID is associated locally with fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. This is local key identification only, not independent authentication and not proof that the exact LXC archive was signed by this key. The source keyring SHA-256 was unchanged. The transcript does not include the EXIT trap's cleanup output, so removal of `/tmp/lxc-gpg-audit.eWVvii` is unconfirmed. No package signature was verified; no keys were imported, trust changed or package-manager commands invoked.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -5271,7 +5400,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01K-C — decide whether to approve a narrowly scoped disposable GPG working home under a writable temporary filesystem. 01K-B failed because the default `/home/deck/.gnupg` directory is absent; 01K-BR confirmed that using the read-only system keyring directory as GPG's home fails when GnuPG attempts to create lock/database state. No further GPG invocation is authorized until the temporary-write boundary is explicitly approved. If approved, use only a dedicated mode-0700 temporary directory, do not import keys or alter trust, inspect the exact `holo.gpg` input, and remove only the verified temporary directory. If not approved, stop local GPG inspection and use authoritative external provenance sources instead. The partial short key ID `DE5ADAE0004B20B8` is not a full fingerprint or authenticated signer identity. Keep the pacman DBPath/write-access discrepancy blocked and do not retry pacman. Do not claim signature verification until the trust anchor is independently authenticated. No package installation or runtime test without a separate complete plan and explicit approval.
+**Active next gate:** LXC-EXP-01K-D — verify cleanup of the exact temporary path `/tmp/lxc-gpg-audit.eWVvii`. The 01K-C output confirmed that directory was created with owner `deck:deck` and mode `0700`, but the supplied transcript omitted the EXIT trap's cleanup messages. Inspect only this exact path; do not use a wildcard. If it remains, inspect its directory type, owner and contents before removing anything. Then research independent authoritative provenance for the locally observed candidate fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` and the exact LXC archive/signature pair. The six primary fingerprints extracted in 01K-C are local identifications, not independent authentication. No package signature has been verified. Keep the pacman DBPath/write-access discrepancy blocked and do not retry pacman, import keys or change trust. No package installation or runtime test without a separate complete plan and explicit approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -5317,6 +5446,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 | 4.3 | 2026-11-07 | Recorded LXC-EXP-01I exact read-only command and complete user-supplied output; confirmed AppArmor disabled (`enabled=N`), absent from the active LSM list and securityfs interface, with no queried userspace packages/tools, checked policy directories, loaded-profile interface or active service; distinguished static packaged policy findings from current host enforcement; retained the package-manager and signature-trust blockers; advanced the next gate to source-only LXC v7.0.0 launcher/profile-transition tracing (01J). No parser invocation, profile load, package/service change, LXC runtime or host mutation occurred. |
 | 4.5 | 2026-11-07 | Recorded exact user-supplied LXC-EXP-01K-A read-only inventory: GPG 2.4.9 available; `holo.gpg` and `archlinux.gpg` present; no matching top-level files listed in `/etc/pacman.d/gnupg`; package cache directory absent; bounded home search found no local candidate archive/signature. No fingerprint extracted/authenticated, signature verified, keys imported or keyring changed; retained pacman DBPath blocker and advanced next gate to read-only GPG inspection of `holo.gpg` (01K-B). |\n| 4.4 | 2026-11-07 | Completed source-only LXC-EXP-01J against upstream v7.0.0: identified `usr.bin.lxc-start` as the profile including `abstractions/lxc/start-container`; traced LSM preparation and child-side label change immediately before container-init exec; confirmed explicit `lxc.apparmor.profile = unconfined` can request the allowed transition while the default target is a confined LXC profile and the monitor parent is not changed; qualified this as conditional upstream behavior, not current Deck enforcement or proof of host escape; recorded exact source references and SteamOS build-equivalence limitation; retained package-manager/signature blockers and advanced next gate to authenticated signing-key provenance review (01K). No runtime or host mutation occurred. |
 | 4.6 | 2026-11-07 | Recorded LXC-EXP-01K-BR: GPG confirmed both paths exist but could not inspect the system keyring as a homedir because GnuPG attempted lock/database writes on the read-only system filesystem; captured the partial short key ID without treating it as a fingerprint or authenticated signer; marked the attempt inconclusive, prohibited further use of the system directory as GPG home, and advanced the gate to an explicitly approved disposable temporary-home decision. No key import/trust change, package-manager action, signature verification, installation or runtime test occurred. |
+| 4.7 | 2026-11-07 | Recorded LXC-EXP-01K-C: GPG successfully extracted six primary key fingerprints and UIDs using a disposable mode-0700 home; confirmed the original `holo.gpg` SHA-256 unchanged; identified a locally labelled GitLab CI Package Builder key as a provenance candidate without treating it as independently authenticated or as proof of the exact archive signer; explicitly marked temporary-home cleanup unconfirmed because the EXIT trap output was absent; advanced the next gate to exact-path cleanup verification (01K-D) and independent signer provenance. No signature verification, key import/trust change, pacman action, installation or runtime test occurred. |
 
 ---
 
