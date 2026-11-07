@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.1  
+> **Version:** 1.2  
 > **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -856,6 +856,165 @@ odysseus-gate-a-internal-test
 - Do not yet select the internal network as a complete production boundary.
 - **Next test:** NET-04 — two-container internal communication and egress boundary (proposed; approval required).
 
+
+### NET-04 — Two-container internal communication and egress boundary
+
+- **Date/time:** 2026-11-07 local time (network creation: 2026-11-07T02:16:57.937434467Z UTC)
+- **Status:** PASS for the tested internal peer communication and external-egress criteria; lifecycle caveat recorded
+- **Environment:** SteamOS host / rootless Podman; two disposable containers on a temporary dedicated internal bridge
+- **Runtime/image:** Cached `docker.io/library/python:3-alpine`; image check exit code 0; both runs used `--pull=never`
+- **Prerequisites:** NET-03; explicit user approval for the complete NET-04 Stages A–I
+- **Question:** Can two containers communicate bidirectionally on a dedicated `--internal` bridge while both remain unable to reach the tested host, router and public destinations?
+- **Acceptance:** Peer DNS and TCP communication succeeds in both directions; host SSH, router DNS, public HTTPS and public DNS lookup fail from both peers; network inspection confirms internal status and both peers; cleanup is independently verified.
+- **Why new:** NET-03 tested a single container's external-egress behavior. It did not test whether two containers on the internal bridge could communicate.
+- **Approval:** Explicit approval received for the complete proposed NET-04 sequence, Stages A–I.
+- **Resources:** Network `odysseus-net04-internal-test`; containers `odysseus-net04-peer-a` and `odysseus-net04-peer-b`; image `docker.io/library/python:3-alpine`.
+- **Network identity:** ID `92b3a0ae13c820bba492af15c4b92c75909503b95d1387695eb0fd2f06863e6c`; bridge interface `podman1`; subnet `10.89.0.0/24`; gateway `10.89.0.1`; IPv6 disabled; DNS enabled; `internal: true`.
+
+**Preflight output**
+```text
+Image check exit code: 0
+NETWORK ID  NAME        DRIVER
+
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+```
+No network or container name collision was present. The cached image was available.
+
+**Container startup and readiness**
+Both `podman run -d --rm --pull=never` commands returned container IDs:
+- Peer A: `ac6cc474e59501e5ad5e6061ae1e05e9b87846bfba701dbbf6a6cd33de1ce528`
+- Peer B: `f48c40056520ae49e1ca8d0eabf415fca45d2ce1cb614bb6a4c643d3c1d5b461`
+
+Logs:
+```text
+NET04 PEER A READY
+NET04 PEER B READY
+```
+
+**Bidirectional peer communication**
+Peer A resolved `net04-peer-b` to `10.89.0.3`, connected to TCP port 18080 and received the expected response:
+```text
+=== A -> B ===
+DNS: [(<AddressFamily.AF_INET: 2>, <SocketKind.SOCK_STREAM: 1>, 6, 'net04-peer-b.dns.podman', ('10.89.0.3', 18080))]
+TCP: CONNECTED
+RESPONSE: NET04 RESPONSE FROM PEER B
+```
+
+Peer B resolved `net04-peer-a` to `10.89.0.2`, connected to TCP port 18080 and received the expected response:
+```text
+=== B -> A ===
+DNS: [(<AddressFamily.AF_INET: 2>, <SocketKind.SOCK_STREAM: 1>, 6, 'net04-peer-a.dns.podman', ('10.89.0.2', 18080))]
+TCP: CONNECTED
+RESPONSE: NET04 RESPONSE FROM PEER A
+```
+
+**External-egress probes from both peers**
+
+Both peers displayed the same IPv4 route and resolver:
+```text
+Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask
+eth0    0000590A        00000000        0001    0       0       0       00FFFFFF
+
+search dns.podman .
+nameserver 10.89.0.1
+```
+
+Peer A:
+```text
+Host SSH: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+Router DNS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+Public HTTPS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+DNS FAILED: gaierror [Errno -2] Name does not resolve
+```
+
+Peer B:
+```text
+Host SSH: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+Router DNS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+Public HTTPS: BLOCKED/FAILED (OSError: [Errno 101] Network unreachable)
+DNS FAILED: gaierror [Errno -2] Name does not resolve
+```
+
+Targets were:
+- Host SSH: `192.168.1.161:22`
+- Router DNS: `192.168.1.254:53`
+- Public HTTPS: `1.1.1.1:443`
+- DNS name: `example.com`
+
+**Network and container inspection**
+
+Network inspection confirmed:
+```json
+{
+  "name": "odysseus-net04-internal-test",
+  "id": "92b3a0ae13c820bba492af15c4b92c75909503b95d1387695eb0fd2f06863e6c",
+  "driver": "bridge",
+  "network_interface": "podman1",
+  "subnets": [{"subnet": "10.89.0.0/24", "gateway": "10.89.0.1"}],
+  "ipv6_enabled": false,
+  "internal": true,
+  "dns_enabled": true,
+  "containers": {
+    "ac6cc474e59501e5ad5e6061ae1e05e9b87846bfba701dbbf6a6cd33de1ce528": {
+      "name": "odysseus-net04-peer-a",
+      "ip": "10.89.0.2/24"
+    },
+    "f48c40056520ae49e1ca8d0eabf415fca45d2ce1cb614bb6a4c643d3c1d5b461": {
+      "name": "odysseus-net04-peer-b",
+      "ip": "10.89.0.3/24"
+    }
+  }
+}
+```
+
+Both `podman inspect` outputs showed:
+- `Mounts: []` and no bind mounts.
+- `PortBindings: {}`, `PublishAllPorts: false`, and `Ports: {}`.
+- `CapAdd: []`; `CapDrop` included all capabilities.
+- `SecurityOpt: ["no-new-privileges"]`.
+- `UsernsMode: "private"` with UID/GID map `0:1:65536` (the invocation used `--userns=nomap`).
+- `Memory: 134217728`; `PidsLimit: 64`.
+- `RestartPolicy: {"Name":"no"}`; `AutoRemove: true`.
+- Both containers were running at inspection time with no reported startup error.
+
+**Cleanup and lifecycle observation**
+
+The cleanup loop stopped both named containers and removed the named network. Podman emitted:
+```text
+WARN[0010] StopSignal SIGTERM failed to stop container odysseus-net04-peer-a in 10 seconds, resorting to SIGKILL
+odysseus-net04-peer-a
+WARN[0010] StopSignal SIGTERM failed to stop container odysseus-net04-peer-b in 10 seconds, resorting to SIGKILL
+odysseus-net04-peer-b
+
+odysseus-net04-internal-test
+```
+
+The independent verification reported:
+```text
+OK: odysseus-net04-peer-a ABSENT
+OK: odysseus-net04-peer-b ABSENT
+OK: NET-04 NETWORK ABSENT
+```
+
+The listeners did not terminate within Podman's 10-second SIGTERM grace period; Podman escalated to SIGKILL. This is a lifecycle/termination caveat to investigate before selecting a production process model. It did not prevent final cleanup: both containers and the network were independently confirmed absent.
+
+**Interpretation**
+- **PASS:** Peer DNS discovery and TCP communication worked in both directions on the internal bridge.
+- **PASS:** Both peers were unable to reach the tested host SSH, router DNS and public HTTPS targets; both public DNS lookups failed with the expected no-route/name-resolution errors.
+- **PASS:** Network inspection confirmed `internal: true`, the expected two attached peers, IPv6 disabled and no other attached container.
+- **PASS:** Container inspection confirmed no host mounts or published ports, no added capabilities, no-new-privileges, resource limits and no restart policy.
+- **PASS:** Cleanup was independently verified for both named containers and the temporary network.
+- **CAVEAT:** Both `podman stop` operations required SIGKILL after the 10-second SIGTERM timeout. The reason was not diagnosed in this test; do not infer a specific runtime defect.
+- **Limits:** This does not test host-to-container access, published-port behavior (none were published), IPv6 egress (disabled), arbitrary LAN targets beyond the named probes, UDP behavior, or the final production topology. It does not prove universal network isolation.
+
+**Conclusion**
+NET-04 **passes its defined two-peer internal communication and named external-egress criteria**. The temporary resources were removed and their absence verified. Preserve the SIGTERM-to-SIGKILL observation as an open lifecycle concern. The next dependency is NET-05 — host-service and published-port boundary. No production network or Odysseus deployment is authorized.
+
+**Exact executed command families**
+The complete commands were the approved NET-04 Stage A–I commands supplied immediately before execution: read-only image/name preflight; `podman network create --internal odysseus-net04-internal-test`; two `podman run -d --rm --pull=never` Python TCP listeners using the approved namespace/capability/security/resource options; readiness logs; two directional `podman exec` Python DNS/TCP probes; separate host/router/public/DNS probes in each peer; network and container inspection; named stop/remove loop; and independent absence checks. The transcript preserves the full exact command text. No numeric shell exit codes were captured for every stage; do not infer them.
+
+---
+
 ---
 
 ## 12. Remaining audit gates — ordered dependency plan
@@ -864,9 +1023,9 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 
 | Order | Gate / test family | Required evidence | Current status |
 |---:|---|---|---|
-| 1 | Dedicated Podman internal network (NET-03) | Tested host/router/Internet/DNS egress blocked; peer communication not included | **PARTIAL — external probes passed; peer test pending** |
-| 2 | Internal component communication | Two disposable containers can communicate only on intended internal network; no unintended egress | NOT TESTED |
-| 3 | Host-service and published-port boundary | Verify host reachability and exposure behavior for candidate network/published-port configuration | NOT TESTED |
+| 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
+| 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
+| 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | NOT TESTED |
 | 4 | IPv6 and DNS behavior | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
@@ -1137,7 +1296,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.0  
+**Canonical version:** 1.2  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -1152,23 +1311,16 @@ Only documents and outputs actually retrieved or recorded may be described as re
 6. Default Podman bridge allowed tested router/LAN and Internet connectivity; do not use it as the Agent/Inspector isolation network.
 7. cgroup v2 and user-level delegation exist, but writable nested cgroup delegation inside the disposable rootless container was not demonstrated.
 8. AppArmor and SELinux are disabled.
-9. NET-03 created a temporary Podman bridge marked `internal: true`; the tested container could not reach host SSH, router DNS or public HTTPS, and DNS lookup failed.
-10. The temporary NET-03 network was removed; its disposable container used `--rm`. No Odysseus container, LXC container or production network has been created.
+9. NET-03 tested one container on a temporary Podman bridge marked `internal: true`; host SSH, router DNS, public HTTPS and DNS lookup probes failed.
+10. NET-04 confirmed bidirectional DNS/TCP communication between two disposable peers on a new `internal: true` bridge. Both peers failed the same named host/router/public/DNS probes. The network inspection showed peers at `10.89.0.2` and `10.89.0.3`, with no published ports or mounts.
+11. NET-04 cleanup independently confirmed both containers and the temporary network absent. Both containers required SIGKILL after Podman's 10-second SIGTERM timeout; investigate graceful shutdown as a separate lifecycle concern.
+12. No Odysseus container, LXC container or production network has been created.
 
 ### 18.2 Immediate next action
 
-NET-03 has been executed. Its external-egress probe passed for the four named behaviors, but the broader test remains partial because peer-to-peer communication was not tested.
+NET-03 and NET-04 are complete. NET-04 demonstrated bidirectional peer DNS/TCP communication while both peers remained unable to reach the named host SSH, router DNS, public HTTPS and public DNS targets. The internal network and both containers were removed and independently verified absent. Preserve the SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-The next dependency is **NET-04 — two-container internal communication and egress boundary**. Before proposing execution:
-- define two uniquely named disposable containers on a newly created, uniquely named temporary internal network;
-- use only cached images and `--pull=never`;
-- test peer-to-peer reachability in the intended direction(s);
-- repeat the host, router, public HTTPS and DNS probes from both peers;
-- inspect network membership and routes without touching protected containers;
-- remove only the two named containers/network and verify cleanup;
-- present exact commands, risks and approval boundary, then wait for explicit approval.
-
-Do not assume the first NET-03 result proves peer communication or a production network boundary.
+The next dependency is **NET-05 — host-service and published-port boundary**. It must be designed as a distinct test: NET-04 had no published ports and did not test host-to-container reachability. Before proposing execution, define the exact host-side and container-side probes, the temporary resources, the cleanup, and the approval boundary. Do not repeat NET-03 or NET-04 without a changed condition or a newly identified path.
 
 ### 18.3 Explicitly not authorized
 
@@ -1200,6 +1352,7 @@ The first assistant action in a new conversation should be:
 |---|---|---|
 | 1.0 | 2026-11-06 | Created the canonical Phase 1.4 deployment-feasibility audit. Consolidated the 1.4.0–1.4.14 journey, recorded confirmed UID/mount/network/cgroup/runtime evidence, distinguished Podman/Distrobox/LXC/LXD/Incus/VM architectures, established test and decision schemas, five-test review/archive cadence, anti-repetition protocol and new-chat handoff. Original source exports preserved unchanged under the dated archive. |
 | 1.1 | 2026-11-07 | Recorded NET-03 immediately after execution: dedicated internal bridge confirmed; host SSH, router DNS, public HTTPS and DNS-name-resolution probes blocked; temporary network removal recorded; peer-to-peer communication explicitly left untested. Updated the dependency gate and continuation handoff. No five-test snapshot triggered. |
+| 1.2 | 2026-11-07 | Recorded NET-04 immediately after execution: two disposable peers resolved and reached each other bidirectionally; both peers were blocked from the named host/router/public/DNS probes; inspection confirmed internal bridge membership and restricted container settings; cleanup independently verified. Recorded SIGTERM timeout/SIGKILL escalation as a lifecycle caveat. Advanced the next gate to NET-05. No five-test snapshot triggered. |
 
 ---
 
