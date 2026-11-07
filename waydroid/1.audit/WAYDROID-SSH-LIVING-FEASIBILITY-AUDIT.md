@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-03 confirmed positive access predicates; LXC-CGROUP-01 then confirmed actual empty child-cgroup creation, inspection and removal inside a transient delegated scope; process movement, controller activation and LXC runtime behavior remain untested; no LXC installation performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-03 confirmed positive access predicates; LXC-CGROUP-01 confirmed actual empty child-cgroup creation/inspection/removal; LXC-CGROUP-02 confirmed actual process placement into and removal from a delegated child cgroup; controller activation, LXC runtime behavior and nested LXC inside rootless Podman remain untested; no LXC installation performed**.
 >
-> **Document version:** 3.3  
+> **Document version:** 3.4  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2777,6 +2777,306 @@ No controller activation or process movement performed.
 - The rootless Podman cgroup mount remains read-only; this direct-host result does not establish nested LXC inside Podman.
 
 
+
+
+#### LXC-CGROUP-02 — delegated child-cgroup process placement and cleanup
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **COMPLETED / PASSED — one temporary process was moved from the transient delegated parent scope into a child cgroup, membership was independently verified, the process was terminated/reaped, and the empty child cgroup was removed**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), invoked over SSH
+- **Transient scope:** run-p515138-i514057.scope
+- **Invocation ID:** 9218bdeda0de49adb37bcf0b374413d2
+- **Test process PID:** 515140
+- **Question:** Can a process owned by a transient user systemd scope with Delegate=yes be moved into a child cgroup and then cleanly terminated, reaped, and removed?
+- **Gate addressed:** Phase 1.5 direct host-level delegated cgroup feasibility, Gate 4 in §9. This is a real process-placement operation, distinct from LXC-CGROUP-01's empty child-cgroup creation/removal.
+- **Prior evidence relied upon:** LXC-SCOPE-03 confirmed the actual transient scope path, cgroup2 rw mount and positive write-access predicates. LXC-CGROUP-01 then confirmed actual creation, inspection and removal of one empty child cgroup. Neither prior test moved a process.
+- **Why new:** This test exercises the actual cgroup.procs process-placement operation and verifies the resulting membership through both /proc/PID/cgroup and the child cgroup's process list.
+- **Side-effect boundary:** One short-lived transient user scope, one child cgroup named lxc-audit-probe-process, and one /usr/bin/sleep 60 process. The process was terminated and reaped; the child cgroup was confirmed empty and removed. No controller was activated, no resource limit was set, no persistent systemd configuration changed, and no Podman, Pi-hole, Odysseus, LXC or Waydroid workload was modified.
+- **Repeat policy:** Do not repeat merely to reconfirm process placement. A future test must address a distinct LXC requirement and receive its own approval. This result is not authorization to activate controllers, install or launch LXC, or modify the Podman cgroup boundary.
+
+**Exact command executed**
+
+The exact command consisted of the following systemd-run invocation and the Python payload shown below:
+
+~~~bash
+systemd-run \
+  --user \
+  --scope \
+  --property=Delegate=yes \
+  /usr/bin/python -c '
+import pathlib
+import subprocess
+import sys
+
+proc = None
+child = None
+scope = None
+
+def process_cgroup(pid):
+    lines = pathlib.Path("/proc/{}/cgroup".format(pid)).read_text().splitlines()
+    return next(line for line in lines if line.startswith("0::"))
+
+try:
+    print("\n===== 1. PROCESS CGROUP MEMBERSHIP =====")
+
+    own_line = process_cgroup("self")
+    scope_rel = own_line[3:]
+
+    print("Relative path:", scope_rel)
+
+    if not scope_rel.startswith("/user.slice/"):
+        raise RuntimeError("Unexpected cgroup path; stopping.")
+
+    scope = pathlib.Path("/sys/fs/cgroup") / scope_rel.lstrip("/")
+
+    if not scope.is_dir() or scope == pathlib.Path("/sys/fs/cgroup"):
+        raise RuntimeError("Expected distinct scope directory is absent.")
+
+    print("PASS: Delegated scope directory:", scope)
+
+    print("\n===== 2. CGROUP2 MOUNT VALIDATION =====")
+
+    mount = subprocess.run(
+        ["findmnt", "-n", "-o", "FSTYPE,OPTIONS", "-T", str(scope)],
+        check=True,
+        capture_output=True,
+        text=True
+    ).stdout.strip()
+
+    print(mount)
+
+    fields = mount.split(None, 1)
+    if len(fields) != 2 or fields[0] != "cgroup2":
+        raise RuntimeError("Target is not on cgroup2.")
+
+    if "rw" not in fields[1].split(","):
+        raise RuntimeError("Target cgroup2 mount does not report rw.")
+
+    print("PASS: cgroup2 mount is read-write.")
+
+    print("\n===== 3. PARENT CONTROLLER STATE =====")
+
+    print("Available:", (scope / "cgroup.controllers").read_text().strip())
+    print("Enabled:", (scope / "cgroup.subtree_control").read_text().strip())
+
+    print("\n===== 4. CREATE ONE EMPTY CHILD CGROUP =====")
+
+    child = scope / "lxc-audit-probe-process"
+
+    if child.exists():
+        raise RuntimeError("Probe child already exists; refusing to reuse it.")
+
+    child.mkdir()
+    print("PASS: Child cgroup created.")
+    print("Path:", child)
+
+    print("\n===== 5. START ONE TEMPORARY PROCESS =====")
+
+    proc = subprocess.Popen(
+        ["/usr/bin/sleep", "60"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    print("Test process PID:", proc.pid)
+
+    initial_membership = process_cgroup(proc.pid)
+    print("Initial membership:", initial_membership)
+
+    if initial_membership != "0::" + scope_rel:
+        raise RuntimeError("Test process did not start in the expected parent scope.")
+
+    print("PASS: Test process initially belongs to the parent scope.")
+
+    print("\n===== 6. MOVE ONLY THE TEST PROCESS =====")
+
+    with (child / "cgroup.procs").open("w") as handle:
+        handle.write(str(proc.pid) + "\n")
+
+    print("PASS: PID written to child cgroup.procs.")
+
+    print("\n===== 7. VERIFY ACTUAL PROCESS PLACEMENT =====")
+
+    expected_membership = "0::" + scope_rel + "/lxc-audit-probe-process"
+    actual_membership = process_cgroup(proc.pid)
+
+    print("Expected:", expected_membership)
+    print("Actual:  ", actual_membership)
+
+    if actual_membership != expected_membership:
+        raise RuntimeError("Process membership does not match the child cgroup.")
+
+    child_processes = (child / "cgroup.procs").read_text().split()
+
+    print("Child cgroup.procs:", child_processes)
+
+    if child_processes != [str(proc.pid)]:
+        raise RuntimeError("Child cgroup process list does not contain exactly the test PID.")
+
+    print("PASS: Only the intended test process is in the child cgroup.")
+
+    print("\n===== 8. TERMINATE AND REAP TEST PROCESS =====")
+
+    proc.terminate()
+    proc.wait(timeout=5)
+
+    print("PASS: Test process exited.")
+    print("Exit status:", proc.returncode)
+
+    if proc.returncode != -15:
+        print("NOTE: Process exit status differs from the expected SIGTERM status.")
+
+    remaining = (child / "cgroup.procs").read_text().split()
+
+    print("Remaining child processes:", remaining)
+
+    if remaining:
+        raise RuntimeError("Child cgroup is not empty after process exit.")
+
+    print("PASS: Child cgroup is empty.")
+
+    print("\n===== 9. REMOVE CHILD CGROUP =====")
+
+    child.rmdir()
+    child = None
+
+    print("PASS: Child cgroup removed.")
+
+    print("\n===== 10. FINAL PARENT CONTROLLER STATE =====")
+
+    print("Available:", (scope / "cgroup.controllers").read_text().strip())
+    print("Enabled:", (scope / "cgroup.subtree_control").read_text().strip())
+
+    print("\n===== LXC-CGROUP-02 COMPLETE =====")
+    print("One test process was moved and then terminated.")
+    print("No controller activation performed.")
+
+except Exception as error:
+    print("\nFAIL:", str(error))
+    raise
+
+finally:
+    print("\n===== SAFETY CLEANUP =====")
+
+    if proc is not None and proc.poll() is None:
+        print("Terminating remaining test process:", proc.pid)
+        proc.terminate()
+
+        try:
+            proc.wait(timeout=5)
+            print("PASS: Test process reaped.")
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+            print("WARNING: Test process required SIGKILL.")
+
+    if child is not None and child.exists():
+        try:
+            remaining = (child / "cgroup.procs").read_text().split()
+
+            if remaining:
+                print("STOP: Child still contains processes:", remaining)
+                print("Temporary child path:", child)
+            else:
+                child.rmdir()
+                print("PASS: Remaining empty child cgroup removed.")
+
+        except Exception as cleanup_error:
+            print("WARNING: Child cleanup failed:", str(cleanup_error))
+            print("Temporary child path:", child)
+'
+~~~
+
+**Actual user-reported output**
+
+~~~text
+===== LXC-CGROUP-02: DELEGATED PROCESS PLACEMENT =====
+Running as unit: run-p515138-i514057.scope; invocation ID: 9218bdeda0de49adb37bcf0b374413d2
+
+===== 1. PROCESS CGROUP MEMBERSHIP =====
+Relative path: /user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope
+PASS: Delegated scope directory: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope
+
+===== 2. CGROUP2 MOUNT VALIDATION =====
+cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting
+PASS: cgroup2 mount is read-write.
+
+===== 3. PARENT CONTROLLER STATE =====
+Available: cpu memory pids dmem
+Enabled:
+
+===== 4. CREATE ONE EMPTY CHILD CGROUP =====
+PASS: Child cgroup created.
+Path: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope/lxc-audit-probe-process
+
+===== 5. START ONE TEMPORARY PROCESS =====
+Test process PID: 515140
+Initial membership: 0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope
+PASS: Test process initially belongs to the parent scope.
+
+===== 6. MOVE ONLY THE TEST PROCESS =====
+PASS: PID written to child cgroup.procs.
+
+===== 7. VERIFY ACTUAL PROCESS PLACEMENT =====
+Expected: 0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope/lxc-audit-probe-process
+Actual:   0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-p515138-i514057.scope/lxc-audit-probe-process
+Child cgroup.procs: ['515140']
+PASS: Only the intended test process is in the child cgroup.
+
+===== 8. TERMINATE AND REAP TEST PROCESS =====
+PASS: Test process exited.
+Exit status: -15
+Remaining child processes: []
+PASS: Child cgroup is empty.
+
+===== 9. REMOVE CHILD CGROUP =====
+PASS: Child cgroup removed.
+
+===== 10. FINAL PARENT CONTROLLER STATE =====
+Available: cpu memory pids dmem
+Enabled:
+
+===== LXC-CGROUP-02 COMPLETE =====
+One test process was moved and then terminated.
+No controller activation performed.
+
+===== SAFETY CLEANUP =====
+~~~
+
+**Observed facts**
+
+1. systemd-run created transient scope run-p515138-i514057.scope, invocation ID 9218bdeda0de49adb37bcf0b374413d2.
+2. The Python diagnostic ran in the expected unified hierarchy path under /user.slice/user-1000.slice/user@1000.service/app.slice/.
+3. The scope resolved to a distinct existing directory on a cgroup2 mount reported rw.
+4. Parent cgroup.controllers reported cpu memory pids dmem; parent cgroup.subtree_control was empty before and after the test.
+5. The child cgroup was created at .../run-p515138-i514057.scope/lxc-audit-probe-process.
+6. The temporary sleep 60 process (PID 515140) initially belonged to the parent scope, as independently read from /proc/515140/cgroup.
+7. Writing PID 515140 to the child's cgroup.procs succeeded.
+8. After the write, /proc/515140/cgroup reported the exact expected child path, and the child's cgroup.procs contained exactly 515140.
+9. terminate() followed by wait(timeout=5) completed; Python reported return code -15, consistent with termination by SIGTERM.
+10. The child's process list was empty after process exit; rmdir succeeded.
+11. The finally cleanup section ran and printed its heading. No fallback cleanup was needed because the normal path had already removed the child and reaped the process.
+12. No separate overall shell exit-status line was included in the user transcript. The explicit completion marker and all stage-level PASS checks are present; do not invent an overall exit code.
+
+**Interpretation**
+
+- **CONFIRMED:** The host permitted a process already inside the transient delegated parent scope to be moved into a child cgroup by writing its PID to that child's cgroup.procs.
+- **CONFIRMED:** The move was independently observed in the process's unified cgroup membership and in the child process list.
+- **CONFIRMED:** The process could be terminated/reaped, the child became empty, and the child cgroup could be removed.
+- **CONFIRMED:** The parent's available controller list remained cpu memory pids dmem; cgroup.subtree_control remained empty. No controller activation occurred.
+- **NOT ESTABLISHED:** Enabling any controller; LXC's complete cgroup setup, monitor/limit/device-rule operations; LXC startup or teardown; Waydroid startup; or writable delegated cgroup operation from inside the existing rootless Podman container.
+- This direct-host primitive test does not overturn the earlier Podman finding: the nested Podman cgroup2 mount was observed read-only. It demonstrates a direct-host systemd delegated-scope capability, not a writable nested cgroup subtree inside Podman.
+- The transcript does not separately print systemd-run's overall exit status; record the successful stage outputs without claiming a separately observed overall exit code.
+
+**Decision / next step after LXC-CGROUP-02**
+
+- Direct host-level delegated child-cgroup creation/removal and process placement are now CONFIRMED by LXC-CGROUP-01 and LXC-CGROUP-02.
+- The next question is no longer whether a single process can be placed in a delegated child cgroup. It is whether the exact cgroup controller/device operations required by the installed LXC version can be performed safely, and whether the Waydroid launcher can invoke LXC within an appropriate transient delegated scope without broadening host/container privileges.
+- Controller activation and LXC runtime testing remain separate gates and require explicit approval. Do not enable controllers or run LXC automatically.
+- The package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained. Do not retry pacman, refresh file lists, install LXC, or install Waydroid on the basis of this result.
+- Do not change the read-only nested Podman cgroup mount, systemd configuration, host cgroup configuration, firewall, forwarding, services, or existing project containers.
+
 ## 6. Upstream and project documentation review
 
 ### 6.1 Waydroid source inspected
@@ -2914,7 +3214,7 @@ Do not skip ahead to installation. Complete one gate at a time and update this d
 | 1 | Namespace primitives | Tests 20–23 | Nested user, mount and PID namespaces plus child-process lifecycle under default seccomp and the reduced capability set | **COMPLETED — TESTS 20–23** |
 | 2 | Cgroup/LXC strategy | Tests 24–25 plus Gate 3 JSON evidence | Correlate the read-only container cgroup mount with host delegation and Podman manager/runtime; identify a safe writable nested subtree without host changes | **BLOCKED — no writable nested delegation demonstrated; current container cgroup mount is read-only** |
 | 3 | Supported Podman cgroup configuration evidence | Test 25 template query failure | Read-only supported Podman info JSON query; identify manager/version without assumptions | **COMPLETED — Podman 6.0.2, systemd cgroup manager, cgroup v2, crun 1.28-dirty** |
-| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether direct host-level unprivileged LXC can safely create/manage a delegated cgroup subtree; reconcile package manifest before any installation proposal | **CHILD-CGROUP CREATE/REMOVE CONFIRMED (LXC-CGROUP-01); process placement, controller behavior, LXC runtime and package manifest remain unproven/blocked** |
+| 4 | LXC runtime strategy and controlled experiment | Phase 1.5 source review + cgroup boundary assessment | Establish whether direct host-level unprivileged LXC can safely create/manage a delegated cgroup subtree; reconcile package manifest before any installation proposal | **DIRECT-HOST CHILD-CGROUP CREATE/REMOVE AND PROCESS PLACEMENT CONFIRMED (LXC-CGROUP-01/02); controller activation, LXC runtime, nested-Podman delegation and package manifest remain unproven/blocked** |
 | 5 | Binder handoff into LXC | Gate 4 | Actual Binder device nodes visible with narrow permissions; transactions work | UNTESTED |
 | 6 | GPU handoff | Gate 4 | Render node usable by actual workload; renderer confirms AMD hardware acceleration | UNTESTED |
 | 7 | Wayland / D-Bus / audio | Container and session design | Minimal socket/env handoff works from SSH launch | UNTESTED |
@@ -3171,9 +3471,9 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-**Latest source-level reconciliation and operation:** §5.9 reviewed upstream LXC, systemd and Linux kernel cgroup-v2 documentation. LXC-CGROUP-01 (§5.10) subsequently passed a real empty child-cgroup create/inspect/remove operation inside transient delegated scope `run-p511103-i506154.scope`; the cgroup2 mount reported `rw`, the child was empty (`populated 0`), and `rmdir` succeeded. No controller activation or process movement was attempted. The child path was printed with a literal-looking dollar suffix; preserve that output as reported. This confirms one important delegated-subtree operation, not LXC compatibility. A separate process-placement test is the next possible cgroup gate and requires its own approval. Package manifest remains blocked; no pacman retry or installation is authorized.
+**Latest source-level reconciliation and operations:** §5.9 reviewed upstream LXC, systemd and Linux kernel cgroup-v2 requirements. LXC-CGROUP-01 (§5.10) created, inspected and removed one empty child cgroup inside transient delegated scope run-p511103-i506154.scope; the cgroup2 mount reported rw, the child was empty (populated 0), and rmdir succeeded. LXC-CGROUP-02 then passed actual process placement in transient delegated scope run-p515138-i514057.scope: test PID 515140 began in the parent, was moved into lxc-audit-probe-process, and its new membership was confirmed independently through /proc/515140/cgroup and the child cgroup.procs. The process was terminated/reaped with return code -15, the child became empty and was removed. Parent available controllers remained cpu memory pids dmem; cgroup.subtree_control remained empty before and after. No controller activation occurred. The direct-host delegated child-cgroup create/remove and process-placement primitives are now CONFIRMED. This does not establish LXC compatibility, controller/device-rule behavior, Waydroid startup, or writable nested cgroups inside rootless Podman; the earlier Podman cgroup2 mount remains read-only.
 
-**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 created transient scope run-p504174-i508745.scope and confirmed process membership, but systemd-run expanded ${CGROUP_REL} prematurely and all directory/access checks targeted /sys/fs/cgroup; those permission results were invalid for the scope. LXC-SCOPE-03 corrected the expression and confirmed transient scope run-p505279-i516648.scope, process membership, a deck:deck mode-755 scope directory, available child controllers cpu/memory/pids/dmem, an empty cgroup.subtree_control, and positive shell write-access predicates. LXC-CGROUP-01 then created one empty child cgroup in transient scope run-p511103-i506154.scope, verified its empty process list and `populated 0` state, and successfully removed it. The cgroup2 mount reported rw. The child path was printed with a literal-looking dollar suffix; the operation and removal nevertheless succeeded. No controller was activated and no process was moved. Direct delegated child-cgroup creation/removal is now CONFIRMED; process placement, controller activation and LXC startup remain UNTESTED. Next possible gate: separately approved, tightly scoped process-placement test. The package manifest remains blocked and package-lock investigation parked. No LXC installation/launch, Waydroid installation, persistent service, host cgroup change, or package-manager retry is authorized.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 created transient scope run-p504174-i508745.scope and confirmed process membership, but systemd-run expanded ${CGROUP_REL} prematurely and all directory/access checks targeted /sys/fs/cgroup; those permission results were invalid for the scope. LXC-SCOPE-03 corrected the expression and confirmed transient scope run-p505279-i516648.scope, process membership, a deck:deck mode-755 scope directory, available child controllers cpu memory pids dmem, empty cgroup.subtree_control, and positive shell write-access predicates. LXC-CGROUP-01 confirmed actual empty child-cgroup creation/removal. LXC-CGROUP-02 confirmed actual process movement into a delegated child and verified cleanup. **Next possible gate:** assess the exact cgroup controller/device operations required by the installed LXC version and the integration gap between Waydroid's direct LXC launcher and transient delegated scopes. Any controller activation or LXC runtime test requires separate explicit approval; do not run it automatically. The package file manifest remains blocked and the original pacman database-lock failure unexplained. No pacman retry/file-list refresh, LXC installation/launch, Waydroid installation, persistent service, host cgroup change, or package-manager retry is authorized.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -3204,6 +3504,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.1 | 2026-11-07 | Recorded LXC-SCOPE-03: corrected cgroup path resolved to the actual transient delegated scope; confirmed deck:deck ownership, mode 755, available cpu/memory/pids/dmem child controllers, no enabled child controllers, and positive write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control; distinguished access predicates from actual writes; advanced the handoff to package-manifest and LXC cgroup-v2 requirement reconciliation without authorizing writes, controller activation or installation. |
 | 3.2 | 2026-11-07 | Completed read-only source reconciliation of upstream LXC, systemd and Linux cgroup-v2 requirements; confirmed that an empty subtree_control is normal initial state but actual delegated-subtree operations remain untested; distinguished direct-host scope feasibility from the blocked nested-Podman cgroup boundary; retained the package-manifest blocker and explicitly gated any actual cgroup mutation behind separate approval. |
 | 3.3 | 2026-11-07 | Recorded LXC-CGROUP-01: a transient delegated systemd scope successfully created, inspected and removed one empty child cgroup; captured rw cgroup2 mount, available controllers, empty child process list and populated 0 state; noted the reported literal-looking dollar suffix and absent separately captured systemd-run exit status; confirmed no controller activation or process movement; advanced the next possible gate to a separately approved process-placement test while retaining the package-manifest blocker. |
+| 3.4 | 2026-11-07 | Recorded LXC-CGROUP-02: confirmed actual process placement into a delegated child cgroup, independently verified membership through /proc/PID/cgroup and child cgroup.procs, terminated/reaped the test process, and removed the empty child; confirmed controller availability unchanged and subtree_control still empty; updated Gate 4 and the continuation handoff while retaining the nested-Podman and package-manifest blockers. |
 
 ---
 
