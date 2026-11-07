@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; 01K-D confirmed the temporary GPG home still exists with two GnuPG database files; exact-path cleanup is outstanding and requires explicit approval; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; 01K-D confirmed that the temporary GPG home remained after the 01K-C EXIT trap; approved 01K-E exact-path cleanup removed the two verified GnuPG database files and directory, and absence was confirmed; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 4.9  
+> **Document version:** 5.0  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -4299,21 +4299,169 @@ The directory is not empty. The contents are the expected GnuPG public-key datab
 
 The earlier 01K-C script was intended to remove this exact directory through its EXIT trap, but the observed result proves that cleanup did not occur. Do not use a wildcard, recursive cleanup of a broader path, or any command that could follow a substituted path. Do not remove the directory without explicit user approval of a separately presented exact-path cleanup command. No deletion was performed in 01K-D.
 
-### 5.18.6 Next gate — LXC-EXP-01K-E
+### 5.18.6 Next gate — LXC-EXP-01K-E (completed)
 
-Request explicit approval for a narrowly scoped cleanup of exactly `/tmp/lxc-gpg-audit.eWVvii`, and only after rechecking that the path is a real directory (not a symlink), is owned by the current user, has mode `0700`, and contains only the two observed GnuPG files owned by that user. The proposed cleanup must not use a wildcard and must refuse to proceed if any of those predicates fail. No other `/tmp/lxc-gpg-audit.*` directory may be touched.
-
-After cleanup, verify the exact path is absent. Then continue independent signer-provenance research. The package-manager DBPath/write-access blocker remains separate and unchanged; no pacman retry, key import, trust change, package signature verification, installation or runtime test is authorized by this cleanup gate.
+The exact-path cleanup was approved and executed as 01K-E. Its preconditions, exact command, observed output and disposition are recorded in Section 5.19. The next gate is independent signer-provenance research for the candidate fingerprint and exact archive/signature pair. The package-manager DBPath/write-access blocker remains separate and unchanged; no pacman retry, key import, trust change, package signature verification, installation or runtime test is authorized by the cleanup result.
 
 ---
 
-### 5.17.7 Next gate — LXC-EXP-01K-D
 
-Before more signer analysis, establish whether the exact temporary GPG directory was removed. This is a narrow cleanup-verification gate, not a repeat of the key inspection. Inspect only the exact path `/tmp/lxc-gpg-audit.eWVvii`; do not use a wildcard cleanup. If it remains, verify its path, directory type, owner and contents before deciding whether the already-approved exact-directory cleanup is safe.
+## 5.19 LXC-EXP-01K-E — approved exact-path temporary GPG-home cleanup
 
-After cleanup is resolved, investigate independent authoritative provenance for the candidate fingerprint and the exact archive/signature pair. Do not run a package signature verification unless the exact archive and matching detached signature are available and the trust anchor has been independently authenticated. Do not retry pacman, mutate DBPath, import keys or change trust. LXC installation remains blocked.
+### 5.19.1 Purpose and approval
 
-Repeat policy: do not repeat 01K-C unless its output is shown to be incomplete for a specific field or the keyring materially changes. Preserve this result as the current completed inspection.
+01K-D confirmed that the disposable GPG home from 01K-C remained at exactly `/tmp/lxc-gpg-audit.eWVvii`, with two GnuPG database files. The user explicitly approved 01K-E to clean up only that exact path, subject to precondition checks and post-cleanup verification. The command was run by the user on the SteamOS host as `deck` (UID 1000), not in a Distrobox.
+
+### 5.19.2 Exact command executed
+
+```bash
+echo "===== LXC-EXP-01K-E: APPROVED EXACT-PATH CLEANUP ====="
+
+set -euo pipefail
+
+P="/tmp/lxc-gpg-audit.eWVvii"
+UID_EXPECTED="$(id -u)"
+
+echo
+echo "===== 1. VERIFY EXACT DIRECTORY ====="
+
+if [ -L "$P" ] || [ ! -d "$P" ]; then
+    echo "ABORT: PATH_IS_NOT_A_REAL_DIRECTORY"
+    exit 1
+fi
+
+OWNER="$(stat -c '%u' -- "$P")"
+MODE="$(stat -c '%a' -- "$P")"
+
+echo "PATH: $P"
+echo "OWNER_UID: $OWNER"
+echo "MODE: $MODE"
+
+if [ "$OWNER" != "$UID_EXPECTED" ] || [ "$MODE" != "700" ]; then
+    echo "ABORT: DIRECTORY_OWNERSHIP_OR_MODE_MISMATCH"
+    exit 1
+fi
+
+echo
+echo "===== 2. VERIFY EXACT CONTENTS ====="
+
+EXPECTED="$(printf '%s\\n' pubring.kbx trustdb.gpg)"
+ACTUAL="$(find "$P" -mindepth 1 -maxdepth 1 \\
+    -printf '%f\\n' | sort)"
+
+if [ "$ACTUAL" != "$EXPECTED" ]; then
+    echo "ABORT: UNEXPECTED_DIRECTORY_CONTENTS"
+    printf '%s\\n' "$ACTUAL"
+    exit 1
+fi
+
+for F in pubring.kbx trustdb.gpg; do
+    FILE="$P/$F"
+
+    if [ -L "$FILE" ] || [ ! -f "$FILE" ]; then
+        echo "ABORT: INVALID_FILE_TYPE: $F"
+        exit 1
+    fi
+
+    FILE_OWNER="$(stat -c '%u' -- "$FILE")"
+    FILE_MODE="$(stat -c '%a' -- "$FILE")"
+
+    if [ "$FILE_OWNER" != "$UID_EXPECTED" ] ||
+       [ "$FILE_MODE" != "600" ]; then
+        echo "ABORT: FILE_OWNERSHIP_OR_MODE_MISMATCH: $F"
+        exit 1
+    fi
+
+    echo "VERIFIED: $F | UID=$FILE_OWNER | MODE=$FILE_MODE"
+done
+
+echo
+echo "===== 3. REMOVE EXACT VERIFIED FILES ====="
+
+rm -- "$P/pubring.kbx" "$P/trustdb.gpg"
+
+echo "GPG_DATABASE_FILES_REMOVED"
+
+echo
+echo "===== 4. REMOVE EXACT DIRECTORY ====="
+
+rmdir -- "$P"
+
+echo "TEMPORARY_DIRECTORY_REMOVED"
+
+echo
+echo "===== 5. VERIFY CLEANUP ====="
+
+if [ -e "$P" ] || [ -L "$P" ]; then
+    echo "CLEANUP_RESULT: FAILED_PATH_STILL_EXISTS"
+    exit 1
+fi
+
+echo "CLEANUP_RESULT: SUCCESS"
+echo "EXACT_TARGET_ABSENT: YES"
+
+echo
+echo "===== END LXC-EXP-01K-E ====="
+```
+
+### 5.19.3 Complete observed output
+
+```text
+===== LXC-EXP-01K-E: APPROVED EXACT-PATH CLEANUP =====
+
+===== 1. VERIFY EXACT DIRECTORY =====
+PATH: /tmp/lxc-gpg-audit.eWVvii
+OWNER_UID: 1000
+MODE: 700
+
+===== 2. VERIFY EXACT CONTENTS =====
+VERIFIED: pubring.kbx | UID=1000 | MODE=600
+VERIFIED: trustdb.gpg | UID=1000 | MODE=600
+
+===== 3. REMOVE EXACT VERIFIED FILES =====
+GPG_DATABASE_FILES_REMOVED
+
+===== 4. REMOVE EXACT DIRECTORY =====
+TEMPORARY_DIRECTORY_REMOVED
+
+===== 5. VERIFY CLEANUP =====
+CLEANUP_RESULT: SUCCESS
+EXACT_TARGET_ABSENT: YES
+
+===== END LXC-EXP-01K-E =====
+(deck@Laco ~)$
+```
+
+### 5.19.4 Findings
+
+| Check | Observed result | Assessment |
+|---|---|---|
+| Target | Exactly `/tmp/lxc-gpg-audit.eWVvii` | **CONFIRMED** |
+| Path type | Real directory; symlink check passed | **CONFIRMED** |
+| Directory owner/mode | UID 1000; mode 0700 | **CONFIRMED** |
+| Contents | Exactly `pubring.kbx` and `trustdb.gpg` | **CONFIRMED** |
+| File types | Both regular files; symlink checks passed | **CONFIRMED** |
+| File owner/mode | Both UID 1000; mode 0600 | **CONFIRMED** |
+| Removal | Both named files removed with exact-path `rm`; directory removed with `rmdir` | **CONFIRMED** |
+| Final state | `CLEANUP_RESULT: SUCCESS`; `EXACT_TARGET_ABSENT: YES` | **CONFIRMED** |
+
+### 5.19.5 Disposition and side-effect boundary
+
+**01K-E: APPROVED EXACT-PATH CLEANUP PASSED.** The preconditions all matched the expected state. Only the two verified files and their exact containing directory were removed. No wildcard, recursive deletion, `sudo`, or broader temporary-directory cleanup was used. The exact target is confirmed absent.
+
+This cleanup does not authenticate any key, verify any archive signature, resolve the pacman DBPath/write-access issue, authorize pacman, or authorize installation/runtime testing. No system keyring, trust setting, package database, service, mount, cgroup, or other temporary directory was changed by this test.
+
+### 5.19.6 Next gate — LXC-EXP-01K-F
+
+Proceed with independent authoritative signer-provenance research for fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` and reconcile it with the exact LXC archive and detached signature. Keep external corroboration distinct from an authoritative trust anchor. Do not import keys, change trust, invoke pacman, or verify the archive signature until the exact archive/signature pair and independently authenticated trust anchor are established. The pacman DBPath/write-access blocker remains separate. No LXC installation or runtime test is authorized.
+
+Repeat policy: do not repeat the cleanup. The exact target is absent; any later cleanup request must begin with a new read-only state inspection and separate authorization if the scope differs.
+
+---
+
+### 5.17.7 Historical next-gate note — superseded by LXC-EXP-01K-D/E
+
+This earlier handoff requested cleanup verification after 01K-C. It was fulfilled by 01K-D (read-only exact-path inspection) and 01K-E (approved exact-path cleanup). The current active gate is recorded in the latest continuation handoff: independent authoritative signer-provenance research and exact archive/signature-pair reconciliation (01K-F).
 
 ---
 
@@ -5648,7 +5796,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01K-E — obtain explicit approval for cleanup of exactly `/tmp/lxc-gpg-audit.eWVvii`. 01K-D confirmed that the exact path remains a real directory owned by `deck:deck`, mode `0700`, containing only `pubring.kbx` and `trustdb.gpg`, both owned by `deck:deck` mode `0600`. No deletion occurred. Any cleanup command must revalidate the exact path, directory type, owner, mode and contents, refuse unexpected state, avoid wildcards, and remove only this exact directory; verify absence afterward. Then continue independent authoritative provenance research for fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` and the exact LXC archive/signature pair. The six primary fingerprints from 01K-C are local identifications, not independent authentication. No package signature has been verified. Keep the pacman DBPath/write-access discrepancy blocked and do not retry pacman, import keys or change trust. No package installation or runtime test without a separate complete plan and explicit approval.
+**Active next gate:** LXC-EXP-01K-F — independent authoritative signer-provenance research and exact archive/signature-pair reconciliation. 01K-E completed the explicitly approved cleanup of exactly `/tmp/lxc-gpg-audit.eWVvii`: the command revalidated the real directory, UID 1000 ownership, mode 0700, exact two-file contents, and each file's UID 1000/mode 0600 before removing only those two files and then the directory with `rmdir`; final checks confirmed `CLEANUP_RESULT: SUCCESS` and `EXACT_TARGET_ABSENT: YES`. No other temporary path was touched. The six primary fingerprints from 01K-C remain local identifications, not independent authentication. Candidate fingerprint: `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. No package signature has been verified. Keep the pacman DBPath/write-access discrepancy blocked; do not retry pacman, import keys or change trust. Do not install LXC or run runtime tests without a separate complete plan and explicit approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -5697,6 +5845,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 | 4.7 | 2026-11-07 | Recorded LXC-EXP-01K-C: GPG successfully extracted six primary key fingerprints and UIDs using a disposable mode-0700 home; confirmed the original `holo.gpg` SHA-256 unchanged; identified a locally labelled GitLab CI Package Builder key as a provenance candidate without treating it as independently authenticated or as proof of the exact archive signer; explicitly marked temporary-home cleanup unconfirmed because the EXIT trap output was absent; advanced the next gate to exact-path cleanup verification (01K-D) and independent signer provenance. No signature verification, key import/trust change, pacman action, installation or runtime test occurred. |
 | 4.8 | 2026-11-07 | Added external provenance corroboration for the locally observed GitLab CI Package Builder fingerprint: a ValveSoftware/SteamOS issue report references that fingerprint for verification of a different Valve package, and the SteamOS package mirror lists signed holo-keyring packages. Explicitly classified both as corroboration only, not as a Valve-published fingerprint statement or proof that the exact LXC archive was signed by this key. The exact archive signature remains unverified; no Deck action or package operation occurred. |
 | 4.9 | 2026-11-07 | Recorded LXC-EXP-01K-D: exact-path read-only inspection confirmed `/tmp/lxc-gpg-audit.eWVvii` still exists as a `deck:deck` mode-0700 directory containing only `pubring.kbx` and `trustdb.gpg`, both `deck:deck` mode 0600. No cleanup was performed. Marked cleanup outstanding and advanced to 01K-E, requiring explicit approval and strict exact-path revalidation before deletion. No package-manager, key-import, trust, signature-verification, installation or runtime action occurred. |
+| 5.0 | 2026-11-07 | Recorded LXC-EXP-01K-E: after explicit user approval, exact-path preconditions confirmed the disposable GPG directory and its two expected files (UID 1000, directory mode 0700, file modes 0600); removed only those files and the exact directory, then verified the target absent. Updated the test ledger, superseded cleanup handoffs, executive status and continuation gate to independent signer-provenance research (01K-F). No key import/trust change, package signature verification, pacman action, installation or runtime test occurred. |
 
 ---
 
