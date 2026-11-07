@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.2  
+> **Version:** 1.3  
 > **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -582,11 +582,11 @@ No temporary test containers remained after verification.
 
 A Podman `--internal` network is a candidate for private component communication, not a complete policy by itself. Published ports, host services, additional network attachments, DNS, IPv6, routing and container-to-container communication must be examined.
 
-### 8.4 Next network test — not yet executed
+### 8.4 NET-05 result — host-service and published-port boundary
 
-**PROPOSED:** create one uniquely named temporary Podman internal network and one disposable container using only the already cached test image. Test the host, router, public Internet and DNS from that container. Do not alter the existing `podman` network. Remove only the named test container/network after recording evidence.
+**Status: COMPLETED — scoped result; cleanup independently verified.** NET-05 used a temporary Podman network marked `internal: true` and one disposable listener container. The published listener was bound only to host loopback (`127.0.0.1:18085`), targeting container TCP port `18080`. The exact stage-by-stage evidence, limitations and cleanup record are in §11 under NET-05.
 
-This test requires explicit user approval before resource creation. The exact commands and cleanup plan must be shown first. It is not authorized by this document.
+The test demonstrated a host-to-container HTTP path through the loopback-published port while the same published port was not reachable through the host LAN address. It did not demonstrate general host/container connectivity or establish the underlying causes of the internal-IP timeout and gateway connection refusals. The next network dependency is IPv6 and DNS behavior (§12).
 
 ---
 
@@ -1253,6 +1253,178 @@ No numeric shell exit codes were captured for every stage; do not infer them.
 
 ---
 
+### NET-05 — Host-service and published-port boundary
+
+**Objective:** Determine whether a listener on a dedicated Podman internal network can be reached from the host through a loopback-only published port, whether that published listener is exposed through the host LAN address, and whether the container can use the tested gateway/host paths.
+
+**Status: COMPLETED — scoped findings recorded; cleanup PASS.**  
+**Execution date:** 2026-11-07.  
+**Temporary resources:** `odysseus-net05-internal-test`, `odysseus-net05-listener`.  
+**Cached image:** `docker.io/library/python:3-alpine`; Stage A confirmed it was already cached. No image download was required.  
+**No production resources:** No Odysseus application container, permanent network, mount, service or host configuration was created or changed.
+
+#### NET-05.1 — Preflight (Stage A)
+
+Recorded preflight findings:
+- Podman version: `6.0.2`.
+- Cached test image: `docker.io/library/python:3-alpine`.
+- No listener was present on host TCP port `18085`.
+- The only pre-existing Podman network reported in the preflight was the default `podman` network.
+- The temporary resource names were available before creation (the name-availability probe returned exit status 1, consistent with the resources not existing at that time).
+
+The exact Stage A command transcript was not present in the continuation evidence available when this revision was prepared. It is deliberately not reconstructed.
+
+#### NET-05.2 — Temporary setup (Stage B)
+
+A dedicated Podman network named `odysseus-net05-internal-test` was created with `internal=true`. The recorded network subnet was `10.89.0.0/24`, with gateway `10.89.0.1`.
+
+A disposable listener named `odysseus-net05-listener` was created on that network. Its recorded address was `10.89.0.2`. The host published mapping was:
+
+```text
+127.0.0.1:18085 -> container:18080/tcp
+```
+
+The listener was running during the connectivity probes. The inspected configuration included a read-only root filesystem and restart policy `no`. No host mounts were reported for this test.
+
+The exact Stage B creation command transcript was not present in the continuation evidence available for this revision and is not reconstructed.
+
+#### NET-05.3 — Connectivity probes (Stages C1 and C2)
+
+| Probe | Recorded result | Interpretation boundary |
+|---|---|---|
+| Host → container internal address | Timeout | The direct internal-IP probe did not complete; this alone does not identify why |
+| Host → published loopback port `127.0.0.1:18085` | HTTP 200; response `NET05-OK` | Confirms the tested host-to-container path through the published loopback listener |
+| Host → published port via host LAN address | Connection refused | The listener was not reachable through this tested LAN-address path |
+| Container → gateway address, published port `18085` | Connection refused | A distinct result; do not equate it with host loopback success |
+| Container → gateway SSH, port `22` | Connection refused | The tested gateway SSH port refused the connection |
+| Container → host LAN SSH | Network unreachable | The tested route/path was unavailable from the container |
+
+These are destination- and protocol-specific observations. They do not prove universal isolation, nor do they establish the implementation cause of each timeout, refusal or unreachable result.
+
+The exact Stage C1/C2 probe command transcript was not present in the continuation evidence available for this revision and is not reconstructed. The HTTP status/body and outcomes above are preserved from the recorded stage findings.
+
+#### NET-05.4 — Final configuration inspection (Stage C3)
+
+The final inspection confirmed:
+
+- Published mapping exactly `127.0.0.1:18085 → container:18080/tcp`.
+- `rootlessport` listened on `127.0.0.1:18085`, not `0.0.0.0` or the host LAN address.
+- The listener container remained running and its listener had initialized successfully.
+- The network remained `internal=true`, with the expected gateway and container address.
+- Read-only root filesystem, `no-new-privileges`, 128 MiB memory limit, 64 PID limit and restart policy `no` were confirmed.
+- The inspect output represented `CapDrop` as a normalized list rather than the literal `ALL` argument. This record does not claim that this output independently proves the literal argument.
+
+The exact Stage C3 command and raw output were not present in the continuation evidence available for this revision. The findings above reproduce the contemporaneous inspection summary without fabricating a transcript.
+
+#### NET-05.5 — Consolidated result
+
+| Test | Result |
+|---|---|
+| Host → container internal IP | Timeout |
+| Host → published loopback port | Successful HTTP 200 |
+| Host → published port via LAN IP | Connection refused |
+| Container → gateway published port | Connection refused |
+| Container → gateway SSH | Connection refused |
+| Container → host LAN SSH | Network unreachable |
+
+**Conclusion:** Loopback-only port publishing provided a working host-to-container path for the host itself in this test, without exposing that published listener through the host's LAN address. This did not establish general bidirectional host/container connectivity. The internal-IP timeout and gateway connection refusals remain separate observations; this test did not determine their underlying implementation causes.
+
+#### NET-05.6 — Cleanup (Stage D)
+
+The user executed the following cleanup command on the SteamOS host. It targets only the two NET-05 resources and the dedicated NET-05 network:
+
+```bash
+echo "===== NET-05 STAGE D: CLEANUP ====="
+
+echo
+echo "===== 1. STOP TEMPORARY LISTENER ====="
+if podman container exists odysseus-net05-listener; then
+    podman stop --time 10 odysseus-net05-listener
+    echo "Stop exit code: $?"
+else
+    echo "Listener container is already absent."
+fi
+
+echo
+echo "===== 2. REMOVE TEMPORARY LISTENER ====="
+if podman container exists odysseus-net05-listener; then
+    podman rm odysseus-net05-listener
+    echo "Remove exit code: $?"
+else
+    echo "Listener container is already absent."
+fi
+
+echo
+echo "===== 3. REMOVE TEMPORARY NETWORK ====="
+if podman network exists odysseus-net05-internal-test; then
+    podman network rm odysseus-net05-internal-test
+    echo "Network removal exit code: $?"
+else
+    echo "Test network is already absent."
+fi
+
+echo
+echo "===== 4. INDEPENDENT ABSENCE VERIFICATION ====="
+
+if podman container exists odysseus-net05-listener; then
+    echo "FAIL: test container still exists"
+else
+    echo "PASS: test container absent"
+fi
+
+if podman network exists odysseus-net05-internal-test; then
+    echo "FAIL: test network still exists"
+else
+    echo "PASS: test network absent"
+fi
+
+echo
+echo "===== 5. HOST PORT VERIFICATION ====="
+ss -H -ltn 'sport = :18085'
+
+echo
+echo "===== NET-05 STAGE D COMPLETE ====="
+```
+
+**Observed output (relevant lines, preserving the warning and exit statuses):**
+
+```text
+===== 1. STOP TEMPORARY LISTENER =====
+WARN[0010] StopSignal SIGTERM failed to stop container odysseus-net05-listener in 10 seconds, resorting to SIGKILL
+odysseus-net05-listener
+Stop exit code: 0
+
+===== 2. REMOVE TEMPORARY LISTENER =====
+odysseus-net05-listener
+Remove exit code: 0
+
+===== 3. REMOVE TEMPORARY NETWORK =====
+odysseus-net05-internal-test
+Network removal exit code: 0
+
+===== 4. INDEPENDENT ABSENCE VERIFICATION =====
+PASS: test container absent
+PASS: test network absent
+
+===== 5. HOST PORT VERIFICATION =====
+
+===== NET-05 STAGE D COMPLETE =====
+```
+
+The empty output from `ss -H -ltn 'sport = :18085'` confirms that no TCP listener remained on port `18085` at verification time.
+
+**Lifecycle caveat:** The listener did not terminate within the 10-second SIGTERM grace period. Podman escalated to SIGKILL and returned exit code 0. The subsequent removal succeeded and both resources were independently verified absent. This is a graceful-shutdown observation, not a cleanup failure.
+
+**Cleanup verdict: PASS.** The temporary listener container and network were absent, and the host port was released.
+
+#### NET-05.7 — Evidence limitations and follow-up
+
+The exact Stage A, B, C1, C2 and C3 command transcripts were not carried into the current continuation evidence. They have not been reconstructed. The result tables and inspection findings preserve the recorded observations, while the exact Stage D cleanup command and its output are retained verbatim. If the earlier chat transcript is later available as a source export, it may be added as a provenance supplement without changing these results.
+
+NET-05 is complete. It does not establish general host/container connectivity or final network security. Proceed to IPv6 and DNS behavior, without repeating NET-03 through NET-05 absent a documented changed condition.
+
+---
+
 ## 12. Remaining audit gates — ordered dependency plan
 
 The next test must be the earliest safe, useful, unclosed dependency. Do not skip ahead to application installation.
@@ -1261,7 +1433,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 |---:|---|---|---|
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
-| 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | NOT TESTED |
+| 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | NOT TESTED |
 | 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
@@ -1533,7 +1705,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.2  
+**Canonical version:** 1.3  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -1551,13 +1723,16 @@ Only documents and outputs actually retrieved or recorded may be described as re
 9. NET-03 tested one container on a temporary Podman bridge marked `internal: true`; host SSH, router DNS, public HTTPS and DNS lookup probes failed.
 10. NET-04 confirmed bidirectional DNS/TCP communication between two disposable peers on a new `internal: true` bridge. Both peers failed the same named host/router/public/DNS probes. The network inspection showed peers at `10.89.0.2` and `10.89.0.3`, with no published ports or mounts.
 11. NET-04 cleanup independently confirmed both containers and the temporary network absent. Both containers required SIGKILL after Podman's 10-second SIGTERM timeout; investigate graceful shutdown as a separate lifecycle concern.
-12. No Odysseus container, LXC container or production network has been created.
+12. NET-05 confirmed a host-to-container HTTP 200 path through `127.0.0.1:18085` mapped to container port `18080/tcp`. The same published port was refused through the host LAN address. Container-to-gateway published-port and SSH probes were refused; container-to-host-LAN SSH was network-unreachable. A direct host-to-container-IP probe timed out. These are scoped observations, not a general connectivity conclusion.
+13. NET-05 final inspection confirmed loopback-only rootlessport binding, internal network membership, read-only root filesystem, no-new-privileges, 128 MiB memory, 64 PID limit and restart policy `no`. The normalized CapDrop inspection output was not overstated as proof of the literal `ALL` argument.
+14. NET-05 cleanup removed the listener and network and independently verified both absent; port `18085` had no remaining listener. SIGTERM exceeded 10 seconds and Podman escalated to SIGKILL; removal still succeeded.
+15. No Odysseus container, LXC container or production network has been created.
 
 ### 18.2 Immediate next action
 
-NET-03 and NET-04 are complete. NET-04 demonstrated bidirectional peer DNS/TCP communication while both peers remained unable to reach the named host SSH, router DNS, public HTTPS and public DNS targets. The internal network and both containers were removed and independently verified absent. Preserve the SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
+NET-03, NET-04 and NET-05 are complete. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-The next dependency is **NET-05 — host-service and published-port boundary**. It must be designed as a distinct test: NET-04 had no published ports and did not test host-to-container reachability. Before proposing execution, define the exact host-side and container-side probes, the temporary resources, the cleanup, and the approval boundary. Do not repeat NET-03 or NET-04 without a changed condition or a newly identified path.
+The next dependency is **IPv6 and DNS behavior**. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -1590,6 +1765,7 @@ The first assistant action in a new conversation should be:
 | 1.0 | 2026-11-06 | Created the canonical Phase 1.4 deployment-feasibility audit. Consolidated the 1.4.0–1.4.14 journey, recorded confirmed UID/mount/network/cgroup/runtime evidence, distinguished Podman/Distrobox/LXC/LXD/Incus/VM architectures, established test and decision schemas, five-test review/archive cadence, anti-repetition protocol and new-chat handoff. Original source exports preserved unchanged under the dated archive. |
 | 1.1 | 2026-11-07 | Recorded NET-03 immediately after execution: dedicated internal bridge confirmed; host SSH, router DNS, public HTTPS and DNS-name-resolution probes blocked; temporary network removal recorded; peer-to-peer communication explicitly left untested. Updated the dependency gate and continuation handoff. No five-test snapshot triggered. |
 | 1.2 | 2026-11-07 | Recorded NET-04 immediately after execution: two disposable peers resolved and reached each other bidirectionally; both peers were blocked from the named host/router/public/DNS probes; inspection confirmed internal bridge membership and restricted container settings; cleanup independently verified. Recorded SIGTERM timeout/SIGKILL escalation as a lifecycle caveat. Advanced the next gate to NET-05. No five-test snapshot triggered. |
+| 1.3 | 2026-11-07 | Recorded NET-05: loopback-only published listener returned HTTP 200 from the host while the same published port was refused through the host LAN address; recorded distinct internal-IP timeout and container gateway/host probe results; preserved final configuration inspection limitations; recorded exact Stage D cleanup command/output, SIGTERM timeout/SIGKILL escalation, successful resource removal and independent port-release verification. Advanced the next dependency to IPv6/DNS behavior. One completed test since the v1.2 checkpoint; no five-test snapshot triggered. |
 
 ---
 
