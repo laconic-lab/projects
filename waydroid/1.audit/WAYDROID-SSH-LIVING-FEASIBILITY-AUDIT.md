@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection blocked because repository file-list databases are absent; no installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked because the metadata refresh could not acquire the pacman database lock; no installation or runtime experiment performed**.
 >
-> **Document version:** 2.3  
+> **Document version:** 2.4  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -1915,6 +1915,72 @@ PS C:\Users\Laco>
 - The next possible step is a narrowly scoped file-list metadata refresh for extra-3.9 using pacman -Fy extra-3.9, followed by pacman -Fl lxc and targeted manifest filtering. This is **not a strictly read-only operation**: it downloads and writes repository file-list metadata to the local pacman cache, but does not install or upgrade packages. Obtain the user's approval for this metadata-only cache change before running it. If the user does not approve, stop here and retain the manifest as uninspected.
 - After a successful manifest retrieval, inspect the package's exact service/unit, network/firewall, executable, configuration and install-script footprint. Only then decide whether a bounded LXC-only installation proposal is warranted. No installation is authorized by this result.
 
+
+#### LXC-PKG-03 — attempted: metadata refresh blocked by pacman database lock
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **PARTIAL / BLOCKED — rootless invocation rejected; privileged invocation could not acquire the pacman database lock**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), command issued over SSH from Windows PowerShell
+- **Prerequisite:** User explicitly approved only the metadata-only operation `pacman -Fy extra-3.9`; no package installation or upgrade was included.
+- **Question:** Can the missing `extra-3.9` file-list metadata be downloaded so that the LXC package manifest can be inspected?
+- **Why new:** LXC-PKG-02 established that the file-list databases were missing. This attempt tested the narrowly approved metadata-refresh prerequisite; it did not repeat the package-candidate query.
+- **Side-effect boundary:** The first invocation was rejected before performing the operation because it lacked root privileges. The sudo invocation began the synchronization stage but failed to acquire the pacman database lock. No successful refresh is evidenced. No package installation, upgrade, service action or configuration edit was requested or performed.
+- **Repeat policy:** Do not retry `pacman -Fy` until the lock state and any active package-management process have been checked read-only. Never remove a lock file merely to force progress.
+
+**Exact commands executed**
+
+~~~bash
+echo "===== LXC-PKG-03: FILE-LIST DATABASE REFRESH ====="
+
+pacman -Fy extra-3.9
+
+echo
+echo "===== END LXC-PKG-03 ====="
+~~~
+
+The user then separately ran:
+
+~~~bash
+sudo pacman -Fy extra-3.9
+~~~
+
+**Actual output**
+
+~~~text
+===== LXC-PKG-03: FILE-LIST DATABASE REFRESH =====
+error: you cannot perform this operation unless you are root.
+
+===== END LXC-PKG-03 =====
+(deck@Laco ~)$ sudo pacman -Fy extra-3.9
+[sudo] password for deck:
+:: Synchronizing package databases...
+error: failed to synchronize all databases (unable to lock database)
+(deck@Laco ~)$
+~~~
+
+**Observed result**
+
+- The unprivileged invocation was rejected because the operation requires root.
+- The privileged invocation passed the privilege check and reached repository synchronization, but pacman reported that it could not lock the database.
+- The output does not identify why the lock could not be acquired. An existing pacman lock file or another package-management process are possibilities, not confirmed causes.
+- Because the lock could not be acquired, the requested file-list refresh did not complete. Do not assume that any repository file-list database was updated.
+- The output contains no evidence of an LXC installation, package upgrade, service activation, or host configuration change.
+- No lock file was removed and no competing process was stopped.
+
+**Interpretation**
+
+- **What this proves:** the first command lacked required privileges; the sudo invocation could not acquire the pacman database lock.
+- **What this does not prove:** that the lock file is stale, that another package manager is running, that repository metadata is corrupt, or that the LXC candidate is unavailable.
+- The approval for this test remains limited to `pacman -Fy extra-3.9`. It does not authorize deleting a lock, terminating a package process, refreshing all repositories, upgrading packages, or installing LXC.
+
+**Decision / next step**
+
+- Keep LXC-PKG-02 **PARTIAL / BLOCKED**; the manifest remains uninspected.
+- Record LXC-PKG-03 as **PARTIAL / BLOCKED**; the approved metadata refresh did not complete.
+- Before any retry, perform a read-only inspection of pacman-related processes and the lock path `/var/lib/pacman/db.lck`. Do not remove the lock or stop any process.
+- Only if the read-only evidence establishes that no package-management operation is active and the lock condition is safely resolved should a retry be proposed. Any lock removal would require separate explicit approval.
+- After a successful metadata refresh, run the manifest inspection as a new test ID. No installation is authorized by this result.
+
 ---
 
 ## 6. Upstream and project documentation review
@@ -2307,7 +2373,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Current decision:** Phase 1 Gate 3 is complete; the original rootless Podman cgroup limitation remains confirmed. Phase 1.5 is active because current upstream Waydroid/LXC source identifies a direct-launcher versus delegated-scope integration question. This does not yet establish a working architecture. No LXC package was installed and no LXC container was created.
 
-**Latest package evidence:** LXC-PKG-01 reports candidate lxc 1:7.0.0-1 from extra-3.9, with a print-only transaction containing only lxc; all seven listed dependencies were already installed. LXC-PKG-02 could not inspect the file manifest because the configured repository file-list databases were absent. No package was installed. **Next action:** Ask whether the user approves the metadata-only cache update pacman -Fy extra-3.9; this downloads file-list metadata but does not install/upgrade packages. Only after approval, retrieve and inspect the manifest. If not approved, stop at the current evidence. The previous Podman cgroup test does not substitute for a direct host-level LXC test. Even a favourable package manifest does not itself justify installation; present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before any install approval. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
+**Latest package evidence:** LXC-PKG-01 reports candidate lxc 1:7.0.0-1 from extra-3.9, with a print-only transaction containing only lxc; all seven listed dependencies were already installed. LXC-PKG-02 could not inspect the file manifest because the configured repository file-list databases were absent. LXC-PKG-03 attempted the user-approved metadata-only refresh: the unprivileged invocation was rejected for lack of root privileges, and the sudo invocation failed because pacman could not acquire the database lock. The file-list refresh remains incomplete; no package was installed. **Next action:** perform a read-only inspection of pacman-related processes and /var/lib/pacman/db.lck. Do not remove the lock or terminate a process. Retry only if the lock condition is safely resolved; the existing approval covers only pacman -Fy extra-3.9, not lock removal, broad repository refreshes, upgrades or installation. After a successful refresh, inspect the manifest. The previous Podman cgroup test does not substitute for a direct host-level LXC test. Even a favourable package manifest does not itself justify installation; present the exact package list, source, persistence implications, temporary scope, expected cgroup path, cleanup and rollback before any install approval. Use no privileged mode, broad mounts, host namespace sharing, persistent delegation changes or automatic services. Conditional permission to install LXC does not authorize Waydroid host packages or services.
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
@@ -2332,6 +2398,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.1 | 2026-11-06 | Preserved the unchanged v2.0 archive snapshot; extended upstream source review to the Waydroid systemd unit, network script and work-directory defaults; documented boot-autostart and host firewall/forwarding side effects as explicit blockers for the user's manual-only, no-host-network-change design. |
 | 2.2 | 2026-11-07 | Preserved the unchanged v2.1 archive snapshot; reviewed upstream Debian packaging, Makefile install targets, D-Bus activation, PolicyKit, systemd unit, container-manager lifecycle, Arch LXC package dependency metadata, and Valve/SteamOS update behavior; distinguished LXC-only from Waydroid package scope; concluded LXC installation is not yet justified pending Deck-local read-only package/dependency verification. |
 | 2.3 | 2026-11-07 | Recorded LXC-PKG-01's reported Deck-local candidate/version and print-only one-package transaction; recorded LXC-PKG-02's missing repository file-list databases and connection-close transcript without misclassifying it as package absence or a system failure; established that the next manifest step requires approval for a metadata-only pacman file-list cache refresh. |
+| 2.4 | 2026-11-07 | Recorded LXC-PKG-03: the unprivileged file-list refresh was rejected for lack of root privileges and the sudo invocation could not acquire the pacman database lock; clarified that the approved refresh remains incomplete and set a read-only lock/process inspection as the next action. |
 
 ---
 
