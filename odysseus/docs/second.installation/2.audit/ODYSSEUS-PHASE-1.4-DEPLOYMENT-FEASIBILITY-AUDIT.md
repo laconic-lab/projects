@@ -1059,7 +1059,7 @@ echo "===== NET-06: SCOPED CLEANUP ====="
 
 echo
 echo "===== 1. VERIFY TARGET CONTAINER IDENTITY ====="
-podman inspect "$CONTAINER" \\
+podman inspect "$CONTAINER" \
   --format 'Name={{.Name}} ID={{.Id}} Image={{.ImageName}}'
 
 echo
