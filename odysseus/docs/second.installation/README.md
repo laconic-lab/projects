@@ -71,7 +71,7 @@ The following rules are mandatory:
 6. A repeated test requires a documented changed condition or a previously untested behavior.
 7. The parent README must be updated when the canonical handoff, archive structure or audit status changes.
 
-The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.1 (2026-11-07); NET-03 is recorded as partial because external egress probes passed but peer-to-peer communication was not tested.
+The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.2 (2026-11-07). NET-03's named external-egress probes passed. NET-04 then confirmed bidirectional peer communication on a dedicated internal bridge while both peers remained blocked from the named host/router/public/DNS probes. NET-04 cleanup was verified; both listeners required SIGKILL after the 10-second SIGTERM timeout, which is recorded as a lifecycle caveat. NET-05 (host-service and published-port boundary) is next.
 
 ## 5. Current recorded position
 
@@ -81,12 +81,13 @@ The detailed rules and templates are in §0 and §13–§18 of the canonical aud
 - A private host directory bind-mount test passed for the exact tested configuration.
 - `--network=none` blocked the tested destinations.
 - The default Podman bridge allowed tested router/LAN and public Internet connectivity and is unsuitable as the Agent/Inspector boundary.
-- NET-03 created and tested a temporary dedicated Podman internal bridge. The tested host SSH, router DNS, public HTTPS and DNS lookup paths were blocked; the temporary network was removed. Peer-to-peer communication remains untested and is the next network dependency.
+- NET-03 tested a single container on a temporary dedicated Podman internal bridge; the named host SSH, router DNS, public HTTPS and DNS lookup paths were blocked.
+- NET-04 tested two disposable peers on a new temporary internal bridge. Peer DNS/TCP communication succeeded in both directions; both peers were blocked from the same named external probes. Inspection confirmed the internal bridge, two expected peers, no published ports and no mounts. Cleanup independently verified both containers and the network absent. Both listeners required SIGKILL after the 10-second SIGTERM timeout; see the canonical audit for the lifecycle caveat.
 - cgroup v2/systemd delegation exists at host level, but writable nested delegation in the disposable container was not demonstrated.
 - Seccomp is enabled; AppArmor and SELinux are disabled.
 - No Odysseus or LXC installation has been performed.
 
-These are scoped findings, not a final security certification. Consult the canonical audit for test IDs, evidence limits and the next approved step.
+These are scoped findings, not a final security certification. NET-05 — host-service and published-port boundary — is the next open dependency. Consult the canonical audit for test IDs, evidence limits and the next approval boundary.
 
 ## 6. Naming and phase policy
 
