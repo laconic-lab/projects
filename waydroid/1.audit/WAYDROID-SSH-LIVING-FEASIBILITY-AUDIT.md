@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G partially reviewed packaged AppArmor policies, with two abstractions still incomplete; signature trust and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
+> **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions that require tracing; signature trust and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 4.1  
+> **Document version:** 4.2  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -4378,6 +4378,350 @@ profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_de
 
 ---
 
+## 5.12 LXC-EXP-01H — Complete AppArmor abstraction review
+
+**Date:** 2026-11-07  
+**Gate:** Retrieve the portions omitted by the 35-line display limit in LXC-EXP-01G, from the exact same LXC package archive. No package installation, extraction to system paths, AppArmor parser invocation, profile load, or package-manager operation.  
+**Package:** `lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst` from the `extra-3.9` x86_64 SteamOS repository mirror endpoint.  
+**Expected SHA-256:** `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e`.  
+**Observed verification:** `/tmp/tmp.0TTn5g60O8/lxc.pkg.tar.zst: OK`. The archive matched the exact digest recorded in LXC-EXP-01G.  
+**Execution result:** Both requested remaining ranges were displayed: `container-base` lines 36–242 and `start-container` lines 36–53. Together with the first 35 lines from 01G, the two abstractions are now fully visible in the audit evidence. No profile was parsed or loaded.
+
+### 5.12.1 Exact command and complete observed output
+
+The following command and output were supplied by the user. The temporary path is retained as observed evidence, not as a persistent artifact.
+
+```text
+echo "===== LXC-EXP-01H: COMPLETE APPARMOR ABSTRACTIONS ====="
+
+set -euo pipefail
+
+BASE="https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64"
+PKG="lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst"
+EXPECTED_SHA="9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e"
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+echo
+echo "===== 1. DOWNLOAD EXACT ARCHIVE ====="
+
+curl -fsSL "$BASE/$PKG" -o "$TMP/lxc.pkg.tar.zst"
+
+echo "$EXPECTED_SHA  $TMP/lxc.pkg.tar.zst" |
+    sha256sum -c -
+
+show_remaining() {
+    local member="$1"
+    local first="$2"
+
+    echo
+    echo "===== $member — LINES $first TO END ====="
+
+    bsdtar -xOf "$TMP/lxc.pkg.tar.zst" "$member" |
+        nl -ba |
+        sed -n "${first},\$p"
+}
+
+show_remaining \
+    etc/apparmor.d/abstractions/lxc/container-base 36
+
+show_remaining \
+    etc/apparmor.d/abstractions/lxc/start-container 36
+
+echo
+echo "===== END LXC-EXP-01H ====="
+===== LXC-EXP-01H: COMPLETE APPARMOR ABSTRACTIONS =====
+
+===== 1. DOWNLOAD EXACT ARCHIVE =====
+/tmp/tmp.0TTn5g60O8/lxc.pkg.tar.zst: OK
+
+===== etc/apparmor.d/abstractions/lxc/container-base — LINES 36 TO END =====
+    36
+    37    # Allow receive via unix sockets from anywhere. Note: if per-container
+    38    # profiles are supported, for container isolation this should be changed to
+    39    # something like:
+    40    #   unix (receive) peer=(label=unconfined),
+    41    unix (receive),
+    42
+    43    # Allow all unix in the container
+    44    unix peer=(label=@{profile_name}),
+    45
+    46    # ignore DENIED message on / remount
+    47    deny mount options=(ro, remount) -> /,
+    48    deny mount options=(ro, remount, silent) -> /,
+    49
+    50    # allow tmpfs mounts everywhere
+    51    mount fstype=tmpfs,
+    52
+    53    # allow hugetlbfs mounts everywhere
+    54    mount fstype=hugetlbfs,
+    55
+    56    # allow mqueue mounts everywhere
+    57    mount fstype=mqueue,
+    58
+    59    # allow fuse mounts everywhere
+    60    mount fstype=fuse,
+    61    mount fstype=fuse.*,
+    62
+    63    # deny access under /proc/bus to avoid e.g. messing with pci devices directly
+    64    deny @{PROC}/bus/** wklx,
+    65
+    66    # deny writes in /proc/sys/fs but allow binfmt_misc to be mounted
+    67    mount fstype=binfmt_misc -> /proc/sys/fs/binfmt_misc/,
+    68    deny @{PROC}/sys/fs/** wklx,
+    69
+    70    # allow efivars to be mounted, writing to it will be blocked though
+    71    mount fstype=efivarfs -> /sys/firmware/efi/efivars/,
+    72
+    73    # block some other dangerous paths
+    74    deny @{PROC}/kcore rwklx,
+    75    deny @{PROC}/sysrq-trigger rwklx,
+    76    deny @{PROC}/acpi/** rwklx,
+    77
+    78    # deny writes in /sys except for /sys/fs/cgroup, also allow
+    79    # fusectl, securityfs and debugfs to be mounted there (read-only)
+    80    mount fstype=fusectl -> /sys/fs/fuse/connections/,
+    81    mount fstype=securityfs -> /sys/kernel/security/,
+    82    mount fstype=debugfs -> /sys/kernel/debug/,
+    83    deny mount fstype=debugfs -> /var/lib/ureadahead/debugfs/,
+    84    mount fstype=proc -> /proc/,
+    85    mount fstype=sysfs -> /sys/,
+    86    mount options=(rw, nosuid, nodev, noexec, remount) -> /sys/,
+    87    deny /sys/firmware/efi/efivars/** rwklx,
+    88    deny /sys/kernel/security/** rwklx,
+    89    mount options=(ro, nosuid, nodev, noexec, remount, strictatime) -> /sys/fs/cgroup/,
+    90
+    91    # deny reads from debugfs
+    92    deny /sys/kernel/debug/{,**} rwklx,
+    93
+    94    # allow paths to be made slave, shared, private or unbindable
+    95    mount options=(rw,make-slave) -> /{,**},
+    96    mount options=(rw,make-rslave) -> /{,**},
+    97    mount options=(rw,make-shared) -> /{,**},
+    98    mount options=(rw,make-rshared) -> /{,**},
+    99    mount options=(rw,make-private) -> /{,**},
+   100    mount options=(rw,make-rprivate) -> /{,**},
+   101    mount options=(rw,make-unbindable) -> /{,**},
+   102    mount options=(rw,make-runbindable) -> /{,**},
+   103
+   104    # allow bind-mounts of anything except /proc, /sys and /dev
+   105    mount options=(rw,bind) /[^spd]*{,/**},
+   106    mount options=(rw,bind) /d[^e]*{,/**},
+   107    mount options=(rw,bind) /de[^v]*{,/**},
+   108    mount options=(rw,bind) /dev/.[^l]*{,/**},
+   109    mount options=(rw,bind) /dev/.l[^x]*{,/**},
+   110    mount options=(rw,bind) /dev/.lx[^c]*{,/**},
+   111    mount options=(rw,bind) /dev/.lxc?*{,/**},
+   112    mount options=(rw,bind) /dev/[^.]*{,/**},
+   113    mount options=(rw,bind) /dev?*{,/**},
+   114    mount options=(rw,bind) /p[^r]*{,/**},
+   115    mount options=(rw,bind) /pr[^o]*{,/**},
+   116    mount options=(rw,bind) /pro[^c]*{,/**},
+   117    mount options=(rw,bind) /proc?*{,/**},
+   118    mount options=(rw,bind) /s[^y]*{,/**},
+   119    mount options=(rw,bind) /sy[^s]*{,/**},
+   120    mount options=(rw,bind) /sys?*{,/**},
+   121
+   122    # allow various ro-bind-*re*-mounts
+   123    mount options=(ro,remount,bind),
+   124    mount options=(ro,remount,bind,nosuid),
+   125    mount options=(ro,remount,bind,noexec),
+   126    mount options=(ro,remount,bind,nodev),
+   127    mount options=(ro,remount,bind,nosuid,noexec),
+   128    mount options=(ro,remount,bind,noexec,nodev),
+   129    mount options=(ro,remount,bind,nodev,nosuid),
+   130    mount options=(ro,remount,bind,nosuid,noexec,nodev),
+   131    mount options=(ro,remount,bind,noatime),
+   132    mount options=(ro,remount,bind,noatime,nodev),
+   133    mount options=(ro,remount,bind,noatime,noexec),
+   134    mount options=(ro,remount,bind,noatime,nosuid),
+   135    mount options=(ro,remount,bind,noatime,noexec,nodev),
+   136    mount options=(ro,remount,bind,noatime,nosuid,nodev),
+   137    mount options=(ro,remount,bind,noatime,nosuid,noexec),
+   138    mount options=(ro,remount,bind,noatime,nosuid,noexec,nodev),
+   139    mount options=(ro,remount,bind,nosuid,noexec,strictatime),
+   140    mount options=(ro,remount,nosuid,noexec,strictatime),
+   141    mount options=(ro,remount,bind,nosymfollow),
+   142    mount options=(ro,remount,bind,nosymfollow,nodev),
+   143    mount options=(ro,remount,bind,nosymfollow,noexec),
+   144    mount options=(ro,remount,bind,nosymfollow,nosuid),
+   145    mount options=(ro,remount,bind,nosymfollow,noexec,nodev),
+   146    mount options=(ro,remount,bind,nosymfollow,nosuid,nodev),
+   147    mount options=(ro,remount,bind,nosymfollow,nosuid,noexec),
+   148    mount options=(ro,remount,bind,nosymfollow,nosuid,noexec,nodev),
+   149
+   150    # allow moving mounts except for /proc, /sys and /dev
+   151    mount options=(rw,move) /[^spd]*{,/**},
+   152    mount options=(rw,move) /d[^e]*{,/**},
+   153    mount options=(rw,move) /de[^v]*{,/**},
+   154    mount options=(rw,move) /dev/.[^l]*{,/**},
+   155    mount options=(rw,move) /dev/.l[^x]*{,/**},
+   156    mount options=(rw,move) /dev/.lx[^c]*{,/**},
+   157    mount options=(rw,move) /dev/.lxc?*{,/**},
+   158    mount options=(rw,move) /dev/[^.]*{,/**},
+   159    mount options=(rw,move) /dev?*{,/**},
+   160    mount options=(rw,move) /p[^r]*{,/**},
+   161    mount options=(rw,move) /pr[^o]*{,/**},
+   162    mount options=(rw,move) /pro[^c]*{,/**},
+   163    mount options=(rw,move) /proc?*{,/**},
+   164    mount options=(rw,move) /s[^y]*{,/**},
+   165    mount options=(rw,move) /sy[^s]*{,/**},
+   166    mount options=(rw,move) /sys?*{,/**},
+   167    # generated by: lxc-generate-aa-rules.py container-rules.base
+   168    deny /proc/sys/[^kn]*{,/**} wklx,
+   169    deny /proc/sys/k[^e]*{,/**} wklx,
+   170    deny /proc/sys/ke[^r]*{,/**} wklx,
+   171    deny /proc/sys/ker[^n]*{,/**} wklx,
+   172    deny /proc/sys/kern[^e]*{,/**} wklx,
+   173    deny /proc/sys/kerne[^l]*{,/**} wklx,
+   174    deny /proc/sys/kernel/[^smhd]*{,/**} wklx,
+   175    deny /proc/sys/kernel/d[^o]*{,/**} wklx,
+   176    deny /proc/sys/kernel/do[^m]*{,/**} wklx,
+   177    deny /proc/sys/kernel/dom[^a]*{,/**} wklx,
+   178    deny /proc/sys/kernel/doma[^i]*{,/**} wklx,
+   179    deny /proc/sys/kernel/domai[^n]*{,/**} wklx,
+   180    deny /proc/sys/kernel/domain[^n]*{,/**} wklx,
+   181    deny /proc/sys/kernel/domainn[^a]*{,/**} wklx,
+   182    deny /proc/sys/kernel/domainna[^m]*{,/**} wklx,
+   183    deny /proc/sys/kernel/domainnam[^e]*{,/**} wklx,
+   184    deny /proc/sys/kernel/domainname?*{,/**} wklx,
+   185    deny /proc/sys/kernel/h[^o]*{,/**} wklx,
+   186    deny /proc/sys/kernel/ho[^s]*{,/**} wklx,
+   187    deny /proc/sys/kernel/hos[^t]*{,/**} wklx,
+   188    deny /proc/sys/kernel/host[^n]*{,/**} wklx,
+   189    deny /proc/sys/kernel/hostn[^a]*{,/**} wklx,
+   190    deny /proc/sys/kernel/hostna[^m]*{,/**} wklx,
+   191    deny /proc/sys/kernel/hostnam[^e]*{,/**} wklx,
+   192    deny /proc/sys/kernel/hostname?*{,/**} wklx,
+   193    deny /proc/sys/kernel/m[^s]*{,/**} wklx,
+   194    deny /proc/sys/kernel/ms[^g]*{,/**} wklx,
+   195    deny /proc/sys/kernel/msg*/** wklx,
+   196    deny /proc/sys/kernel/s[^he]*{,/**} wklx,
+   197    deny /proc/sys/kernel/se[^m]*{,/**} wklx,
+   198    deny /proc/sys/kernel/sem*/** wklx,
+   199    deny /proc/sys/kernel/sh[^m]*{,/**} wklx,
+   200    deny /proc/sys/kernel/shm*/** wklx,
+   201    deny /proc/sys/kernel?*{,/**} wklx,
+   202    deny /proc/sys/n[^e]*{,/**} wklx,
+   203    deny /proc/sys/ne[^t]*{,/**} wklx,
+   204    deny /proc/sys/net?*{,/**} wklx,
+   205    deny /sys/[^fdc]*{,/**} wklx,
+   206    deny /sys/c[^l]*{,/**} wklx,
+   207    deny /sys/cl[^a]*{,/**} wklx,
+   208    deny /sys/cla[^s]*{,/**} wklx,
+   209    deny /sys/clas[^s]*{,/**} wklx,
+   210    deny /sys/class/[^n]*{,/**} wklx,
+   211    deny /sys/class/n[^e]*{,/**} wklx,
+   212    deny /sys/class/ne[^t]*{,/**} wklx,
+   213    deny /sys/class/net?*{,/**} wklx,
+   214    deny /sys/class?*{,/**} wklx,
+   215    deny /sys/d[^e]*{,/**} wklx,
+   216    deny /sys/de[^v]*{,/**} wklx,
+   217    deny /sys/dev[^i]*{,/**} wklx,
+   218    deny /sys/devi[^c]*{,/**} wklx,
+   219    deny /sys/devic[^e]*{,/**} wklx,
+   220    deny /sys/device[^s]*{,/**} wklx,
+   221    deny /sys/devices/[^v]*{,/**} wklx,
+   222    deny /sys/devices/v[^i]*{,/**} wklx,
+   223    deny /sys/devices/vi[^r]*{,/**} wklx,
+   224    deny /sys/devices/vir[^t]*{,/**} wklx,
+   225    deny /sys/devices/virt[^u]*{,/**} wklx,
+   226    deny /sys/devices/virtu[^a]*{,/**} wklx,
+   227    deny /sys/devices/virtua[^l]*{,/**} wklx,
+   228    deny /sys/devices/virtual/[^n]*{,/**} wklx,
+   229    deny /sys/devices/virtual/n[^e]*{,/**} wklx,
+   230    deny /sys/devices/virtual/ne[^t]*{,/**} wklx,
+   231    deny /sys/devices/virtual/net?*{,/**} wklx,
+   232    deny /sys/devices/virtual?*{,/**} wklx,
+   233    deny /sys/devices?*{,/**} wklx,
+   234    deny /sys/f[^s]*{,/**} wklx,
+   235    deny /sys/fs/[^c]*{,/**} wklx,
+   236    deny /sys/fs/c[^g]*{,/**} wklx,
+   237    deny /sys/fs/cg[^r]*{,/**} wklx,
+   238    deny /sys/fs/cgr[^o]*{,/**} wklx,
+   239    deny /sys/fs/cgro[^u]*{,/**} wklx,
+   240    deny /sys/fs/cgrou[^p]*{,/**} wklx,
+   241    deny /sys/fs/cgroup?*{,/**} wklx,
+   242    deny /sys/fs?*{,/**} wklx,
+
+===== etc/apparmor.d/abstractions/lxc/start-container — LINES 36 TO END =====
+    36    # can't allow those umounts after pivot_root.  So allow all umounts
+    37    # right now.  They'll be restricted for the container at least.
+    38    umount,
+    39    #umount /mnt/{**,},
+    40
+    41    # This may look a bit redundant, however it appears we need all of
+    42    # them if we want things to work properly on all combinations of kernel
+    43    # and userspace parser...
+    44    pivot_root /usr/lib*/lxc/,
+    45    pivot_root /usr/lib*/*/lxc/,
+    46    pivot_root /usr/lib*/lxc/**,
+    47    pivot_root /usr/lib*/*/lxc/**,
+    48    pivot_root /usr/lib/lxc/rootfs/{,**},
+    49
+    50    change_profile -> lxc-*,
+    51    change_profile -> lxc-**,
+    52    change_profile -> unconfined,
+    53    change_profile -> :lxc-*:unconfined,
+
+===== END LXC-EXP-01H =====
+(deck@Laco ~)$
+```
+
+### 5.12.2 Complete-policy findings
+
+**A. `container-base` (242 lines total)**
+
+The previously unseen rules materially expand the understanding of this policy:
+
+1. **Unix-domain sockets:** `unix (receive)` allows receiving via Unix sockets from anywhere; `unix peer=(label=@{profile_name})` allows communication with the same profile label. The source comment itself notes that per-container profile isolation would call for a narrower peer rule.
+2. **Mount types:** tmpfs, hugetlbfs, mqueue and FUSE/FUSE.* mounts are allowed without a destination restriction in these rules.
+3. **Sensitive procfs paths:** explicit denials cover `/proc/bus`, `/proc/sys/fs`, `/proc/kcore`, `/proc/sysrq-trigger`, `/proc/acpi`, and generated deny patterns for most of `/proc/sys`, including kernel identity/settings and network sysctls.
+4. **EFI/security/debug interfaces:** efivarfs may be mounted at the expected EFI path, but writes to EFI variables are denied; securityfs and debugfs mount rules are present, while access under `/sys/kernel/security` and reads under `/sys/kernel/debug` are denied. fusectl is also explicitly handled.
+5. **Procfs/sysfs:** rules permit procfs at `/proc` and sysfs at `/sys`; a constrained remount rule applies to `/sys`. The policy also permits a read-only, nosuid/nodev/noexec remount of the cgroup mount.
+6. **Mount propagation:** make-slave, make-rslave, make-shared, make-rshared, make-private, make-rprivate, make-unbindable and make-runbindable operations are allowed across `/` and descendants.
+7. **Bind mounts:** generated path-pattern rules permit broad read-write bind mounts while excluding the protected top-level `/proc`, `/sys` and `/dev` path families, with special handling for the LXC `/dev/.lxc` path family.
+8. **Read-only bind remounts:** a long explicit set of combinations permits read-only remounts with nosuid, noexec, nodev, noatime, strictatime and/or nosymfollow.
+9. **Mount moves:** corresponding generated patterns permit read-write mount moves while excluding the protected proc/sys/dev path families.
+10. **Generated deny list:** lines 167–242 contain generated path-pattern denials for proc sysctls, selected sysfs classes/devices, virtual network paths and cgroup-related paths.
+
+**Interpretation:** This is a mixed policy: it has substantial path-specific protections, but also grants broad mount-management and namespace setup operations. It should not be described simply as a restrictive policy or as unrestricted host access. The effective boundary depends on AppArmor semantics, the mount namespace, LXC configuration, kernel behavior, and which profile is attached to each process. The archive text alone cannot prove those runtime relationships.
+
+**B. `start-container` (53 lines total)**
+
+The remaining rules establish:
+
+- Unrestricted `umount,` is permitted by this abstraction; the source comment explains that LXC currently allows all unmounts because it cannot reliably constrain them after `pivot_root`, with the expectation that the container context will restrict them.
+- Several `pivot_root` targets are allowed under the packaged LXC runtime directories and LXC rootfs path.
+- Profile transitions are allowed to `lxc-*` and `lxc-**` patterns.
+- Explicit transitions to `unconfined` and `:lxc-*:unconfined` are also allowed.
+
+**High-priority question:** The explicit `change_profile -> unconfined` rules are a meaningful policy permission and must be traced. They do **not**, by themselves, prove that every container becomes unconfined or that a host process can arbitrarily escape confinement. We still need to establish the exact LXC call path, which process carries this abstraction, which transition is requested, how AppArmor resolves the target label, and whether the transition is exercised for the intended container configuration. Do not load this policy or treat its presence as evidence of safe confinement.
+
+### 5.12.3 Security and compatibility disposition
+
+- **AppArmor payload content review:** COMPLETE for the two abstractions. Combined with 01G, all nine requested archive members have been displayed.
+- **Policy semantics review:** PARTIAL. The text has been inspected, but no parser validation or effective-policy evaluation has been performed.
+- **Profile selection and transition behavior:** UNTESTED. In particular, the explicit unconfined transition rules require source-level/runtime-path investigation before any profile activation.
+- **SteamOS compatibility:** UNTESTED. No comparison with the host's installed AppArmor parser, kernel feature set, policy tree or active policy state has yet been performed.
+- **Package authenticity:** BLOCKED pending authenticated signing-key provenance. Matching the previously observed SHA-256 confirms archive identity relative to 01G, not publisher authenticity.
+- **Package-manager safety:** BLOCKED; the prior DBPath/write-access discrepancy remains unresolved.
+
+No package was installed; no profile was parsed or loaded; no service or daemon was activated; no cgroup controller or mount state was modified; no LXC runtime was launched.
+
+### 5.12.4 Next bounded gate
+
+Proceed to **LXC-EXP-01I — SteamOS AppArmor host compatibility audit**, read-only only. Establish whether AppArmor is enabled/available on the current SteamOS host, identify the installed parser/package version and policy paths, inspect active policy state and relevant kernel feature interfaces, and record any existing LXC/AppArmor integration. Do not run the parser in load mode, load/replace profiles, install packages, or change host configuration.
+
+Separately, the explicit unconfined profile transition should be traced against the exact LXC 7.0.0 source implementation and the packaged launcher profile attachment before any runtime experiment. This source review is not permission to activate AppArmor policies.
+
+Signature trust remains a separate gate: identify an authenticated SteamOS signing-key provenance without importing keys or modifying the Deck keyring.
+
+**Disposition:** **LXC-EXP-01H COMPLETED — FULL CONTENT RETRIEVAL, STATIC POLICY REVIEW ONLY.** This completes the content retrieval omitted by 01G; it does not certify the AppArmor policy as safe, compatible, loaded, or effective.
+
+---
+
 ## 14. Current continuation handoff
 
 **Project:** Waydroid SSH — read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN but package-safety gate BLOCKED.
@@ -4393,7 +4737,7 @@ profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_de
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed test:** LXC-EXP-01G (§5.11) — streamed nine AppArmor policy members from the exact package archive. Seven members were fully displayed; the 242-line container-base and 53-line start-container abstractions were each truncated to 35 lines and remain incomplete. No profile was loaded or parsed. LXC-EXP-01F (§5.9) remains the latest completed systemd-unit/configuration review.
+**Latest completed test:** LXC-EXP-01H (§5.12) — completed the two AppArmor abstractions truncated in 01G, with the exact archive SHA-256 reverified. The full 242-line container-base and 53-line start-container abstractions are now recorded. The policy includes broad mount/propagation permissions, path-specific proc/sys denials, unrestricted umount in the start abstraction, and explicit change_profile transitions to unconfined. No parser validation or profile load was performed.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -4411,7 +4755,7 @@ profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_de
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** Continue the LXC-EXP-01 package-safety investigation without retrying pacman or mutating DBPath. First complete the two truncated AppArmor abstractions from the same exact archive and perform read-only checks of SteamOS AppArmor availability, parser version and current policy state. Separately establish an authenticated SteamOS signing-key source before attempting detached-signature verification; do not import keys or modify the Deck keyring. Then reconcile package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
+**Active next gate:** LXC-EXP-01I — perform a read-only SteamOS AppArmor host compatibility audit: determine availability/enabled state, installed parser/package version, policy paths, active policy state and relevant kernel feature interfaces. Do not invoke parser load mode, load/replace profiles, install packages or modify host configuration. In parallel, trace the exact LXC 7.0.0 code path and launcher attachment semantics for the packaged `change_profile -> unconfined` permissions; source review does not authorize profile activation. Separately establish authenticated SteamOS signing-key provenance before detached-signature verification; do not import keys or modify the Deck keyring. Then reconcile package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -4453,6 +4797,7 @@ profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_de
 | 3.9 | 2026-11-07 | Recorded LXC-EXP-01A's read-only sudo identity/capability/user-namespace diagnostic; confirmed sudo runs as root with a broad capability set and identity UID/GID maps, but the result did not explain the DBPath write-access predicate or pacman lock failure; formally classified the package-safety prerequisite as BLOCKED and prohibited further generic lock diagnostics or pacman retries; updated the continuation handoff. |
 | 4.0 | 2026-11-07 | Completed the five-test LXC-EXP-01B–01F documentation cycle and consistency review; preserved unchanged v3.9 snapshot; confirmed the exact SteamOS repository endpoint, archive and detached-signature filename; directly inspected package metadata and 202-entry payload manifest; identified AppArmor policy, five systemd units, default autostart/network configuration and state paths; inspected all five service units and two default configuration files; superseded the missing-archive-manifest finding while retaining package-manager safety BLOCKED due unresolved DBPath/write-access failure and unverified signature; corrected the host/off-host execution record and updated the executive assessment and continuation handoff. |
 | 4.1 | 2026-11-07 | Recorded LXC-EXP-01G with the exact command, observed archive SHA-256 and supplied output; reviewed the visible profile distinctions and mount/capability/DBus/signal/ptrace policy classes; explicitly marked container-base and start-container incomplete because each was truncated at 35 lines; retained signature and package-manager blockers; updated the executive status, package-safety handoff and next bounded review. No AppArmor parser/load, package install, service activation, cgroup mutation or LXC runtime test occurred. |
+| 4.2 | 2026-11-07 | Recorded LXC-EXP-01H exact command and complete supplied output; verified the same package SHA-256 as 01G; completed the remaining lines of both AppArmor abstractions; analyzed mount/propagation, proc/sys restrictions, umount, pivot_root and explicit unconfined profile-transition permissions; updated test disposition, executive status and next gate to read-only SteamOS AppArmor compatibility plus source-path tracing. No parser validation/load, installation, service activation or runtime test occurred. |
 
 ---
 
