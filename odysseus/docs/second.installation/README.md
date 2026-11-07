@@ -71,7 +71,7 @@ The following rules are mandatory:
 6. A repeated test requires a documented changed condition or a previously untested behavior.
 7. The parent README must be updated when the canonical handoff, archive structure or audit status changes.
 
-The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.3 (2026-11-07). NET-03's named external-egress probes passed. NET-04 confirmed bidirectional peer communication on a dedicated internal bridge while both peers remained blocked from the named host/router/public/DNS probes; both listeners required SIGKILL after the 10-second SIGTERM timeout. NET-05 confirmed a host-to-container HTTP 200 path through a loopback-only published port (`127.0.0.1:18085` → container `18080/tcp`), while the same published port was refused through the host LAN address. Other host/container probes produced distinct timeout, refusal and unreachable results; see the canonical ledger for evidence limits. NET-05 cleanup independently verified the temporary container and network absent and port `18085` released. The listener again required SIGKILL after the 10-second SIGTERM timeout. The next open dependency is IPv6 and DNS behavior.
+The detailed rules and templates are in §0 and §13–§18 of the canonical audit. The canonical audit is now version 1.4 (2026-11-07). NET-03's named external-egress probes passed. NET-04 confirmed bidirectional peer communication on a dedicated internal bridge while both peers remained blocked from the named host/router/public/DNS probes; both listeners required SIGKILL after the 10-second SIGTERM timeout. NET-05 confirmed a host-to-container HTTP 200 path through a loopback-only published port (`127.0.0.1:18085` → container `18080/tcp`), while the same published port was refused through the host LAN address. Other host/container probes produced distinct timeout, refusal and unreachable results; see the canonical ledger for evidence limits. NET-05 cleanup independently verified the temporary container and network absent and port `18085` released. The listener again required SIGKILL after the 10-second SIGTERM timeout. The next open dependency is IPv6 and DNS behavior (NET-06). The read-only Stage A preflight found active host IPv6 addressing/default routing and Netavark IPv6 option support, while the existing default Podman bridge remains IPv4-only. Host DNS stubs and a separate UDP/TCP listener on `192.168.1.161:53` are already present and must remain untouched. Stage A is preflight evidence, not a completed test; actual container IPv6, DNS forwarding and IPv6 egress remain untested.
 
 ## 5. Current recorded position
 
@@ -88,7 +88,7 @@ The detailed rules and templates are in §0 and §13–§18 of the canonical aud
 - Seccomp is enabled; AppArmor and SELinux are disabled.
 - No Odysseus or LXC installation has been performed.
 
-These are scoped findings, not a final security certification. IPv6 and DNS behavior is the next open dependency. Consult the canonical audit for test IDs, evidence limits and the next approval boundary.
+These are scoped findings, not a final security certification. IPv6 and DNS behavior is the next open dependency. Consult the canonical audit v1.4 for test IDs, evidence limits and the next approval boundary.
 
 ## 6. Naming and phase policy
 
