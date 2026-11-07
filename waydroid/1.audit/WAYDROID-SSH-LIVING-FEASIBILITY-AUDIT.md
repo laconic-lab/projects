@@ -2,9 +2,9 @@
 
 > **Document role:** Canonical, cumulative engineering record for the Waydroid-on-Steam-Deck / remote-client project. This document is deliberately written for future ChatGPT sessions: it preserves the decisions, evidence, test history, exact continuation point, and anti-repetition rules needed to resume the audit without replaying completed groundwork.
 >
-> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; the original pacman database-lock failure remains unexplained; LXC-SCOPE-01 was rejected before execution; LXC-SCOPE-02 successfully created a transient delegated user scope and confirmed process membership, but its cgroup-directory variable was expanded prematurely by systemd-run, so the diagnostic inspected the cgroup mount root rather than the scope directory; delegated-scope write permissions remain untested; no LXC installation or runtime experiment performed**.
+> **Status:** Phase 1.5 architecture feasibility review in progress — **LXC/Waydroid integration inspected at source level; Deck-local LXC candidate and print-only transaction reported; package file-manifest inspection remains blocked; original pacman database-lock failure unexplained; LXC-SCOPE-01 rejected before execution; LXC-SCOPE-02 created a transient scope but inspected the wrong cgroup directory; LXC-SCOPE-03 successfully inspected the actual transient delegated scope and confirmed positive write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control; available child controllers cpu, memory, pids and dmem, none enabled; no actual cgroup write/controller activation, LXC installation or runtime experiment performed**.
 >
-> **Document version:** 3.0  
+> **Document version:** 3.1  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Container-only Waydroid feasibility; no installation or persistent host changes authorized by this document.
@@ -2423,7 +2423,7 @@ Connection to deck closed.
 **Decision / next step**
 
 - Record LXC-SCOPE-01 as **BLOCKED / NOT EXECUTED**, not as a delegation failure.
-- A corrected, separately numbered LXC-SCOPE-02 may retry the same read-only diagnostic using systemd-run --user --scope --property=Delegate=yes without --wait or --collect. Keep the command payload bounded and read-only.
+- LXC-SCOPE-02 created a transient scope but inspected the wrong cgroup directory due to premature variable expansion. LXC-SCOPE-03 corrected the path and confirmed positive write-access predicates on the actual scope. See both test records below.
 - Do not use --service, create a persistent unit, enable a service, alter cgroup/systemd configuration, or run LXC. The corrected scope must be transient and must not change existing Podman/Pi-hole workloads.
 - Do not advance the LXC installation decision until a direct host-level delegation result is obtained and interpreted.
 ---
@@ -2541,6 +2541,105 @@ CGROUP_DIR="/sys/fs/cgroup$CGROUP_REL"
 The unbraced reference avoids systemd-run's observed `${VAR}` expansion while allowing the child Bash process to expand its own `$CGROUP_REL`. Keep the rest of the diagnostic read-only and unchanged. Confirm that the printed directory ends with `run-...scope` and is not merely `/sys/fs/cgroup` before interpreting any metadata or access results.
 
 Do not install LXC, run LXC, change controller state, write cgroup files, create persistent units, or alter host configuration. The package-lock investigation remains parked and separate. The transient scope result is useful but does not yet justify an LXC package installation.
+
+#### LXC-SCOPE-03 — actual delegated scope inspected; write-access predicates positive
+
+- **Date:** 2026-11-07 (user-reported execution date)
+- **Status:** **COMPLETED — transient delegated scope and process membership confirmed; scope directory and requested cgroup control paths passed write-access predicates; controller activation and actual cgroup writes not tested**
+- **Environment:** Steam Deck SteamOS host (deck@Laco), invoked over SSH
+- **Systemd:** `systemd 261 (261.2-1.2-arch)`
+- **Transient scope:** `run-p505279-i516648.scope`
+- **Invocation ID:** `ca41ab6372574a30a64bc1277ad93bc7`
+- **Gate:** Phase 1.5 direct host-level unprivileged LXC feasibility; this tests the systemd delegation prerequisite, not LXC execution.
+- **Prior evidence:** LXC-SCOPE-01 was rejected before execution. LXC-SCOPE-02 created a transient scope and confirmed membership but its path expansion defect caused inspection of `/sys/fs/cgroup`. LXC-SCOPE-03 changed the directory expression to the unbraced `$CGROUP_REL` form and validated the target.
+- **Why new:** First valid inspection of the actual transient scope directory and its cgroup access predicates.
+- **Side-effect boundary:** Transient user scope only. Payload read process membership, metadata, mount and controller files, and shell access predicates. No cgroup files were written, no controllers activated, no persistent unit/service installed or enabled, no package operation, and no LXC/Waydroid runtime involved.
+- **Repeat policy:** Do not repeat this diagnostic merely to reconfirm the same predicates. Do not treat `[ -w ]` as an actual write test.
+
+**Corrected path expression**
+
+~~~bash
+CGROUP_DIR="/sys/fs/cgroup$CGROUP_REL"
+~~~
+
+The script confirmed that the target existed and was distinct from `/sys/fs/cgroup`.
+
+**Actual output (user-provided)**
+
+~~~text
+===== 1. SYSTEMD VERSION =====
+systemd 261 (261.2-1.2-arch)
+
+===== 2. CREATE TRANSIENT DELEGATED USER SCOPE =====
+Running as unit: run-p505279-i516648.scope; invocation ID: ca41ab6372574a30a64bc1277ad93bc7
+
+===== PROCESS CGROUP MEMBERSHIP =====
+0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope
+
+===== DELEGATED CGROUP PATH =====
+Relative path: /user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope
+Directory: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope
+
+===== TARGET DIRECTORY SANITY CHECK =====
+PASS: Target is a distinct existing directory.
+
+===== CGROUP DIRECTORY METADATA =====
+Owner=deck Group=deck Mode=755 Type=directory
+
+===== CGROUP MOUNT =====
+TARGET         FSTYPE  OPTIONS
+/sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot
+
+===== AVAILABLE CHILD CONTROLLERS =====
+cpu memory pids dmem
+
+===== ENABLED CHILD CONTROLLERS =====
+
+===== READ/WRITE ACCESS PREDICATES =====
+WRITE YES: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope
+WRITE YES: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope/cgroup.procs
+WRITE YES: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope/cgroup.subtree_control
+
+===== SCOPE DIAGNOSTIC COMPLETE =====
+
+===== SYSTEMD-RUN EXIT STATUS =====
+Exit code: 0
+===== END LXC-SCOPE-03 =====
+logout
+Connection to deck closed.
+~~~
+
+**Observed facts**
+
+1. systemd-run created transient scope `run-p505279-i516648.scope`, invocation ID `ca41ab6372574a30a64bc1277ad93bc7`.
+2. Process membership is `/user.slice/user-1000.slice/user@1000.service/app.slice/run-p505279-i516648.scope`.
+3. The corrected directory resolves to the full scope path, exists, and passes the explicit sanity check.
+4. The scope directory is owned by `deck:deck`, mode `755`.
+5. The cgroup2 mount is reported as `rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot`.
+6. Available child controllers: `cpu memory pids dmem`.
+7. `cgroup.subtree_control` is empty: no child controllers are currently enabled at this scope.
+8. Shell `[ -w ]` predicates return YES for the scope directory, `cgroup.procs`, and `cgroup.subtree_control`.
+9. The diagnostic and systemd-run returned exit status 0.
+
+**Interpretation and limits**
+
+- **CONFIRMED:** A normal user invocation using `systemd-run --user --scope --property=Delegate=yes` created a transient scope and the diagnostic process ran inside it.
+- **CONFIRMED:** The scope directory is owned by `deck:deck`, mode `755`.
+- **CONFIRMED AS ACCESS PREDICATES:** The invoking process passed shell write-access checks for the scope directory, `cgroup.procs`, and `cgroup.subtree_control`. These predicates do not prove an actual cgroup write succeeded.
+- **CONFIRMED:** Child controllers `cpu`, `memory`, `pids`, and `dmem` are available at this scope.
+- **CONFIRMED:** No child controller is currently enabled.
+- **NOT TESTED:** Actual child-cgroup creation, process movement via `cgroup.procs`, controller activation/configuration, LXC's exact cgroup-v2 requirements, or LXC runtime behavior.
+- This is materially stronger than LXC-SCOPE-02, whose access checks targeted the mount root. It does not alone prove LXC will run correctly.
+- No cgroup file was written, no controller activated, and no persistent host configuration changed.
+
+**Decision / next gate**
+
+The direct host-level systemd delegation prerequisite is **promising and materially demonstrated at the permission-predicate level**. It resolves the narrow delegation-directory inspection question, not full LXC feasibility.
+
+Next, reconcile the still-blocked package manifest with LXC's precise cgroup-v2 requirements. The package-lock investigation remains parked; do not retry pacman or create test files/locks without a separately justified and explicitly approved plan.
+
+No actual cgroup write/controller activation is authorized by this result. Do not install LXC, launch LXC, install Waydroid, create persistent units, alter host cgroups, or modify Podman/Pi-hole on this evidence alone. Present any further test as a separate bounded proposal and obtain approval before cgroupfs writes or package-state changes.
+
 
 ## 6. Upstream and project documentation review
 
@@ -2936,7 +3035,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 **Archive provenance:** the unchanged v1.8 pre-decision snapshot is preserved at `archive/2026-11-06/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT-v1.8.md`. The prior v1.7 snapshot remains unchanged.
 
-**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 successfully created transient scope run-p504174-i508745.scope and confirmed process membership at /user.slice/user-1000.slice/user@1000.service/app.slice/run-p504174-i508745.scope. However, systemd-run expanded the braced ${CGROUP_REL} reference before the child shell ran, leaving CGROUP_DIR as /sys/fs/cgroup. All directory metadata, controller and WRITE NO results therefore describe the cgroup mount root, not the delegated scope. Delegated-scope permissions remain UNTESTED. The next bounded step is LXC-SCOPE-03: repeat the read-only payload with only CGROUP_DIR assignment corrected to CGROUP_DIR="/sys/fs/cgroup$CGROUP_REL"; verify the printed path ends in the transient scope name before interpreting results. No persistent unit/service, cgroup write/controller change, LXC launch, or package installation is authorized. The package-lock investigation remains parked; do not create test files/locks or retry pacman without a separately approved rationale.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
+**Current direct-scope handoff:** LXC-SCOPE-01 was rejected before execution because systemd 261 disallows --wait with --scope. LXC-SCOPE-02 created transient scope run-p504174-i508745.scope and confirmed process membership, but systemd-run expanded ${CGROUP_REL} prematurely and all directory/access checks targeted /sys/fs/cgroup; those permission results were invalid for the scope. LXC-SCOPE-03 corrected the expression and confirmed transient scope run-p505279-i516648.scope, process membership, a deck:deck mode-755 scope directory, available child controllers cpu/memory/pids/dmem, an empty cgroup.subtree_control, and positive shell write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control. These are access predicates only: no actual cgroup write, child-cgroup creation, process movement or controller activation was tested. Direct systemd delegation is promising and materially demonstrated at the permission-predicate level, but LXC compatibility remains unproven. Next: reconcile the blocked package manifest and LXC cgroup-v2 requirements; propose any further test separately with its side effects and approval gate. No LXC installation/launch, Waydroid installation, persistent service, host cgroup change, or package-manager retry is authorized. The package-lock investigation remains parked.\\n\\n**Continuation rule:** Before any future command, state which gate it addresses, which prior tests it relies on, and why it is not a repetition. Record any new result in this canonical document before proposing another test.
 ---
 
 ## 15. Change log
@@ -2964,6 +3063,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 2.8 | 2026-11-07 | Recorded LXC-PKG-07: documented RootDir=/, DBPath contents, Btrfs no-copy-on-write attribute and basic ACL; recorded the unexpected negative sudo write-access predicate without claiming it proves a write failure or explains the original pacman lock error; stopped the investigation pending a justified non-mutating diagnostic or explicit approval for any retry. |
 | 2.9 | 2026-11-07 | Recorded LXC-SCOPE-01 as blocked before execution: systemd 261 rejected --wait with --scope; documented that no scope or diagnostic payload ran and set the next bounded step to a corrected transient delegated-scope invocation without --wait or --collect. |
 | 3.0 | 2026-11-07 | Recorded LXC-SCOPE-02: transient delegated user scope creation and process membership confirmed; identified systemd-run's premature expansion of the braced cgroup-path variable, which caused all directory/access checks to target /sys/fs/cgroup rather than the scope; qualified the WRITE NO results as non-evidence about delegated permissions; advanced the handoff to the narrowly corrected read-only LXC-SCOPE-03. |
+| 3.1 | 2026-11-07 | Recorded LXC-SCOPE-03: corrected cgroup path resolved to the actual transient delegated scope; confirmed deck:deck ownership, mode 755, available cpu/memory/pids/dmem child controllers, no enabled child controllers, and positive write-access predicates for the scope directory, cgroup.procs and cgroup.subtree_control; distinguished access predicates from actual writes; advanced the handoff to package-manifest and LXC cgroup-v2 requirement reconciliation without authorizing writes, controller activation or installation. |
 
 ---
 
