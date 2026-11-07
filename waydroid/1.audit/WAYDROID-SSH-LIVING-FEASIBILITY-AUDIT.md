@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and authenticated signature verification remain blocked; 01K-C extracted six primary key identities from the local Holo keyring without modifying it; 01K-D confirmed that the temporary GPG home remained after the 01K-C EXIT trap; approved 01K-E exact-path cleanup removed the two verified GnuPG database files and directory, and absence was confirmed; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); LXC-EXP-01G and 01H completed the static content review of nine packaged AppArmor members, including the full 242-line container-base and 53-line start-container abstractions; 01H identified explicit unconfined profile-transition permissions; LXC-EXP-01I confirmed AppArmor is disabled and unavailable on the current SteamOS host (kernel parameter N, absent from active LSM list, no parser/utilities/policy tree/profile interface); packaged AppArmor policies therefore cannot currently be enforced through the host's AppArmor facility; source-path tracing now confirms the launcher profile's transition permission can be used by the spawned container-init child when `lxc.apparmor.profile = unconfined` is selected; default LXC behavior instead selects `lxc-container-default` or `lxc-container-default-cgns`; the host-side monitor is not changed by the child-side transition; AppArmor remains disabled on this Deck, and exact SteamOS package build-feature equivalence remains unverified; signature trust and package-manager safety remain blocked; the initial local GPG attempts (01K-B/BR) were inconclusive, but approved 01K-C extracted six primary fingerprints and UIDs through a disposable GPG home; this is local identification only, not independent authentication; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 5.0  
+> **Document version:** 5.1  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -4459,9 +4459,54 @@ Repeat policy: do not repeat the cleanup. The exact target is absent; any later 
 
 ---
 
-### 5.17.7 Historical next-gate note — superseded by LXC-EXP-01K-D/E
 
-This earlier handoff requested cleanup verification after 01K-C. It was fulfilled by 01K-D (read-only exact-path inspection) and 01K-E (approved exact-path cleanup). The current active gate is recorded in the latest continuation handoff: independent authoritative signer-provenance research and exact archive/signature-pair reconciliation (01K-F).
+## 5.20 LXC-EXP-01K-F — public signer-provenance research and artifact-pair reconciliation
+
+### 5.20.1 Gate purpose and limits
+
+This was a research-only gate following cleanup 01K-E. It did not execute commands on the SteamOS host, download artifacts to the host, import keys, modify trust, run GPG/GPGV, invoke pacman, install packages, or change runtime configuration. It relied on existing audit evidence from 01C and 01G/01H for the exact archive/signature pair and archive digest, and used public web/GitHub source searches to look for an independent trust anchor.
+
+### 5.20.2 Exact candidate and prior artifact evidence
+
+- Repository endpoint confirmed in 01B: `https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64`
+- Archive filename: `lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst`
+- Detached signature filename: `lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst.sig`
+- 01C observed both entries in the configured repository directory listing (archive shown as 832.7 KiB; signature as 566 B).
+- Archive SHA-256 previously observed in 01G/01H: `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e`.
+- Candidate primary fingerprint: `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`, UID `GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>`, as locally displayed by 01K-C.
+
+The repository listing and archive digest establish artifact identity within the prior download evidence, not authenticity. The detached signature has not been cryptographically verified.
+
+### 5.20.3 Sources reviewed
+
+1. **ValveSoftware/SteamOS issue #2530** — [Bluetooth controller randomly disconnects…](https://github.com/ValveSoftware/SteamOS/issues/2530). The issue body says an official Valve package's detached signature was verified against the SteamOS-provided public keyring and names fingerprint `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. This is useful corroboration that the fingerprint was used in a SteamOS package-verification context, but the statement is in user-submitted issue content. It is not an official Valve key declaration, signed release statement, or proof for the LXC artifact.
+2. **SteamOS package mirror directory indexes** — [configured extra-3.9 directory](https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64/) and [mirror root](https://steamdeck-packages.steamos.cloud/archlinux-mirror/). These corroborate the repository's package distribution context. The archive and matching `.sig` were already observed by 01C. Mirror hosting alone is not an independent trust anchor for the signing key.
+3. **Public GitHub code search within ValveSoftware/SteamOS** for `holo-keyring`, `GitLab CI Package Builder`, and the fingerprint returned no matching source declaration in the searched repository. This is a bounded negative result, not proof that Valve publishes no such declaration elsewhere.
+4. **Third-party GitHub repositories** surfaced the same fingerprint and references to Valve's `holo-keyring`; some also publish a SHA-256 pin for a `holo-keyring` package. These are derivative community artifacts. Without an independent reason to trust the publisher and the pin's provenance, they cannot authenticate the key for this audit.
+
+### 5.20.4 Findings and confidence table
+
+| Question | Finding | Disposition |
+|---|---|---|
+| Is the exact LXC archive listed at the configured repository endpoint? | Yes; prior 01C listing shows it. | **ESTABLISHED AS REPOSITORY PRESENCE** |
+| Is the matching detached signature listed beside it? | Yes; prior 01C listing shows the corresponding `.sig`. | **ESTABLISHED AS REPOSITORY PRESENCE** |
+| Is there an archive digest in the existing audit? | Yes; SHA-256 `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e` from 01G/01H. | **RECORDED; DOES NOT PROVE SIGNER TRUST** |
+| Is the candidate fingerprint mentioned in public SteamOS verification context? | Yes, in user-submitted content on a ValveSoftware/SteamOS issue concerning a different package. | **CORROBORATION ONLY** |
+| Was an authoritative Valve-controlled key declaration or independently authenticated keyring hash located in this research pass? | No. Public repository search did not locate one; third-party pins are not authoritative by themselves. | **UNRESOLVED / BLOCKED** |
+| Was the LXC signature verified? | No. | **NOT PERFORMED** |
+| Was any key imported or trust changed? | No. | **NO CHANGE** |
+
+### 5.20.5 Disposition and side-effect boundary
+
+**01K-F: RESEARCH PASS COMPLETED; TRUST-ANCHOR REQUIREMENT NOT SATISFIED.** The artifact pair is already identified in prior host-side evidence, but this gate did not authenticate the signer. The issue report is not treated as an official key declaration, and third-party keyring hashes are not promoted to trust anchors. No package signature verification was attempted because the independent trust-anchor requirement remains unresolved.
+
+No host command was run for 01K-F. No local artifact was downloaded, no temporary files were created, and no cleanup was required. No pacman operation, key import, trust edit, package installation, service change, or runtime test occurred.
+
+### 5.20.6 Next gate — LXC-EXP-01K-G
+
+Investigate the provenance chain for the SteamOS `holo-keyring` trust anchor: determine whether Valve provides an authoritative source-controlled key declaration, a release artifact authenticated by an already trusted SteamOS update/signing chain, or an independently authenticated package hash. Keep these options distinct from third-party copies and from the Deck's local keyring alone. Do not import keys, modify trust, run `gpg --recv-keys`, retry pacman, or verify the LXC signature until the trust-anchor basis is explicitly resolved. No LXC installation or runtime test is authorized.
+
+Repeat policy: do not repeat the 01C repository listing or 01G/01H archive digest checks unless the repository endpoint, package version, or archive bytes change. The next gate must address trust-anchor provenance, not re-prove artifact presence.
 
 ---
 
@@ -5796,7 +5841,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** LXC-EXP-01K-F — independent authoritative signer-provenance research and exact archive/signature-pair reconciliation. 01K-E completed the explicitly approved cleanup of exactly `/tmp/lxc-gpg-audit.eWVvii`: the command revalidated the real directory, UID 1000 ownership, mode 0700, exact two-file contents, and each file's UID 1000/mode 0600 before removing only those two files and then the directory with `rmdir`; final checks confirmed `CLEANUP_RESULT: SUCCESS` and `EXACT_TARGET_ABSENT: YES`. No other temporary path was touched. The six primary fingerprints from 01K-C remain local identifications, not independent authentication. Candidate fingerprint: `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. No package signature has been verified. Keep the pacman DBPath/write-access discrepancy blocked; do not retry pacman, import keys or change trust. Do not install LXC or run runtime tests without a separate complete plan and explicit approval.
+**Active next gate:** LXC-EXP-01K-G — investigate the provenance chain for the SteamOS `holo-keyring` trust anchor, including whether an authoritative Valve-controlled keyring artifact or independently authenticated hash can be established. 01K-F searched public ValveSoftware/SteamOS repository content and relevant public web results. The exact archive and matching detached `.sig` were already found at the configured `extra-3.9` mirror in 01C, and the archive SHA-256 was recorded in 01G/01H; this artifact-pair presence is established, but the signature has **not** been cryptographically verified. Public corroboration includes a ValveSoftware/SteamOS issue report describing verification of a different SteamOS package with the same fingerprint; that is user-submitted issue content, not an official Valve key declaration. Third-party GitHub projects repeat the fingerprint and some publish a `holo-keyring` SHA-256, but are not independent authoritative trust anchors. No authoritative Valve-controlled key declaration or independently authenticated keyring hash was located in this pass. The six primary fingerprints from 01K-C remain local identifications, not independent authentication. Candidate fingerprint: `889B5EBDDD505A683621900DAF1D2199EF0A3CCF`. Keep the pacman DBPath/write-access discrepancy blocked; do not retry pacman, import keys, change trust, or run signature verification until the trust-anchor decision is resolved. No LXC installation or runtime test without a separate complete plan and explicit approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -5846,6 +5891,7 @@ This is a deliberate LXC policy handoff, but it is a meaningful trust boundary:
 | 4.8 | 2026-11-07 | Added external provenance corroboration for the locally observed GitLab CI Package Builder fingerprint: a ValveSoftware/SteamOS issue report references that fingerprint for verification of a different Valve package, and the SteamOS package mirror lists signed holo-keyring packages. Explicitly classified both as corroboration only, not as a Valve-published fingerprint statement or proof that the exact LXC archive was signed by this key. The exact archive signature remains unverified; no Deck action or package operation occurred. |
 | 4.9 | 2026-11-07 | Recorded LXC-EXP-01K-D: exact-path read-only inspection confirmed `/tmp/lxc-gpg-audit.eWVvii` still exists as a `deck:deck` mode-0700 directory containing only `pubring.kbx` and `trustdb.gpg`, both `deck:deck` mode 0600. No cleanup was performed. Marked cleanup outstanding and advanced to 01K-E, requiring explicit approval and strict exact-path revalidation before deletion. No package-manager, key-import, trust, signature-verification, installation or runtime action occurred. |
 | 5.0 | 2026-11-07 | Recorded LXC-EXP-01K-E: after explicit user approval, exact-path preconditions confirmed the disposable GPG directory and its two expected files (UID 1000, directory mode 0700, file modes 0600); removed only those files and the exact directory, then verified the target absent. Updated the test ledger, superseded cleanup handoffs, executive status and continuation gate to independent signer-provenance research (01K-F). No key import/trust change, package signature verification, pacman action, installation or runtime test occurred. |
+| 5.1 | 2026-11-07 | Recorded LXC-EXP-01K-F public signer-provenance research. Reconciled prior evidence for the exact LXC archive, matching detached signature and archive SHA-256; classified the ValveSoftware/SteamOS issue report as user-submitted corroboration only, and third-party fingerprint/keyring-hash references as non-authoritative. No independent authoritative Valve trust anchor was located in the bounded search; signature verification remains blocked. Advanced the handoff to 01K-G, focused on the `holo-keyring` trust-anchor provenance chain. No host command, download, key import, trust change, pacman action, installation or runtime test occurred. |
 
 ---
 
