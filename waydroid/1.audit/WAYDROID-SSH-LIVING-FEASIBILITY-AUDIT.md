@@ -4,7 +4,7 @@
 >
 > **Status:** Read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN — temporary LXC package/runtime experiments approved in principle, but package-manager safety and exact package manifest remain blocked; no installation performed — **Deck-local LXC 1:7.0.0-1 candidate and print-only transaction reported; upstream LXC v7.0.0 cgroup implementation reconciled with host tests; direct-host delegated child-cgroup creation/removal and process placement confirmed; LXC v7.0.0 unprivileged systemd-scope path requires non-root execution and controller activation; stock Waydroid's D-Bus/systemd container service runs as root and therefore bypasses that LXC path; wrapping the user CLI does not wrap the root service's actual lxc-start process; rootless Podman cgroup mount remains read-only; exact archive payload manifest inspected (202 regular entries); signature verification and package-manager safety remain blocked; controller activation and LXC runtime remain untested; no LXC installation performed**.
 >
-> **Document version:** 4.0  
+> **Document version:** 4.1  
 > **Last source refresh:** 2026-11-07  
 > **Current branch:** `main`  
 > **Scope:** Closed container-only Waydroid feasibility record plus separately scoped LXC-only experimental investigation; no Waydroid installation authorized. Temporary LXC-only installation may be considered only after package provenance, package-manager safety, exact transaction and rollback plan are verified and separately confirmed.
@@ -78,7 +78,7 @@ The stock Waydroid path is materially different: the system D-Bus activation ser
 
 The separate rootless Podman route remains blocked by the read-only cgroup2 mount observed inside the disposable container. A rootless LXC process directly on the host and LXC nested inside rootless Podman are distinct architectures; the direct-host tests do not make the nested Podman mount writable. Waydroid's base config explicitly mounts cgroup read-only and retains capabilities inside the Android container, while the effective LXC device policy still depends on package defaults and generated config. LXC's cgroup-v2 device-rule implementation uses eBPF load/attach/detach when device rules are configured; the Waydroid base config reviewed here does not itself specify cgroup2 device rules, so actual BPF use is not asserted.
 
-**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection; signature trust, package-manager safety, service/AppArmor integration, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
+**Decision:** Do not install or launch LXC/Waydroid yet. The exact archive payload manifest has now been inspected directly (202 regular entries), but the original pacman DB lock/write-access failure remains unexplained and the detached signature has not been cryptographically verified. The source review establishes that a real LXC runtime test would need to cover controller activation and LXC's own lifecycle, but it does not authorize a controller write, package-manager retry, installation, service change, or launcher modification. SPLIT-ARCH-01 has now reviewed that design question: a custom manual-only split is technically conceivable but would require manager/launcher adaptation, unresolved rootfs/device handling, and a network solution incompatible with the current no-host-network-change boundary. It is not recommended for implementation under the current constraints. The archive manifest prerequisite has been materially advanced by direct archive inspection. LXC-EXP-01G now provides a partial content review of the AppArmor payload; complete abstraction review, SteamOS parser/policy compatibility, signature trust, package-manager safety, exact transaction reconciliation, and rollback still require resolution before any future LXC runtime work.
 
 ### 1.2 Positive evidence
 
@@ -4115,6 +4115,270 @@ The primary export and prior consolidated audit were retrieved from the reposito
 
 ---
 
+## 5.11 LXC-EXP-01G — AppArmor payload review
+
+**Date:** 2026-11-07  
+**Gate:** Inspect the actual AppArmor policy files shipped inside the exact SteamOS repository LXC archive, without installing the package or loading any profile.  
+**Package:** `lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst` from the configured `extra-3.9` x86_64 mirror endpoint.  
+**Archive SHA-256 observed:** `9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e`.  
+**Execution result:** Download and archive-member inspection completed. Nine requested members were queried. Seven policy files were displayed; two abstractions were intentionally truncated by the test to their first 35 lines. No profile was loaded, no package was installed, and no package-manager operation was attempted.
+
+### 5.11.1 Exact command executed
+
+The following is the command supplied and executed by the user:
+
+```bash
+echo "===== LXC-EXP-01G: APPARMOR PAYLOAD REVIEW ====="
+
+set -euo pipefail
+
+BASE="https://steamdeck-packages.steamos.cloud/archlinux-mirror/extra-3.9/os/x86_64"
+PKG="lxc-1%3A7.0.0-1-x86_64.pkg.tar.zst"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+echo
+echo "===== 1. DOWNLOAD EXACT PACKAGE ====="
+curl -fsSL "$BASE/$PKG" -o "$TMP/lxc.pkg.tar.zst"
+sha256sum "$TMP/lxc.pkg.tar.zst"
+
+show_member() {
+    local member="$1"
+
+    echo
+    echo "===== $member ====="
+
+    if ! bsdtar -tf "$TMP/lxc.pkg.tar.zst" | grep -Fxq "$member"; then
+        echo "MEMBER NOT FOUND"
+        return 0
+    fi
+
+    bsdtar -xOf "$TMP/lxc.pkg.tar.zst" "$member" |
+        awk '
+            NR <= 35 { print }
+            END {
+                if (NR > 35)
+                    printf "... TRUNCATED: %d total lines; only first 35 shown ...\n", NR
+            }
+        '
+}
+
+show_member etc/apparmor.d/lxc-containers
+show_member etc/apparmor.d/usr.bin.lxc-start
+show_member etc/apparmor.d/usr.bin.lxc-copy
+show_member etc/apparmor.d/lxc/lxc-default
+show_member etc/apparmor.d/lxc/lxc-default-cgns
+show_member etc/apparmor.d/lxc/lxc-default-with-mounting
+show_member etc/apparmor.d/lxc/lxc-default-with-nesting
+show_member etc/apparmor.d/abstractions/lxc/container-base
+show_member etc/apparmor.d/abstractions/lxc/start-container
+
+echo
+echo "===== END LXC-EXP-01G ====="
+```
+
+### 5.11.2 Observed output
+
+```text
+===== LXC-EXP-01G: APPARMOR PAYLOAD REVIEW =====
+
+===== 1. DOWNLOAD EXACT PACKAGE =====
+9ae2c4353e8dde664790e0515ee873865a6773a6a10565917b80bed6a473495e  /tmp/tmp.AvDGXrmMfW/lxc.pkg.tar.zst
+
+===== etc/apparmor.d/lxc-containers =====
+# This file exists only to ensure that all per-container policies
+# listed under /etc/apparmor.d/lxc get loaded at boot.  Please do
+# not edit this file.
+
+#include <tunables/global>
+
+#include <lxc>
+
+===== etc/apparmor.d/usr.bin.lxc-start =====
+#include <tunables/global>
+
+/usr/bin/lxc-start flags=(attach_disconnected) {
+  #include <abstractions/lxc/start-container>
+}
+
+===== etc/apparmor.d/usr.bin.lxc-copy =====
+#include <tunables/global>
+
+/usr/bin/lxc-copy flags=(attach_disconnected) {
+  #include <abstractions/lxc/start-container>
+}
+
+===== etc/apparmor.d/lxc/lxc-default =====
+# Do not load this file.  Rather, load /etc/apparmor.d/lxc-containers, which
+# will source all profiles under /etc/apparmor.d/lxc
+
+profile lxc-container-default flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/lxc/container-base>
+
+  # the container may never be allowed to mount devpts.  If it does, it
+  # will remount the host's devpts.  We could allow it to do it with
+  # the newinstance option (but, right now, we don't).
+  deny mount fstype=devpts,
+}
+
+===== etc/apparmor.d/lxc/lxc-default-cgns =====
+# Do not load this file.  Rather, load /etc/apparmor.d/lxc-containers, which
+# will source all profiles under /etc/apparmor.d/lxc
+
+profile lxc-container-default-cgns flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/lxc/container-base>
+
+  # the container may never be allowed to mount devpts.  If it does, it
+  # will remount the host's devpts.  We could allow it to do it with
+  # the newinstance option (but, right now, we don't).
+  deny mount fstype=devpts,
+  mount fstype=cgroup -> /sys/fs/cgroup/**,
+  mount fstype=cgroup2 -> /sys/fs/cgroup/**,
+  mount fstype=overlay,
+}
+
+===== etc/apparmor.d/lxc/lxc-default-with-mounting =====
+# Do not load this file.  Rather, load /etc/apparmor.d/lxc-containers, which
+# will source all profiles under /etc/apparmor.d/lxc
+
+profile lxc-container-default-with-mounting flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/lxc/container-base>
+
+# allow standard blockdevtypes.
+# The concern here is in-kernel superblock parsers bringing down the
+# host with bad data.  However, we continue to disallow proc, sys, securityfs,
+# etc to nonstandard locations.
+  mount fstype=ext*,
+  mount fstype=xfs,
+  mount fstype=btrfs,
+}
+
+===== etc/apparmor.d/lxc/lxc-default-with-nesting =====
+# Do not load this file.  Rather, load /etc/apparmor.d/lxc-containers, which
+# will source all profiles under /etc/apparmor.d/lxc
+
+profile lxc-container-default-with-nesting flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/lxc/container-base>
+  #include <abstractions/lxc/start-container>
+
+  deny /dev/.lxc/proc/** rw,
+  deny /dev/.lxc/sys/** rw,
+  mount fstype=proc -> /var/cache/lxc/**,
+  mount fstype=sysfs -> /var/cache/lxc/**,
+  mount options=(rw,bind),
+  mount options=(rw,rbind) -> /run/systemd/mount-rootfs/,
+  mount options=(rw,rbind) -> /run/systemd/mount-rootfs/**,
+  mount options=(rw,rbind) -> /run/systemd/unit-root/,
+  mount options=(rw,rbind) -> /run/systemd/unit-root/**,
+  mount options=(rw,rshared) -> /,
+  mount options=(rw,rshared) -> /,
+  mount fstype=cgroup -> /sys/fs/cgroup/**,
+  mount fstype=cgroup2 -> /sys/fs/cgroup/**,
+}
+
+===== etc/apparmor.d/abstractions/lxc/container-base =====
+  network,
+  capability,
+  file,
+  umount,
+
+  # dbus, signal, ptrace and unix are only supported by recent apparmor
+  # versions. Comment them if the apparmor parser doesn't recognize them.
+
+  # This also needs additional rules to reach outside of the container via
+  # DBus, so just let all of DBus within the container.
+  dbus,
+
+  # Allow us to receive signals from anywhere. Note: if per-container profiles
+  # are supported, for container isolation this should be changed to something
+  # like:
+  #   signal (receive) peer=unconfined,
+  #   signal (receive) peer=/usr/bin/lxc-start,
+  signal (receive),
+
+  # Allow us to send signals to ourselves
+  signal peer=@{profile_name},
+
+  # Allow other processes to read our /proc entries, futexes, perf tracing and
+  # kcmp for now (they will need 'read' in the first place). Administrators can
+  # override with:
+  #   deny ptrace (readby) ...
+  ptrace (readby),
+
+  # Allow other processes to trace us by default (they will need 'trace' in
+  # the first place). Administrators can override with:
+  #   deny ptrace (tracedby) ...
+  ptrace (tracedby),
+... TRUNCATED: 242 total lines; only first 35 shown ...
+
+===== etc/apparmor.d/abstractions/lxc/start-container =====
+  network,
+  capability,
+  file,
+
+  # The following 3 entries are only supported by recent apparmor versions.
+  # Comment them if the apparmor parser doesn't recognize them.
+  dbus,
+  signal,
+  ptrace,
+
+  # currently blocked by apparmor bug
+  mount -> /usr/lib*/*/lxc/{**,},
+  mount -> /usr/lib*/lxc/{**,},
+  mount -> /usr/lib/lxc/rootfs/{,**},
+  mount fstype=devpts -> /dev/pts/,
+  mount options=bind /dev/pts/ptmx/ -> /dev/ptmx/,
+  mount options=bind /dev/pts/** -> /dev/**,
+  mount options=(rw, make-slave) -> /{,**},
+  mount options=(rw, make-rslave) -> /{,**},
+  mount options=(rw, make-shared) -> /{,**},
+  mount options=(rw, make-rshared) -> /{,**},
+  mount fstype=debugfs,
+  mount fstype=fuse.*,
+  # allow pre-mount hooks to stage mounts under /var/lib/lxc/<container>/
+  mount -> /var/lib/lxc/{**,},
+
+  mount /dev/.lxc-boot-id -> /proc/sys/kernel/random/boot_id,
+  mount options=(ro, nosuid, nodev, noexec, remount, bind) -> /proc/sys/kernel/random/boot_id,
+
+  # required for some pre-mount hooks
+  mount fstype=overlayfs,
+  mount fstype=aufs,
+  mount fstype=ecryptfs,
+... TRUNCATED: 53 total lines; only first 35 shown ...
+
+===== END LXC-EXP-01G =====
+```
+
+### 5.11.3 Findings and interpretation
+
+1. **Profile loader integration:** `lxc-containers` includes `<lxc>` and documents that it is the loader entry point for per-container profiles. This is a package-provided integration file, not a profile activation performed by this test.
+2. **Executable attachment profiles:** `/usr/bin/lxc-start` and `/usr/bin/lxc-copy` attach the `abstractions/lxc/start-container` abstraction. Their compatibility with SteamOS's installed AppArmor parser and policy tree has not been tested.
+3. **Default container policy:** `lxc-default` includes `container-base` and explicitly denies `devpts` mounts. It must not be conflated with the more permissive optional policies.
+4. **CGNS policy:** `lxc-default-cgns` adds cgroup/cgroup2 mount permissions and overlay mounts while retaining the explicit devpts denial.
+5. **Filesystem-mounting policy:** `lxc-default-with-mounting` permits ext-family, XFS and Btrfs filesystem mounts. Its comment explains the concern about kernel filesystem parsers and nonstandard proc/sys/securityfs mounts.
+6. **Nesting policy:** `lxc-default-with-nesting` includes both base and start-container abstractions, allows proc/sysfs mounts under an LXC cache path, recursive bind mounts into systemd-related paths, recursive shared-mount behavior at `/`, and cgroup/cgroup2 mounts. This is a materially broader mount-authority profile and must not be selected by default without a specific reviewed requirement.
+7. **Base abstraction:** The first 35 of 242 lines show broad network, capability, file and umount rule classes, DBus access, signal handling and ptrace permissions. The remainder was not displayed, so no complete-policy conclusion is possible. The bare `capability,` rule is especially important to resolve from the complete policy and the applicable AppArmor semantics before assessing effective capability confinement.
+8. **Start abstraction:** The first 35 of 53 lines show network/capability/file rule classes; DBus/signal/ptrace; mount allowances for LXC runtime paths, devpts, bind mounts, propagation changes, debugfs, FUSE, LXC staging paths, boot-id handling and overlayfs/aufs/ecryptfs. The final 18 lines were not displayed and remain unreviewed.
+
+**Security interpretation:** The archive contains several distinct policy profiles with materially different mount permissions. Their presence does not establish which profile a future LXC invocation would select, whether AppArmor is enabled/enforcing on this SteamOS build, whether the profile parser accepts these rules, or whether the package's systemd integration would load them. No runtime confinement or host protection is proven by this archive inspection alone.
+
+### 5.11.4 Limitations
+
+- The output is not a complete review of `container-base` (242 lines) or `start-container` (53 lines); only their first 35 lines were shown.
+- No AppArmor parser check, profile load, enforcement test, or LXC launch was performed.
+- The archive SHA-256 is an observed content identifier only. It is not proof of publisher authenticity until the detached signature is verified against an authenticated trust anchor.
+- The downloaded package came from the configured SteamOS mirror endpoint; transport and mirror location do not independently establish signing-key trust.
+- No package files were extracted into system paths; the temporary directory was removed by the shell EXIT trap.
+
+### 5.11.5 Disposition
+
+**LXC-EXP-01G: COMPLETED — PARTIAL POLICY CONTENT REVIEW.** The requested members were found and streamed from the exact archive. The two long abstractions remain partially inspected by design. Package-manager safety remains **BLOCKED**; signature verification remains **PENDING/BLOCKED on authenticated key provenance**. No installation, profile loading, service activation, cgroup controller write, or LXC runtime test is authorized by this result.
+
+**Next bounded review:** Obtain the remaining lines of `container-base` (lines 36–242) and `start-container` (lines 36–53) directly from the same archive, then reconcile the complete policies against the SteamOS AppArmor package/parser/version and existing host policy state using read-only checks only. In parallel, establish an authenticated SteamOS signing-key source before any signature verification. Do not import keys or modify the Deck keyring as part of this step.
+
+---
+
 ## 14. Current continuation handoff
 
 **Project:** Waydroid SSH — read-only Waydroid feasibility phase CLOSED; independent LXC-only experimental investigation OPEN but package-safety gate BLOCKED.
@@ -4130,7 +4394,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - Do not change Podman cgroup mounts, host networking/firewall/forwarding, Waydroid D-Bus/systemd services, or protected project containers.
 - Do not add privileged mode, broad host mounts, host namespace sharing, persistent delegation, automatic startup or services.
 
-**Latest completed test:** LXC-EXP-01F (§5.9) — read-only inspection of all five packaged systemd units and two default configuration files. It exposed boot-autostart defaults, a general service that wants lxc-net.service and loads AppArmor profiles, an LXC network helper, a monitor daemon, and per-container systemd integration. No unit was enabled, started, reloaded, or copied to the host.
+**Latest completed test:** LXC-EXP-01G (§5.11) — streamed nine AppArmor policy members from the exact package archive. Seven members were fully displayed; the 242-line container-base and 53-line start-container abstractions were each truncated to 35 lines and remain incomplete. No profile was loaded or parsed. LXC-EXP-01F (§5.9) remains the latest completed systemd-unit/configuration review.
 
 **Package provenance and safety status:**
 - LXC-PKG-01 reported candidate lxc 1:7.0.0-1 from extra-3.9 and a print-only transaction containing only LXC; the listed dependencies were already installed.
@@ -4141,14 +4405,14 @@ The primary export and prior consolidated audit were retrieved from the reposito
 - LXC-EXP-01A established that sudo itself was running as root with a broad capability set and identity UID/GID maps, but did not explain the negative write-access predicate or the original pacman lock failure. The security-context readout was unavailable.
 - LXC-EXP-01B confirmed the configured extra-3.9 endpoint and x86_64 architecture. LXC-EXP-01C located the exact lxc-1:7.0.0-1 archive, matching .sig filename, and repository file-list metadata.
 - LXC-EXP-01D inspected the exact archive: version 1:7.0.0-1, Arch packager metadata, seven declared runtime dependencies, optional dnsmasq for lxc-net.service, no .INSTALL member, and 202 regular payload entries.
-- LXC-EXP-01E identified the exact AppArmor, systemd, /etc, /var, and executable paths. LXC-EXP-01F inspected the five service units and two configuration files, revealing autostart defaults, LXC network helper integration, AppArmor loading, monitoring and per-container systemd units.
+- LXC-EXP-01E identified the exact AppArmor, systemd, /etc, /var, and executable paths. LXC-EXP-01F inspected the five service units and two configuration files, revealing autostart defaults, LXC network helper integration, AppArmor loading, monitoring and per-container systemd units. LXC-EXP-01G inspected nine AppArmor archive members; the default and optional profile distinctions were identified, but two long abstractions remain partially reviewed.
 - **Disposition:** the earlier missing-manifest finding is superseded by direct archive inspection. The pacman DBPath/write-access cause remains INCONCLUSIVE; signature validity remains unverified; service/AppArmor integration and rollback remain under review. Package-manager safety and the installation gate therefore remain **BLOCKED**. The generic lock investigation is closed on current evidence. No further generic diagnostics or package retries are justified.
 
 **Current technical evidence:** Direct-host transient delegated-scope creation, delegated child-cgroup creation/removal, and one-process placement/cleanup are confirmed by LXC-SCOPE-01–03 and LXC-CGROUP-01/02. The nested rootless Podman cgroup2 mount remains read-only. LXC 7.0.0 source review established that its non-root systemd user-scope path attempts to enable all available controllers and then manages monitor/payload cgroups; those controller writes and the complete LXC lifecycle remain untested. The exact SteamOS repository archive has been inspected directly: 202 regular payload entries, no .INSTALL, AppArmor profiles, five systemd units, configuration defaults and LXC state paths. No LXC binary has been installed or run.
 
 **Waydroid decision:** DECISION-WD-01 remains accepted: the Waydroid feasibility effort is closed as blocked under current constraints. SPLIT-ARCH-01's design-only review is complete and recommends HOLD / do not implement. The split-privilege concept does not solve rootfs/data ownership, Binder/GPU handoff, crash cleanup or the default network helper's host bridge/forwarding/firewall behavior. It does not authorize implementation.
 
-**Active next gate:** Continue the LXC-EXP-01 package-safety investigation without retrying pacman or mutating DBPath. The next bounded review is the content of the exact archive's AppArmor profiles and verification of the detached package signature against an authenticated SteamOS trust key. Then reconcile the package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
+**Active next gate:** Continue the LXC-EXP-01 package-safety investigation without retrying pacman or mutating DBPath. First complete the two truncated AppArmor abstractions from the same exact archive and perform read-only checks of SteamOS AppArmor availability, parser version and current policy state. Separately establish an authenticated SteamOS signing-key source before attempting detached-signature verification; do not import keys or modify the Deck keyring. Then reconcile package dependency/transaction data and SteamOS package hooks, service activation behavior, affected paths, persistence/update implications, backup/recovery method, and uninstall/rollback plan. The pacman DBPath/write-access discrepancy remains unresolved. Present a complete installation/test/rollback plan for explicit confirmation before any package mutation. Archive inspection or signature verification alone is not installation approval.
 
 **Continuation rule:** Before proposing any future command, state the exact gate it addresses, the prior tests it relies on, why it is not a repetition, its side-effect boundary, cleanup plan and approval requirement. Record every completed test in this canonical document immediately. After every five completed tests, perform the consistency review and preserve an unchanged versioned archive snapshot.
 
@@ -4189,6 +4453,7 @@ The primary export and prior consolidated audit were retrieved from the reposito
 | 3.8 | 2026-11-07 | Closed the read-only feasibility phase and opened a separate LXC-only experimental investigation under DECISION-LXC-EXP-01; documented staged package provenance/safety, exact-install approval, temporary non-root LXC runtime, cgroup/monitor/payload lifecycle, cleanup and removal gates; retained the unresolved pacman lock and package-manifest blockers; clarified that temporary LXC testing does not reopen Waydroid or authorize an immediate package transaction; updated executive status, Gate 4 and new-chat handoff. |
 | 3.9 | 2026-11-07 | Recorded LXC-EXP-01A's read-only sudo identity/capability/user-namespace diagnostic; confirmed sudo runs as root with a broad capability set and identity UID/GID maps, but the result did not explain the DBPath write-access predicate or pacman lock failure; formally classified the package-safety prerequisite as BLOCKED and prohibited further generic lock diagnostics or pacman retries; updated the continuation handoff. |
 | 4.0 | 2026-11-07 | Completed the five-test LXC-EXP-01B–01F documentation cycle and consistency review; preserved unchanged v3.9 snapshot; confirmed the exact SteamOS repository endpoint, archive and detached-signature filename; directly inspected package metadata and 202-entry payload manifest; identified AppArmor policy, five systemd units, default autostart/network configuration and state paths; inspected all five service units and two default configuration files; superseded the missing-archive-manifest finding while retaining package-manager safety BLOCKED due unresolved DBPath/write-access failure and unverified signature; corrected the host/off-host execution record and updated the executive assessment and continuation handoff. |
+| 4.1 | 2026-11-07 | Recorded LXC-EXP-01G with the exact command, observed archive SHA-256 and supplied output; reviewed the visible profile distinctions and mount/capability/DBus/signal/ptrace policy classes; explicitly marked container-base and start-container incomplete because each was truncated at 35 lines; retained signature and package-manager blockers; updated the executive status, package-safety handoff and next bounded review. No AppArmor parser/load, package install, service activation, cgroup mutation or LXC runtime test occurred. |
 
 ---
 
