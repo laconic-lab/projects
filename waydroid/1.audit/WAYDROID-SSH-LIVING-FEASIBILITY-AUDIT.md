@@ -3950,16 +3950,125 @@ The user supplied the command and output transcript. The script created `/tmp/lx
 
 ### 5.17.2 Exact command executed
 
-The command was the LXC-EXP-01K-C disposable-home inspection script previously approved in the conversation. Its operative steps were:
+```bash
+echo "===== LXC-EXP-01K-C: DISPOSABLE GPG HOME INSPECTION ====="
 
-1. Set `KEYRING=/usr/share/pacman/keyrings/holo.gpg`.
-2. Record the input file metadata and SHA-256.
-3. Create a unique `/tmp/lxc-gpg-audit.XXXXXX` directory, set mode `0700`, and check owner/mode.
-4. Register an EXIT trap intended to remove only that exact-prefix temporary directory after verifying that it is a directory owned by the current UID.
-5. Run both `gpg --no-options --homedir "$GHOME" --batch --no-tty --show-keys --with-fingerprint --with-subkey-fingerprint --keyid-format long "$KEYRING"` and the corresponding colon-format inspection with `--with-colons --fingerprint --fingerprint`.
-6. Recompute the input SHA-256 and compare it with the initial value.
+set -u
 
-The full script is preserved in the user-supplied conversation transcript for this test; no additional host command or package operation was performed.
+KEYRING="/usr/share/pacman/keyrings/holo.gpg"
+GHOME=""
+
+echo
+echo "===== 1. VERIFY INPUT KEYRING ====="
+
+if [ ! -f "$KEYRING" ]; then
+    echo "ERROR: KEYRING_NOT_FOUND"
+    exit 1
+fi
+
+stat -c 'File: %n | Owner: %U:%G | Mode: %a | Size: %s bytes' "$KEYRING"
+
+HASH_BEFORE="$(sha256sum "$KEYRING" | awk '{print $1}')"
+echo "SHA256_BEFORE: $HASH_BEFORE"
+
+echo
+echo "===== 2. CREATE PRIVATE TEMPORARY GPG HOME ====="
+
+GHOME="$(mktemp -d /tmp/lxc-gpg-audit.XXXXXX)" || {
+    echo "ERROR: TEMP_DIRECTORY_CREATION_FAILED"
+    exit 1
+}
+
+chmod 700 "$GHOME"
+
+echo "GPG_HOME: $GHOME"
+stat -c 'Owner: %U:%G | Mode: %a' "$GHOME"
+
+if [ "$(stat -c '%u' "$GHOME")" != "$(id -u)" ] ||
+   [ "$(stat -c '%a' "$GHOME")" != "700" ]; then
+    echo "ERROR: TEMP_DIRECTORY_SECURITY_CHECK_FAILED"
+    rmdir "$GHOME" 2>/dev/null || true
+    exit 1
+fi
+
+cleanup() {
+    RC=$?
+    trap - EXIT
+
+    echo
+    echo "===== 5. TEMPORARY DIRECTORY CLEANUP ====="
+
+    case "$GHOME" in
+        /tmp/lxc-gpg-audit.*)
+            if [ -d "$GHOME" ] &&
+               [ "$(stat -c '%u' "$GHOME" 2>/dev/null)" = "$(id -u)" ]; then
+                rm -rf -- "$GHOME"
+                echo "TEMP_DIRECTORY_REMOVED"
+            else
+                echo "CLEANUP_NOT_PERFORMED: DIRECTORY_CHECK_FAILED"
+            fi
+            ;;
+        *)
+            echo "CLEANUP_NOT_PERFORMED: PATH_CHECK_FAILED"
+            ;;
+    esac
+
+    echo "SCRIPT_EXIT_STATUS: $RC"
+}
+
+trap cleanup EXIT
+
+echo
+echo "===== 3. HUMAN-READABLE KEY IDENTITIES ====="
+
+if gpg --no-options \
+    --homedir "$GHOME" \
+    --batch \
+    --no-tty \
+    --show-keys \
+    --with-fingerprint \
+    --with-subkey-fingerprint \
+    --keyid-format long \
+    "$KEYRING"; then
+    echo "HUMAN_READABLE_GPG_STATUS: SUCCESS"
+else
+    echo "HUMAN_READABLE_GPG_STATUS: FAILED ($?)"
+fi
+
+echo
+echo "===== 4. MACHINE-READABLE KEY RECORDS ====="
+
+if gpg --no-options \
+    --homedir "$GHOME" \
+    --batch \
+    --no-tty \
+    --show-keys \
+    --with-colons \
+    --fingerprint \
+    --fingerprint \
+    "$KEYRING"; then
+    echo "COLON_RECORD_GPG_STATUS: SUCCESS"
+else
+    echo "COLON_RECORD_GPG_STATUS: FAILED ($?)"
+fi
+
+echo
+echo "===== 5. VERIFY ORIGINAL KEYRING UNCHANGED ====="
+
+HASH_AFTER="$(sha256sum "$KEYRING" | awk '{print $1}')"
+echo "SHA256_AFTER:  $HASH_AFTER"
+
+if [ "$HASH_BEFORE" = "$HASH_AFTER" ]; then
+    echo "KEYRING_INTEGRITY_CHECK: UNCHANGED"
+else
+    echo "KEYRING_INTEGRITY_CHECK: MISMATCH"
+fi
+
+echo
+echo "===== END LXC-EXP-01K-C ====="
+```
+
+The transcript supplied by the user is the observed execution record; the exact command above is now retained in the canonical document. No additional host command or package operation was performed.
 
 ### 5.17.3 Complete observed key identity output
 
@@ -4036,7 +4145,58 @@ Both colon-format inspection and human-readable inspection returned success. The
 | `AF1D2199EF0A3CCF` | `889B5EBDDD505A683621900DAF1D2199EF0A3CCF` | GitLab CI Package Builder <ci-package-builder-1@steamos.cloud> |
 | `4DE8FF2A63C7CC90` | `DA98F25C0871C49A59EAFF2C4DE8FF2A63C7CC90` | Simon McVittie <smcv@pseudorandom.co.uk> |
 
-The colon output also contained subkey fingerprints and showed Simon McVittie's revoked UID and expired subkeys. The original complete machine-readable output is recorded in the user-supplied test transcript. The warning `No valid encryption subkey left over` also appeared after this command; both command status markers were SUCCESS.
+The complete machine-readable output was:
+
+```text
+pub:-:4096:1:DE5ADAE0004B20B8:1643819266:::-:::scESC::::::23::0:
+fpr:::::::::21CCB1E37CDEDA6E7F8527BEDE5ADAE0004B20B8:
+uid:-::::1643819266::24B3976D53498B5A7139268E92D34B8385D54F63::Jeremy Whiting <jeremy.whiting@collabora.com>::::::::::0:
+sub:-:4096:1:D66678F81359168F:1643819266::::::e::::::23:
+fpr:::::::::A8330D61059C89FB60DD869DD66678F81359168F:
+pub:-:4096:1:E016D87C776DA51F:1291662774:::-:::scESC::::::23::0:
+fpr:::::::::21F94268CDDE1750B5A57834E016D87C776DA51F:
+uid:-::::1513444737::75C641A92ECE1187517AFBD687808ACC84DF8156::Vivek Das Mohapatra (fledermaus) <vivek@etla.org>::::::::::0:
+uid:-::::1291662774::233B4CABCF9F9CC4178EC19218D5F3A20892EAA6::Vivek Dasmohapatra (fledermaus) <vivek.dasmohapatra@collabora.co.uk>::::::::::0:
+uid:-::::1475692764::C6931B0890361483C566A387385E7E288D3BC901::Vivek Dasmohapatra (fledermaus) <vivek@collabora.co.uk>::::::::::0:
+uid:-::::1475692764::50C260A69582ABE6E2AD6A5AE93A5C569A0D68C5::Vivek Dasmohapatra (fledermaus) <vivek@collabora.com>::::::::::0:
+uid:-::::1475692764::8450333460A5AC287FBEEAE0DD1AD194C361A530::Vivek Dasmohapatra <vivek@collabora.co.uk>::::::::::0:
+uid:-::::1475692764::277577215E684FAC89730A49299D3375D8FA989E::Vivek Dasmohapatra <vivek@collabora.com>::::::::::0:
+uid:-::::1475692758::B2F5EBE1FDA41B10FB1ADFA735F1068CD76CF1F0::Vivek Das Mohapatra <vivek@collabora.com>::::::::::0:
+sub:-:4096:1:184E037CBF2D3FB4:1291662774::::::e::::::23:
+fpr:::::::::E97A035862C4C2DCD3DB1E70184E037CBF2D3FB4:
+pub:-:255:22:974E9966847B6169:1643805300:::-:::scESC:::::ed25519:::0:
+fpr:::::::::56847CCFB6F58BEB955450AC974E9966847B6169:
+uid:-::::1643805300::B4B57B5127ABE1E256BA8DA0359BDAC9A2BAF454::Alvaro Soliverez (Alvaro's Collabora Key) <alvaro.soliverez@collabora.com>::::::::::0:
+sub:-:255:18:4A89CF9B5595C6CA:1643805300::::::e:::::cv25519::
+fpr:::::::::ADE98595F8677CDFD6A082044A89CF9B5595C6CA:
+pub:-:4096:1:EDAE37B02CEB490D:1409526799:::-:::cECA::::::23::0:
+fpr:::::::::8703B6700E7EE06D7A39B8D6EDAE37B02CEB490D:
+uid:-::::1643732084::FF9077511BFC280553DF314FDB6E3F223D7822B9::Emil Velikov <emil.l.velikov@gmail.com>::::::::::0:
+uid:-::::1538672997::FC67CD6A52BB8B64B98313D8359780D7B63A6206::Emil Velikov <emil.velikov@collabora.com>::::::::::0:
+sub:-:4096:1:21F683DBB8F43DE8:1409526799::::::e::::::23:
+fpr:::::::::122DD823296A96EEBFDF91A621F683DBB8F43DE8:
+sub:-:4096:1:1427CD8D660CD365:1541870935::::::a::::::23:
+fpr:::::::::337E0E70CD771438156501361427CD8D660CD365:
+pub:-:4096:1:AF1D2199EF0A3CCF:1638371727:::-:::scSC::::::23::0:
+fpr:::::::::889B5EBDDD505A683621900DAF1D2199EF0A3CCF:
+uid:-::::1638371727::B22C266C1BE22C67D1D1A5ED827D885E393647C8::GitLab CI Package Builder <ci-package-builder-1@steamos.cloud>::::::::::0:
+pub:-:4096:1:4DE8FF2A63C7CC90:1241803975:1872574238::-:::scSC::::::23::0:
+fpr:::::::::DA98F25C0871C49A59EAFF2C4DE8FF2A63C7CC90:
+uid:-::::1557214238::DA904B0724984CB003B4B103AAD621547E8E03E1::Simon McVittie <smcv@pseudorandom.co.uk>::::::::::0:
+uid:-::::1557214259::AB1E24CF556124F6E5B9DEFD8A673D555F46C784::Simon James McVittie (born 1983-08-25)::::::::::0:
+uid:r::::::CB5F39276F98D66DFD4F7518EF8D03F944ECC64F::Simon McVittie <simon.mcvittie@collabora.co.uk>::::::::::0:
+uid:-::::1557214272::6C29AA991E8B44B86A76AF9D81946E1CCB03D622::Simon McVittie <smcv@debian.org>::::::::::0:
+sub:e:4096:1:47827FE4DB8B0139:1498922158:1671366206:::::a::::::23:
+fpr:::::::::87FBDC2F62DF4AEC3B37550447827FE4DB8B0139:
+sub:e:4096:1:E05AE1478F814C4F:1498920943:1671366206:::::s::::::23:
+fpr:::::::::36EC5A6448A4F5EF79BEFE98E05AE1478F814C4F:
+sub:e:4096:1:0AB3FDF720FB245D:1241804247:1671366206:::::e::::::23:
+fpr:::::::::DB3A64D8EC434CFFAF5AF8210AB3FDF720FB245D:
+gpg: WARNING: No valid encryption subkey left over.
+COLON_RECORD_GPG_STATUS: SUCCESS
+```
+
+The colon output also contained subkey fingerprints and showed Simon McVittie's revoked UID and expired subkeys. The warning `No valid encryption subkey left over` also appeared after this command; both command status markers were SUCCESS.
 
 ### 5.17.5 Integrity and cleanup observations
 
