@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.4  
+> **Version:** 1.5  
 > **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -627,6 +627,103 @@ Relevant exact observations:
 7. No resource was created, no image was pulled, and no host/container configuration was changed. No cleanup was required.
 
 **Next:** define and request explicit approval for a temporary IPv6-enabled internal Podman network and one disposable probe container. Use the cached image only (`--pull=never`); do not use host networking, published ports, mounts, or host DNS changes. The next stage must separately test assigned IPv6 configuration, DNS resolver behavior and direct IPv6 egress.  
+
+### 8.6 NET-06 Stage B — temporary IPv6 internal network and probe container
+
+**Execution date:** 2026-11-07  
+**Execution location:** SteamOS host, `deck@Laco`.  
+**Status:** SETUP COMPLETED — temporary resources currently exist; NET-06 connectivity/DNS tests remain pending.
+
+The user explicitly approved the exact temporary setup. The exact command executed was:
+
+```bash
+set -e
+
+NETWORK="odysseus-net06-ipv6-dns-test"
+CONTAINER="odysseus-net06-probe"
+IMAGE="docker.io/library/python:3-alpine"
+
+echo "===== NET-06 STAGE B: PRE-CREATION GUARDS ====="
+
+echo
+echo "===== 1. VERIFY CACHED IMAGE ====="
+if ! podman image exists "$IMAGE"; then
+    echo "STOP: exact cached image is unavailable."
+    echo "No image will be pulled and no resources will be created."
+    exit 1
+fi
+echo "PASS: cached image exists: $IMAGE"
+
+echo
+echo "===== 2. VERIFY RESOURCE NAMES ====="
+if podman network exists "$NETWORK"; then
+    echo "STOP: network name already exists: $NETWORK"
+    exit 1
+fi
+
+if podman container exists "$CONTAINER"; then
+    echo "STOP: container name already exists: $CONTAINER"
+    exit 1
+fi
+echo "PASS: both resource names are available"
+
+echo
+echo "===== 3. CREATE DEDICATED INTERNAL IPV6 NETWORK ====="
+podman network create --internal --ipv6 "$NETWORK"
+
+echo
+echo "===== 4. INSPECT CREATED NETWORK ====="
+podman network inspect "$NETWORK"
+
+echo
+echo "===== 5. CREATE RESTRICTED PROBE CONTAINER ====="
+podman run \
+    --detach \
+    --name "$CONTAINER" \
+    --pull=never \
+    --userns=nomap \
+    --network "$NETWORK" \
+    --read-only \
+    --cap-drop=all \
+    --security-opt=no-new-privileges \
+    --memory=128m \
+    --pids-limit=64 \
+    --restart=no \
+    "$IMAGE" \
+    python -c 'import time; time.sleep(3600)'
+
+echo
+echo "===== 6. INSPECT PROBE CONTAINER ====="
+podman inspect "$CONTAINER"
+
+echo
+echo "===== 7. VERIFY RUNNING STATE ====="
+podman ps --filter "name=$CONTAINER"
+
+echo
+echo "===== NET-06 STAGE B SETUP COMPLETE ====="
+```
+
+**Observed output and interpretation**
+
+- Pre-creation guards passed: exact cached image `docker.io/library/python:3-alpine` existed and both temporary names were available.
+- Network creation returned `odysseus-net06-ipv6-dns-test`.
+- Network ID: `81399d6e87d709e5f878450099bc0c9ff36fa8299419e99d4e461f981a489988`.
+- Network interface: `podman1`; driver: `bridge`.
+- IPv4 subnet/gateway: `10.89.0.0/24` / `10.89.0.1`.
+- IPv6 subnet/gateway: `fdba:b7cb:d144:4e86::/64` / `fdba:b7cb:d144:4e86::1`.
+- Network inspection: `ipv6_enabled: true`, `internal: true`, `dns_enabled: true`.
+- Container ID: `15474ed0963e6ebf8d94a27bce770cdf8235fbed24e28f7f5fbc67559f7a4fec`; image: cached `docker.io/library/python:3-alpine`; state: `running`.
+- Container IPv4: `10.89.0.2/24`; IPv6: `fdba:b7cb:d144:4e86::2/64`; IPv4 gateway: `10.89.0.1`; IPv6 gateway: `fdba:b7cb:d144:4e86::1`.
+- The assigned IPv6 subnet is ULA space. Address allocation is confirmed; public IPv6 reachability is not.
+- Inspection reported `Mounts: []`, `PortBindings: {}`, `ReadonlyRootfs: true`, `Memory: 134217728`, `PidsLimit: 64`, `RestartPolicy.Name: no`, and UID/GID maps `0:1:65536`.
+- `CapDrop` lists the capabilities dropped by Podman; `EffectiveCaps` and `BoundingCaps` were null in this inspect output. Do not treat the latter as an independent proof of runtime capability state.
+- `SecurityOpt` reported `no-new-privileges`.
+- The command completed through `NET-06 STAGE B SETUP COMPLETE`; no command error was shown. The shell used `set -e`, so a failing command would have aborted the sequence.
+- No image was pulled; no host mounts, published ports, host networking, default-network changes, DNS changes or host route changes were made.
+- Cleanup has not yet been performed; both named temporary resources are intentionally retained for the approved Stage C probes.
+
+**Evidence boundary:** Stage B proves that the configured network and container were created and that Podman assigned IPv4 and ULA IPv6 addresses. It does not prove DNS resolution, DNS forwarding, IPv6 packet delivery, IPv6 egress blocking, or the effective runtime capability set. Those are separate Stage C questions.
 
 ## 9. Cgroups, resource controls and host security
 
@@ -1770,7 +1867,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 NET-03, NET-04 and NET-05 are complete. NET-06 Stage A read-only host preflight is complete but is not counted as a completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; actual IPv6 packet delivery remains untested. Podman uses Netavark and supports an `--ipv6` network option; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; do not modify or interfere with it. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Container-side gateway and host-LAN probes produced distinct refusal/unreachable results, while the direct internal-IP probe timed out. Do not generalize these observations beyond the tested destinations and configuration. NET-05 cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
 
-The next dependency is **IPv6 and DNS behavior**. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
+NET-06 Stage B has now created the approved temporary IPv6-enabled internal network and restricted probe container. Podman allocated IPv4 and ULA IPv6 addresses and reported DNS enabled. DNS resolution/forwarding and direct IPv6 egress remain untested. The next action is Stage C read-only container/network inspection and separately scoped DNS and numeric-address connectivity probes; then clean up both temporary resources and verify their absence. It must establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path on the candidate internal-network arrangement. Define the exact probes and cleanup before requesting approval. Do not repeat NET-03, NET-04 or NET-05 without a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -1804,7 +1901,7 @@ The first assistant action in a new conversation should be:
 | 1.1 | 2026-11-07 | Recorded NET-03 immediately after execution: dedicated internal bridge confirmed; host SSH, router DNS, public HTTPS and DNS-name-resolution probes blocked; temporary network removal recorded; peer-to-peer communication explicitly left untested. Updated the dependency gate and continuation handoff. No five-test snapshot triggered. |
 | 1.2 | 2026-11-07 | Recorded NET-04 immediately after execution: two disposable peers resolved and reached each other bidirectionally; both peers were blocked from the named host/router/public/DNS probes; inspection confirmed internal bridge membership and restricted container settings; cleanup independently verified. Recorded SIGTERM timeout/SIGKILL escalation as a lifecycle caveat. Advanced the next gate to NET-05. No five-test snapshot triggered. |
 | 1.3 | 2026-11-07 | Recorded NET-05: loopback-only published listener returned HTTP 200 from the host while the same published port was refused through the host LAN address; recorded distinct internal-IP timeout and container gateway/host probe results; preserved final configuration inspection limitations; recorded exact Stage D cleanup command/output, SIGTERM timeout/SIGKILL escalation, successful resource removal and independent port-release verification. Advanced the next dependency to IPv6/DNS behavior. One completed test since the v1.2 checkpoint; no five-test snapshot triggered. |
-| 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |
+| 1.4 | 2026-11-07 | Added NET-06 Stage A read-only host preflight evidence: global IPv6 addressing/default route and kernel support, Netavark IPv6 option availability, existing IPv4-only default Podman network, resolver configuration and host DNS listeners. Recorded the missing `hostname` utility and explicit DNS-service protection boundary. No resource or host state changed; no completed-test count increment and no archive snapshot triggered. |\n| 1.5 | 2026-11-07 | Recorded approved NET-06 Stage B setup: cached-image guard, dedicated `--internal --ipv6` Netavark bridge, assigned IPv4 and ULA IPv6 addresses, DNS plugin enabled, restricted disposable container configuration, and inspection limitations. Temporary network/container remain in place for Stage C; DNS and IPv6 packet behavior are not yet tested. No five-test checkpoint triggered. |
 
 ---
 
