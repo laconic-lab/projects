@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.16  
+> **Version:** 3.17  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,7 +2572,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.16  
+**Canonical version:** 3.17  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A read-only mapping inspection confirms the VOL-01 rootless map and exposes UID/GID map flags. VOL-05-MAP-B found no active user-namespace override in the inspected main config/drop-ins. VOL-05-MAP-C compared official Podman documentation and source descriptions: the CLI mapping flags create a new user namespace with explicit maps and are documented as conflicting with --userns; source model comments state that a private user namespace requires IDMappings. This is consistent with the VOL-04 rejection, but exact v6.0.2-tagged source could not be independently retrieved through the available source interface, so the release-specific code check remains a limitation. Runtime-test count remains 4/5 since the v1.2 checkpoint.
@@ -3285,6 +3285,65 @@ The exact temporary volume was removed successfully. The exact container was alr
 
 **Runtime-test accounting:** VOL-05-MAP-C is a read-only source/documentation review, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no five-test archive snapshot is triggered.
 
+### 18.5.3 VOL-05-MAP-D — design-only explicit UID/GID mapping review (2026-11-08)
+
+**Review type:** DESIGN / ARITHMETIC ONLY. NO RUNTIME EXECUTION OR RESOURCE CREATION.
+
+**Question:** Can a full rootless UID/GID map be designed that keeps container root off host UID/GID 1000 while mapping the fixed application identity 1000:1000 to the host IDs that own the VOL-04 named volume?
+
+**Baseline evidence:**
+- Host user namespace map: parent namespace ID 0 → host ID 1000; parent namespace IDs 1–65536 → host IDs 100000–165535.
+- `/etc/subuid` and `/etc/subgid`: `deck:100000:65536`.
+- `podman unshare` map: namespace ID 0 → host ID 1000; namespace IDs 1–65536 → host IDs 100000–165535.
+- VOL-04 named volume was created with requested UID/GID 1000:1000; `podman unshare stat` observed owner 1000:1000, mode 755. Under the unshare map, that corresponds to actual host UID/GID 100999:100999.
+- VOL-04 container creation did not succeed; there is no evidence yet of container-visible volume ownership or application write access.
+
+**Candidate full mapping (DESIGN ONLY):**
+
+Use the same five disjoint ranges independently for UID and GID:
+
+| Container ID | Parent-user-namespace ID | Count | Actual host IDs |
+|---:|---:|---:|---:|
+| 0 | 1 | 1 | 100000 |
+| 1 | 2 | 998 | 100001–100998 |
+| 999 | 1001 | 1 | 101000 |
+| 1000 | 1000 | 1 | 100999 |
+| 1001 | 1002 | 64535 | 101001–165535 |
+
+Equivalent mapping segments for each of UID and GID are:
+
+- `0:1:1`
+- `1:2:998`
+- `999:1001:1`
+- `1000:1000:1`
+- `1001:1002:64535`
+
+**Arithmetic and invariant checks:**
+
+1. Container IDs are covered contiguously from 0 through 65535. Segment sizes sum to 65,536, exactly the available subordinate range size.
+2. Parent namespace IDs are covered without overlap from 1 through 65,536. No segment maps to parent namespace ID 0, which is the Deck user's identity in the rootless parent namespace.
+3. Container UID/GID 0 maps to parent namespace ID 1, which maps to actual host UID/GID 100000. Container root therefore does not map to host root or the Deck account.
+4. Container UID/GID 1000 maps to parent namespace ID 1000, which maps to actual host UID/GID 100999. This matches the host ownership inferred from the VOL-04 `podman unshare stat` result.
+5. The map is non-linear around container IDs 999 and 1000 by design: container 999 maps to parent ID 1001, while container 1000 maps to parent ID 1000. Both source and target ranges remain disjoint. This preserves the required application identity mapping without mapping container root to the Deck user.
+6. The UID and GID maps must be specified separately and must have the same arithmetic if the application is to run as UID/GID 1000:1000.
+
+**CLI design direction:** The explicit-map interface would use repeated `--uidmap` and `--gidmap` entries for the five segments above. It must not also specify `--userns=private` or `--userns=nomap`. This is a proposed argument model only; no command is approved or supplied for execution.
+
+**Named-volume compatibility reasoning:** VOL-04's `podman unshare stat` result is consistent with the candidate application mapping: both resolve application ID 1000 to host ID 100999. That establishes arithmetic compatibility only. It does not prove that Podman 6.0.2 accepts this exact multi-segment map, that the volume mount is presented with the expected owner inside the container, or that application UID/GID 1000 can write it.
+
+**Security and completeness limitations:**
+- The candidate maps all IDs 0–65535, but IDs above 65535 remain unmapped. The pinned image/application must be checked for file owners, supplementary groups, service identities or runtime behavior requiring IDs outside this range.
+- Container root maps to subordinate host ID 100000, not to host root. This is the intended rootless boundary; it does not mean container root is harmless inside the container or replace capability/seccomp/no-new-privileges controls.
+- Host IDs 100000–165535 are subordinate identities, not ordinary host accounts. The host-side volume path and backup/restore behavior must continue to be handled through the correct rootless namespace, not by assuming ordinary host ownership display.
+- The non-monotonic split around ID 1000 is arithmetically valid, but exact Podman 6.0.2 parser/engine acceptance has not been demonstrated locally.
+- Exact v6.0.2-tagged source review remained incomplete in VOL-05-MAP-C. This candidate must not be treated as a release-verified or runtime-validated map.
+
+**Result:** VOL-05-MAP-D DESIGN COMPLETE — A CONSISTENT FULL-RANGE CANDIDATE EXISTS ON PAPER. It maps container root to host 100000 and application UID/GID 1000:1000 to host 100999:100999, using the available subordinate ranges. The design is NOT approved for execution and volume write compatibility remains unproven.
+
+**Next gate — VOL-05-MAP-E:** narrow read-only local verification of the installed Podman 6.0.2 CLI/parser and rootless explicit-map semantics. Confirm whether repeated disjoint `--uidmap`/`--gidmap` entries are accepted, whether the host-ID side is interpreted in the rootless parent namespace as assumed, and whether the map can be created without `--userns`. Also inspect the pinned image's numeric ownership requirements if the required image metadata is already available. Do not create a container or volume, retry VOL-04, or modify host settings. Only after this verification should an exact disposable runtime-test proposal be prepared for separate explicit approval.
+
+**Runtime-test accounting:** VOL-05-MAP-D is design-only and does not count as a runtime test. Count remains **4/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3351,6 +3410,7 @@ The first assistant action in a new conversation should be:
 | 3.14 | 2026-11-08 | Recorded VOL-05-MAP-A read-only mapping inspection: reconfirmed Podman's rootless UID/GID maps and subordinate-ID allocation, distinguished host and podman-unshare namespace views, recorded explicit mapping CLI options and helper metadata, and retained the private-namespace cause and named-volume writability as unresolved. No resources or host configuration changed; runtime-test count remains 4/5 and no archive snapshot is triggered. |
 | 3.15 | 2026-11-08 | Recorded VOL-05-MAP-B read-only Podman configuration/package review. No active user-namespace or ID-map override was found in the inspected config locations; userns = "host" in the packaged main config is commented out. Local help does not define --userns=private semantics. Pinned-release documentation/source review is the next gate. No resource or host configuration changed; runtime-test count remains 4/5; no archive snapshot triggered. |
 | 3.16 | 2026-11-08 | Recorded VOL-05-MAP-C read-only official documentation/source semantics review. Explicit --uidmap/--gidmap are documented as creating a new user namespace and conflicting with --userns; source model descriptions require IDMappings for UserNS=private, consistent with VOL-04's error. Exact v6.0.2-tagged source retrieval remained unavailable, so the version-pin limitation is explicit. No runtime or host changes; count remains 4/5; no archive snapshot triggered. |
+| 3.17 | 2026-11-08 | Recorded VOL-05-MAP-D design-only explicit UID/GID mapping arithmetic. Candidate full map uses parent namespace IDs 1–65536, maps container root to host 100000, and maps application 1000:1000 to host 100999:100999, matching the VOL-04 unshare ownership arithmetic. Candidate is not release-verified or runtime-approved; local parser verification is next. No runtime resources or host settings changed; count remains 4/5; no archive snapshot triggered. |
 
 ---
 
