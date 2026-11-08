@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.15  
+> **Version:** 3.16  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,10 +2572,10 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.15  
+**Canonical version:** 3.16  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
-**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A read-only mapping inspection confirms the VOL-01 rootless map and exposes UID/GID map flags. VOL-05-MAP-B found no active user-namespace override in the inspected main config/drop-ins; the packaged default userns = "host" is commented out, and exact --userns semantics remain unresolved because local help only says “User namespace to use.” Runtime-test count remains 4/5 since the v1.2 checkpoint.
+**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A read-only mapping inspection confirms the VOL-01 rootless map and exposes UID/GID map flags. VOL-05-MAP-B found no active user-namespace override in the inspected main config/drop-ins. VOL-05-MAP-C compared official Podman documentation and source descriptions: the CLI mapping flags create a new user namespace with explicit maps and are documented as conflicting with --userns; source model comments state that a private user namespace requires IDMappings. This is consistent with the VOL-04 rejection, but exact v6.0.2-tagged source could not be independently retrieved through the available source interface, so the release-specific code check remains a limitation. Runtime-test count remains 4/5 since the v1.2 checkpoint.
 
 ### 18.1 What is already established
 
@@ -3259,6 +3259,32 @@ The exact temporary volume was removed successfully. The exact container was alr
 
 **Runtime-test accounting:** VOL-05-MAP-B is a read-only review, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no five-test archive snapshot is triggered.
 
+### 18.5.2 VOL-05-MAP-C — read-only user-namespace semantics review (2026-11-08)
+
+**Review type:** READ-ONLY OFFICIAL DOCUMENTATION / SOURCE SEMANTICS REVIEW.
+**Question:** Does Podman's documented user-namespace model explain the VOL-04 error and show why an unreviewed corrected command would be unsafe?
+
+**Sources reviewed:** Official Podman CLI documentation for `--userns` and `--uidmap`/`--gidmap`; Podman source model documentation for `specgen.SpecGenerator.UserNS` and `IDMappings`; namespace implementation descriptions. The surfaced official docs/source excerpts are from the current documentation/source view and related versioned documentation, but an exact v6.0.2-tagged source file could not be retrieved through the available source interface. Do not label the source inspection as a complete exact-tag verification.
+
+**Findings:**
+
+1. The official CLI documentation describes `--uidmap` and `--gidmap` as creating a new user namespace using the supplied mapping. It explicitly documents these flags as conflicting with `--userns` (and the relevant subordinate-range selectors).
+2. Podman's source model documentation states that the user namespace defaults to `host`, which does not create a separate container user namespace, and that when `UserNS` is set to `private`, `IDMappings` must be set. This is consistent with the exact VOL-04 error saying a mapping must be supplied to configure a user namespace.
+3. These are different interfaces/concepts: a CLI request to select `--userns=private` without mapping information is not equivalent to supplying the CLI's explicit mapping flags. Since the CLI documentation says those flags conflict with `--userns`, simply appending `--uidmap`/`--gidmap` to the previous command is not a valid correction.
+4. For rootless Podman, documented explicit UID mapping uses an intermediate ID space. The `from_uid`/`from_gid` values in `--uidmap`/`--gidmap` are not direct host IDs. The first translation is derived from the calling user's UID/GID and `/etc/subuid`/`/etc/subgid`; the explicit map configures the second translation. Therefore a mapping cannot be chosen safely by copying host IDs directly into a guessed command.
+5. The official current documentation also notes that the default user-namespace mode is selected from pod membership, `PODMAN_USERNS`, `containers.conf`, or otherwise `host`. VOL-05-MAP-B found no active setting in the inspected configuration files, but did not inventory the `PODMAN_USERNS` environment variable. The failed command explicitly supplied `--userns=private`, so that environment-variable gap does not explain away the observed missing-map error.
+6. The official current documentation/source is corroborative rather than a complete exact-version proof for the installed Podman 6.0.2-2.1, because the v6.0.2-tagged source file could not be retrieved in this review. The local error itself remains direct evidence of what the installed build rejected.
+
+**Result:** VOL-05-MAP-C COMPLETE WITH VERSION-PIN LIMITATION — THE ERROR IS CONSISTENT WITH PRIVATE NAMESPACE CONFIGURATION REQUIRING ID MAPPINGS; THE CLI DOCUMENTS EXPLICIT MAP FLAGS AS CONFLICTING WITH `--userns`. DO NOT COMBINE THESE OPTIONS OR REPEAT THE PREVIOUS INVOCATION.
+
+**Design implication:** The next decision must choose one supported CLI approach and derive the map in the rootless intermediate-ID space. Do not assume that removing `--userns` and supplying a map is automatically safe: the resulting map must keep container root off host UID/GID 1000, map the intended application identity correctly, remain within the subordinate ranges, and be reconciled with named-volume ownership semantics. The previously tested `--userns=nomap` bind-mount result is a scoped failure and must not be silently treated as proof for or against a named volume.
+
+**Safety and side effects:** Only external documentation/source descriptions were reviewed. No host command, container, volume, image, network, directory, package, service, mapping or host configuration was changed. No runtime test was performed.
+
+**Next gate — VOL-05-MAP-D:** design-only mapping plan review, no runtime execution. Compare the supported explicit-map CLI path against the required security and ownership invariants; include rootless intermediate-ID arithmetic, separate UID/GID maps, application UID/GID 1000, host-root avoidance, and named-volume ownership. If the design cannot be justified from exact release documentation and current evidence, stop and request a narrowly scoped local source/package inspection rather than guessing.
+
+**Runtime-test accounting:** VOL-05-MAP-C is a read-only source/documentation review, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no five-test archive snapshot is triggered.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3324,6 +3350,7 @@ The first assistant action in a new conversation should be:
 | 3.13 | 2026-11-08 | Recorded the approved VOL-04 disposable runtime attempt. Final preflight passed on x86_64/rootless Podman with the exact cached image and names clear. Named-volume creation with `--uid 1000 --gid 1000` succeeded; `podman volume inspect` reported UID/GID 1000 and `podman unshare stat` reported 1000:1000, mode 755. Container creation failed because the explicit `--userns=private` invocation supplied no UID/GID mapping; no container was created and the write/readback probe did not run. Start attempt returned 125 because the container did not exist. Exact volume cleanup and independent container/volume absence checks passed. Overall VOL-04 is PARTIAL/INCONCLUSIVE, not a volume-write failure. Runtime-test count advances to 4/5 since v1.2; no five-test snapshot yet. Updated §18 handoff to a read-only user-namespace/mapping review; no installation or host configuration change. |
 | 3.14 | 2026-11-08 | Recorded VOL-05-MAP-A read-only mapping inspection: reconfirmed Podman's rootless UID/GID maps and subordinate-ID allocation, distinguished host and podman-unshare namespace views, recorded explicit mapping CLI options and helper metadata, and retained the private-namespace cause and named-volume writability as unresolved. No resources or host configuration changed; runtime-test count remains 4/5 and no archive snapshot is triggered. |
 | 3.15 | 2026-11-08 | Recorded VOL-05-MAP-B read-only Podman configuration/package review. No active user-namespace or ID-map override was found in the inspected config locations; userns = "host" in the packaged main config is commented out. Local help does not define --userns=private semantics. Pinned-release documentation/source review is the next gate. No resource or host configuration changed; runtime-test count remains 4/5; no archive snapshot triggered. |
+| 3.16 | 2026-11-08 | Recorded VOL-05-MAP-C read-only official documentation/source semantics review. Explicit --uidmap/--gidmap are documented as creating a new user namespace and conflicting with --userns; source model descriptions require IDMappings for UserNS=private, consistent with VOL-04's error. Exact v6.0.2-tagged source retrieval remained unavailable, so the version-pin limitation is explicit. No runtime or host changes; count remains 4/5; no archive snapshot triggered. |
 
 ---
 
