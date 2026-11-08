@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.18  
+> **Version:** 3.19  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,10 +2572,10 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.17  
+**Canonical version:** 3.19  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
-**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A read-only mapping inspection confirms the VOL-01 rootless map and exposes UID/GID map flags. VOL-05-MAP-B found no active user-namespace override in the inspected main config/drop-ins. VOL-05-MAP-C compared official Podman documentation and source descriptions: the CLI mapping flags create a new user namespace with explicit maps and are documented as conflicting with --userns; source model comments state that a private user namespace requires IDMappings. This is consistent with the VOL-04 rejection, but exact v6.0.2-tagged source could not be independently retrieved through the available source interface, so the release-specific code check remains a limitation. Runtime-test count remains 4/5 since the v1.2 checkpoint.
+**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A through MAP-E are complete; MAP-E confirms the installed Podman 6.0.2 build and presence of `--uidmap`/`--gidmap` options, but not repeated-map parser acceptance. **VOL-05-MAP-F Stage A preflight has now passed:** Podman 6.0.2; exact cached Python image ID `b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5` exists; temporary name `odysseus-vol05-mapf-20261108` is available; image reports linux/amd64. Stage A created no resources and pulled nothing. The user's explicit approval of the exact MAP-F sequence was conditional on reviewing Stage A before Stage B; that review is complete. Stage B is now the next action under the existing approval. Runtime-test count remains 4/5 since the v1.2 checkpoint; MAP-F preflight is a read-only gate, not a runtime test.
 
 ### 18.1 What is already established
 
@@ -3346,7 +3346,7 @@ The pinned Compose application reference `ghcr.io/odysseus-dev/odysseus:latest` 
 
 **Result:** VOL-05-MAP-E COMPLETE — CLI OPTION PRESENCE CONFIRMED; PARSER/ENGINE ACCEPTANCE AND APPLICATION IMAGE ID INVENTORY NOT ESTABLISHED. The candidate full-range map remains design-only. No basis exists to claim that it can be instantiated or that the Odysseus image fits within IDs 0–65535.
 
-**Next gate — VOL-05-MAP-F:** prepare a narrowly scoped, exact disposable runtime-probe proposal using only the already cached probe image and unique temporary names, to test the explicit UID/GID map acceptance and resulting namespace mapping. The proposal must specify all five UID and GID segments, omit `--userns`, disable pulling, avoid protected resources, and include preflight, failure handling, cleanup and independent absence verification. It must not be executed until the user separately approves the exact sequence. Application-image numeric ownership remains a separate unresolved build/image gate; do not pull `latest` to resolve it. Do not retry the failed VOL-04 invocation or modify host settings.
+**Next gate — VOL-05-MAP-F:** Stage A read-only preflight has passed and is recorded in §18.5.5. The user explicitly approved the exact MAP-F sequence on 2026-11-08, with the condition that Stage B not run until Stage A results were reviewed. That review is complete; the approval condition is satisfied. Proceed only with Stage B's exact `podman create` command using the cached Python image ID, five UID and five GID map segments, `--pull=never`, `--network=none`, read-only root, dropped capabilities, no-new-privileges, and `--user=1000:1000`; omit `--userns`. Review the create result before Stage C start/attach. If creation fails, preserve the exact error and go directly to the approved cleanup/absence checks; do not alter maps or retry. Application-image numeric ownership remains a separate unresolved gate; do not pull `latest`. Do not modify host settings or touch protected resources.
 
 **Runtime-test accounting:** VOL-05-MAP-E is a read-only inspection, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
@@ -3444,6 +3444,87 @@ No pull or download attempted.
 **Result:** VOL-05-MAP-E COMPLETE — CLI OPTION PRESENCE CONFIRMED; PARSER/ENGINE ACCEPTANCE AND APPLICATION IMAGE ID INVENTORY NOT ESTABLISHED. The MAP-D candidate remains design-only and not runtime-validated.
 
 **Next gate — VOL-05-MAP-F:** prepare an exact disposable runtime-probe proposal using only the already cached Python probe image and new unique temporary names. It must test explicit UID/GID mapping acceptance and resulting namespace identity, use all five segments for each map, omit `--userns`, disable image pulling, avoid protected resources, and include exact preflight, failure handling, cleanup and independent absence verification. Present the complete proposal for separate approval; do not execute it. Application-image numeric ownership remains a separate unresolved gate.
+### 18.5.5 VOL-05-MAP-F — Stage A read-only preflight (2026-11-08)
+
+**Review type:** READ-ONLY STEAMOS HOST / ROOTLESS PODMAN PREFLIGHT. NO CONTAINER CREATION OR RUNTIME EXECUTION.
+
+**Question:** Are the exact installed Podman version, cached probe image identity and unique temporary container name ready for the previously proposed explicit UID/GID mapping experiment?
+
+**Approval and sequencing:** The user explicitly approved the exact VOL-05-MAP-F proposal, but instructed that Stage B must not execute until Stage A results had been reviewed. This section records Stage A only. Stage A passed; the conditional hold is now satisfied. The approved Stage B create operation may proceed as the next separately staged action. Stage C start/attach remains subsequent to review of the Stage B create result.
+
+**Environment:** SteamOS host, rootless Podman, linux/amd64.
+
+**Exact command executed:**
+```bash
+echo "===== VOL-05-MAP-F: READ-ONLY PREFLIGHT ====="
+
+IMAGE_ID="sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5"
+
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+echo
+echo "===== 1. VERIFY PODMAN VERSION ====="
+podman --version
+
+echo
+echo "===== 2. VERIFY EXACT CACHED IMAGE ====="
+podman image exists "$IMAGE_ID" \
+  && echo "PASS: exact image exists locally" \
+  || echo "FAIL: exact image unavailable"
+
+echo
+echo "===== 3. VERIFY TEMPORARY NAME ====="
+if podman container exists "$CONTAINER_NAME"; then
+    echo "FAIL: temporary container name already exists"
+else
+    echo "PASS: temporary container name available"
+fi
+
+echo
+echo "===== 4. VERIFY IMAGE ID ====="
+podman image inspect "$IMAGE_ID" \
+  --format 'ID={{.Id}} OS={{.Os}} ARCH={{.Architecture}}'
+
+echo
+echo "===== VOL-05-MAP-F PREFLIGHT COMPLETE ====="
+```
+
+**Actual output:**
+```text
+===== VOL-05-MAP-F: READ-ONLY PREFLIGHT =====
+
+===== 1. VERIFY PODMAN VERSION =====
+podman version 6.0.2
+
+===== 2. VERIFY EXACT CACHED IMAGE =====
+PASS: exact image exists locally
+
+===== 3. VERIFY TEMPORARY NAME =====
+PASS: temporary container name available
+
+===== 4. VERIFY IMAGE ID =====
+ID=b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 OS=linux ARCH=amd64
+
+===== VOL-05-MAP-F PREFLIGHT COMPLETE =====
+(deck@Laco ~)$
+```
+
+**Observed result:**
+- Podman reports version `6.0.2`.
+- `podman image exists` returned success for the exact requested image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`.
+- The exact temporary container name `odysseus-vol05-mapf-20261108` was available.
+- `podman image inspect` returned the expected full image ID, OS `linux` and architecture `amd64`.
+- The transcript contains no separately captured overall shell exit status; do not infer one from the completion banner.
+
+**Interpretation and evidence limits:**
+1. All four Stage A acceptance checks passed. The exact image and name prerequisites are satisfied.
+2. This is a read-only preflight, not a runtime mapping test. It does not demonstrate repeated `--uidmap`/`--gidmap` parser acceptance, namespace creation, effective UID/GID, or volume writability.
+3. No image pull/download, container creation/start, volume/network/directory creation, package/service change or host configuration modification occurred.
+4. The existing protected resources were not targeted.
+
+**Result:** VOL-05-MAP-F STAGE A COMPLETE — PREFLIGHT PASSED. Runtime-test count remains **4/5** since the v1.2 archive checkpoint. No five-test archive snapshot is triggered by this read-only preflight.
+
+**Next action — Stage B:** The user's explicit approval of the exact proposed MAP-F sequence was conditional only on reviewing Stage A first. That review is now complete and all checks passed. Run the previously approved Stage B `podman create` command exactly as proposed. Do not start/attach the container in the same step; first inspect the create result. If creation fails, do not revise or retry the map; preserve the exact error and proceed to exact cleanup and independent absence verification. Application-image numeric ownership remains a separate unresolved gate.
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3512,6 +3593,7 @@ The first assistant action in a new conversation should be:
 | 3.16 | 2026-11-08 | Recorded VOL-05-MAP-C read-only official documentation/source semantics review. Explicit --uidmap/--gidmap are documented as creating a new user namespace and conflicting with --userns; source model descriptions require IDMappings for UserNS=private, consistent with VOL-04's error. Exact v6.0.2-tagged source retrieval remained unavailable, so the version-pin limitation is explicit. No runtime or host changes; count remains 4/5; no archive snapshot triggered. |
 | 3.17 | 2026-11-08 | Recorded VOL-05-MAP-D design-only explicit UID/GID mapping arithmetic. Candidate full map uses parent namespace IDs 1–65536, maps container root to host 100000, and maps application 1000:1000 to host 100999:100999, matching the VOL-04 unshare ownership arithmetic. Candidate is not release-verified or runtime-approved; local parser verification is next. No runtime resources or host settings changed; count remains 4/5; no archive snapshot triggered. |
 | 3.18 | 2026-11-08 | Recorded VOL-05-MAP-E read-only local verification: identified the exact installed Podman 6.0.2 build and confirmed the CLI exposes `--uidmap strings`, `--gidmap strings` and `--userns string`; this does not prove repeated-map parser/engine acceptance. The pinned Compose application image `ghcr.io/odysseus-dev/odysseus:latest` is not cached, so no application-image numeric ownership inspection was possible and no pull was attempted. Advanced to VOL-05-MAP-F exact disposable runtime-probe proposal, pending separate approval. No resources or host settings changed; runtime-test count remains 4/5; no archive snapshot triggered. |
+| 3.19 | 2026-11-08 | Recorded VOL-05-MAP-F Stage A read-only preflight exactly as supplied: Podman 6.0.2, exact cached Python image ID present (linux/amd64), and unique temporary container name available. All four checks passed; no container or other resource was created and no image was pulled. Runtime-test count remains 4/5 because Stage A is a read-only preflight. Recorded that the user's conditional approval is now cleared by review of the passing preflight; Stage B create may proceed under the exact previously approved command, with Stage C held until the create result is reviewed. No installation or host configuration change. |
 
 ---
 
