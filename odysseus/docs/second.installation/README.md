@@ -1,4 +1,4 @@
-# Odysseus — Second Rebuild Audit Track
+# Odysseus — Second Rebuild Documentation
 
 **Project:** Odysseus  
 **Documentation scope:** Second rebuild attempt  
@@ -9,10 +9,11 @@
 
 This directory tracks the second Odysseus rebuild effort. The parent directory name, `second.installation`, is retained as a historical identifier for the second rebuild attempt; it does **not** mean that the project is currently in an installation phase.
 
-The work is organized into two independent audits:
+The work is organized into two independent audits followed by a separate, future installation phase:
 
 - **Audit 1 — Phase 1.3:** source-level security audit of the local Odysseus Agent, its authority, execution routes and trust boundaries. Closed as a source audit only.
 - **Audit 2 — Phase 1.4:** deployment feasibility and runtime security validation. Active; installation is not authorized.
+- **Installation — 3.installation:** a separate future deployment phase. Its guide records requirements and pending procedures only; it does not authorize installation.
 
 ## 2. Directory structure
 
