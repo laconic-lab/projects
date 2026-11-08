@@ -88,7 +88,7 @@ The detailed rules and templates are in §0 and §13–§18 of the canonical aud
 - Seccomp is enabled; AppArmor and SELinux are disabled.
 - No Odysseus or LXC installation has been performed.
 
-These are scoped findings, not a final security certification. NET-06 cleanup and independent absence verification are the next actions; the network-isolation evidence is now recorded through Stage C2. Consult the canonical audit v1.8 for test IDs, evidence limits and the next approval boundary.
+These are scoped findings, not a final security certification. NET-06 is complete: the exact temporary container and network were removed and independently verified absent; the 10-second SIGTERM timeout/SIGKILL escalation is recorded as a lifecycle caveat. The next open dependency is Gate 5 — exact candidate UID/application identity. Consult the canonical audit v1.8 for test IDs, evidence limits and the next approval boundary.
 
 ## 6. Naming and phase policy
 
