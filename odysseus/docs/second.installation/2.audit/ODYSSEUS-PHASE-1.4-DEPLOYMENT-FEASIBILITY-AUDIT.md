@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.17  
+> **Version:** 3.18  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -3340,10 +3340,110 @@ Equivalent mapping segments for each of UID and GID are:
 
 **Result:** VOL-05-MAP-D DESIGN COMPLETE — A CONSISTENT FULL-RANGE CANDIDATE EXISTS ON PAPER. It maps container root to host 100000 and application UID/GID 1000:1000 to host 100999:100999, using the available subordinate ranges. The design is NOT approved for execution and volume write compatibility remains unproven.
 
-**Next gate — VOL-05-MAP-E:** narrow read-only local verification of the installed Podman 6.0.2 CLI/parser and rootless explicit-map semantics. Confirm whether repeated disjoint `--uidmap`/`--gidmap` entries are accepted, whether the host-ID side is interpreted in the rootless parent namespace as assumed, and whether the map can be created without `--userns`. Also inspect the pinned image's numeric ownership requirements if the required image metadata is already available. Do not create a container or volume, retry VOL-04, or modify host settings. Only after this verification should an exact disposable runtime-test proposal be prepared for separate explicit approval.
+**Next gate — VOL-05-MAP-E:** completed as a read-only local CLI/image-cache check. The installed executable reports Podman 6.0.2 (API 6.0.2, Go 1.26.5-X:nodwarf5, Git commit `b28edb9ad70ce4317dc762ee9ce0a6d081d154e9`, built 2026-08-06, linux/amd64). Local `podman create --help` exposes `--uidmap strings` and `--gidmap strings`, as well as `--userns string`; this confirms the flags exist and are declared as string-valued options, but help output alone does **not** prove that repeated entries are parsed as intended, that the candidate's non-monotonic segments are accepted, or how the engine validates rootless intermediate IDs. The candidate map therefore remains unverified by the installed parser/engine.
 
-**Runtime-test accounting:** VOL-05-MAP-D is design-only and does not count as a runtime test. Count remains **4/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+The pinned Compose application reference `ghcr.io/odysseus-dev/odysseus:latest` was **not cached** according to `podman image exists`. No pull was attempted. Consequently, no application-image ownership, configured user, supplementary-group or filesystem-ID inventory was possible. The previously inspected cached Python probe image remains distinct from the application image and cannot establish the latter's numeric ownership requirements.
 
+**Result:** VOL-05-MAP-E COMPLETE — CLI OPTION PRESENCE CONFIRMED; PARSER/ENGINE ACCEPTANCE AND APPLICATION IMAGE ID INVENTORY NOT ESTABLISHED. The candidate full-range map remains design-only. No basis exists to claim that it can be instantiated or that the Odysseus image fits within IDs 0–65535.
+
+**Next gate — VOL-05-MAP-F:** prepare a narrowly scoped, exact disposable runtime-probe proposal using only the already cached probe image and unique temporary names, to test the explicit UID/GID map acceptance and resulting namespace mapping. The proposal must specify all five UID and GID segments, omit `--userns`, disable pulling, avoid protected resources, and include preflight, failure handling, cleanup and independent absence verification. It must not be executed until the user separately approves the exact sequence. Application-image numeric ownership remains a separate unresolved build/image gate; do not pull `latest` to resolve it. Do not retry the failed VOL-04 invocation or modify host settings.
+
+**Runtime-test accounting:** VOL-05-MAP-E is a read-only inspection, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+
+
+### 18.5.4 VOL-05-MAP-E — read-only local CLI and image-cache verification (2026-11-08)
+
+**Review type:** READ-ONLY STEAMOS HOST / PODMAN CLI AND LOCAL IMAGE-METADATA CHECK. NO RUNTIME EXECUTION OR RESOURCE CREATION.
+
+**Question:** Does the installed Podman 6.0.2 CLI expose the explicit UID/GID mapping options, and is the pinned Odysseus application image locally available for numeric ownership inspection?
+
+**Why this review is new:** MAP-D established only arithmetic consistency. This review checks the actual installed executable's version/build identity, its local option declarations, and the local cache state of the pinned application image. It does not repeat the earlier generic help/configuration review: the command output records the exact version/build and specifically inspects the selected option declarations and exact application image reference.
+
+**Environment:** SteamOS host, rootless Podman, linux/amd64.
+
+**Exact command executed:**
+```bash
+echo "===== VOL-05-MAP-E: LOCAL READ-ONLY VERIFICATION ====="
+
+APP_IMAGE="ghcr.io/odysseus-dev/odysseus:latest"
+
+echo
+echo "===== 1. INSTALLED PODMAN VERSION ====="
+podman --version
+podman version
+
+echo
+echo "===== 2. LOCAL UID/GID MAP OPTION DECLARATIONS ====="
+podman create --help | grep -n -A 3 -B 2 -E -- '--uidmap|--gidmap|--userns'
+
+echo
+echo "===== 3. APPLICATION IMAGE CACHE STATUS ====="
+if podman image exists "$APP_IMAGE"; then
+    echo "CACHED: $APP_IMAGE"
+    echo
+    echo "===== 4. APPLICATION IMAGE CONFIG METADATA ====="
+    podman image inspect "$APP_IMAGE" \
+      --format 'ID={{.Id}}
+OS={{.Os}}
+ARCH={{.Architecture}}
+USER={{.Config.User}}
+ENTRYPOINT={{json .Config.Entrypoint}}
+CMD={{json .Config.Cmd}}
+DIGESTS={{json .RepoDigests}}'
+else
+    echo "NOT CACHED: $APP_IMAGE"
+    echo "No pull or download attempted."
+fi
+
+echo
+echo "===== VOL-05-MAP-E LOCAL READ-ONLY CHECK COMPLETE ====="
+```
+
+**Actual output:**
+```text
+===== VOL-05-MAP-E: LOCAL READ-ONLY VERIFICATION =====
+
+===== 1. INSTALLED PODMAN VERSION =====
+podman version 6.0.2
+Client:       Podman Engine
+Version:      6.0.2
+API Version:  6.0.2
+Go Version:   go1.26.5-X:nodwarf5
+Git Commit:   b28edb9ad70ce4317dc762ee9ce0a6d081d154e9
+Built:        Thu Aug  6 03:22:57 2026
+OS/Arch:      linux/amd64
+
+===== 2. LOCAL UID/GID MAP OPTION DECLARATIONS =====
+58-      --gidmap strings                           GID map to use for the user namespace
+60-      --uidmap strings                           UID map to use for the user namespace
+156-      --userns string                            User namespace to use
+
+===== 3. APPLICATION IMAGE CACHE STATUS =====
+NOT CACHED: ghcr.io/odysseus-dev/odysseus:latest
+No pull or download attempted.
+
+===== VOL-05-MAP-E LOCAL READ-ONLY CHECK COMPLETE =====
+(deck@Laco ~)$
+```
+
+**Observed result:**
+- `podman --version`: `podman version 6.0.2`.
+- `podman version`: API 6.0.2; Go `1.26.5-X:nodwarf5`; Git commit `b28edb9ad70ce4317dc762ee9ce0a6d081d154e9`; build date 2026-08-06; OS/Arch `linux/amd64`.
+- `podman create --help` exposes `--gidmap strings`, `--uidmap strings`, and `--userns string`.
+- `ghcr.io/odysseus-dev/odysseus:latest` is not cached. The conditional branch did not run `podman image inspect`; no image pull/download was attempted.
+- The user-provided transcript does not include a separately captured shell exit status. Do not infer an overall exit code from the final banner.
+
+**Interpretation and evidence limits:**
+1. Installed version/build identity is directly confirmed.
+2. The option declarations confirm that the installed CLI exposes UID/GID map options. The help's `strings` type label is not sufficient evidence that five repeated options are accepted and applied as five disjoint mappings; no parser/engine execution occurred.
+3. The presence of `--userns` alongside explicit map options does not imply they should be combined. MAP-C's documented incompatibility remains in force: the candidate explicit-map route must omit `--userns`.
+4. No claim is made about rootless intermediate-ID interpretation, exact map acceptance, or runtime namespace contents. Those require a separately approved runtime probe or exact-release source evidence.
+5. The application image is absent from the local cache. No image ownership, configured user, supplementary groups or file-owner range was inspected. Do not pull the mutable `:latest` tag as part of this audit without separate approval and a digest-pinned provenance plan.
+6. No container, volume, network, directory, package, service, image or host configuration was created or changed.
+
+**Result:** VOL-05-MAP-E COMPLETE — CLI OPTION PRESENCE CONFIRMED; PARSER/ENGINE ACCEPTANCE AND APPLICATION IMAGE ID INVENTORY NOT ESTABLISHED. The MAP-D candidate remains design-only and not runtime-validated.
+
+**Next gate — VOL-05-MAP-F:** prepare an exact disposable runtime-probe proposal using only the already cached Python probe image and new unique temporary names. It must test explicit UID/GID mapping acceptance and resulting namespace identity, use all five segments for each map, omit `--userns`, disable image pulling, avoid protected resources, and include exact preflight, failure handling, cleanup and independent absence verification. Present the complete proposal for separate approval; do not execute it. Application-image numeric ownership remains a separate unresolved gate.
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3411,6 +3511,7 @@ The first assistant action in a new conversation should be:
 | 3.15 | 2026-11-08 | Recorded VOL-05-MAP-B read-only Podman configuration/package review. No active user-namespace or ID-map override was found in the inspected config locations; userns = "host" in the packaged main config is commented out. Local help does not define --userns=private semantics. Pinned-release documentation/source review is the next gate. No resource or host configuration changed; runtime-test count remains 4/5; no archive snapshot triggered. |
 | 3.16 | 2026-11-08 | Recorded VOL-05-MAP-C read-only official documentation/source semantics review. Explicit --uidmap/--gidmap are documented as creating a new user namespace and conflicting with --userns; source model descriptions require IDMappings for UserNS=private, consistent with VOL-04's error. Exact v6.0.2-tagged source retrieval remained unavailable, so the version-pin limitation is explicit. No runtime or host changes; count remains 4/5; no archive snapshot triggered. |
 | 3.17 | 2026-11-08 | Recorded VOL-05-MAP-D design-only explicit UID/GID mapping arithmetic. Candidate full map uses parent namespace IDs 1–65536, maps container root to host 100000, and maps application 1000:1000 to host 100999:100999, matching the VOL-04 unshare ownership arithmetic. Candidate is not release-verified or runtime-approved; local parser verification is next. No runtime resources or host settings changed; count remains 4/5; no archive snapshot triggered. |
+| 3.18 | 2026-11-08 | Recorded VOL-05-MAP-E read-only local verification: identified the exact installed Podman 6.0.2 build and confirmed the CLI exposes `--uidmap strings`, `--gidmap strings` and `--userns string`; this does not prove repeated-map parser/engine acceptance. The pinned Compose application image `ghcr.io/odysseus-dev/odysseus:latest` is not cached, so no application-image numeric ownership inspection was possible and no pull was attempted. Advanced to VOL-05-MAP-F exact disposable runtime-probe proposal, pending separate approval. No resources or host settings changed; runtime-test count remains 4/5; no archive snapshot triggered. |
 
 ---
 
