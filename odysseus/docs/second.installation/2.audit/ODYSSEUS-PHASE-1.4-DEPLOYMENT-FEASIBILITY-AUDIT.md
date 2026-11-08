@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.9  
+> **Version:** 3.10  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,7 +2572,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.9  
+**Canonical version:** 3.10  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2938,6 +2938,53 @@ No command for creating or mounting the volume is authorized by this proposal. B
 **Test accounting:** VOL-03 and VOL-03-R are documentation-review attempts, not runtime tests. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
 
+
+#### Targeted closure review 5 — VOL-04-PREFLIGHT cached probe-image inventory
+
+**Review type:** READ-ONLY IMAGE INVENTORY; no image pull, build, container or volume operation.  
+**Question:** Is a suitable probe image already cached so a future named-volume experiment can avoid downloading or building an image?
+
+**Exact commands executed:**
+
+~~~bash
+echo "===== VOL-04-PREFLIGHT: CACHED IMAGE INVENTORY ====="
+
+echo
+echo "===== 1. LOCAL IMAGES WITH FULL IDS AND DIGESTS ====="
+podman images --no-trunc --digests
+
+echo
+echo "===== 2. IMAGE STORAGE SUMMARY ====="
+podman system df -v
+
+echo
+echo "===== VOL-04-PREFLIGHT COMPLETE ====="
+~~~
+
+**Observed cached images (full identifiers as reported):**
+
+| Repository:tag | Digest | Image ID | Size | Containers |
+|---|---|---|---:|---:|
+| docker.io/library/python:3-alpine | sha256:d44b1254cb92329418d164b22b20d86bbd3869d48e80e09e476531a409a728bb | sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 | 56 MB | 0 |
+| docker.io/library/debian:12-slim | sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8 | sha256:8da84df25d28176be84164040cd45e128c6b4c6a80b7d7cbe17fe2b9f198efc2 | 78 MB | 0 |
+| docker.io/pihole/pihole:latest | sha256:d34134716fc32038b052a8674c7c6879e0ff21f0e6d8af345166fffa2c27c113 | sha256:2fd502ece0182fcd9fd71f51ae686a0d191ba7dc368f961f98c83aac39b25704 | 102 MB | 1 |
+| docker.io/library/archlinux:latest | sha256:4e77cf2ea5f410e6f8be5abf93ccf17ce2436e87a138c167208356711a405dbd | sha256:757718cecb34fbe2c56e22b5f6299a45f149c7ce1c9b85def543a340bacdf7af | 410 MB | 1 |
+| docker.io/library/ubuntu:24.04 | sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac | sha256:6277ab668b2ad3c3ab851d370faa1690d324b30db29d342527f61fed28f20f36 | 80.7 MB | 2 |
+| docker.io/chromadb/chroma:<none> | sha256:1e0b73a187a28757c572acba508c46f48c9e8b0acaf5c20e6d95cdedce1acdf6 | sha256:a221f3391b5eabc5b0b293b65958a28f10d7015be67e4d8cc33a5e4e60e6f3ca | 642 MB | 0 |
+
+**Candidate selection (provisional):** docker.io/library/python:3-alpine is the preferred probe-image candidate because it is already cached, has zero containers reported against it, and Python can perform controlled file creation/stat/write checks without relying on optional shell utilities. Its exact image ID and repository digest are recorded above. debian:12-slim is a secondary cached candidate. This is not yet an approval to use either image. Before any experiment, inspect the selected image's local configuration (architecture, configured user, entrypoint/cmd and image metadata), and use the immutable local image ID with pull disabled. Do not use the mutable tag as the experiment's identity.
+
+**Existing-resource caution:** podman system df -v lists six named local volumes, consistent with the earlier volume listing, but its per-container LOCAL VOLUMES counts are 16 for pihole-box, 2 for pihole, 16 for Stable-box and 16 for localai-box. This does not reconcile directly with the six listed named volumes. Treat all existing containers and volumes as protected; do not infer that the per-container counts are disposable or that all mounts are represented by the named-volume listing. The proposed experiment must use a unique new volume name and must not inspect, mount, alter or remove any existing volume.
+
+**Safety and side effects:** only local image and storage metadata were queried. No image was pulled, built, tagged, removed or modified. No container, volume, network or directory was created, mounted, changed or removed. No host configuration or service was changed.
+
+**Result:** a suitable candidate image is already cached; the exact image configuration has not yet been reviewed. VOL-04 experiment design is therefore not yet ready for approval.
+
+**Next gate — VOL-04-PREFLIGHT-2 (READ-ONLY):** inspect the local configuration of the exact Python image ID sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 (and only if needed, Debian ID sha256:8da84df25d28176be84164040cd45e128c6b4c6a80b7d7cbe17fe2b9f198efc2). Establish architecture, configured user, entrypoint, command, OS metadata and local image identity. Do not run the image. If inspection confirms suitability, prepare a precise disposable-volume experiment for separate explicit approval. No resource-creation command is authorized by this preflight.
+
+**Test accounting:** VOL-04-PREFLIGHT is read-only inventory, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+
+
 ### 18.3 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -2997,6 +3044,7 @@ The first assistant action in a new conversation should be:
 | 3.7 | 2026-11-08 | Recorded VOL-01 read-only rootless Podman storage preflight: Podman 6.0.2, subordinate UID/GID map (container 0 → host 1000; container 1–65536 → host 100000–165535), graph/run/volume paths, six existing volumes and storage inventory. Clarified that container UID/GID 1000 maps to host 100999 and that named-volume ownership remains unproven. Defined VOL-02 as a read-only Podman volume/user-namespace capability review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.8 | 2026-11-08 | Recorded VOL-02 read-only capability review: installed Podman 6.0.2 exposes named-volume `--uid`/`--gid`, volume inspection, rootless `podman unshare`, and container user-namespace/ID-map controls. Confirmed the unshare UID/GID maps match VOL-01. Marked native volume ownership as a promising but unproven mechanism because help output does not resolve numeric-ID namespace semantics or prove non-root write access. Advanced to VOL-03 local documentation review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.9 | 2026-11-08 | Recorded VOL-03 and corrected VOL-03-R local documentation review. SteamOS man rejected the unsupported -P option; corrected man -c requests found no entries for the three Podman manuals, and the local manual-file search found no matching pages. Marked the documentation route inconclusive without inferring a Podman feature failure or UID/GID namespace semantics. Defined VOL-04 as a disposable named-volume experiment proposal only, requiring separate explicit approval and a cached suitable probe image. Updated the continuation handoff; no volume/container/runtime test or host/resource change. Completed runtime-test count remains 3/5 since v1.2; no archive snapshot triggered. |
+| 3.10 | 2026-11-08 | Recorded VOL-04-PREFLIGHT cached-image inventory. Python 3 Alpine and Debian 12 slim are already cached and unreferenced by containers according to the image listing; Python Alpine is the provisional probe candidate by exact local image ID and digest, pending read-only image-config inspection. Recorded a volume-accounting discrepancy between six named volumes and higher per-container LOCAL VOLUMES counts; all existing resources remain protected. No image/container/volume/network operation or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
