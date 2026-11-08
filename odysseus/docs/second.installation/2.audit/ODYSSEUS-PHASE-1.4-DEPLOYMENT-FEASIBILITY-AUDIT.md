@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.6  
+> **Version:** 2.7  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -149,7 +149,7 @@ The audited source baseline was:
 | Signature | Unsigned |
 | Audit 1 result | Source-level audit closed; runtime validation not performed |
 
-Reconcile the source identity and commit again before any future build. Never silently follow a moving branch.
+**Historical source-lineage discrepancy — OPEN / BUILD-BLOCKING.** The closed Phase 1.3 audit also records an earlier installation-baseline candidate in `odysseus-dev/odysseus` at `03d25943ee4a35f6f0535112976123a721cff5cb`, while its final Authority Matrix and Phase 1.4 use `odysseus-dev/odysseus-current` at `142b93ad86073efb24981df385423f58fe5376b1`. These are distinct repository identities and commits, not aliases. The two cited Dockerfiles have different blob SHAs (`fe6a6792fb0d706bfe944a17e33ab8c58d0b8781` versus `3732d20a6cb5b25ee98a338b650f7e82939eb166`) and materially different build instructions. The Phase 1.3 record notes the earlier candidate but does not establish a completed reconciliation of why it was replaced or which repository the user intended as the final deployment authority. Phase 1.4's prior wording understated this historical conflict. **Do not build, compare build reproducibility, or treat either source as the approved deployment source until the user confirms the intended authoritative repository/commit and the audit records the lineage decision.** Never silently follow a moving branch.
 
 ### 2.2 What Audit 1 did not establish
 
@@ -1415,6 +1415,32 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 16. **Custom fonts are an optional source-tree write path.** `routes/font_routes.py` uses `static/fonts/custom`, and the pinned tree contains that directory. Listing existing fonts can work read-only, but adding custom fonts requires writing into the image/source tree and is incompatible with a read-only root filesystem. Disable custom-font additions initially or redesign the path to use data storage.
 
 
+**DR-02 extension — source-integrity and deployment-contract discrepancy register (read-only; no runtime changes)**
+
+A second targeted scan of the same pinned source commit confirmed the four discrepancies raised before this review and identified additional deployment-contract issues. This is a source/documentation review, not a runtime test. No image, container, volume, package, directory, service or host resource was created or changed.
+
+| ID | Finding | Evidence / impact | Disposition |
+|---|---|---|---|
+| SRC-01 | Phase 1.3 / Phase 1.4 source lineage is unresolved | Phase 1.3 records an earlier installation-baseline candidate `odysseus-dev/odysseus@03d25943ee4a35f6f0535112976123a721cff5cb`; its final Authority Matrix and Phase 1.4 identify `odysseus-dev/odysseus-current@142b93ad86073efb24981df385423f58fe5376b1`. The cited Dockerfiles have different blob SHAs and materially different build instructions. The reason for the transition and user-approved final authority are not established. | **OPEN — BLOCKS ANY BUILD.** User must confirm source authority; record lineage and re-pin before build. |
+| SRC-02 | Dockerfile pre-creates an apparently unused search-cache path | Dockerfile creates `/app/services/cache/search`; active `services/search/cache.py` writes disk cache beneath `DATA_DIR/cache/search` and `DATA_DIR/cache/content`. | Confirmed source discrepancy; document as unused for the reviewed implementation, not as an active writable path. |
+| SRC-03 | Upstream MCP documentation lags pinned implementation | `src/builtin_mcp.py` enables built-in MCP by default and can invoke `npx -y @playwright/mcp@latest` on first startup unless disabled/cache-gated; the default cache gate is false. | Confirmed. Built-in MCP must be explicitly disabled in the initial profile; mutable runtime package download is also a reproducibility defect. |
+| SRC-04 | `setup.py` is incompatible with the proposed immutable/non-root startup when `.env` is absent | `setup.py` attempts to copy `.env.example` to `/app/.env`. In a root-owned/read-only application tree that write can fail; the stock entrypoint suppresses setup failure with `|| true`, potentially allowing startup to continue after setup steps were skipped. | Confirmed. Do not run upstream setup blindly; design explicit bootstrap and fail-closed checks. |
+| SRC-05 | Built-in MCP disable flag is not proof that all MCP surfaces are disabled | `ODYSSEUS_DISABLE_MCP=1` controls built-in MCP registration, but `app.py` still constructs `McpManager` and includes the custom MCP router. | Confirmed route registration. Investigate and disable/restrict custom MCP management and connection paths separately; do not describe the flag as a global MCP shutdown. |
+| SRC-06 | Stock entrypoint mutates the application tree | `docker/entrypoint.sh` creates users/groups and performs recursive application-tree ownership repair before dropping privileges with `gosu`. | Confirmed. A read-only-root/fixed-non-root profile requires a separate entrypoint; merely predefining UID/GID does not make the stock entrypoint compatible. |
+| SRC-07 | Custom-font route has an image-tree write path | `routes/font_routes.py` uses `static/fonts/custom`, outside `DATA_DIR`; listing existing fonts may work read-only, but creation/upload requires a writable application-tree path. | Confirmed conditional write path. Guarantee directory at image build and disable additions, or redesign storage under `DATA_DIR`. |
+| SRC-08 | `DATA_DIR` and `DATABASE_URL` can diverge | Compose supplies a relative SQLite URL independently of `ODYSSEUS_DATA_DIR`. Overriding the data directory without a matching DB URL can place the database outside the intended volume. | Confirmed configuration hazard. Preserve `/app/data` defaults or validate and enforce a single consistent path. |
+| SRC-09 | First-admin HTTP bootstrap has a local race/trust boundary | `/api/auth/setup` is available while no account exists and is rate-limited; loopback-only port publication prevents remote LAN access but does not prevent another local process from reaching the host loopback endpoint. | Confirmed security consideration. Do not yet accept loopback publication alone as a complete bootstrap authorization mechanism; define operator-controlled one-time bootstrap. |
+| SRC-10 | Docker build inputs are not fully immutable | Pinned source commit does not pin `python:3.14-slim` to a digest; apt packages are not tied to a snapshot/version set; browser MCP uses `@latest`; Compose's `chromadb:latest` is mutable. | Confirmed reproducibility gap. Define immutable base, OS-package, Python, runtime-download and service-image inputs before claiming reproducible builds. |
+
+**Important MCP distinction:** `ODYSSEUS_DISABLE_MCP=1` is a built-in-MCP switch, not a global capability boundary. The application still initializes and mounts its custom MCP router. It also registers native shell and Cookbook routes in `app.py`; disabling MCP does not disable those non-MCP execution surfaces. The initial security profile must explicitly remove, disable or externally deny every such route/tool path. The upstream threat model's lack of a shell/filesystem sandbox remains applicable.
+
+**First-admin bootstrap qualification:** the rate-limited first-run route is a potential bootstrap mechanism, not an approved one. Loopback-only publication limits network reachability but any local process with access to the host loopback endpoint may race to create the first administrator. A bootstrap design must establish how the intended operator is authenticated/authorized before enabling the route, and must keep the service unavailable to LAN/peer networks until admin setup and authentication verification are complete.
+
+**Build provenance qualification:** pinning the Git commit is necessary but insufficient. A reproducibility record must also capture immutable base-image digests, controlled OS package repositories/versions, locked Python dependencies, any npm/npx packages, all service-image digests, and the final image digest/build provenance. The two historical Dockerfile snapshots must not be combined or treated as interchangeable.
+
+**Disposition:** SRC-01 is the first dependency and blocks any build. SRC-02 through SRC-10 remain open deployment-contract defects or design requirements. These findings do not change the prior UID-04 runtime result and do not authorize a new test or installation.
+
+
 **DR-02 assessment**
 
 The first source pass supports a minimal initial storage contract of **one dedicated, sensitive application-data volume mounted at `/app/data`**, with no separate `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` or `/app/.local` mounts in the initial profile. This is a candidate contract only.
@@ -1435,9 +1461,14 @@ It also identifies required deployment-source adaptations before that contract c
 - Complete the initial disabled-feature set: disable built-in MCP with `ODYSSEUS_DISABLE_MCP=1` (the pinned code can install the browser MCP via npx by default); disable Cookbook/local model downloads and serve-engine installation; omit SSH key integration and custom-font writes to the image tree.
 - Confirm whether the application can initialize auth/database and start with a pre-created data volume and a deployment-specific non-root entrypoint.
 - Decide whether the initial profile needs semantic memory/vector RAG. The pinned source shows these features use a separate ChromaDB HTTP service and degrade to unhealthy when initialization fails; if enabled, retain a separate ChromaDB service/volume and independent backup plan.
-- Reconcile the source identity discrepancy recorded between Phase 1.3 and Phase 1.4 before any build.
+- Resolve SRC-01 with the user and record the authoritative repository/commit before any build.
+- Trace custom MCP route activation separately from the built-in MCP switch; audit shell, Cookbook and other native execution routes independently.
+- Define an operator-controlled first-admin bootstrap that addresses local-process race risk; loopback-only publication alone is not sufficient.
+- Define immutable build inputs (base-image digest, OS package source/version set, Python and npm dependencies, ChromaDB image digest and final image provenance).
+- Enforce a consistent `DATA_DIR` / `DATABASE_URL` storage location and close the conditional custom-font write path.
+- Replace the stock root-started ownership-repair entrypoint and upstream `setup.py` invocation with a fail-closed non-root startup/bootstrap contract.
 
-**Next action:** Continue read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. A targeted trace now confirms the search disk cache is under `DATA_DIR/cache/`; the Dockerfile's `services/cache/search` pre-created directory appears unused by the reviewed search-cache implementation. The pinned threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. The source review also confirms ChromaDB is a separate optional HTTP service for vector memory/RAG; those features can be unavailable/degraded if omitted, and any retained ChromaDB store requires its own volume and backup. Do not create a volume or container. No runtime test or installation is authorized.
+**Next action:** Resolve SRC-01 with the user before further deployment-source work. After the authoritative repository/commit is explicitly selected, resume read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. A targeted trace now confirms the search disk cache is under `DATA_DIR/cache/`; the Dockerfile's `services/cache/search` pre-created directory appears unused by the reviewed search-cache implementation. The pinned threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. The source review also confirms ChromaDB is a separate optional HTTP service for vector memory/RAG; those features can be unavailable/degraded if omitted, and any retained ChromaDB store requires its own volume and backup. Do not create a volume or container. No runtime test or installation is authorized.
 
 ### MOUNT-01 — Private host directory bind-mount isolation
 
@@ -2178,6 +2209,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 
 | Order | Gate / test family | Required evidence | Current status |
 |---:|---|---|---|
+| 0 | Source authority and lineage (SRC-01) | User-confirmed authoritative repository/commit; explain Phase 1.3 candidate-to-final transition and re-pin source | **OPEN — BLOCKS ANY BUILD** |
 | 1 | Dedicated Podman internal network (NET-03) | Named host/router/public/DNS egress probes blocked on a single-container internal network | **COMPLETED — scoped probe pass** |
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
@@ -2452,9 +2484,9 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 2.6  
+**Canonical version:** 2.7  
 **Audit status:** ACTIVE — no installation authorized.  
-**Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
+**Current source-review pin (NOT YET USER-CONFIRMED AS DEPLOYMENT AUTHORITY):** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1`. Phase 1.3 also records an earlier installation-baseline candidate `odysseus-dev/odysseus@03d25943ee4a35f6f0535112976123a721cff5cb`; SRC-01 is open and blocks any build until the user confirms the intended source authority.  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
 
 ### 18.1 What is already established
@@ -2487,7 +2519,7 @@ NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary I
 
 The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete. The pinned source also provides a first-run `/api/auth/setup` route (only while no users exist, rate-limited), so a custom profile can omit `setup.py` and bootstrap the admin through loopback; keep the app unavailable to LAN/other peers until that bootstrap is completed and authentication verified. The extended startup trace confirms directory creation, readiness probes and search analytics write under `DATA_DIR`; built-in MCP is enabled by default and may install browser MCP through `npx` on first start, so set `ODYSSEUS_DISABLE_MCP=1`. Custom-font additions write under `static/fonts/custom` in the image tree and must be disabled or redesigned for a read-only root.
 
-**Next action:** continue read-only tracing of remaining writable paths and startup dependencies, then finalize the storage/identity contract. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
+**Next action:** resolve SRC-01 first: ask the user to confirm the authoritative upstream repository/commit and explain the Phase 1.3 transition. No build or runtime test may use either candidate until this is recorded. Then continue read-only tracing and close SRC-02–SRC-10. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
 
 ### 18.3 Explicitly not authorized
 
@@ -2533,6 +2565,7 @@ The first assistant action in a new conversation should be:
 | 2.3 | 2026-11-08 | Extended DR-02 source tracing: inspected the active search-cache implementation and pinned threat model. Confirmed search/content caches are under `DATA_DIR/cache/`, while Dockerfile's `services/cache/search` pre-created path appears unused by the reviewed implementation; confirmed the threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. Refined remaining source-trace questions and handoff. No runtime test or resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 | 2.4 | 2026-11-08 | Extended DR-02 source review for ChromaDB. Inspected the HTTP client, memory vector store and RAG vector initialization. Confirmed ChromaDB is a separate optional service for vector memory/RAG; vector subsystem initialization catches failures and marks itself unhealthy, so a minimal profile may omit ChromaDB only by explicitly accepting degraded/unavailable vector features. If retained, ChromaDB requires its own service, volume and backup policy. Updated open review question and handoff. No runtime test or resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 | 2.5 | 2026-11-08 | Extended DR-02 startup review: inspected `routes/auth_routes.py` and `core/auth.py`. Confirmed a first-run `/api/auth/setup` route creates the initial admin only when no account exists and is rate-limited; a missing auth file loads as empty config. `core/database.py` initializes schema on import. Recorded a possible non-root bootstrap path that omits upstream `setup.py` and uses loopback-only first-admin setup, with LAN/peer exposure prohibited until authentication is verified. This is source evidence only; no runtime confirmation. No resources changed; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
+| 2.7 | 2026-11-08 | Expanded DR-02 into a source-integrity/deployment-contract discrepancy review. Reconciled the wording of the Phase 1.3 historical repository candidate versus its final Authority Matrix and Phase 1.4 source pin; recorded SRC-01 as unresolved and build-blocking, including distinct Dockerfile blob SHAs. Added SRC-02–SRC-10 for the unused Dockerfile cache path, stale MCP docs/default npx behavior, setup.py failure masked by entrypoint, incomplete MCP disable scope, root-dependent ownership-repair entrypoint, custom-font image-tree writes, DATA_DIR/DATABASE_URL divergence, first-admin local race, and mutable build inputs. Corrected next gate to source-authority resolution; no runtime test or host/resource change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 | 2.6 | 2026-11-08 | Extended DR-02 startup/write-path tracing: inspected config and app initializers, readiness probe, search analytics, built-in MCP and custom-font route. Confirmed data-dir writes for directory creation, readiness probes and search logs; found built-in MCP is enabled by default and browser MCP can run npx install on first start, so initial profile must set `ODYSSEUS_DISABLE_MCP=1`; custom-font additions write to `static/fonts/custom` outside `DATA_DIR` and must be disabled or redesigned for read-only root. Updated source table and disabled-feature gate. No runtime test/resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 
 ---
