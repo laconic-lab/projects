@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.22  
+> **Version:** 3.23  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2810,9 +2810,9 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Current storage conclusion:** VOL-04 remains PARTIAL/INCONCLUSIVE: named-volume creation and unshare ownership inspection passed, but container creation failed when --userns=private was supplied without a mapping; no write test ran. MAP-F now proves an explicit mapping route, but it did not mount a volume. Named-volume container-visible ownership and UID/GID 1000 write/readback remain untested.
 
-**Runtime-test accounting:** The five-test checkpoint was completed: NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F are preserved in the unchanged v3.20 archive snapshot at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md. The archive was fetched back and compared byte-for-byte with the v3.20 canonical content. Current canonical version is v3.21; runtime-test counter is reset to 0/5 since the v3.20 checkpoint.
+**Runtime-test accounting:** The five-test checkpoint was completed: NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F are preserved in the unchanged v3.20 archive snapshot at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md. The archive was fetched back and compared byte-for-byte with the v3.20 canonical content. Current canonical version is v3.23; runtime-test counter is reset to 0/5 since the v3.20 checkpoint.
 
-**Next dependency:** Propose a separate disposable named-volume compatibility experiment using the validated explicit map, the exact cached Python image, and a new unique volume/container name. The test should inspect ownership inside the container and through podman unshare, perform a bounded write/readback as UID/GID 1000, and verify exact cleanup. This differs from VOL-04 because the previously failed create invocation omitted the ID maps and never reached the write test. Present the full preflight, exact command, failure handling and cleanup boundary for separate explicit approval before creating anything. Do not pull the Odysseus image or mutable latest. Installation remains unauthorized.
+**Next dependency — VOL-05-MAP-G:** prepare a disposable named-volume compatibility experiment using the validated explicit map, the exact cached Python image, and new unique volume/container names. The test must record container-visible directory/file ownership, attempt a bounded write/readback as UID/GID 1000, inspect the volume directory and test file through `podman unshare`, and verify exact cleanup of both resources. This differs from VOL-04 because the earlier container create omitted ID maps and never reached the write test. Run a read-only preflight first; after its output is reviewed, obtain separate explicit approval for volume/container creation. Do not pull the Odysseus image or mutable latest. Installation remains unauthorized.
 
 
 ### 18.1 What is already established
@@ -2837,7 +2837,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Status:** DESIGN CHECKLIST RECORDED — NOT APPROVED FOR IMPLEMENTATION.  
 **Source:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`.  
-**Runtime count:** 3/5 since the v1.2 archive checkpoint. UID-04 remains a scoped FAIL for the tested `--userns=nomap` bind-mount ownership transition. This checklist is not a test.
+**Runtime count at checklist creation:** 3/5 since the v1.2 archive checkpoint. UID-04 remains a scoped FAIL for the tested `--userns=nomap` bind-mount ownership transition. This is historical checklist metadata, not the current counter; the current counter is 0/5 since the v3.20 checkpoint. This checklist is not a test.
 
 Status meanings: **ESTABLISHED** = supported by current evidence; **PROPOSED** = intended design, not implemented; **UNRESOLVED** = decision/proof still missing.
 
@@ -4024,6 +4024,9 @@ The first assistant action in a new conversation should be:
 
 
 | 3.22 | 2026-11-08 | Added §18.5.7 as a transcript supplement preserving the complete user-executed shell wrappers for VOL-05-MAP-F Stages B, B2, C and D, including headings, status capture and completion markers. The runtime result, cleanup, v3.20 archive snapshot and next gate are unchanged. Documentation-only correction; no new test or resource/host operation. |
+
+
+| 3.23 | 2026-11-08 | Corrected the §18 handoff's stale canonical-version reference (v3.21 → v3.23) and clarified the current 0/5 runtime-test counter since the unchanged v3.20 checkpoint. Marked the DR-02 checklist's 3/5 count explicitly historical. Formalized VOL-05-MAP-G as the next dependency with a read-only preflight followed by separate explicit approval before any volume/container creation. No runtime test or resource/host change. |
 
 
 ---
