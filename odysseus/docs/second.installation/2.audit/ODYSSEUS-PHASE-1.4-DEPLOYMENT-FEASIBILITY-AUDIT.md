@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.19  
+> **Version:** 3.20  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2291,6 +2291,236 @@ NET-05 is complete. It does not establish general host/container connectivity or
 
 ---
 
+
+### VOL-05-MAP-F — explicit UID/GID map parser and runtime identity probe
+
+- **Date:** 2026-11-08
+- **Status:** PASS — explicit UID/GID mappings were accepted, persisted in container configuration, and applied at runtime.
+- **Environment:** SteamOS host; rootless Podman 6.0.2; linux/amd64; cached Python image.
+- **Prerequisites:** VOL-05-MAP-A through MAP-E; MAP-F Stage A read-only preflight.
+- **Question:** Does the installed Podman accept the five proposed UID and GID map segments and create a private user namespace in which a process running as container UID/GID 1000:1000 sees the intended maps?
+- **Acceptance criterion:** Container creation succeeds without --userns; inspection retains the intended mapping; runtime process reports UID/GID 1000:1000 and matching /proc/self/uid_map and gid_map; process exits successfully; exact disposable container is removed and independently verified absent.
+- **Why this test is new:** MAP-D established arithmetic only and MAP-E established CLI option presence only. MAP-F directly tests parser/engine acceptance and actual runtime namespace contents on the installed Podman build. It does not test volume ownership or writes.
+- **Approval:** User explicitly approved the exact staged MAP-F sequence, conditional on review of Stage A. Stage A passed and was reviewed before Stage B.
+- **Risk and side-effect boundary:** One disposable container created from an already cached image with --pull=never, --network=none, read-only root, all capabilities dropped, no-new-privileges and user 1000:1000. No mounts, volumes, published ports, package/image downloads or host configuration changes. Exact container removed after runtime verification.
+- **Resources:** Temporary container name odysseus-vol05-mapf-20261108; ID cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4. No volume or network resource created.
+
+#### Stage A — read-only preflight
+
+Stage A is recorded in §18.5.5. It confirmed Podman 6.0.2, exact cached image ID sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 (linux/amd64), and an unused temporary name. It created no resources and did not pull an image. Stage A was not counted as a runtime test.
+
+#### Stage B — create explicit-map probe
+
+**Exact command executed:**
+~~~bash
+IMAGE_ID="sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5"
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+podman create \
+  --pull=never \
+  --name "$CONTAINER_NAME" \
+  --uidmap 0:1:1 \
+  --uidmap 1:2:998 \
+  --uidmap 999:1001:1 \
+  --uidmap 1000:1000:1 \
+  --uidmap 1001:1002:64535 \
+  --gidmap 0:1:1 \
+  --gidmap 1:2:998 \
+  --gidmap 999:1001:1 \
+  --gidmap 1000:1000:1 \
+  --gidmap 1001:1002:64535 \
+  --network=none \
+  --read-only \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  --user=1000:1000 \
+  "$IMAGE_ID" \
+  python -c '
+import os
+
+print("===== PROCESS IDENTITY =====")
+print("UID:", os.getuid())
+print("GID:", os.getgid())
+
+print()
+print("===== UID MAP =====")
+print(open("/proc/self/uid_map").read())
+
+print("===== GID MAP =====")
+print(open("/proc/self/gid_map").read())
+'
+~~~
+
+**Actual output:**
+~~~text
+===== VOL-05-MAP-F: CREATE EXPLICIT-MAP PROBE =====
+cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4
+
+===== CONTAINER CREATED =====
+~~~
+
+Podman returned the full container ID. This proves create-time acceptance and object creation, not runtime behavior.
+
+#### Stage B2 — read-only post-create inspection
+
+**Exact command executed:**
+~~~bash
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+podman container exists "$CONTAINER_NAME" \
+  && echo "PASS: container exists" \
+  || echo "FAIL: container missing"
+
+podman inspect "$CONTAINER_NAME"
+
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+~~~
+
+**Observed output (relevant fields):**
+~~~text
+PASS: container exists
+Id: cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4
+State.Status: created
+State.Running: false
+Image: b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5
+Config.User: 1000:1000
+NetworkMode: none
+ReadonlyRootfs: true
+SecurityOpt: no-new-privileges
+CapAdd: []
+CapDrop: all listed capabilities
+Mounts: []
+UsernsMode: private
+IDMappings.UidMap:
+  0:1:999
+  999:1001:1
+  1000:1000:1
+  1001:1002:64535
+IDMappings.GidMap:
+  0:1:999
+  999:1001:1
+  1000:1000:1
+  1001:1002:64535
+ID=cdff61acbc90 NAME=odysseus-vol05-mapf-20261108 STATUS=Created
+~~~
+
+Podman normalized the adjacent submitted segments 0:1:1 and 1:2:998 into 0:1:999 in its inspection representation. This is arithmetically equivalent. No container was running at the time of inspection.
+
+#### Stage C — runtime namespace probe
+
+**Exact command executed:**
+~~~bash
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+
+set +e
+podman start --attach "$CONTAINER_NAME"
+PROBE_RC=$?
+set -e
+
+echo "PROBE_EXIT_CODE=$PROBE_RC"
+
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+~~~
+
+**Actual output:**
+~~~text
+===== 1. CONFIRM CREATED STATE =====
+ID=cdff61acbc90 NAME=odysseus-vol05-mapf-20261108 STATUS=Created
+
+===== PROCESS IDENTITY =====
+UID: 1000
+GID: 1000
+
+===== UID MAP =====
+         0          1        999
+       999       1001          1
+      1000       1000          1
+      1001       1002      64535
+
+===== GID MAP =====
+         0          1        999
+       999       1001          1
+      1000       1000          1
+      1001       1002      64535
+
+PROBE_EXIT_CODE=0
+ID=cdff61acbc90 NAME=odysseus-vol05-mapf-20261108 STATUS=Exited (0) Less than a second ago
+~~~
+
+**Runtime interpretation:**
+
+1. Effective process identity was UID/GID 1000:1000.
+2. The UID and GID maps matched each other and the intended candidate after Podman's normalization of the first two adjacent ranges.
+3. Container ID 0 maps to parent namespace ID 1; under the recorded rootless parent map this resolves to host ID 100000, not host UID/GID 1000.
+4. Container ID 1000 maps to parent namespace ID 1000; under the recorded parent map this resolves to host UID/GID 100999, consistent with the VOL-04 podman-unshare ownership arithmetic.
+5. The process exited with code 0 and the container stopped normally.
+6. The actual runtime map contains four rows because the first two submitted adjacent ranges were merged. This is semantically equivalent to the five submitted ranges.
+
+**Evidence limits:** This establishes explicit-map parser acceptance, successful private namespace creation and the runtime process identity/maps for this exact Podman 6.0.2 invocation. It does not establish named-volume ownership as seen inside the container, volume write/readback, application image numeric ownership, supplementary groups, IDs above 65535, or suitability of the map for the Odysseus image. No volume or bind mount was attached.
+
+#### Stage D — exact cleanup and independent absence verification
+
+**Exact command executed:**
+~~~bash
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+EXPECTED_ID="cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4"
+
+ACTUAL_ID="$(podman inspect --format '{{.Id}}' "$CONTAINER_NAME")"
+echo "EXPECTED_ID=$EXPECTED_ID"
+echo "ACTUAL_ID=$ACTUAL_ID"
+
+if [ "$ACTUAL_ID" != "$EXPECTED_ID" ]; then
+  echo "STOP: container ID mismatch; nothing removed"
+  exit 1
+fi
+
+podman rm "$CONTAINER_NAME"
+
+if podman container exists "$CONTAINER_NAME"; then
+  echo "FAIL: container still exists"
+  exit 1
+else
+  echo "PASS: container name absent"
+fi
+
+if podman ps -a --no-trunc --format '{{.ID}}' | grep -Fxq "$EXPECTED_ID"; then
+  echo "FAIL: container ID still exists"
+  exit 1
+else
+  echo "PASS: container ID absent"
+fi
+~~~
+
+**Actual output:**
+~~~text
+EXPECTED_ID=cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4
+ACTUAL_ID=cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4
+
+===== 2. REMOVE EXACT CONTAINER =====
+odysseus-vol05-mapf-20261108
+
+===== 3. VERIFY CONTAINER NAME ABSENT =====
+PASS: container name absent
+
+===== 4. VERIFY CONTAINER ID ABSENT =====
+PASS: container ID absent
+
+===== STAGE D COMPLETE =====
+~~~
+
+**Cleanup result:** PASS. Exact container ID was checked before removal; removal succeeded; independent name and full-ID absence checks passed. The cached image was retained. No volume, network, host setting, package, service or protected resource was changed.
+
+**Overall result:** VOL-05-MAP-F COMPLETE — PASS for explicit UID/GID map acceptance and runtime identity/map behavior. The proposed map is now runtime-validated for this probe configuration. Named-volume ownership and write compatibility remain NOT TESTED.
+
+**Five-test checkpoint:** This is the fifth completed runtime test since the v1.2 archive checkpoint (NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F). The count advances from 4/5 to 5/5. A consistency review and unchanged v3.20 archive snapshot are required before another runtime test.
+
+**Next dependency:** Do not jump to the Odysseus image or pull mutable latest. The next useful experiment is a separately approved, disposable named-volume compatibility probe using the now runtime-validated explicit map, exact cached Python image, a new unique volume/container name, no network, read-only root, dropped capabilities, no-new-privileges and process UID/GID 1000:1000. It must verify container-visible ownership and a write/readback, inspect host ownership through podman unshare, and clean up both exact resources. This is a new behavior: VOL-04 never created a container and never tested application-identity writes. Obtain separate explicit approval before creating any volume or container.
+
 ## 12. Remaining audit gates — ordered dependency plan
 
 The next test must be the earliest safe, useful, unclosed dependency. Do not skip ahead to application installation.
@@ -2302,7 +2532,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
-| 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the source-grounded default application UID/GID 1000, ownership repair and entrypoint | **UID-04 COMPLETE — FAIL for the tested ownership-repair/write sequence; design review required before dependent mount testing** |
+| 5 | Exact candidate UID/application identity and explicit namespace map | Validate the source-grounded application UID/GID 1000 and explicit rootless UID/GID map behavior | **UID-04 remains a scoped FAIL for the tested `nomap` ownership-repair/write sequence; VOL-05-MAP-F PASS confirms explicit-map runtime identity/maps. Named-volume compatibility remains open.** |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
@@ -2572,10 +2802,18 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.19  
+**Canonical version:** 3.20 (five-test checkpoint due; archive snapshot to be created from this exact reviewed content).  
 **Audit status:** ACTIVE — no installation authorized.  
-**Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
-**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A through MAP-E are complete; MAP-E confirms the installed Podman 6.0.2 build and presence of `--uidmap`/`--gidmap` options, but not repeated-map parser acceptance. **VOL-05-MAP-F Stage A preflight has now passed:** Podman 6.0.2; exact cached Python image ID `b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5` exists; temporary name `odysseus-vol05-mapf-20261108` is available; image reports linux/amd64. Stage A created no resources and pulled nothing. The user's explicit approval of the exact MAP-F sequence was conditional on reviewing Stage A before Stage B; that review is complete. Stage B is now the next action under the existing approval. Runtime-test count remains 4/5 since the v1.2 checkpoint; MAP-F preflight is a read-only gate, not a runtime test.
+**Current Phase 1.4 source-review pin:** odysseus-dev/odysseus, branch dev, commit 1c1509094963f9eb9445928d57f2856296057cf4. SRC-01 is resolved for Phase 1.4; SRC-02–SRC-10 are recorded against this pin. DR-02 architecture and application-level enforcement remain open; no build is authorized.
+
+**Latest runtime result — VOL-05-MAP-F PASS:** On Podman 6.0.2, the exact five submitted UID and five GID map segments were accepted without --userns. Podman created the private namespace and inspection persisted the expected mappings, normalizing the first two adjacent ranges into 0:1:999. Runtime process identity was UID/GID 1000:1000; both proc maps matched; exit code was 0. The exact disposable container was removed and name/full-ID absence independently verified. This establishes parser/engine acceptance and runtime mapping for this exact probe only. It does not prove volume ownership/write access or application-image numeric ownership. See §11 and §18.5.6.
+
+**Current storage conclusion:** VOL-04 remains PARTIAL/INCONCLUSIVE: named-volume creation and unshare ownership inspection passed, but container creation failed when --userns=private was supplied without a mapping; no write test ran. MAP-F now proves an explicit mapping route, but it did not mount a volume. Named-volume container-visible ownership and UID/GID 1000 write/readback remain untested.
+
+**Runtime-test accounting:** 5/5 completed since the v1.2 checkpoint. The five tests are NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F. Perform the consistency review and preserve an unchanged v3.20 archive snapshot before any further runtime test. After the snapshot, increment the canonical version and record the archive path.
+
+**Next dependency:** Propose a separate disposable named-volume compatibility experiment using the validated explicit map, the exact cached Python image, and a new unique volume/container name. The test should inspect ownership inside the container and through podman unshare, perform a bounded write/readback as UID/GID 1000, and verify exact cleanup. This differs from VOL-04 because the previously failed create invocation omitted the ID maps and never reached the write test. Present the full preflight, exact command, failure handling and cleanup boundary for separate explicit approval before creating anything. Do not pull the Odysseus image or mutable latest. Installation remains unauthorized.
+
 
 ### 18.1 What is already established
 
@@ -3525,6 +3763,37 @@ ID=b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 OS=linux ARC
 **Result:** VOL-05-MAP-F STAGE A COMPLETE — PREFLIGHT PASSED. Runtime-test count remains **4/5** since the v1.2 archive checkpoint. No five-test archive snapshot is triggered by this read-only preflight.
 
 **Next action — Stage B:** The user's explicit approval of the exact proposed MAP-F sequence was conditional only on reviewing Stage A first. That review is now complete and all checks passed. Run the previously approved Stage B `podman create` command exactly as proposed. Do not start/attach the container in the same step; first inspect the create result. If creation fails, do not revise or retry the map; preserve the exact error and proceed to exact cleanup and independent absence verification. Application-image numeric ownership remains a separate unresolved gate.
+
+### 18.5.6 VOL-05-MAP-F — explicit UID/GID mapping runtime validation (2026-11-08)
+
+**Status:** PASS — exact explicit mapping accepted and verified at runtime; no volume attached.
+
+**Stage B — creation:** Podman create returned container ID cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4 for odysseus-vol05-mapf-20261108, using the exact cached Python image ID, all five UID/GID map entries, no --userns, no network, read-only root, all capabilities dropped, no-new-privileges and user 1000:1000.
+
+**Stage B2 — inspection:** Container existed and remained Created / not running. Inspection confirmed exact image ID, Config.User=1000:1000, NetworkMode=none, ReadonlyRootfs=true, SecurityOpt=no-new-privileges, no mounts, and no added capabilities. UID and GID mappings were both normalized to:
+~~~text
+0:1:999
+999:1001:1
+1000:1000:1
+1001:1002:64535
+~~~
+This is equivalent to the five submitted segments because the adjacent first two segments were merged.
+
+**Stage C — runtime:** podman start --attach succeeded. Process reported UID 1000 and GID 1000. Both /proc/self/uid_map and /proc/self/gid_map returned:
+~~~text
+         0          1        999
+       999       1001          1
+      1000       1000          1
+      1001       1002      64535
+~~~
+PROBE_EXIT_CODE=0; final container state was Exited (0). Under the recorded rootless parent map, container ID 0 resolves to host 100000 and container ID 1000 resolves to host 100999. This matches the intended identity arithmetic.
+
+**Stage D — cleanup:** The exact full container ID was compared before removal. podman rm succeeded. Both podman container exists and a full-ID listing independently confirmed absence. Cached image retained; no volume or network created.
+
+**Evidence boundary:** This proves parser/engine acceptance, private namespace creation, runtime UID/GID and map contents for this exact invocation. It does not prove volume ownership or write/readback, application-image UID requirements, supplementary groups or IDs above 65535. The probe used no mounts. Exact commands and stage outputs are preserved in §11.
+
+**Result:** VOL-05-MAP-F COMPLETE — PASS. Runtime-test count is 5/5 since v1.2. The unchanged v3.20 checkpoint snapshot is due before another runtime test.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3594,6 +3863,9 @@ The first assistant action in a new conversation should be:
 | 3.17 | 2026-11-08 | Recorded VOL-05-MAP-D design-only explicit UID/GID mapping arithmetic. Candidate full map uses parent namespace IDs 1–65536, maps container root to host 100000, and maps application 1000:1000 to host 100999:100999, matching the VOL-04 unshare ownership arithmetic. Candidate is not release-verified or runtime-approved; local parser verification is next. No runtime resources or host settings changed; count remains 4/5; no archive snapshot triggered. |
 | 3.18 | 2026-11-08 | Recorded VOL-05-MAP-E read-only local verification: identified the exact installed Podman 6.0.2 build and confirmed the CLI exposes `--uidmap strings`, `--gidmap strings` and `--userns string`; this does not prove repeated-map parser/engine acceptance. The pinned Compose application image `ghcr.io/odysseus-dev/odysseus:latest` is not cached, so no application-image numeric ownership inspection was possible and no pull was attempted. Advanced to VOL-05-MAP-F exact disposable runtime-probe proposal, pending separate approval. No resources or host settings changed; runtime-test count remains 4/5; no archive snapshot triggered. |
 | 3.19 | 2026-11-08 | Recorded VOL-05-MAP-F Stage A read-only preflight exactly as supplied: Podman 6.0.2, exact cached Python image ID present (linux/amd64), and unique temporary container name available. All four checks passed; no container or other resource was created and no image was pulled. Runtime-test count remains 4/5 because Stage A is a read-only preflight. Recorded that the user's conditional approval is now cleared by review of the passing preflight; Stage B create may proceed under the exact previously approved command, with Stage C held until the create result is reviewed. No installation or host configuration change. |
+
+| 3.20 | 2026-11-08 | Recorded VOL-05-MAP-F Stages B, B2, C and D: Podman 6.0.2 accepted the five explicit UID/GID map segments without --userns; inspection confirmed the restricted created configuration and normalized maps; runtime process reported UID/GID 1000:1000 and matching /proc maps with exit code 0; exact container removal and independent name/full-ID absence checks passed. Marked MAP-F PASS for parser/engine acceptance and runtime namespace identity, while keeping volume ownership/write compatibility and application-image numeric ownership unresolved. Runtime-test count advances to 5/5 since v1.2; consistency review and unchanged v3.20 archive snapshot are due before another runtime test. Next proposed gate is a separately approved disposable named-volume ownership/write probe using the validated map. No image pull, volume, network, package, service or host configuration change. |
+
 
 ---
 
