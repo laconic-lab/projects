@@ -3947,6 +3947,31 @@ echo "===== STAGE D COMPLETE ====="
 
 **Transcript provenance:** These are the complete commands the user supplied and ran in this conversation. Stage B2 inspection output is intentionally summarized to relevant fields in §11 because the raw inspect JSON is lengthy; the complete output remains in the conversation transcript. No command was run as part of this documentation supplement.
 
+### 18.5.8 VOL-05-MAP-G — Stage A read-only preflight (2026-11-08)
+
+**Status:** Stage A PASS. This is a read-only preflight and does not increment the runtime-test counter.
+
+**Exact executed command:** The user supplied and executed the Stage A wrapper for image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`, container name `odysseus-vol05-mapg-20261108` and volume name `odysseus-vol05-mapg-20261108`. The wrapper checked Podman version, exact image presence/metadata, name availability and current rootless UID/GID maps.
+
+**Observed output:**
+- Podman version: `6.0.2`.
+- Exact image exists locally; inspect returned full ID `b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`, OS `linux`, architecture `amd64`.
+- Proposed container name was available.
+- Proposed volume name was available.
+- Rootless UID map:
+~~~text
+         0       1000          1
+         1     100000      65536
+~~~
+- Rootless GID map was identical.
+- Completion banner: `STAGE A COMPLETE — NO RESOURCES CREATED`.
+
+**Interpretation:** All six preflight checks passed. The Podman version, cached image identity/platform, unique names and parent UID/GID mappings match the assumptions required for the MAP-F-validated explicit-map probe. This does not establish named-volume ownership or application-identity write/readback; those remain the purpose of the next runtime gate.
+
+**Safety/evidence boundary:** No container, volume, network or directory was created; no image was pulled; no package, service or host configuration changed. The exact preflight is read-only. Runtime-test count remains **0/5 since the unchanged v3.20 archive checkpoint**.
+
+**Next action — Stage B (not yet authorized):** After separate explicit user approval, create only the disposable named volume and stopped probe container using the exact cached image, the five MAP-F-validated UID/GID map segments, `--network=none`, read-only container root, all capabilities dropped, no-new-privileges, UID/GID 1000:1000, and the new volume mounted read/write at `/probe`. Do not start the container in Stage B. Inspect both resources before any runtime execution. If either creation command fails, stop and preserve the exact state/error; do not improvise retries or cleanup without first checking resource identity.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
