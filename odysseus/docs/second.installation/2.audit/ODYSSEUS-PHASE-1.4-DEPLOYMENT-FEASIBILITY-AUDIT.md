@@ -1498,7 +1498,7 @@ It also identifies required deployment-source adaptations before that contract c
 - Complete the initial disabled-feature set: disable built-in MCP with `ODYSSEUS_DISABLE_MCP=1` (the pinned code can install the browser MCP via npx by default); disable Cookbook/local model downloads and serve-engine installation; omit SSH key integration and custom-font writes to the image tree.
 - Confirm whether the application can initialize auth/database and start with a pre-created data volume and a deployment-specific non-root entrypoint.
 - Decide whether the initial profile needs semantic memory/vector RAG. The pinned source shows these features use a separate ChromaDB HTTP service and degrade to unhealthy when initialization fails; if enabled, retain a separate ChromaDB service/volume and independent backup plan.
-- Resolve SRC-01 with the user and record the authoritative repository/commit before any build.
+- Revalidate SRC-02–SRC-10 and the DR-02 storage/startup conclusions against the user-confirmed exact source pin `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`; no build until these gates and separate authorization are resolved.
 - Trace custom MCP route activation separately from the built-in MCP switch; audit shell, Cookbook and other native execution routes independently.
 - Define an operator-controlled first-admin bootstrap that addresses local-process race risk; loopback-only publication alone is not sufficient.
 - Define immutable build inputs (base-image digest, OS package source/version set, Python and npm dependencies, ChromaDB image digest and final image provenance).
