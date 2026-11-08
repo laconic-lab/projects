@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.10  
+> **Version:** 3.11  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2980,7 +2980,9 @@ echo "===== VOL-04-PREFLIGHT COMPLETE ====="
 
 **Result:** a suitable candidate image is already cached; the exact image configuration has not yet been reviewed. VOL-04 experiment design is therefore not yet ready for approval.
 
-**Next gate — VOL-04-PREFLIGHT-2 (READ-ONLY):** inspect the local configuration of the exact Python image ID sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 (and only if needed, Debian ID sha256:8da84df25d28176be84164040cd45e128c6b4c6a80b7d7cbe17fe2b9f198efc2). Establish architecture, configured user, entrypoint, command, OS metadata and local image identity. Do not run the image. If inspection confirms suitability, prepare a precise disposable-volume experiment for separate explicit approval. No resource-creation command is authorized by this preflight.
+**VOL-04-PREFLIGHT-2 completed (READ-ONLY):** the exact local Python image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5` exists (exit code 0) and reports `OS=linux`, `ARCH=amd64`, empty configured user, no entrypoint, and default command `[python3]`. Its repository digests include `sha256:d44b1254cb92329418d164b22b20d86bbd3869d48e80e09e476531a409a728bb` and `sha256:c480059ce7dd8fc98f30e2a56cc3b54e559c3b3b66cc498a92f641237a47f288`. The image was inspected by immutable local ID; it was not run. The empty configured user means any probe must explicitly set the intended numeric identity (candidate `1000:1000`) rather than rely on image defaults. The `amd64` image architecture is recorded; confirm compatibility with the host's execution architecture before running. **Result:** candidate configuration is suitable for designing a controlled Python probe, but this does not establish volume ownership semantics or write access.
+
+**Next gate — VOL-04 experiment proposal (NOT AUTHORIZED):** prepare an exact, uniquely named disposable named-volume test using only this cached immutable image ID, with image pulling disabled and an explicit non-root identity. The proposal must define creation, inspection, write/stat verification, failure handling and exact cleanup/absence checks. Do not create the volume or container until the user explicitly approves that exact sequence.
 
 **Test accounting:** VOL-04-PREFLIGHT is read-only inventory, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
@@ -3045,6 +3047,7 @@ The first assistant action in a new conversation should be:
 | 3.8 | 2026-11-08 | Recorded VOL-02 read-only capability review: installed Podman 6.0.2 exposes named-volume `--uid`/`--gid`, volume inspection, rootless `podman unshare`, and container user-namespace/ID-map controls. Confirmed the unshare UID/GID maps match VOL-01. Marked native volume ownership as a promising but unproven mechanism because help output does not resolve numeric-ID namespace semantics or prove non-root write access. Advanced to VOL-03 local documentation review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.9 | 2026-11-08 | Recorded VOL-03 and corrected VOL-03-R local documentation review. SteamOS man rejected the unsupported -P option; corrected man -c requests found no entries for the three Podman manuals, and the local manual-file search found no matching pages. Marked the documentation route inconclusive without inferring a Podman feature failure or UID/GID namespace semantics. Defined VOL-04 as a disposable named-volume experiment proposal only, requiring separate explicit approval and a cached suitable probe image. Updated the continuation handoff; no volume/container/runtime test or host/resource change. Completed runtime-test count remains 3/5 since v1.2; no archive snapshot triggered. |
 | 3.10 | 2026-11-08 | Recorded VOL-04-PREFLIGHT cached-image inventory. Python 3 Alpine and Debian 12 slim are already cached and unreferenced by containers according to the image listing; Python Alpine is the provisional probe candidate by exact local image ID and digest, pending read-only image-config inspection. Recorded a volume-accounting discrepancy between six named volumes and higher per-container LOCAL VOLUMES counts; all existing resources remain protected. No image/container/volume/network operation or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
+| 3.11 | 2026-11-08 | Recorded VOL-04-PREFLIGHT-2: exact cached Python image exists and reports linux/amd64, empty configured user, no entrypoint, default command python3, and two repository digests. Image was inspected but not run. Prepared next gate as a proposed disposable named-volume experiment requiring exact command review and separate explicit approval. No runtime test, container, volume, image execution, pull or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
