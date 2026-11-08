@@ -1287,6 +1287,56 @@ The following entries consolidate actual results recorded in the audit journey a
 - **Approval:** NOT YET GRANTED. No test container or scratch directory may be created until the user explicitly approves the exact test and command.
 
 
+### UID-04 — Rootless `nomap` application identity and ownership-repair probe
+
+- **Date:** 2026-11-08
+- **Status:** **FAIL — the tested `nomap` configuration does not support the candidate ownership-repair/write sequence on this host-owned scratch bind mount.** Experiment execution and cleanup completed.
+- **Environment:** SteamOS host; rootless Podman 6.0.2; cached `docker.io/library/python:3-alpine`; `--userns=nomap`; `--network=none`.
+- **Question:** Can a root-started process change a host-owned disposable bind mount to numeric container UID/GID 1000:1000, then permit a process with that identity to write?
+- **Prior evidence:** UID-03 measured container root mapping only. MOUNT-01 found a host-owned mode-700 mount appeared as 65534:65534 and was inaccessible to container root, without attempting ownership repair or testing the application identity.
+- **Why new:** UID-04 exercised both the ownership transition and the numeric application identity in one disposable probe; it is not a repeat of UID-03 or MOUNT-01.
+
+**Exact resources and execution boundary**
+
+- Created only `$HOME/Odysseus-uid04-test` (mode 0700) and container `odysseus-uid04-app-identity-test`.
+- Used the already cached image with `--pull=never`; no image pull/build occurred.
+- Container settings: `--userns=nomap`, `--network=none`, `--read-only`, `--cap-drop=all`, `--cap-add=CHOWN`, `--security-opt=no-new-privileges`, 256 MiB memory, 64 PID limit, restart disabled, and one writable bind mount at `/probe`.
+- No production path, other host mount, port, credential, socket, host configuration, service or protected project was accessed or changed.
+
+**Executed probe and exact results**
+
+| Probe | Output | Assessment |
+|---|---|---|
+| Container creation | Container ID `c559518a6b7e406023a0952978cef6efe5b1009709b6f2f9436ebe28a1e92cc0` | PASS |
+| Root identity | effective UID 0, GID 0 | Confirmed |
+| Root `uid_map` / `gid_map` | `0 1 65536` for each | Recorded; do not infer a host UID directly from this one namespace-relative map |
+| Initial `/probe` ownership | UID 65534, GID 65534, mode 0700 | Confirmed |
+| Ownership repair | `CHOWN_RESULT=failure`; errno 1, `Operation not permitted`; resulting owner remained 65534:65534 | **FAIL** |
+| Application identity | effective UID 1000, GID 1000; same displayed maps | Confirmed |
+| Application write | `WRITE_RESULT=failure`; errno 13, `Permission denied` | **FAIL** |
+| Host-visible file | `uid1000-write-test` absent; scratch directory remained host-owned 1000:1000, mode 0700 | Consistent with write failure |
+
+The ownership operation actually executed was Python `os.chown("/probe", 1000, 1000)` on the freshly created, empty mount directory. It was not a recursive `chown -R`. The executed container had only `CHOWN` added; `DAC_OVERRIDE` was not added. These differences from the broader proposed source-behavior probe are recorded rather than silently normalized. Because the target was an empty directory, the direct directory ownership transition tests the relevant mount-root ownership change, but it does not test recursive traversal or file-by-file repair.
+
+**Interpretation and limits**
+
+1. In this exact invocation, container root's `CHOWN` capability did not permit changing the mounted directory to container UID/GID 1000:1000. The kernel returned EPERM.
+2. The directory therefore remained inaccessible to the application process under its observed mode/ownership; the UID/GID 1000:1000 write returned EACCES.
+3. This is a **scoped incompatibility finding** for the tested rootless Podman `nomap` mapping, bind mount and capability set. It does not establish that every `nomap` mount or every ownership strategy fails.
+4. The displayed `uid_map` / `gid_map` are namespace-relative. Do not state that container UID 1000 maps to host UID 1001 based solely on the displayed line; the nested rootless mapping must be considered. The observed mount owner 65534:65534 is the direct evidence relevant to this probe.
+5. The upstream entrypoint suppresses some ownership-repair errors. A successful startup could therefore conceal a non-writable persistent mount. UID-04 demonstrates why startup alone is not an adequate acceptance test.
+6. This probe did not execute the upstream entrypoint, recurse through mount contents, test the other four production mount paths, or authorize a production mount design.
+
+**Cleanup**
+
+- `podman rm -f odysseus-uid04-app-identity-test` removed the exact temporary container.
+- Podman warned that SIGTERM did not stop the sleep process within 10 seconds and escalated to SIGKILL; removal then succeeded.
+- `rm -rf -- "$HOME/Odysseus-uid04-test"` removed the exact disposable scratch directory.
+- Independent verification: `PASS: container absent`; `PASS: scratch path absent`.
+- No temporary container or scratch directory remains.
+
+**Conclusion:** UID-04 is complete and **FAILS the tested ownership-repair/application-write sequence**. The current `nomap` + root-owned entrypoint repair assumption is not validated for the candidate default UID/GID 1000:1000. Do not proceed to production mount testing or installation on the assumption that this boundary works. A design review must first identify a different, explicitly bounded ownership/mount strategy and its security trade-offs. Any changed strategy requires a newly scoped test and separate approval.
+
 ### MOUNT-01 — Private host directory bind-mount isolation
 
 - **Status:** PASS for the tested path/configuration
@@ -2030,7 +2080,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
-| 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the source-grounded default application UID/GID 1000, ownership repair and entrypoint | **SOURCE REVIEW COMPLETE; UID-04 runtime test proposed, approval pending** |
+| 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the source-grounded default application UID/GID 1000, ownership repair and entrypoint | **UID-04 COMPLETE — FAIL for the tested ownership-repair/write sequence; design review required before dependent mount testing** |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
@@ -2329,14 +2379,14 @@ NET-03, NET-04, NET-05 and NET-06 are complete. NET-06 Stage A was a read-only p
 
 NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary IPv6-enabled internal network. Stage C1 found that both internal DNS gateways answered the tested `example.com` A/AAAA UDP/TCP queries with NXDOMAIN; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the probe container; selected public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Stage D cleanup removed the exact temporary container and network; independent absence checks passed. Podman escalated to SIGKILL after the 10-second SIGTERM timeout. **NET-06 is complete with scoped findings and a lifecycle caveat.**
 
-**Next open dependency:** Gate 5 — exact candidate UID/application identity. The pinned Phase 1.4 source candidate defaults to application UID/GID 1000:1000; its root-started entrypoint attempts ownership repair on five writable bind mounts, then drops to that identity with `gosu`. UID-03 and MOUNT-01 do not establish whether this sequence works under `--userns=nomap`. The proposed next test is UID-04 as defined in §11: a disposable `python:3-alpine` container, cached image only, one scratch bind mount, no network, and a numeric ownership-repair/write probe. **Approval is pending. Do not create the container or scratch directory until the user approves the exact test.** Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
+**Gate 5 / UID-04 is complete and failed for the tested configuration.** The disposable rootless Podman `--userns=nomap` container started successfully from the cached image, but the root ownership change of the host-owned mode-0700 scratch mount failed with EPERM; the application identity 1000:1000 then failed to create a file with EACCES. The exact temporary container and scratch directory were removed and independently verified absent. Podman escalated from SIGTERM to SIGKILL after 10 seconds. See the UID-04 ledger entry in §11 for exact output, command-scope differences and evidence limits. **Next action: design-only review of alternative ownership/mount strategies and their security trade-offs.** Do not proceed to the candidate production mount allowlist or installation on the assumption that this boundary works. Any revised strategy requires separate approval and testing. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
 - Downloading images or source dependencies.
 - Creating a permanent Odysseus network, container, directory or service.
-- Creating the proposed temporary UID-04 container or scratch directory before explicit approval.
+- Repeating UID-04 without a documented changed condition or materially revised ownership/mount strategy.
 - Starting/stopping protected projects or LocalAI.
 - Provider API calls or credential access.
 - MCP, SSH, shell/Python execution by the Agent.
@@ -2369,6 +2419,7 @@ The first assistant action in a new conversation should be:
 | 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
 | 1.8 | 2026-11-07 | Recorded NET-06 Stage D exact cleanup command and output: Podman escalated from SIGTERM to SIGKILL after 10 seconds, then removed the exact probe container and temporary network; independent absence checks passed. Marked NET-06 complete, updated Gate 4 and the handoff to Gate 5 (candidate UID/application identity). Two completed tests since the v1.2 checkpoint (NET-05 and NET-06); no five-test snapshot triggered. |
 | 1.9 | 2026-11-08 | Added read-only Gate 5 source review at the Phase 1.4 pinned commit: candidate defaults to PUID/PGID 1000:1000; root-started entrypoint performs ownership repair on five writable mounts and drops to the app user with gosu. Recorded source blob SHAs, the unresolved Phase 1.3 repository discrepancy, and the gap between UID-03/MOUNT-01 and application-identity compatibility. Defined UID-04 as a proposed disposable numeric ownership/write probe; approval remains pending. No runtime test, container, scratch directory, image build or host change. Test count remains 2/5 since the v1.2 checkpoint; no archive snapshot triggered. |
+| 2.0 | 2026-11-08 | Recorded UID-04 runtime results: cached-image rootless `nomap` probe created the exact disposable container and scratch directory; container-root ownership repair failed with EPERM and application UID/GID 1000:1000 write failed with EACCES. Recorded namespace-relative maps, observed 65534:65534 mount ownership, exact executed-operation/capability differences from the broader proposal, evidence limits, SIGTERM timeout/SIGKILL escalation, and independently verified cleanup. Marked Gate 5 runtime probe complete with a scoped FAIL and changed the next action to a design-only ownership/mount strategy review. Test count advances from 2/5 to 3/5 since the v1.2 checkpoint; no five-test archive snapshot triggered. |
 
 ---
 
