@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.9  
+> **Version:** 3.0  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1448,13 +1448,14 @@ The following evidence was collected through GitHub repository, branch, commit, 
 | Organization | `odysseus-dev` (same organization ID) | `odysseus-dev` (same organization ID) |
 | Visibility / archived | Public / not archived | Public / not archived |
 | Default branch | `dev` | `dev` |
-| Relevant pinned commit | `142b93ad86073efb24981df385423f58fe5376b1` — “Initial public snapshot”, 2026-07-23 | `03d25943ee4a35f6f0535112976123a721cff5cb` — merge of PR #6993, 2026-10-30 |
-| Commit-search observation | Search returned the initial snapshot as the only commit in the visible result set | Search returned multiple later commits; branch search showed ongoing development branches |
+| Relevant pinned commit | `142b93ad86073efb24981df385423f58fe5376b1` — “Initial public snapshot”, 2026-07-23 | `03d25943ee4a35f6f0535112976123a721cff5cb` — merge of PR #6993, 2026-10-30; repository commit search also returned `1c1509094963f9eb9445928d57f2856296057cf4` dated 2026-11-08 |
+| Commit-search observation | Search returned the initial snapshot as the only commit in the visible result set | Search returned multiple later commits, including a 2026-11-08 calendar fix; branch search showed ongoing development branches |
 
 Additional cross-checks:
 
 - The `odysseus-current` README describes the same self-hosted AI workspace and explicitly links its `main` branch to `odysseus-dev/odysseus`.
 - The historical candidate commit in `odysseus` changes the gallery editor and its end-to-end tests; it is not an unrelated project commit.
+- The latest visible `odysseus` commit returned by repository commit search is `1c1509094963f9eb9445928d57f2856296057cf4`, dated 2026-11-08, titled `fix(calendar): render multi-day events within their day cells`; it changes calendar code and tests. This confirms activity on the same date as this audit, not merely an older historical branch.
 - At the two cited pins, the following file blobs differ:
 
 | File | `odysseus` at 2026-10-30 | `odysseus-current` at 2026-07-23 |
@@ -2604,6 +2605,7 @@ The first assistant action in a new conversation should be:
 
 | 2.8 | 2026-11-08 | Reconciled the current-verdict summary with NET-04 by removing the stale statement that peer-to-peer behavior remained untested; NET-04 had already confirmed bidirectional peer DNS/TCP communication. Reordered the 2.6/2.7 changelog entries chronologically and repaired the malformed line break between entries 1.4 and 1.5. Updated the canonical version to 2.8. Documentation-only change: no tests, runtime resources or host state changed; completed-test count remains 3/5 since the v1.2 checkpoint; no archive snapshot triggered. |
 | 2.9 | 2026-11-08 | Added the read-only SRC-01 repository-lineage investigation: confirmed distinct public repository IDs under the same organization, the `odysseus-current` “Initial public snapshot” dated 2026-07-23, the later `odysseus` candidate commit dated 2026-10-30, README cross-link to the `odysseus` repository, branch/commit activity observations, and differing pinned blobs for README, Dockerfile, app.py, requirements.txt and entrypoint. Recorded the evidence-based interpretation that `odysseus-current` appears to be an earlier snapshot/export and that `odysseus` is the better-supported maintained-upstream candidate, while explicitly leaving Git ancestry and user intent unproven. SRC-01 remains open and build-blocking pending user confirmation. No build, runtime test, repository change or host/resource change; completed-test count remains 3/5 since v1.2; no archive snapshot triggered. |
+| 3.0 | 2026-11-08 | Strengthened the SRC-01 lineage record with the latest visible commit returned for `odysseus`: `1c1509094963f9eb9445928d57f2856296057cf4`, dated 2026-11-08, a calendar fix with associated tests. This confirms active development on the audit date and further supports (without proving ancestry or user intent) the interpretation that `odysseus-current` is an earlier snapshot/export and `odysseus` is the maintained upstream candidate. SRC-01 remains open and build-blocking pending user confirmation. No build, runtime test, repository change or host/resource change; completed-test count remains 3/5 since v1.2; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
