@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.20  
+> **Version:** 3.21  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2802,7 +2802,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.20 (five-test checkpoint due; archive snapshot to be created from this exact reviewed content).  
+**Canonical version:** 3.21. The unchanged v3.20 checkpoint snapshot has been created and verified at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md (blob SHA 4f7200fdb94f80a21e28a7a6d9a0db38e51d036e). Runtime-test counter reset to 0/5 since this checkpoint.  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin:** odysseus-dev/odysseus, branch dev, commit 1c1509094963f9eb9445928d57f2856296057cf4. SRC-01 is resolved for Phase 1.4; SRC-02–SRC-10 are recorded against this pin. DR-02 architecture and application-level enforcement remain open; no build is authorized.
 
@@ -2810,7 +2810,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Current storage conclusion:** VOL-04 remains PARTIAL/INCONCLUSIVE: named-volume creation and unshare ownership inspection passed, but container creation failed when --userns=private was supplied without a mapping; no write test ran. MAP-F now proves an explicit mapping route, but it did not mount a volume. Named-volume container-visible ownership and UID/GID 1000 write/readback remain untested.
 
-**Runtime-test accounting:** 5/5 completed since the v1.2 checkpoint. The five tests are NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F. Perform the consistency review and preserve an unchanged v3.20 archive snapshot before any further runtime test. After the snapshot, increment the canonical version and record the archive path.
+**Runtime-test accounting:** The five-test checkpoint was completed: NET-05, NET-06, UID-04, VOL-04 and VOL-05-MAP-F are preserved in the unchanged v3.20 archive snapshot at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md. The archive was fetched back and compared byte-for-byte with the v3.20 canonical content. Current canonical version is v3.21; runtime-test counter is reset to 0/5 since the v3.20 checkpoint.
 
 **Next dependency:** Propose a separate disposable named-volume compatibility experiment using the validated explicit map, the exact cached Python image, and a new unique volume/container name. The test should inspect ownership inside the container and through podman unshare, perform a bounded write/readback as UID/GID 1000, and verify exact cleanup. This differs from VOL-04 because the previously failed create invocation omitted the ID maps and never reached the write test. Present the full preflight, exact command, failure handling and cleanup boundary for separate explicit approval before creating anything. Do not pull the Odysseus image or mutable latest. Installation remains unauthorized.
 
@@ -3792,7 +3792,7 @@ PROBE_EXIT_CODE=0; final container state was Exited (0). Under the recorded root
 
 **Evidence boundary:** This proves parser/engine acceptance, private namespace creation, runtime UID/GID and map contents for this exact invocation. It does not prove volume ownership or write/readback, application-image UID requirements, supplementary groups or IDs above 65535. The probe used no mounts. Exact commands and stage outputs are preserved in §11.
 
-**Result:** VOL-05-MAP-F COMPLETE — PASS. Runtime-test count is 5/5 since v1.2. The unchanged v3.20 checkpoint snapshot is due before another runtime test.
+**Result:** VOL-05-MAP-F COMPLETE — PASS. At the time of the v3.20 checkpoint, runtime-test count reached 5/5 since v1.2. The unchanged v3.20 checkpoint snapshot was subsequently created and verified; current counter is 0/5 since v3.20.
 
 ### 18.6 Explicitly not authorized
 
@@ -3865,6 +3865,9 @@ The first assistant action in a new conversation should be:
 | 3.19 | 2026-11-08 | Recorded VOL-05-MAP-F Stage A read-only preflight exactly as supplied: Podman 6.0.2, exact cached Python image ID present (linux/amd64), and unique temporary container name available. All four checks passed; no container or other resource was created and no image was pulled. Runtime-test count remains 4/5 because Stage A is a read-only preflight. Recorded that the user's conditional approval is now cleared by review of the passing preflight; Stage B create may proceed under the exact previously approved command, with Stage C held until the create result is reviewed. No installation or host configuration change. |
 
 | 3.20 | 2026-11-08 | Recorded VOL-05-MAP-F Stages B, B2, C and D: Podman 6.0.2 accepted the five explicit UID/GID map segments without --userns; inspection confirmed the restricted created configuration and normalized maps; runtime process reported UID/GID 1000:1000 and matching /proc maps with exit code 0; exact container removal and independent name/full-ID absence checks passed. Marked MAP-F PASS for parser/engine acceptance and runtime namespace identity, while keeping volume ownership/write compatibility and application-image numeric ownership unresolved. Runtime-test count advances to 5/5 since v1.2; consistency review and unchanged v3.20 archive snapshot are due before another runtime test. Next proposed gate is a separately approved disposable named-volume ownership/write probe using the validated map. No image pull, volume, network, package, service or host configuration change. |
+
+
+| 3.21 | 2026-11-08 | Completed the five-test consistency review and created the unchanged v3.20 archive checkpoint at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md. Fetched the archived file and verified its content exactly matches the v3.20 canonical snapshot (blob SHA 4f7200fdb94f80a21e28a7a6d9a0db38e51d036e). Incremented the active canonical version to 3.21 and reset runtime-test accounting to 0/5 since the v3.20 checkpoint. Next gate remains a separately approved disposable named-volume ownership/write compatibility probe using the validated explicit map; no resource creation is authorized by this documentation update. |
 
 
 ---
