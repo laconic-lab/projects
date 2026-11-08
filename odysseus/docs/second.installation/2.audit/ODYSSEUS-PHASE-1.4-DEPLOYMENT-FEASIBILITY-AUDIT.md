@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.24  
+> **Version:** 3.25  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -4003,7 +4003,44 @@ The full container ID is `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762a
 
 **Runtime-test accounting:** Stage B is a setup stage of VOL-05-MAP-G, not the runtime probe. Counter remains **0/5 since the unchanged v3.20 archive checkpoint**.
 
-**Next action — Stage B2:** Perform read-only inspection of the exact container ID and named volume. Confirm the container remains Created/not running, exact image and mapping configuration, security settings, and the `/probe` mount source/destination/read-write mode; inspect volume metadata. Any mismatch stops progression to Stage C.
+**Stage B2 disposition:** Completed; see §18.5.10. The read-only inspection matched the expected container identity, Created/stopped state, cached image, explicit maps, restricted security configuration and read/write /probe named-volume mount. Volume metadata reports UID/GID 1000:1000, MountCount 0 and NeedsCopyUp true. These metadata fields do not demonstrate application-process write access.
+
+### 18.5.10 VOL-05-MAP-G — Stage B2 read-only inspection (2026-11-08)
+
+**Status:** PASS — inspected configuration matches the approved disposable probe design. The container remains stopped; no runtime code executed.
+
+**Exact executed command:** The user executed the Stage B2 read-only wrapper against container ID `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30`, container name `odysseus-vol05-mapg-20261108`, and volume name `odysseus-vol05-mapg-20261108`. The wrapper queried identity by ID and name, all-container state, complete `podman inspect`, `podman volume inspect`, and `podman volume exists`. It did not start, stop, modify or remove either resource.
+
+**Observed results:**
+
+| Check | Observed result |
+|---|---|
+| ID/name resolution | Both resolve to the exact expected full ID and name |
+| Container state | `Created`; `Running=false`; `Pid=0`; no start or finish timestamp |
+| Image | Exact cached image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`; digest `sha256:d44b1254cb92329418d164b22b20d86bbd3869d48e80e09e476531a409a728bb` |
+| Configured process | `User=1000:1000`; command is the bounded Python identity/stat/write/fsync/readback probe |
+| UID/GID maps | CreateCommand records the five MAP-F-validated segments for each; normalized inspect maps coalesce adjacent segments and preserve container ID 1000 → parent namespace ID 1000 |
+| Network | `none`; no published ports |
+| Root filesystem | Read-only |
+| Capabilities | `--cap-drop=ALL`; inspect lists the dropped capability set |
+| Privilege escalation | `no-new-privileges` |
+| Privileged/restart settings | `Privileged=false`; restart policy `no` |
+| Volume mount | Exact named volume at `/probe`, read/write, `rprivate`, `nosuid`, `nodev`, `rbind` |
+| Volume metadata | Driver `local`; UID/GID `1000:1000`; `MountCount=0`; `NeedsCopyUp=true`; volume exists |
+
+**Interpretation:**
+
+1. Stage B2 confirms that the exact stopped container contains the intended image, command, process identity, mapping configuration, network isolation, read-only root and restricted security settings.
+2. The normalized ID map is a compact representation of adjacent segments from the original five-segment CreateCommand. It retains the intended mapping for container UID/GID 1000.
+3. Podman reports the volume's configured UID/GID as 1000:1000. This is volume metadata, not proof that the process inside this user namespace sees a writable directory.
+4. `MountCount=0` and `NeedsCopyUp=true` are recorded as metadata observations. They do not override the container inspection's configured /probe mount and do not prove successful runtime access.
+5. The Python probe is present in the container command but has not executed. Directory ownership, file ownership, write/readback and host-side `podman unshare` ownership verification remain untested.
+
+**Safety and side effects:** Read-only Podman inspection only. Both resources remain present and unchanged; the container remains stopped. No image pull, network, package, service or host configuration change. The user-provided wrapper did not report individual command exit codes; all inspection output and the final completion marker were produced.
+
+**Runtime-test accounting:** Stage B2 is a read-only inspection, not a runtime test. Counter remains **0/5 since the unchanged v3.20 archive checkpoint**.
+
+**Decision / next gate — Stage C:** The Stage B2 inspection satisfies the pre-start configuration review. The bounded one-shot Python probe may now be executed in this disposable container using the exact existing container ID. Do not recreate either resource or alter its configuration. After execution, inspect the exit status and results before authorizing any cleanup. Stage C must verify process UID/GID, /probe directory ownership and mode, successful exclusive file creation, fsync and byte-for-byte readback, and file UID/GID/mode. Host-side ownership through `podman unshare` and cleanup remain subsequent gates. Installation remains unauthorized.
 
 ### 18.6 Explicitly not authorized
 
@@ -4084,6 +4121,7 @@ The first assistant action in a new conversation should be:
 | 3.22 | 2026-11-08 | Added §18.5.7 as a transcript supplement preserving the complete user-executed shell wrappers for VOL-05-MAP-F Stages B, B2, C and D, including headings, status capture and completion markers. The runtime result, cleanup, v3.20 archive snapshot and next gate are unchanged. Documentation-only correction; no new test or resource/host operation. |
 
 
+| 3.25 | 2026-11-08 | Recorded VOL-05-MAP-G Stage B2 read-only inspection: exact container ID/name and stopped state verified; cached image/digest, process identity, normalized UID/GID maps, no-network/read-only-root/capability/no-new-privileges settings and read/write /probe volume mount matched the intended design. Volume metadata reported UID/GID 1000:1000, MountCount 0 and NeedsCopyUp true; explicitly retained that these do not prove application-process write access. Python probe remains unexecuted. Stage B2 is read-only, so runtime-test count remains 0/5 since the unchanged v3.20 archive checkpoint. Authorized next gate is Stage C bounded execution in the existing disposable container, followed by result inspection before cleanup. No resource or host configuration changed. |
 | 3.24 | 2026-11-08 | Recorded VOL-05-MAP-G Stage B: created the disposable named volume with UID/GID 1000 and created the stopped restricted probe container using the MAP-F-validated explicit UID/GID maps, exact cached image, no network, read-only root, dropped capabilities, no-new-privileges and UID/GID 1000:1000. Recorded full container ID; container was not started. Stage B2 read-only inspection is next; runtime-test count remains 0/5 since v3.20. No image pull, package/service/host configuration change. |
 | 3.23 | 2026-11-08 | Corrected the §18 handoff's stale canonical-version reference (v3.21 → v3.23) and clarified the current 0/5 runtime-test counter since the unchanged v3.20 checkpoint. Marked the DR-02 checklist's 3/5 count explicitly historical. Formalized VOL-05-MAP-G as the next dependency with a read-only preflight followed by separate explicit approval before any volume/container creation. No runtime test or resource/host change. |
 
