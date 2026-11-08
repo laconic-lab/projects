@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.21  
+> **Version:** 3.22  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2802,7 +2802,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.21. The unchanged v3.20 checkpoint snapshot has been created and verified at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md (blob SHA 4f7200fdb94f80a21e28a7a6d9a0db38e51d036e). Runtime-test counter reset to 0/5 since this checkpoint.  
+**Canonical version:** 3.22. The unchanged v3.20 checkpoint snapshot has been created and verified at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md (blob SHA 4f7200fdb94f80a21e28a7a6d9a0db38e51d036e). Runtime-test counter reset to 0/5 since this checkpoint.  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin:** odysseus-dev/odysseus, branch dev, commit 1c1509094963f9eb9445928d57f2856296057cf4. SRC-01 is resolved for Phase 1.4; SRC-02–SRC-10 are recorded against this pin. DR-02 architecture and application-level enforcement remain open; no build is authorized.
 
@@ -3794,6 +3794,159 @@ PROBE_EXIT_CODE=0; final container state was Exited (0). Under the recorded root
 
 **Result:** VOL-05-MAP-F COMPLETE — PASS. At the time of the v3.20 checkpoint, runtime-test count reached 5/5 since v1.2. The unchanged v3.20 checkpoint snapshot was subsequently created and verified; current counter is 0/5 since v3.20.
 
+
+### 18.5.7 VOL-05-MAP-F — complete executed shell wrappers (transcript supplement)
+
+This supplement preserves the complete shell blocks as supplied by the user, including headings, status capture and completion markers. It supplements §11's test record; it does not change the observed result or the v3.20 archive snapshot.
+
+**Stage B — exact executed command:**
+~~~bash
+echo "===== VOL-05-MAP-F: CREATE EXPLICIT-MAP PROBE ====="
+
+IMAGE_ID="sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5"
+
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+podman create \
+  --pull=never \
+  --name "$CONTAINER_NAME" \
+  --uidmap 0:1:1 \
+  --uidmap 1:2:998 \
+  --uidmap 999:1001:1 \
+  --uidmap 1000:1000:1 \
+  --uidmap 1001:1002:64535 \
+  --gidmap 0:1:1 \
+  --gidmap 1:2:998 \
+  --gidmap 999:1001:1 \
+  --gidmap 1000:1000:1 \
+  --gidmap 1001:1002:64535 \
+  --network=none \
+  --read-only \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  --user=1000:1000 \
+  "$IMAGE_ID" \
+  python -c '
+import os
+
+print("===== PROCESS IDENTITY =====")
+print("UID:", os.getuid())
+print("GID:", os.getgid())
+
+print()
+print("===== UID MAP =====")
+print(open("/proc/self/uid_map").read())
+
+print("===== GID MAP =====")
+print(open("/proc/self/gid_map").read())
+'
+
+echo
+echo "===== CONTAINER CREATED ====="
+~~~
+
+**Stage B2 — exact executed command:**
+~~~bash
+echo "===== VOL-05-MAP-F: POST-CREATE READ-ONLY INSPECTION ====="
+
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+echo
+echo "===== 1. VERIFY CONTAINER EXISTS ====="
+podman container exists "$CONTAINER_NAME" \
+  && echo "PASS: container exists" \
+  || echo "FAIL: container missing"
+
+echo
+echo "===== 2. INSPECT CONTAINER CONFIGURATION ====="
+podman inspect "$CONTAINER_NAME"
+
+echo
+echo "===== 3. VERIFY CONTAINER STATE ====="
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+
+echo
+echo "===== POST-CREATE INSPECTION COMPLETE ====="
+~~~
+
+**Stage C — exact executed command:**
+~~~bash
+echo "===== VOL-05-MAP-F: STAGE C — RUNTIME NAMESPACE PROBE ====="
+
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+
+echo
+echo "===== 1. CONFIRM CREATED STATE ====="
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+
+echo
+echo "===== 2. START AND ATTACH TO PROBE ====="
+set +e
+podman start --attach "$CONTAINER_NAME"
+PROBE_RC=$?
+set -e
+
+echo
+echo "===== 3. CAPTURE PROBE EXIT STATUS ====="
+echo "PROBE_EXIT_CODE=$PROBE_RC"
+
+echo
+echo "===== 4. CAPTURE FINAL CONTAINER STATE ====="
+podman ps -a --filter "name=$CONTAINER_NAME" \
+  --format 'ID={{.ID}} NAME={{.Names}} STATUS={{.Status}}'
+
+echo
+echo "===== STAGE C COMPLETE — NO CLEANUP PERFORMED ====="
+~~~
+
+**Stage D — exact executed command:**
+~~~bash
+echo "===== VOL-05-MAP-F: STAGE D — EXACT PROBE CLEANUP ====="
+
+CONTAINER_NAME="odysseus-vol05-mapf-20261108"
+EXPECTED_ID="cdff61acbc90e336042b94f819583a77bde4bd33a94871a4d8f8d46620ca7fe4"
+
+echo
+echo "===== 1. VERIFY TARGET ID BEFORE REMOVAL ====="
+ACTUAL_ID="$(podman inspect --format '{{.Id}}' "$CONTAINER_NAME")"
+echo "EXPECTED_ID=$EXPECTED_ID"
+echo "ACTUAL_ID=$ACTUAL_ID"
+
+if [ "$ACTUAL_ID" != "$EXPECTED_ID" ]; then
+  echo "STOP: container ID mismatch; nothing removed"
+  exit 1
+fi
+
+echo
+echo "===== 2. REMOVE EXACT CONTAINER ====="
+podman rm "$CONTAINER_NAME"
+
+echo
+echo "===== 3. VERIFY CONTAINER NAME ABSENT ====="
+if podman container exists "$CONTAINER_NAME"; then
+  echo "FAIL: container still exists"
+  exit 1
+else
+  echo "PASS: container name absent"
+fi
+
+echo
+echo "===== 4. VERIFY CONTAINER ID ABSENT ====="
+if podman ps -a --no-trunc --format '{{.ID}}' | grep -Fxq "$EXPECTED_ID"; then
+  echo "FAIL: container ID still exists"
+  exit 1
+else
+  echo "PASS: container ID absent"
+fi
+
+echo
+echo "===== STAGE D COMPLETE ====="
+~~~
+
+**Transcript provenance:** These are the complete commands the user supplied and ran in this conversation. Stage B2 inspection output is intentionally summarized to relevant fields in §11 because the raw inspect JSON is lengthy; the complete output remains in the conversation transcript. No command was run as part of this documentation supplement.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -3868,6 +4021,9 @@ The first assistant action in a new conversation should be:
 
 
 | 3.21 | 2026-11-08 | Completed the five-test consistency review and created the unchanged v3.20 archive checkpoint at archive/2026-11-08/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT-v3.20.md. Fetched the archived file and verified its content exactly matches the v3.20 canonical snapshot (blob SHA 4f7200fdb94f80a21e28a7a6d9a0db38e51d036e). Incremented the active canonical version to 3.21 and reset runtime-test accounting to 0/5 since the v3.20 checkpoint. Next gate remains a separately approved disposable named-volume ownership/write compatibility probe using the validated explicit map; no resource creation is authorized by this documentation update. |
+
+
+| 3.22 | 2026-11-08 | Added §18.5.7 as a transcript supplement preserving the complete user-executed shell wrappers for VOL-05-MAP-F Stages B, B2, C and D, including headings, status capture and completion markers. The runtime result, cleanup, v3.20 archive snapshot and next gate are unchanged. Documentation-only correction; no new test or resource/host operation. |
 
 
 ---
