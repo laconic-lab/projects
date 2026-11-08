@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.2  
+> **Version:** 2.3  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1381,12 +1381,14 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 | `docs/setup.md` | `53a6fb28cff4a84ac9af434a5d5a8a2731d902b2` | Documents Hugging Face cache, installed Python CLI/serve-engine persistence, remote SSH key use and host-Docker opt-in. |
 | `docs/backup-restore.md` | `902c9e6837c32eab064101192e7e4b45738720dd` | Backup includes `.app_key`, vault, sessions and provider/API tokens; ChromaDB Compose volume is separate from `data/`. |
 | `.dockerignore` | `eca6c8fe88f10943d3b1ae8a778014527ac54218` | Excludes `.env` and host `data/` / `logs/` from build context; does not exclude `.env.example`. |
+| `services/search/cache.py` | `222682c7b611644f3efe4aae0c67ff4cca8006be` | Creates the active search/content disk caches under `DATA_DIR/cache/search` and `DATA_DIR/cache/content`; gracefully disables disk cache if unwritable. |
+| `THREAT_MODEL.md` | `48665a61d7fc9f58d3af23cebfc99827e2976167` | Explicitly documents no shell/filesystem sandbox for the Agent; admin shell and file tools run as the app process user. |
 
 **Storage findings**
 
 1. **One primary sensitive state volume is required.** `DATA_DIR` contains SQLite databases, sessions, auth state, user preferences, settings, integrations, contacts, vault, provider/model endpoint data, OAuth state, uploads, personal documents, RAG/memory state, and other application state.
 2. **The encryption key is in that same volume.** `data/.app_key` is mode 0600, but the application process that can read the volume can also read the key and decrypt stored secrets. The named volume must be treated as highly sensitive. It must not be mounted into Inspector, Agent helper, or unrelated containers. Backup access must be separately designed.
-3. **The data volume is not an Agent isolation boundary.** Upstream `src/tool_execution.py` sets the Agent subprocess working directory to `DATA_DIR` and includes `DATA_DIR` in the default file-tool allowed roots. A named volume alone therefore does not prevent upstream Agent tools from reaching application data. The planned Gateway/tool-policy enforcement or removal of those upstream tools remains mandatory; do not claim the volume protects secrets from a compromised application process or unrestricted Agent tools.
+3. **The data volume is not an Agent isolation boundary.** Upstream `src/tool_execution.py` sets the Agent subprocess working directory to `DATA_DIR` and includes `DATA_DIR` in the default file-tool allowed roots. The pinned `THREAT_MODEL.md` also explicitly states that there is no shell/filesystem sandbox: admin bash and file tools run as the application process user. A named volume alone therefore does not prevent upstream Agent tools from reaching application data. The planned Gateway/tool-policy enforcement or removal of those upstream tools remains mandatory; do not claim the volume protects secrets from a compromised application process or unrestricted Agent tools.
 4. **SQLite default path alignment:** `src.constants` defaults `DATA_DIR` to `/app/data`, and `core/database.py` defaults SQLite there. However Compose explicitly injects `DATABASE_URL=sqlite:///./data/app.db`; a future custom `ODYSSEUS_DATA_DIR` must be accompanied by a matching database URL or the DB may remain outside the intended volume. The simplest candidate is to mount the primary named volume at `/app/data` and preserve the default path, subject to separate validation.
 5. **Logs:** `app.py` writes its active rotating log to `DATA_DIR/logs/app.log`, so it belongs inside the primary data volume under the current code. `setup.py` separately creates `/app/logs`, and Compose mounts a separate host path there; the reviewed primary logger does not use that separate mount. Do not create a second persistent logs volume without identifying an actual writer that needs it.
 6. **Setup side effect under non-root/read-only root:** `.dockerignore` excludes `.env` but keeps `.env.example`; the Dockerfile copies the build context into root-owned `/app` and creates `/app/logs`. The current entrypoint runs `setup.py` as the non-root user. `setup.py` calls `create_env()`, which attempts to copy `/app/.env.example` to `/app/.env` if the latter does not exist. In a non-root image with root-owned, non-writable `/app` (especially a read-only root filesystem), this can fail. Because the entrypoint invokes setup with `|| true`, this failure can silently skip later setup steps, including initial admin creation. A deployment-specific setup path must avoid runtime writes to the image tree and must explicitly handle first-run admin provisioning.
@@ -1412,13 +1414,13 @@ It also identifies required deployment-source adaptations before that contract c
 
 **Open source-review questions (not runtime tests)**
 
-- Trace all remaining direct writes outside `DATA_DIR`, especially `services/cache/search`, generated files and any `/app/logs` users.
+- Continue tracing any remaining direct writes outside `DATA_DIR`. The targeted search found that Dockerfile pre-creates `/app/services/cache/search`, but the active `services/search/cache.py` implementation writes its disk caches under `DATA_DIR/cache/search` and `DATA_DIR/cache/content`; the Dockerfile path appears unused by the reviewed implementation. The only located `/app/logs` reference outside Compose/entrypoint/Dockerfile is setup directory creation; the primary app logger writes under `DATA_DIR/logs`.
 - Identify every feature that writes to Hugging Face cache, `.local`, or `.ssh`, and define the initial disabled-feature set.
 - Confirm whether the application can initialize auth/database and start with a pre-created data volume and a deployment-specific non-root entrypoint.
 - Reconcile whether Compose's separate ChromaDB service is required for the intended initial feature set.
 - Reconcile the source identity discrepancy recorded between Phase 1.3 and Phase 1.4 before any build.
 
-**Next action:** Continue read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. Do not create a volume or container. No runtime test or installation is authorized.
+**Next action:** Continue read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. A targeted trace now confirms the search disk cache is under `DATA_DIR/cache/`; the Dockerfile's `services/cache/search` pre-created directory appears unused by the reviewed search-cache implementation. The pinned threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. Do not create a volume or container. No runtime test or installation is authorized.
 
 ### MOUNT-01 — Private host directory bind-mount isolation
 
@@ -2433,7 +2435,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 2.2  
+**Canonical version:** 2.3  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2511,6 +2513,7 @@ The first assistant action in a new conversation should be:
 | 2.0 | 2026-11-08 | Recorded UID-04 runtime results: cached-image rootless `nomap` probe created the exact disposable container and scratch directory; container-root ownership repair failed with EPERM and application UID/GID 1000:1000 write failed with EACCES. Recorded namespace-relative maps, observed 65534:65534 mount ownership, exact executed-operation/capability differences from the broader proposal, evidence limits, SIGTERM timeout/SIGKILL escalation, and independently verified cleanup. Marked Gate 5 runtime probe complete with a scoped FAIL and changed the next action to a design-only ownership/mount strategy review. Test count advances from 2/5 to 3/5 since the v1.2 checkpoint; no five-test archive snapshot triggered. |
 | 2.1 | 2026-11-08 | Reconciled the canonical header/handoff version with the prior 2.0 UID-04 record. Added DR-01: user-approved design direction to investigate Podman-managed named volumes with a fixed non-root application identity first, explicitly PROPOSED pending read-only source validation. Recorded minimum storage-path review, omission candidates (`/app/.ssh`, optional cache/local state), stdout/stderr logging consideration, fallback strategies, rejected shortcuts and the no-runtime-change boundary. Updated the continuation handoff to read-only pinned-source review. No test, container, volume, directory, image, package, service or host change; completed-test count remains 3/5 since the v1.2 checkpoint. No five-test snapshot triggered. |
 | 2.2 | 2026-11-08 | Added DR-02 read-only source review at the exact Phase 1.4 pinned commit. Recorded storage paths, sensitive contents and `.app_key` co-location, Agent access to `DATA_DIR`, active log destination, optional Cookbook SSH/Hugging Face/`.local` requirements, ChromaDB separation, Compose DB-path interaction, and root-dependent entrypoint / non-root setup `.env` failure risk. Defined a one-volume `/app/data` contract as a candidate only, with deployment-specific build-time identity/entrypoint/setup adaptations and further source tracing still open. Updated handoff. No runtime test or host/resource change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
+| 2.3 | 2026-11-08 | Extended DR-02 source tracing: inspected the active search-cache implementation and pinned threat model. Confirmed search/content caches are under `DATA_DIR/cache/`, while Dockerfile's `services/cache/search` pre-created path appears unused by the reviewed implementation; confirmed the threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. Refined remaining source-trace questions and handoff. No runtime test or resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 
 ---
 
