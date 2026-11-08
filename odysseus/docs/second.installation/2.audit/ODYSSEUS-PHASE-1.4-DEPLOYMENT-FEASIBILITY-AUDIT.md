@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.1  
+> **Version:** 2.2  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1355,6 +1355,71 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 - **Next action:** Read-only review of the exact pinned source files and relevant application code to produce a storage/identity contract. No runtime experiment or installation is authorized by this decision.
 - **Repeat / approval rule:** Any later volume or mapping test must have a distinct test ID, exact disposable boundary, cleanup plan and separate explicit user approval.
 
+### DR-02 — Pinned-source storage and non-root startup review
+
+- **Date:** 2026-11-08
+- **Status:** READ-ONLY SOURCE REVIEW — FIRST PASS COMPLETE; detailed feature/write-path closure remains open
+- **Review baseline:** Repository `odysseus-dev/odysseus-current`, commit `142b93ad86073efb24981df385423f58fe5376b1`. All source files below were fetched at this exact commit; no moving branch was used.
+- **Resources changed:** None. No host commands, image builds, containers, volumes, directories, packages or services were created or changed.
+- **Relationship to DR-01:** This review validates the *shape* of the proposed named-volume contract, but does not prove runtime volume permissions or prove the entire application can run with the proposed reduced feature set.
+
+**Pinned source files reviewed**
+
+| File | Blob SHA | Finding |
+|---|---|---|
+| `Dockerfile` | `3732d20a6cb5b25ee98a338b650f7e82939eb166` | No `USER` directive; image installs `gosu`; creates `/app/data`, `/app/logs`; runs the root-started entrypoint. |
+| `docker/entrypoint.sh` | `aec3b8eec57f1540c340415917f6a4b57584a605` | Creates group/user at runtime; repairs ownership on five paths; runs `setup.py` as app user with failure suppressed; then `gosu` execs the app. |
+| `docker-compose.yml` | `b1f2c37ee64c3108bcbb0a3f68f4c79027c1e199` | Declares five app bind mounts; sets `DATABASE_URL=sqlite:///./data/app.db`; persists ChromaDB separately; host-Docker access is an optional overlay. |
+| `setup.py` | `5b4eadcb58dbc5b4de2f8928bc423d49708daaed` | Creates data subdirectories and `/app/logs`; initializes DB; creates `data/auth.json`; attempts to copy `.env.example` to `/app/.env`. |
+| `src/constants.py` | `584494290b2103e2e9954d52455c6203ae7d9d6a` | `DATA_DIR` is `ODYSSEUS_DATA_DIR` or default app-root `data/`; database, auth, vault, key, uploads, caches and other state paths derive from it. |
+| `src/runtime_paths.py` | `9a8ffe7f972cb31fdd69078ec00100a3c47ca517` | Normal source-run data directory is `<app-root>/data`; frozen builds use a separate user-data path. |
+| `core/constants.py` | `d71bb0aed69d7c73480265be7f43e4d5ff98a469` | Compatibility shim re-exports `src.constants`; no separate path policy. |
+| `core/database.py` | `a9ad90b8b741fc496c52548467ca42541db32573` | Creates `DATA_DIR` before SQLite connects; default DB is `DATA_DIR/app.db`; schema initialization occurs in module startup path. |
+| `app.py` | `e740ad5180043dc751a8e868ae29e18603bf594f` | Primary file logger writes `DATA_DIR/logs/app.log` with 5 MiB rotation and three backups, plus console logging. |
+| `src/secret_storage.py` | `c4a08be1d803aaf1e4e704bf7e33b5c0f5694915` | Encryption key is `DATA_DIR/.app_key`; created on demand and chmod 0600; access to the data volume includes access to the key. |
+| `src/tool_execution.py` | `44001ad69cf094db5459053c3219c4c2880a1fa0` | Agent subprocess working directory is `DATA_DIR`; default read/write tool roots include `DATA_DIR`. |
+| `docs/setup.md` | `53a6fb28cff4a84ac9af434a5d5a8a2731d902b2` | Documents Hugging Face cache, installed Python CLI/serve-engine persistence, remote SSH key use and host-Docker opt-in. |
+| `docs/backup-restore.md` | `902c9e6837c32eab064101192e7e4b45738720dd` | Backup includes `.app_key`, vault, sessions and provider/API tokens; ChromaDB Compose volume is separate from `data/`. |
+| `.dockerignore` | `eca6c8fe88f10943d3b1ae8a778014527ac54218` | Excludes `.env` and host `data/` / `logs/` from build context; does not exclude `.env.example`. |
+
+**Storage findings**
+
+1. **One primary sensitive state volume is required.** `DATA_DIR` contains SQLite databases, sessions, auth state, user preferences, settings, integrations, contacts, vault, provider/model endpoint data, OAuth state, uploads, personal documents, RAG/memory state, and other application state.
+2. **The encryption key is in that same volume.** `data/.app_key` is mode 0600, but the application process that can read the volume can also read the key and decrypt stored secrets. The named volume must be treated as highly sensitive. It must not be mounted into Inspector, Agent helper, or unrelated containers. Backup access must be separately designed.
+3. **The data volume is not an Agent isolation boundary.** Upstream `src/tool_execution.py` sets the Agent subprocess working directory to `DATA_DIR` and includes `DATA_DIR` in the default file-tool allowed roots. A named volume alone therefore does not prevent upstream Agent tools from reaching application data. The planned Gateway/tool-policy enforcement or removal of those upstream tools remains mandatory; do not claim the volume protects secrets from a compromised application process or unrestricted Agent tools.
+4. **SQLite default path alignment:** `src.constants` defaults `DATA_DIR` to `/app/data`, and `core/database.py` defaults SQLite there. However Compose explicitly injects `DATABASE_URL=sqlite:///./data/app.db`; a future custom `ODYSSEUS_DATA_DIR` must be accompanied by a matching database URL or the DB may remain outside the intended volume. The simplest candidate is to mount the primary named volume at `/app/data` and preserve the default path, subject to separate validation.
+5. **Logs:** `app.py` writes its active rotating log to `DATA_DIR/logs/app.log`, so it belongs inside the primary data volume under the current code. `setup.py` separately creates `/app/logs`, and Compose mounts a separate host path there; the reviewed primary logger does not use that separate mount. Do not create a second persistent logs volume without identifying an actual writer that needs it.
+6. **Setup side effect under non-root/read-only root:** `.dockerignore` excludes `.env` but keeps `.env.example`; the Dockerfile copies the build context into root-owned `/app` and creates `/app/logs`. The current entrypoint runs `setup.py` as the non-root user. `setup.py` calls `create_env()`, which attempts to copy `/app/.env.example` to `/app/.env` if the latter does not exist. In a non-root image with root-owned, non-writable `/app` (especially a read-only root filesystem), this can fail. Because the entrypoint invokes setup with `|| true`, this failure can silently skip later setup steps, including initial admin creation. A deployment-specific setup path must avoid runtime writes to the image tree and must explicitly handle first-run admin provisioning.
+7. **Root-started entrypoint cannot simply be retained.** It uses `groupadd`/`useradd` and runtime ownership repair before `gosu`. A genuine non-root process model requires the application UID/GID to exist in the image at build time (or an equivalently reviewed immutable identity mechanism) and a deployment-specific entrypoint that does not depend on root or `chown`.
+8. **`/app/.ssh`:** Used for Cookbook remote-server SSH identity/key material. Excluding the mount means remote SSH/Cookbook server functionality is intentionally unavailable in the initial profile. This aligns with the project's initial SSH-deny policy; it is not a free omission if remote server features are later requested.
+9. **`/app/.cache/huggingface`:** Used for persistent local model downloads/cache. It can be omitted only if local model download/serving features are disabled or accepted as ephemeral/unavailable. If later enabled, use a dedicated volume with a separate policy, not a broad home mount.
+10. **`/app/.local`:** Used for Cookbook-installed Python CLIs and serving engines (including packages installed with `pip install --user`). This is executable, mutable software state, not merely inert cache. Omit initially with Cookbook package-install/serve-engine features disabled. Reconsider only with a separate threat review.
+11. **`/app/logs` mount:** Setup creates the directory, but the reviewed primary application logger writes under `DATA_DIR/logs`. Its continued need is not established; omit from the initial storage allowlist unless a further source trace identifies a writer.
+12. **ChromaDB:** Compose uses a separate named volume for ChromaDB. It is not included in the app's `DATA_DIR` backup. If retained in a future topology, it requires its own lifecycle and backup policy and must not be silently assumed part of the primary app volume.
+
+**DR-02 assessment**
+
+The first source pass supports a minimal initial storage contract of **one dedicated, sensitive application-data volume mounted at `/app/data`**, with no separate `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` or `/app/.local` mounts in the initial profile. This is a candidate contract only.
+
+It also identifies required deployment-source adaptations before that contract can be considered operationally complete:
+
+- predefine the fixed non-root UID/GID in the image at build time;
+- replace/bypass the root-dependent upstream entrypoint and all runtime ownership repair;
+- ensure the first-run setup does not try to write `/app/.env` or other image-tree paths as non-root;
+- explicitly provision initial admin/auth state without exposing a generated password in uncontrolled logs;
+- keep the data volume private to the application and enforce the separate Agent/Gateway policy because upstream Agent tools can access `DATA_DIR`;
+- decide whether separate ChromaDB is in the initial service profile and define its independent backup policy.
+
+**Open source-review questions (not runtime tests)**
+
+- Trace all remaining direct writes outside `DATA_DIR`, especially `services/cache/search`, generated files and any `/app/logs` users.
+- Identify every feature that writes to Hugging Face cache, `.local`, or `.ssh`, and define the initial disabled-feature set.
+- Confirm whether the application can initialize auth/database and start with a pre-created data volume and a deployment-specific non-root entrypoint.
+- Reconcile whether Compose's separate ChromaDB service is required for the intended initial feature set.
+- Reconcile the source identity discrepancy recorded between Phase 1.3 and Phase 1.4 before any build.
+
+**Next action:** Continue read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. Do not create a volume or container. No runtime test or installation is authorized.
+
 ### MOUNT-01 — Private host directory bind-mount isolation
 
 - **Status:** PASS for the tested path/configuration
@@ -2368,7 +2433,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 2.1  
+**Canonical version:** 2.2  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2399,7 +2464,11 @@ NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary I
 
 **Gate 5 / UID-04 is complete and failed for the tested configuration.** The disposable rootless Podman `--userns=nomap` container started successfully from the cached image, but the root ownership change of the host-owned mode-0700 scratch mount failed with EPERM; the application identity 1000:1000 then failed to create a file with EACCES. The exact temporary container and scratch directory were removed and independently verified absent. Podman escalated from SIGTERM to SIGKILL after 10 seconds. See the UID-04 ledger entry in §11 for exact output, command-scope differences and evidence limits.
 
-**DR-01 design direction is accepted:** investigate Podman-managed named volumes with a fixed non-root application identity first. This remains **PROPOSED**, not validated. The next work is a read-only review of the exact pinned application source to determine which writable paths are genuinely required, whether logs can use stdout/stderr, whether `/app/.ssh` and caches can be omitted, and whether the application can start directly as non-root without upstream runtime ownership repair. Produce a storage/identity contract; do not create volumes or containers. Host-prepared bind mounts and explicit custom UID/GID mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Any later runtime test requires a distinct scope and separate explicit approval. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
+**DR-01 design direction is accepted; DR-02 first-pass source review is recorded.** The named-volume/non-root architecture remains **PROPOSED**. The pinned source review confirms that `/app/data` is the primary sensitive state root and includes `.app_key`, auth/vault/database/user state and uploads; upstream Agent tools also use `DATA_DIR` as their working directory and file-tool root, so the volume itself is not an Agent/secret boundary. The active app logger writes to `DATA_DIR/logs/app.log`; the separate `/app/logs` Compose mount is not used by the reviewed primary logger. `/app/.ssh` supports Cookbook remote SSH; `/app/.cache/huggingface` persists model downloads; `/app/.local` persists executable Python CLIs/serve engines. These are excluded from the initial profile unless their features are separately approved.
+
+The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete.
+
+**Next action:** continue read-only tracing of remaining writable paths and startup dependencies, then finalize the storage/identity contract. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
 
 ### 18.3 Explicitly not authorized
 
@@ -2439,8 +2508,9 @@ The first assistant action in a new conversation should be:
 | 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
 | 1.8 | 2026-11-07 | Recorded NET-06 Stage D exact cleanup command and output: Podman escalated from SIGTERM to SIGKILL after 10 seconds, then removed the exact probe container and temporary network; independent absence checks passed. Marked NET-06 complete, updated Gate 4 and the handoff to Gate 5 (candidate UID/application identity). Two completed tests since the v1.2 checkpoint (NET-05 and NET-06); no five-test snapshot triggered. |
 | 1.9 | 2026-11-08 | Added read-only Gate 5 source review at the Phase 1.4 pinned commit: candidate defaults to PUID/PGID 1000:1000; root-started entrypoint performs ownership repair on five writable mounts and drops to the app user with gosu. Recorded source blob SHAs, the unresolved Phase 1.3 repository discrepancy, and the gap between UID-03/MOUNT-01 and application-identity compatibility. Defined UID-04 as a proposed disposable numeric ownership/write probe; approval remains pending. No runtime test, container, scratch directory, image build or host change. Test count remains 2/5 since the v1.2 checkpoint; no archive snapshot triggered. |
-| 2.1 | 2026-11-08 | Reconciled the canonical header/handoff version with the prior 2.0 UID-04 record. Added DR-01: user-approved design direction to investigate Podman-managed named volumes with a fixed non-root application identity first, explicitly PROPOSED pending read-only source validation. Recorded minimum storage-path review, omission candidates (`/app/.ssh`, optional cache/local state), stdout/stderr logging consideration, fallback strategies, rejected shortcuts and the no-runtime-change boundary. Updated the continuation handoff to read-only pinned-source review. No test, container, volume, directory, image, package, service or host change; completed-test count remains 3/5 since the v1.2 checkpoint. No five-test snapshot triggered. |
 | 2.0 | 2026-11-08 | Recorded UID-04 runtime results: cached-image rootless `nomap` probe created the exact disposable container and scratch directory; container-root ownership repair failed with EPERM and application UID/GID 1000:1000 write failed with EACCES. Recorded namespace-relative maps, observed 65534:65534 mount ownership, exact executed-operation/capability differences from the broader proposal, evidence limits, SIGTERM timeout/SIGKILL escalation, and independently verified cleanup. Marked Gate 5 runtime probe complete with a scoped FAIL and changed the next action to a design-only ownership/mount strategy review. Test count advances from 2/5 to 3/5 since the v1.2 checkpoint; no five-test archive snapshot triggered. |
+| 2.1 | 2026-11-08 | Reconciled the canonical header/handoff version with the prior 2.0 UID-04 record. Added DR-01: user-approved design direction to investigate Podman-managed named volumes with a fixed non-root application identity first, explicitly PROPOSED pending read-only source validation. Recorded minimum storage-path review, omission candidates (`/app/.ssh`, optional cache/local state), stdout/stderr logging consideration, fallback strategies, rejected shortcuts and the no-runtime-change boundary. Updated the continuation handoff to read-only pinned-source review. No test, container, volume, directory, image, package, service or host change; completed-test count remains 3/5 since the v1.2 checkpoint. No five-test snapshot triggered. |
+| 2.2 | 2026-11-08 | Added DR-02 read-only source review at the exact Phase 1.4 pinned commit. Recorded storage paths, sensitive contents and `.app_key` co-location, Agent access to `DATA_DIR`, active log destination, optional Cookbook SSH/Hugging Face/`.local` requirements, ChromaDB separation, Compose DB-path interaction, and root-dependent entrypoint / non-root setup `.env` failure risk. Defined a one-volume `/app/data` contract as a candidate only, with deployment-specific build-time identity/entrypoint/setup adaptations and further source tracing still open. Updated handoff. No runtime test or host/resource change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 
 ---
 
