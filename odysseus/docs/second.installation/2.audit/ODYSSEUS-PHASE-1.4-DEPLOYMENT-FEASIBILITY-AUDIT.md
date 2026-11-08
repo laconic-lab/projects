@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.6  
+> **Version:** 3.7  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2686,7 +2686,7 @@ The design is explicit enough to guide closure review, but **not implementation-
 5. Narrowly scoped network and outbound egress policy.
 6. Immutable build inputs and tested rollback strategy.
 
-**Next gate:** targeted read-only closure review of these six decisions, beginning with UID/volume strategy and bootstrap implementation details. No code changes, build, image pull, dependency download, container, volume, package installation or host change is authorized by this checklist.
+**Next gate:** continue targeted read-only closure review. VOL-01 rootless Podman storage preflight is recorded in §18.2; proceed to VOL-02, a read-only review of Podman volume/user-namespace capabilities and the supported ownership mechanisms. No volume or container creation is authorized. No code changes, build, image pull, dependency download, package installation or host change is authorized by this checklist.
 
 
 
@@ -2713,6 +2713,74 @@ The design is explicit enough to guide closure review, but **not implementation-
 **Updated bootstrap and persistence requirements:** import only the auth module in the standalone bootstrap; refuse to overwrite any pre-existing/corrupt auth state; create auth/session/key files with restrictive permissions from the moment of creation; preserve both encryption keys with the database and backups; inventory every import-time migration and write; move schema migration into an explicit backed-up operator-controlled step or document/approve the exact startup mutation; fail closed on sensitive-file permission errors.
 
 **Evidence boundary:** all findings above come from source inspection at the pinned commit. No bootstrap was written or run, no database was opened, no key was generated, no permissions were changed, and no runtime test was added. Completed-test count remains 3/5; no archive snapshot is triggered.
+
+
+
+#### Targeted closure review 2 — VOL-01 rootless Podman storage preflight
+
+**Review type:** READ-ONLY HOST PREFLIGHT; no container/volume test.  
+**Host:** Steam Deck OLED, account `deck`, hostname `Laco`.  
+**Question:** What rootless Podman identity mapping and storage configuration must a later named-volume strategy accommodate?
+
+**Exact command executed:**
+
+```bash
+echo "===== VOL-01: ROOTLESS PODMAN STORAGE PREFLIGHT ====="
+
+echo
+echo "===== 1. PODMAN VERSION ====="
+podman version
+
+echo
+echo "===== 2. ROOTLESS STORAGE AND ID MAPPING ====="
+podman info --debug | grep -Ei -A5 -B2 \
+  'rootless|graphRoot|runRoot|volumePath|uidMap|gidMap|idMappings|networkBackend|graphDriverName|mountProgram'
+
+echo
+echo "===== 3. SUBORDINATE UID/GID ALLOCATION ====="
+echo "--- /etc/subuid ---"
+cat /etc/subuid
+
+echo "--- /etc/subgid ---"
+cat /etc/subgid
+
+echo
+echo "===== 4. EXISTING PODMAN VOLUMES ====="
+podman volume ls
+
+echo
+echo "===== 5. STORAGE USAGE ====="
+podman system df -v
+
+echo
+echo "===== VOL-01 PREFLIGHT COMPLETE ====="
+```
+
+**Recorded observations:**
+
+| Item | Observed result |
+|---|---|
+| Podman | 6.0.2; rootless |
+| UID map | Container ID 0 → host ID 1000, size 1; container IDs 1–65536 → host IDs 100000–165535 |
+| GID map | Same mapping as UID |
+| Subordinate IDs | `deck:100000:65536` in both `/etc/subuid` and `/etc/subgid` |
+| Network backend | Netavark; rootless network command `pasta` |
+| Storage driver | `overlay`; backing filesystem reported as extfs |
+| Graph root | `/home/deck/.local/share/containers/storage` |
+| Run root | `/run/user/1000/containers` |
+| Volume path | `/home/deck/.local/share/containers/storage/volumes` |
+| Existing volume inventory | Six local volumes with generated hexadecimal names; no volume was created, mounted, repurposed or removed |
+| Existing storage inventory | Six images; four containers listed (one running, three stopped). No container was inspected internally or changed |
+
+**Identity interpretation:** container UID/GID 1000 maps to host UID/GID 100999 under the reported maps. Container UID/GID 0 maps to host UID/GID 1000 (`deck`). Therefore a host directory owned by `deck:deck` is not automatically writable by a non-root process running as container UID/GID 1000. This mapping is consistent with the already recorded UID-04 distinction; it does not itself prove any named-volume behavior.
+
+**Result:** PREFLIGHT COMPLETE; volume feasibility remains **INCONCLUSIVE / NOT TESTED**. The output confirms the subordinate ID allocation and storage paths but does not establish how a newly created Podman named volume is owned from inside a fixed non-root container identity. Existing anonymous-looking volumes are unrelated inventory and must not be used as test fixtures.
+
+**Safety and side effects:** the executed commands queried version, debug metadata, subordinate-ID files, volume listing and storage usage. No volume/container/image/network was created, mounted, changed or removed; no ownership, permissions, mapping, service or host configuration was changed. No protected project was intentionally targeted. The user did not provide a separate shell exit-status summary; the displayed output reached the completion marker.
+
+**Next gate — VOL-02:** read-only capability review of Podman's volume-create/inspect and user-namespace options, plus the installed Podman version's documented ownership behavior. Do not create a volume or container. Any later disposable named-volume experiment requires separate explicit approval.
+
+**Test accounting:** VOL-01 is a read-only preflight, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
 
 ### 18.3 Explicitly not authorized
@@ -2771,6 +2839,7 @@ The first assistant action in a new conversation should be:
 | 3.4 | 2026-11-08 | Targeted source follow-up confirmed SQLAlchemy's relative SQLite URL normalization against the app root and identified `AuthManager.setup()` as a candidate for a one-shot offline first-admin bootstrap; its lock is process-local, so the HTTP route remains unsuitable as the sole race boundary. Replaced the vague next step with a DR-02 implementation-checklist gate. No code was written or executed; no build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
 | 3.5 | 2026-11-08 | Consolidated DR-02 into a traceable implementation checklist covering fixed non-root identity and volume ownership, one-root storage/database consistency, fail-closed startup and offline bootstrap, Agent/API execution-surface removal, network/service policy, immutable build inputs, release acceptance and rollback. Retained UID-04's scoped FAIL and six unresolved design blockers. Corrected the next gate to targeted read-only closure review. Documentation-only change; no code, build, image pull, dependency download, runtime test, container, volume, package or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
 | 3.6 | 2026-11-08 | Targeted read-only closure review found that `AuthManager.setup()` can be called without importing the database module, but auth/session JSON writes do not explicitly enforce 0600, corrupt existing auth state can be treated as unconfigured, and setup locking is process-local. Also recorded the separate `.app_key` and `.key` secrets, post-write chmod behavior, import-time database initialization/migrations (including a potentially destructive legacy table drop), and warning-only DB chmod failure. Strengthened bootstrap, key backup, migration and fail-closed permission requirements. No code or runtime action; completed-test count remains 3/5; no archive snapshot triggered. |
+| 3.7 | 2026-11-08 | Recorded VOL-01 read-only rootless Podman storage preflight: Podman 6.0.2, subordinate UID/GID map (container 0 → host 1000; container 1–65536 → host 100000–165535), graph/run/volume paths, six existing volumes and storage inventory. Clarified that container UID/GID 1000 maps to host 100999 and that named-volume ownership remains unproven. Defined VOL-02 as a read-only Podman volume/user-namespace capability review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
