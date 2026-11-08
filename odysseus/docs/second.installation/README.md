@@ -167,10 +167,17 @@ The canonical audit was advanced to **v3.25** and the Stage B2 evidence was reco
 
 ### Latest continuation — 2026-11-08 (canonical audit v3.26)
 
-**VOL-05-MAP-G Stage C is complete — PASS.** The exact disposable container ran the bounded Python probe as UID/GID 1000:1000. The mounted volume directory was owned by 1000:1000 with mode 0755; the bounded write/readback matched; the proof file was owned by 1000:1000 with mode 0600. `podman start --attach` and the container exit code were 0; the container exited normally, OOMKilled was false, and the logs repeated the successful output. The container and named volume remain present; no cleanup or restart was performed. The supplied output did not independently identify fsync as a separate observation or disclose the proof-file path.
+**VOL-05-MAP-G Stage C is complete — PASS.** The exact disposable container ran the bounded Python probe as UID/GID 1000:1000. The mounted volume directory was owned by 1000:1000 with mode 0755; the bounded write/readback matched; the proof file was owned by 1000:1000 with mode 0600. `podman start --attach` and the container exit code were 0; the container exited normally, OOMKilled was false, and the logs repeated the successful output. The supplied output did not independently identify fsync as a separate observation or disclose the proof-file path.
+
+**VOL-05-MAP-G Stage D is complete — PARTIAL overall.** `podman unshare stat/find` confirmed the volume directory UID/GID 1000:1000 mode 755 and discovered `mapg-proof.txt` UID/GID 1000:1000 mode 600. Ordinary host `ls -lan` returned `Permission denied`; the direct host view is unavailable and is not treated as evidence of missing data. The container and named volume remain present; cleanup has not been performed.
 
 The canonical audit advanced to **v3.26**, with exact command/output recorded in §18.5.11, dependency gate §12 and continuation handoff §18 updated. Read-back verification passed. Runtime-test accounting is **1/5 since the unchanged v3.20 archive checkpoint**; no archive snapshot is due yet.
 
 **Next gate:** VOL-05-MAP-G Stage D — read-only host-side ownership inspection through `podman unshare`, using the existing volume mountpoint and discovering the proof-file name from its contents. Review Stage D before separate exact cleanup.
 
 **Installation authorization policy:** Installation remains **NOT AUTHORIZED**. Per the user's instruction, the audit now records a conditional status transition to **INSTALLATION: AUTHORIZED** only after every required container/runtime, source/build, security-boundary, lifecycle/recovery and final security-acceptance gate is evidence-backed GREEN/PASS, with no unresolved blocker. This successful volume probe alone does not authorize installation or any host changes.
+
+
+### Latest continuation — 2026-11-08 (canonical audit v3.27)
+
+VOL-05-MAP-G Stage D is recorded in canonical audit §18.5.12. The container remains exited (exit 0), and the volume metadata reports UID/GID 1000:1000. Ordinary host `ls -lan` could not access the mountpoint (`Permission denied`). In contrast, `podman unshare stat` confirmed the directory as UID/GID 1000:1000 mode 755, and `podman unshare find` discovered `mapg-proof.txt` as UID/GID 1000:1000 mode 600. Stage D is PARTIAL overall because the ordinary host listing was unavailable; the namespace-view ownership inspection succeeded. This was read-only and does not increment the runtime-test counter, which remains 1/5 since the unchanged v3.20 archive snapshot. The next gate is separately documented exact cleanup of the disposable container and named volume, followed by independent absence verification. Installation remains NOT AUTHORIZED under the user's conditional all-gates-green rule.
