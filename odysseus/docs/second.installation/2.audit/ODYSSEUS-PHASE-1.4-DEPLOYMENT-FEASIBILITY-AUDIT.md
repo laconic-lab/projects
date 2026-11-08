@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.26  
+> **Version:** 3.27  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2532,7 +2532,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
-| 5 | Exact candidate UID/application identity and explicit namespace map / named-volume ownership | Validate source-grounded application UID/GID 1000, explicit rootless UID/GID map, container-visible named-volume ownership and application-identity write/readback | **MAP-F PASS; MAP-G Stage C PASS for container-visible directory/file ownership and write/readback. Host-side `podman unshare` ownership verification and exact disposable-resource cleanup remain open. UID-04 remains a scoped FAIL for its distinct `nomap` bind-mount sequence.** |
+| 5 | Exact candidate UID/application identity and explicit namespace map / named-volume ownership | Validate source-grounded application UID/GID 1000, explicit rootless UID/GID map, container-visible named-volume ownership and application-identity write/readback | **MAP-F PASS; MAP-G Stage C PASS for container-visible ownership/write/readback; Stage D PARTIAL overall: `podman unshare` confirms directory/file ownership and modes, but ordinary host `ls -lan` is denied. Exact disposable-resource cleanup and independent absence verification remain open. UID-04 remains a scoped FAIL for its distinct `nomap` bind-mount sequence.** |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
@@ -2802,7 +2802,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.26. The unchanged v3.20 checkpoint snapshot remains the latest archive snapshot; its five-test checkpoint was verified byte-for-byte. Runtime-test counter is **1/5 since v3.20**: VOL-05-MAP-G Stage C is the first completed runtime test after that checkpoint. Stages A/B2 are preflight/read-only inspection; Stage B is resource setup, not a runtime test.
+**Canonical version:** 3.27. The unchanged v3.20 checkpoint snapshot remains the latest archive snapshot; its five-test checkpoint was verified byte-for-byte. Runtime-test counter is **1/5 since v3.20**: VOL-05-MAP-G Stage C is the first completed runtime test after that checkpoint. Stages A/B2/D are preflight/read-only inspection; Stage B is resource setup, not a runtime test.
 
 **Audit status:** ACTIVE — audit only. **Installation is NOT YET AUTHORIZED.** The user directed that the installation authorization rule change only after all required container/runtime tests and final acceptance gates are green. Until then, all installation/build/deployment prohibitions remain in force. The conditional rule is recorded in §18.6; this volume-probe PASS alone does not trigger it.
 
@@ -2810,11 +2810,11 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Latest runtime result — VOL-05-MAP-G Stage C PASS:** The exact disposable container `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30` was started once with `podman start --attach`. The bounded Python probe reported process UID/GID 1000:1000; /probe directory UID/GID 1000:1000 and mode 0755; successful file creation and byte-for-byte readback (`Readback matches: True`); proof-file UID/GID 1000:1000 and mode 0600. Start/attach returned 0; final container state was exited, not running, exit code 0, OOMKilled false, empty error; logs independently repeated the successful output. This establishes container-visible named-volume access and write/readback for this exact Podman 6.0.2 mapping/image/probe. It does not establish host-side ownership interpretation, persistence across container recreation, production application compatibility, or overall deployment security.
 
-**Current storage conclusion:** VOL-05-MAP-G Stages A, B, B2 and C are complete. The disposable volume and exited container have intentionally **not** been removed. Next is a read-only host-side ownership inspection through `podman unshare`, using the exact existing volume's mountpoint and observed contents. Do not recreate, start, modify or clean up either resource before that inspection is reviewed. Then perform a separately documented exact cleanup and independently verify absence.
+**Current storage conclusion:** VOL-05-MAP-G Stages A, B, B2, C and D are recorded. Stage D confirmed the directory and proof-file ownership/modes in the `podman unshare` view (UID/GID 1000:1000; directory 0755; file 0600). Ordinary host `ls -lan` was denied with `Permission denied`, so direct host-view inspection is unavailable; do not misreport it as a missing file or failed ownership mapping. The disposable volume and exited container remain present. Next is a separately approved/documented exact cleanup and independent absence verification.
 
 **Runtime-test accounting:** Counter is **1/5 since the unchanged v3.20 archive checkpoint**. Stage C is counted once; A/B2 are not, and B is resource setup. When the fifth runtime test is completed, perform the mandatory documentation consistency review and unchanged versioned archive snapshot. No archive is due now.
 
-**Next dependency — VOL-05-MAP-G Stage D:** verify the volume mountpoint and inspect the directory and proof-file ownership/modes from the rootless Podman user namespace using `podman unshare`. This is a new evidence layer: Stage C proved ownership as seen inside the container, not its host-side translated IDs. Do not infer the proof-file name; obtain it from the volume contents. After Stage D is reviewed, proceed to a separate cleanup gate. Installation remains unauthorized pending all required green lights and final acceptance.
+**Stage D disposition:** PARTIAL overall. The `podman unshare` view successfully inspected the exact volume directory and discovered `mapg-proof.txt`; both are owned by UID/GID 1000:1000 with modes 0755 and 0600 respectively. The ordinary host `ls -lan` returned `Permission denied`. The exact command and full output are recorded in §18.5.12. This confirms ownership in the rootless Podman user-namespace view, but does not provide a direct ordinary-host listing or independently establish host-visible numeric IDs. **Next gate:** separately documented exact cleanup of the disposable container and volume, followed by independent verification that both are absent. Installation remains unauthorized.
 
 ### 18.1 What is already established
 
@@ -4172,6 +4172,124 @@ PODMAN_LOGS_EXIT=0
 
 **Decision / next gate:** Continue to Stage D — read-only host-side ownership inspection through `podman unshare`. Inspect the exact volume mountpoint and its entries; identify the actual proof-file name from directory contents rather than guessing. Do not remove the container or volume until Stage D is reviewed. Installation remains unauthorized.
 
+
+### 18.5.12 VOL-05-MAP-G — Stage D host-side ownership inspection (2026-11-08)
+
+**Status:** PARTIAL overall. The rootless Podman user-namespace inspection succeeded and confirmed the exact volume directory and proof-file ownership/modes. The ordinary host-side directory listing was denied, so that view remains unavailable.
+
+**Question:** After Stage C proved container-visible ownership and write/readback, what ownership and mode does the exact volume content show through the host's ordinary filesystem view and through `podman unshare`?
+
+**Environment and prerequisites:** SteamOS host, rootless Podman 6.0.2; exact exited container ID `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30`; named volume `odysseus-vol05-mapg-20261108`. Stage C completed the runtime probe. Stage D was read-only; no start, write, resource creation or cleanup was performed.
+
+**Exact command executed:**
+
+```bash
+echo "===== VOL-05-MAP-G: STAGE D — HOST-SIDE OWNERSHIP ====="
+
+VOLUME_NAME="odysseus-vol05-mapg-20261108"
+CONTAINER_ID="61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30"
+
+echo
+echo "===== 1. VERIFY CONTAINER STATE ====="
+
+podman inspect --format \
+'ID={{.Id}} STATUS={{.State.Status}} RUNNING={{.State.Running}} EXIT={{.State.ExitCode}}' \
+"$CONTAINER_ID"
+
+echo
+echo "===== 2. VERIFY VOLUME ====="
+
+podman volume inspect "$VOLUME_NAME"
+
+echo
+echo "===== 3. RESOLVE EXACT VOLUME MOUNTPOINT ====="
+
+MOUNTPOINT="$(podman volume inspect --format '{{.Mountpoint}}' "$VOLUME_NAME")"
+
+printf 'MOUNTPOINT=%s\n' "$MOUNTPOINT"
+
+test -n "$MOUNTPOINT" || {
+  echo "FAIL: empty mountpoint"
+  exit 1
+}
+
+echo
+echo "===== 4. HOST VIEW — NUMERIC OWNERSHIP ====="
+
+ls -lan "$MOUNTPOINT"
+
+echo
+echo "===== 5. PODMAN UNSHARE VIEW — DIRECTORY OWNERSHIP ====="
+
+podman unshare stat -c \
+'PATH=%n UID=%u GID=%g MODE=%a TYPE=%F' \
+"$MOUNTPOINT"
+
+echo
+echo "===== 6. PODMAN UNSHARE VIEW — ALL PROBE ENTRIES ====="
+
+podman unshare find "$MOUNTPOINT" \
+  -mindepth 1 -maxdepth 2 \
+  -printf 'UID=%U GID=%G MODE=%m TYPE=%y PATH=%p\n'
+
+echo
+echo "===== STAGE D COMPLETE — READ-ONLY ====="
+```
+
+**Actual output:**
+
+```text
+===== VOL-05-MAP-G: STAGE D — HOST-SIDE OWNERSHIP =====
+
+===== 1. VERIFY CONTAINER STATE =====
+ID=61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30 STATUS=exited RUNNING=false EXIT=0
+
+===== 2. VERIFY VOLUME =====
+Name: odysseus-vol05-mapg-20261108
+Driver: local
+Mountpoint: /home/deck/.local/share/containers/storage/volumes/odysseus-vol05-mapg-20261108/_data
+CreatedAt: 2026-11-08T22:46:47.430557203+01:00
+UID: 1000
+GID: 1000
+MountCount: 0
+NeedsCopyUp: true
+
+===== 3. RESOLVE EXACT VOLUME MOUNTPOINT =====
+MOUNTPOINT=/home/deck/.local/share/containers/storage/volumes/odysseus-vol05-mapg-20261108/_data
+
+===== 4. HOST VIEW — NUMERIC OWNERSHIP =====
+ls: cannot access '/home/deck/.local/share/containers/storage/volumes/odysseus-vol05-mapg-20261108/_data': Permission denied
+
+===== 5. PODMAN UNSHARE VIEW — DIRECTORY OWNERSHIP =====
+PATH=/home/deck/.local/share/containers/storage/volumes/odysseus-vol05-mapg-20261108/_data UID=1000 GID=1000 MODE=755 TYPE=directory
+
+===== 6. PODMAN UNSHARE VIEW — ALL PROBE ENTRIES =====
+UID=1000 GID=1000 MODE=600 TYPE=f PATH=/home/deck/.local/share/containers/storage/volumes/odysseus-vol05-mapg-20261108/_data/mapg-proof.txt
+
+===== STAGE D COMPLETE — READ-ONLY =====
+```
+
+**Observed result:**
+
+| Check | Result |
+|---|---|
+| Container state | `exited`, not running, exit code 0 |
+| Volume metadata | Driver local; UID/GID 1000:1000; MountCount 0; NeedsCopyUp true |
+| Resolved mountpoint | Exact expected volume `_data` path |
+| Ordinary host `ls -lan` | `Permission denied`; no listing obtained |
+| `podman unshare stat` on directory | UID/GID 1000:1000; mode 755; directory |
+| `podman unshare find` | `mapg-proof.txt`, UID/GID 1000:1000; mode 600; regular file |
+
+**Interpretation:** The `podman unshare` namespace view confirms the expected directory and proof-file ownership/modes and independently discovers the file created by Stage C. The host's ordinary listing failed with `Permission denied`; this is an access limitation in that view, not evidence that the volume or file is absent. Volume metadata UID/GID values are recorded but are not substituted for the failed host listing. Stage D is therefore PARTIAL overall: the namespace-view ownership check passed, while direct ordinary-host inspection was not obtained.
+
+**Limits:** This does not establish ordinary host-visible numeric ownership, persistence across container recreation, production Odysseus image/data compatibility, backup/restore, or overall deployment security. No permission changes or alternate privileged inspection were attempted.
+
+**Side effects and current state:** Read-only inspection only. Container remains exited; named volume and proof file remain present. No cleanup, restart, write, image pull, package, network, host setting or protected-project operation occurred.
+
+**Runtime-test accounting:** Stage D is a read-only inspection, not a runtime test. Counter remains **1/5 since the unchanged v3.20 archive checkpoint**.
+
+**Decision / next gate:** The rootless Podman namespace-view check is confirmed. Proceed only to a separately documented exact cleanup of this disposable container and named volume, then independently verify both resources are absent. Installation remains NOT AUTHORIZED.
+
 ### 18.6 Explicitly not authorized
 
 **Conditional installation-authorization rule (user-directed):** The current status remains **NOT AUTHORIZED**. Once every required container/runtime test, source/build gate, security-boundary test, lifecycle/recovery test and final security-acceptance criterion in §12 has an evidence-backed GREEN/PASS disposition, and the complete audit has been reconciled with no unresolved blocker or scoped failure that invalidates the selected architecture, update the status to **INSTALLATION: AUTHORIZED**. This is a status transition only; it does not itself execute installation or authorize unrelated host changes. If any required gate is failed, partial, inconclusive, blocked or untested, installation remains NOT AUTHORIZED. The user explicitly requested this conditional rule; it must not be applied prematurely after an isolated successful probe.
@@ -4254,6 +4372,7 @@ The first assistant action in a new conversation should be:
 | 3.22 | 2026-11-08 | Added §18.5.7 as a transcript supplement preserving the complete user-executed shell wrappers for VOL-05-MAP-F Stages B, B2, C and D, including headings, status capture and completion markers. The runtime result, cleanup, v3.20 archive snapshot and next gate are unchanged. Documentation-only correction; no new test or resource/host operation. |
 
 
+| 3.27 | 2026-11-08 | Recorded VOL-05-MAP-G Stage D read-only ownership inspection: `podman unshare stat/find` confirmed volume directory UID/GID 1000:1000 mode 755 and discovered `mapg-proof.txt` UID/GID 1000:1000 mode 600; ordinary host `ls -lan` returned Permission denied. Classified Stage D PARTIAL overall, preserving the successful namespace-view result and unavailable ordinary-host view. No resource cleanup or host permission change; runtime counter remains 1/5 since unchanged v3.20 snapshot. Next is exact disposable container/volume cleanup and independent absence verification. Installation remains NOT AUTHORIZED. |
 | 3.26 | 2026-11-08 | Recorded VOL-05-MAP-G Stage C runtime probe PASS with exact user-supplied command and output: process UID/GID 1000:1000; volume directory ownership 1000:1000 mode 0755; readback match true; proof-file ownership 1000:1000 mode 0600; start/attach and container exit code 0; OOM false; logs repeat successful output. Did not claim separately observed fsync or infer proof-file path. Container and volume remain present; no cleanup/restart. Runtime counter advanced to 1/5 since unchanged v3.20 checkpoint. Updated §12 and §18 handoff; next is read-only host-side ownership inspection through podman unshare, then separate cleanup. Recorded user's conditional rule: installation status changes from NOT AUTHORIZED to AUTHORIZED only after every required gate and final acceptance is evidence-backed GREEN/PASS with no unresolved blocker; this isolated PASS does not authorize installation. |
 | 3.25 | 2026-11-08 | Recorded VOL-05-MAP-G Stage B2 read-only inspection: exact container ID/name and stopped state verified; cached image/digest, process identity, normalized UID/GID maps, no-network/read-only-root/capability/no-new-privileges settings and read/write /probe volume mount matched the intended design. Volume metadata reported UID/GID 1000:1000, MountCount 0 and NeedsCopyUp true; explicitly retained that these do not prove application-process write access. Python probe remains unexecuted. Stage B2 is read-only, so runtime-test count remains 0/5 since the unchanged v3.20 archive checkpoint. Authorized next gate is Stage C bounded execution in the existing disposable container, followed by result inspection before cleanup. No resource or host configuration changed. |
 | 3.24 | 2026-11-08 | Recorded VOL-05-MAP-G Stage B: created the disposable named volume with UID/GID 1000 and created the stopped restricted probe container using the MAP-F-validated explicit UID/GID maps, exact cached image, no network, read-only root, dropped capabilities, no-new-privileges and UID/GID 1000:1000. Recorded full container ID; container was not started. Stage B2 read-only inspection is next; runtime-test count remains 0/5 since v3.20. No image pull, package/service/host configuration change. |
