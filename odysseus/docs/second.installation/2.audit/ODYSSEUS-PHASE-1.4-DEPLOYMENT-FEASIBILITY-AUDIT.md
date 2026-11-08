@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.13  
+> **Version:** 3.14  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,10 +2572,10 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.13  
+**Canonical version:** 3.14  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
-**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. Runtime-test count is now 4/5 since the v1.2 checkpoint.
+**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. VOL-05-MAP-A read-only mapping inspection confirms the VOL-01 rootless map and exposes UID/GID map flags; it does not yet resolve private-namespace semantics. Runtime-test count remains 4/5 since the v1.2 checkpoint.
 
 ### 18.1 What is already established
 
@@ -3177,7 +3177,48 @@ The exact temporary volume was removed successfully. The exact container was alr
 - **Runtime-test accounting:** Count advances from **3/5 to 4/5** since the v1.2 archive checkpoint. This failed/partial runtime attempt counts under §0.4/§0.5; one more completed test triggers the five-test consistency review and unchanged archive snapshot. No snapshot is due yet.
 - **Next gate:** Read-only Podman user-namespace/mapping review specific to rootless `--userns=private`, explicit `--uidmap`/`--gidmap`, and how those mappings interact with the volume ownership reported by `podman unshare stat`. Reconcile with VOL-01 before proposing any corrected probe. No container/volume creation is authorized by this next review; obtain separate approval before another runtime attempt.
 
-### 18.5 Explicitly not authorized
+
+### 18.5 VOL-05-MAP-A — read-only mapping investigation (2026-11-08)
+
+**Review type:** READ-ONLY HOST / PODMAN MAPPING INSPECTION.  
+**Question:** What mapping configuration and subordinate-ID evidence is available to explain the VOL-04 `--userns=private` creation error and reconcile rootless volume ownership?
+
+**Exact command families executed:** Podman version; filtered `podman info --debug`; mapping-related `podman create --help`; host `/proc/self/uid_map`, `gid_map` and `setgroups`; `podman unshare id` and its UID/GID maps and `setgroups`; `/etc/subuid`, `/etc/subgid`; executable path and file mode for `newuidmap` and `newgidmap`.
+
+**Observed results:**
+
+| Item | Observed result |
+|---|---|
+| Podman | 6.0.2, rootless, linux/amd64 |
+| Podman configured UID map | container 0 → host 1000, size 1; container 1 → host 100000, size 65536 |
+| Podman configured GID map | Same as UID map |
+| Host process UID/GID maps | Each reports `0 0 4294967295`; `setgroups=allow` |
+| `podman unshare id` | `uid=0(root) gid=0(root) groups=0(root),65534(nobody)` |
+| `podman unshare` UID/GID maps | Each reports `0 1000 1` and `1 100000 65536` |
+| `podman unshare` setgroups | `allow` |
+| Subordinate UID/GID allocation | `deck:100000:65536` in both files |
+| Mapping options exposed by `podman create --help` | `--uidmap`, `--gidmap`, `--subuidname`, `--subgidname`, `--userns`, `--user` |
+| Mapping helpers | `/usr/bin/newuidmap` and `/usr/bin/newgidmap` exist; both shown as mode 0755, owner root:root; their `--version` invocations printed usage rather than a version |
+
+**Interpretation:**
+
+1. The configured Podman rootless UID/GID maps exactly reproduce VOL-01 and VOL-02. This is corroborating evidence, not a new mapping result.
+2. The host process is observed in a full-range identity map (`0 → 0`), while Podman's rootless unshare context maps its namespace root to host UID/GID 1000 and the remaining IDs to the subordinate range. These are distinct namespace views and must not be conflated.
+3. Under the recorded rootless map, container UID/GID 1000 corresponds to host UID/GID 100999. The same host ID is represented as UID/GID 1000 inside `podman unshare`. This arithmetic is consistent with the VOL-04 ownership observation, but does not prove that a newly created container namespace will expose the volume as writable.
+4. Podman exposes explicit UID/GID mapping flags and subordinate-range selectors. Their presence establishes CLI capability only; it does not establish the correct mapping syntax, the semantics of `--userns=private` on this SteamOS build, or whether a particular mapping will be accepted.
+5. The helper files' observed mode is recorded without inferring whether Podman uses them for this operation or whether their permissions explain the VOL-04 error.
+6. The Stage A output does not include the full help description/value list for `--userns`, nor does it demonstrate any private namespace creation. The VOL-04 error therefore remains specifically an observed rejection of that invocation without a UID/GID map; its broader cause is unresolved.
+
+**Result:** VOL-05-MAP-A COMPLETE — MAPPING BASELINE RECONFIRMED; PRIVATE-NAMESPACE SEMANTICS AND VOLUME WRITABILITY STILL UNRESOLVED.
+
+**Safety and side effects:** Commands queried Podman metadata/help, procfs maps, subordinate-ID files and helper-file metadata. No container, volume, image, network, directory, package, service, mapping or host configuration was created or changed. No existing resource was used as a test fixture.
+
+**Next gate — VOL-05-MAP-B:** continue read-only investigation of the exact installed Podman help/documentation or locally available source describing `--userns=private`, `--uidmap`/`--gidmap` and rootless mapping defaults. Do not retry container creation, remove `--userns`, supply guessed mappings, or create any resource. If local evidence cannot resolve the semantics, present a fully specified corrected disposable experiment for separate explicit approval.
+
+**Runtime-test accounting:** VOL-05-MAP-A is a read-only inspection, not a runtime test. Count remains **4/5** since the v1.2 checkpoint; no five-test archive snapshot is triggered.
+
+
+### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
 - Downloading images or source dependencies.
@@ -3189,7 +3230,7 @@ The exact temporary volume was removed successfully. The exact container was alr
 - Host firewall, DNS, routing, cgroup, systemd or kernel changes.
 - Boot autostart, background tasks or persistent services.
 
-### 18.6 New ChatGPT session opening instruction
+### 18.7 New ChatGPT session opening instruction
 
 The first assistant action in a new conversation should be:
 
@@ -3240,6 +3281,8 @@ The first assistant action in a new conversation should be:
 | 3.11 | 2026-11-08 | Recorded VOL-04-PREFLIGHT-2: exact cached Python image exists and reports linux/amd64, empty configured user, no entrypoint, default command python3, and two repository digests. Image was inspected but not run. Prepared next gate as a proposed disposable named-volume experiment requiring exact command review and separate explicit approval. No runtime test, container, volume, image execution, pull or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.12 | 2026-11-08 | Recorded VOL-04-NAME-PREFLIGHT: exact proposed volume and container names both returned CLEAR in read-only Podman listings. Added the exact executed command/output, scope and evidence limits; advanced VOL-04 to exact sequence review pending explicit approval. Corrected the continuation handoff version to 3.12. No resources created or changed; this is not a runtime test, so count remains 3/5 since v1.2 and no five-test archive snapshot is triggered. |
 | 3.13 | 2026-11-08 | Recorded the approved VOL-04 disposable runtime attempt. Final preflight passed on x86_64/rootless Podman with the exact cached image and names clear. Named-volume creation with `--uid 1000 --gid 1000` succeeded; `podman volume inspect` reported UID/GID 1000 and `podman unshare stat` reported 1000:1000, mode 755. Container creation failed because the explicit `--userns=private` invocation supplied no UID/GID mapping; no container was created and the write/readback probe did not run. Start attempt returned 125 because the container did not exist. Exact volume cleanup and independent container/volume absence checks passed. Overall VOL-04 is PARTIAL/INCONCLUSIVE, not a volume-write failure. Runtime-test count advances to 4/5 since v1.2; no five-test snapshot yet. Updated §18 handoff to a read-only user-namespace/mapping review; no installation or host configuration change. |
+| 3.14 | 2026-11-08 | Recorded VOL-05-MAP-A read-only mapping inspection: reconfirmed Podman's rootless UID/GID maps and subordinate-ID allocation, distinguished host and podman-unshare namespace views, recorded explicit mapping CLI options and helper metadata, and retained the private-namespace cause and named-volume writability as unresolved. No resources or host configuration changed; runtime-test count remains 4/5 and no archive snapshot is triggered. |
+
 ---
 
 *End of canonical Phase 1.4 audit record.*
