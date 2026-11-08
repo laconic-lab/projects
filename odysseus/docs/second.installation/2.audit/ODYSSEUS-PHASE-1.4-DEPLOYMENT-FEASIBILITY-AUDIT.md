@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.8  
+> **Version:** 3.9  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,7 +2572,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 2.7  
+**Canonical version:** 3.9  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2778,7 +2778,7 @@ echo "===== VOL-01 PREFLIGHT COMPLETE ====="
 
 **Safety and side effects:** the executed commands queried version, debug metadata, subordinate-ID files, volume listing and storage usage. No volume/container/image/network was created, mounted, changed or removed; no ownership, permissions, mapping, service or host configuration was changed. No protected project was intentionally targeted. The user did not provide a separate shell exit-status summary; the displayed output reached the completion marker.
 
-**Next gate — VOL-03:** inspect the locally installed `podman-volume-create` manual/documentation to establish the documented meaning of `--uid`/`--gid` for rootless local volumes and whether the values are interpreted in the caller's or container's user namespace. This remains read-only. If local documentation does not resolve the ambiguity, present the smallest disposable named-volume experiment for separate approval. Do not create a volume or container without that approval.
+**Next gate — VOL-02:** perform the Podman volume and user-namespace capability review. This remains read-only. If local documentation does not resolve the ambiguity, present the smallest disposable named-volume experiment for separate approval. Do not create a volume or container without that approval.
 
 **Test accounting:** VOL-01 is a read-only preflight, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
@@ -2840,9 +2840,102 @@ echo "===== VOL-02 CAPABILITY REVIEW COMPLETE ====="
 
 **Safety and side effects:** all commands queried help text or read the user-namespace mapping. No volume, container, image, network or directory was created, mounted, changed or removed. No ownership, permissions, mapping, service or host configuration was changed. The user-provided output reached the completion marker.
 
-**Next gate — VOL-03:** inspect the locally installed `podman-volume-create` manual/documentation to establish the documented meaning of `--uid`/`--gid` for rootless local volumes and whether the values are interpreted in the caller's or container's user namespace. This remains read-only. If local documentation does not resolve the ambiguity, present the smallest disposable named-volume experiment for separate approval. Do not create a volume or container without that approval.
+**Next gate — VOL-03:** inspect locally installed Podman documentation for --uid/--gid semantics and rootless named-volume ownership. If local documentation is unavailable or inconclusive, define a minimal disposable named-volume experiment for separate approval; do not create resources without that approval.
 
 **Test accounting:** VOL-02 is a read-only capability review, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+
+
+
+#### Targeted closure review 4 — VOL-03 local Podman volume documentation
+
+**Review type:** READ-ONLY LOCAL DOCUMENTATION REVIEW; no volume/container test.  
+**Host:** Steam Deck OLED, rootless Podman 6.0.2.  
+**Question:** Do locally installed Podman manuals or documentation explain how podman volume create --uid/--gid values are interpreted for rootless named volumes?
+
+**Exact commands executed (first attempt):**
+
+~~~bash
+echo "===== VOL-03: LOCAL PODMAN VOLUME DOCUMENTATION ====="
+
+echo
+echo "===== 1. VOLUME CREATE MANUAL ====="
+man -P cat podman-volume-create 2>&1
+
+echo
+echo "===== 2. VOLUME MOUNT MANUAL ====="
+man -P cat podman-volume-mount 2>&1
+
+echo
+echo "===== 3. ROOTLESS USER-NAMESPACE MANUAL ====="
+man -P cat podman-unshare 2>&1
+
+echo
+echo "===== 4. LOCAL DOCUMENTATION SEARCH ====="
+grep -RniE \
+  'volume create.*uid|volume.*--uid|rootless.*volume|user namespace.*volume' \
+  /usr/share/man/man1 /usr/share/doc/containers 2>/dev/null | head -n 100
+
+echo
+echo "===== VOL-03 DOCUMENTATION REVIEW COMPLETE ====="
+~~~
+
+**First-attempt result:** SteamOS man rejected the -P option and printed its supported usage. The recursive search across /usr/share/man/man1 and /usr/share/doc/containers returned no matches. The manuals were therefore not displayed; this attempt was inconclusive.
+
+**Exact corrected commands executed:**
+
+~~~bash
+echo "===== VOL-03-R: CORRECTED LOCAL PODMAN MANUAL INSPECTION ====="
+
+echo
+echo "===== 1. VOLUME CREATE MANUAL ====="
+man -c podman-volume-create 2>&1
+
+echo
+echo "===== 2. VOLUME MOUNT MANUAL ====="
+man -c podman-volume-mount 2>&1
+
+echo
+echo "===== 3. ROOTLESS USER-NAMESPACE MANUAL ====="
+man -c podman-unshare 2>&1
+
+echo
+echo "===== 4. AVAILABLE LOCAL PODMAN MANUAL FILES ====="
+find /usr/share/man -type f \
+  \( -iname '*podman*volume*' -o -iname '*podman*unshare*' \) \
+  -print 2>/dev/null
+
+echo
+echo "===== 5. MAN IMPLEMENTATION ====="
+man --help 2>&1
+
+echo
+echo "===== VOL-03-R INSPECTION COMPLETE ====="
+~~~
+
+**Corrected-attempt observations:**
+
+1. man -c podman-volume-create, man -c podman-volume-mount and man -c podman-unshare each returned "man: No entry for ... in the manual".
+2. find /usr/share/man returned no matching Podman volume or unshare manual files.
+3. The man --help invocation was not a usable help query on this SteamOS implementation; it returned mandoc option errors and usage. No further conclusion is drawn from it.
+4. Neither attempt surfaced documentation explaining whether --uid/--gid are interpreted in the caller's host/rootless namespace or in the container's eventual namespace.
+5. Neither attempt tested actual ownership or write access.
+
+**Interpretation:** LOCAL MANUAL DOCUMENTATION UNAVAILABLE; SEMANTICS UNRESOLVED. This is an environment/documentation limitation, not evidence that Podman's named-volume feature is absent or defective. VOL-02 still establishes that Podman 6.0.2 exposes --uid/--gid; VOL-01 still establishes the rootless UID/GID maps. Their interaction remains unproven.
+
+**Safety and side effects:** both attempts only queried man, searched documentation paths and listed matching files. No volume, container, image, network or directory was created, mounted, changed or removed. No ownership, permissions, mappings, services or host configuration were changed. The user-provided output reached the completion marker for both attempts.
+
+**Result:** VOL-03 CLOSED AS INCONCLUSIVE. The local documentation route did not answer the namespace-semantics question. Do not infer the semantics from the option names or proceed directly to a real application volume.
+
+**Next gate — VOL-04 (PROPOSAL ONLY; APPROVAL REQUIRED):** prepare a minimal disposable named-volume experiment that:
+- uses a unique temporary volume name and a previously cached, already-approved probe image only;
+- creates exactly one named volume with explicit --uid/--gid values, without touching any of the six inventoried existing volumes;
+- inspects the volume metadata and tests write access as the intended fixed non-root UID/GID inside a disposable container;
+- records host/rootless/container namespace mappings and observed ownership from both podman volume inspect and inside the container;
+- removes only the exact temporary container and volume, then independently verifies their absence.
+
+No command for creating or mounting the volume is authorized by this proposal. Before execution, the image identity/cache status, exact volume/container names, command sequence, cleanup path and rollback boundary must be presented for explicit user approval. If the exact probe image is not already cached and suitable, stop rather than pull or build one.
+
+**Test accounting:** VOL-03 and VOL-03-R are documentation-review attempts, not runtime tests. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
 
 ### 18.3 Explicitly not authorized
@@ -2903,6 +2996,7 @@ The first assistant action in a new conversation should be:
 | 3.6 | 2026-11-08 | Targeted read-only closure review found that `AuthManager.setup()` can be called without importing the database module, but auth/session JSON writes do not explicitly enforce 0600, corrupt existing auth state can be treated as unconfigured, and setup locking is process-local. Also recorded the separate `.app_key` and `.key` secrets, post-write chmod behavior, import-time database initialization/migrations (including a potentially destructive legacy table drop), and warning-only DB chmod failure. Strengthened bootstrap, key backup, migration and fail-closed permission requirements. No code or runtime action; completed-test count remains 3/5; no archive snapshot triggered. |
 | 3.7 | 2026-11-08 | Recorded VOL-01 read-only rootless Podman storage preflight: Podman 6.0.2, subordinate UID/GID map (container 0 → host 1000; container 1–65536 → host 100000–165535), graph/run/volume paths, six existing volumes and storage inventory. Clarified that container UID/GID 1000 maps to host 100999 and that named-volume ownership remains unproven. Defined VOL-02 as a read-only Podman volume/user-namespace capability review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.8 | 2026-11-08 | Recorded VOL-02 read-only capability review: installed Podman 6.0.2 exposes named-volume `--uid`/`--gid`, volume inspection, rootless `podman unshare`, and container user-namespace/ID-map controls. Confirmed the unshare UID/GID maps match VOL-01. Marked native volume ownership as a promising but unproven mechanism because help output does not resolve numeric-ID namespace semantics or prove non-root write access. Advanced to VOL-03 local documentation review; no volume/container was created or changed. Runtime-test count remains 3/5; no archive snapshot triggered. |
+| 3.9 | 2026-11-08 | Recorded VOL-03 and corrected VOL-03-R local documentation review. SteamOS man rejected the unsupported -P option; corrected man -c requests found no entries for the three Podman manuals, and the local manual-file search found no matching pages. Marked the documentation route inconclusive without inferring a Podman feature failure or UID/GID namespace semantics. Defined VOL-04 as a disposable named-volume experiment proposal only, requiring separate explicit approval and a cached suitable probe image. Updated the continuation handoff; no volume/container/runtime test or host/resource change. Completed runtime-test count remains 3/5 since v1.2; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
