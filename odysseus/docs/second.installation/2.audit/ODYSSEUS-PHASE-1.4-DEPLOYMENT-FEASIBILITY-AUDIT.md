@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.11  
+> **Version:** 3.12  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,7 +2572,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.10  
+**Canonical version:** 3.12  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2982,12 +2982,78 @@ echo "===== VOL-04-PREFLIGHT COMPLETE ====="
 
 **VOL-04-PREFLIGHT-2 completed (READ-ONLY):** the exact local Python image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5` exists (exit code 0) and reports `OS=linux`, `ARCH=amd64`, empty configured user, no entrypoint, and default command `[python3]`. Its repository digests include `sha256:d44b1254cb92329418d164b22b20d86bbd3869d48e80e09e476531a409a728bb` and `sha256:c480059ce7dd8fc98f30e2a56cc3b54e559c3b3b66cc498a92f641237a47f288`. The image was inspected by immutable local ID; it was not run. The empty configured user means any probe must explicitly set the intended numeric identity (candidate `1000:1000`) rather than rely on image defaults. The `amd64` image architecture is recorded; confirm compatibility with the host's execution architecture before running. **Result:** candidate configuration is suitable for designing a controlled Python probe, but this does not establish volume ownership semantics or write access.
 
-**Next gate — VOL-04 experiment proposal (NOT AUTHORIZED):** prepare an exact, uniquely named disposable named-volume test using only this cached immutable image ID, with image pulling disabled and an explicit non-root identity. The proposal must define creation, inspection, write/stat verification, failure handling and exact cleanup/absence checks. Do not create the volume or container until the user explicitly approves that exact sequence.
+**VOL-04-NAME-PREFLIGHT completed (READ-ONLY):** the proposed unique names `odysseus-vol04-probe-20261108` were checked independently against the current Podman volume and all-container name listings. Both checks returned **CLEAR**; neither a volume nor a container with that exact name existed at the time of the check. This clears the name-collision prerequisite only. It does not create, reserve or authorize either resource.
 
-**Test accounting:** VOL-04-PREFLIGHT is read-only inventory, not a runtime test. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
+**Next gate — VOL-04 exact experiment sequence (READY FOR REVIEW; NOT YET AUTHORIZED):** the cached immutable Python image and both unique names are now preflighted. Present the complete exact create/inspect/run/verify/cleanup sequence, including failure handling and absence checks, for the user's explicit approval before creating anything. Use only image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`, disable pulling, explicitly run as UID/GID `1000:1000`, use `--network=none` and a read-only container root, and touch only the new named volume and disposable container. No existing volume/container may be modified or used as a test target.
+
+**Test accounting:** VOL-04-PREFLIGHT, VOL-04-PREFLIGHT-2 and VOL-04-NAME-PREFLIGHT are read-only preflight steps, not runtime tests. Completed runtime-test count remains **3/5** since the v1.2 checkpoint; no archive snapshot is triggered.
 
 
-### 18.3 Explicitly not authorized
+### 18.3 VOL-04-NAME-PREFLIGHT — read-only name-collision check
+
+- **Date:** 2026-11-08
+- **Status:** PASS — both proposed names were clear at check time
+- **Environment:** SteamOS host; rootless Podman CLI
+- **Prerequisites:** VOL-04-PREFLIGHT and VOL-04-PREFLIGHT-2
+- **Question:** Are the exact proposed temporary volume and container names already in use?
+- **Acceptance criterion:** Neither exact name appears in the existing Podman named-volume list or all-container list.
+- **Why this check is new:** It resolves the remaining name-collision prerequisite after the cached image identity/configuration was reviewed. It does not test volume semantics or container execution.
+- **Approval:** Read-only; no resource creation approval required.
+- **Risk and side-effect boundary:** Metadata listing and exact-name grep only. No volume/container creation, mount, start, deletion, image execution, pull, network change or host modification.
+- **Proposed names:**
+  - Volume: `odysseus-vol04-probe-20261108`
+  - Container: `odysseus-vol04-probe-20261108`
+
+**Exact command actually executed**
+
+~~~bash
+echo "===== VOL-04-NAME-PREFLIGHT: READ-ONLY ====="
+
+VOLUME_NAME="odysseus-vol04-probe-20261108"
+CONTAINER_NAME="odysseus-vol04-probe-20261108"
+
+echo
+echo "===== 1. CHECK PROPOSED VOLUME NAME ====="
+if podman volume ls --format '{{.Name}}' | grep -Fxq "$VOLUME_NAME"; then
+    echo "COLLISION: volume name already exists"
+else
+    echo "CLEAR: volume name is unused"
+fi
+
+echo
+echo "===== 2. CHECK PROPOSED CONTAINER NAME ====="
+if podman ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER_NAME"; then
+    echo "COLLISION: container name already exists"
+else
+    echo "CLEAR: container name is unused"
+fi
+
+echo
+echo "===== VOL-04-NAME-PREFLIGHT COMPLETE ====="
+~~~
+
+**Actual output**
+
+~~~text
+===== VOL-04-NAME-PREFLIGHT: READ-ONLY =====
+
+===== 1. CHECK PROPOSED VOLUME NAME =====
+CLEAR: volume name is unused
+
+===== 2. CHECK PROPOSED CONTAINER NAME =====
+CLEAR: container name is unused
+
+===== VOL-04-NAME-PREFLIGHT COMPLETE =====
+~~~
+
+- **Exit status:** The user-provided transcript shows both checks completed and printed CLEAR; no explicit shell `$?` was captured. Do not infer or invent a numeric exit code.
+- **Resources created or changed:** None.
+- **Cleanup:** Not applicable; this was read-only.
+- **Interpretation:** Both exact names were unused in the queried Podman listings at the time of the check. This does not reserve the names, guarantee they remain unused, or demonstrate that named-volume ownership works.
+- **Decision:** Name-collision prerequisite cleared. The next step is to present the complete exact VOL-04 experiment and cleanup sequence for explicit approval. Do not create either resource until that sequence is approved.
+- **Runtime-test accounting:** No increment; remains **3/5** since the v1.2 checkpoint.
+
+### 18.4 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
 - Downloading images or source dependencies.
@@ -2999,7 +3065,7 @@ echo "===== VOL-04-PREFLIGHT COMPLETE ====="
 - Host firewall, DNS, routing, cgroup, systemd or kernel changes.
 - Boot autostart, background tasks or persistent services.
 
-### 18.4 New ChatGPT session opening instruction
+### 18.5 New ChatGPT session opening instruction
 
 The first assistant action in a new conversation should be:
 
@@ -3048,6 +3114,7 @@ The first assistant action in a new conversation should be:
 | 3.9 | 2026-11-08 | Recorded VOL-03 and corrected VOL-03-R local documentation review. SteamOS man rejected the unsupported -P option; corrected man -c requests found no entries for the three Podman manuals, and the local manual-file search found no matching pages. Marked the documentation route inconclusive without inferring a Podman feature failure or UID/GID namespace semantics. Defined VOL-04 as a disposable named-volume experiment proposal only, requiring separate explicit approval and a cached suitable probe image. Updated the continuation handoff; no volume/container/runtime test or host/resource change. Completed runtime-test count remains 3/5 since v1.2; no archive snapshot triggered. |
 | 3.10 | 2026-11-08 | Recorded VOL-04-PREFLIGHT cached-image inventory. Python 3 Alpine and Debian 12 slim are already cached and unreferenced by containers according to the image listing; Python Alpine is the provisional probe candidate by exact local image ID and digest, pending read-only image-config inspection. Recorded a volume-accounting discrepancy between six named volumes and higher per-container LOCAL VOLUMES counts; all existing resources remain protected. No image/container/volume/network operation or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.11 | 2026-11-08 | Recorded VOL-04-PREFLIGHT-2: exact cached Python image exists and reports linux/amd64, empty configured user, no entrypoint, default command python3, and two repository digests. Image was inspected but not run. Prepared next gate as a proposed disposable named-volume experiment requiring exact command review and separate explicit approval. No runtime test, container, volume, image execution, pull or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
+| 3.12 | 2026-11-08 | Recorded VOL-04-NAME-PREFLIGHT: exact proposed volume and container names both returned CLEAR in read-only Podman listings. Added the exact executed command/output, scope and evidence limits; advanced VOL-04 to exact sequence review pending explicit approval. Corrected the continuation handoff version to 3.12. No resources created or changed; this is not a runtime test, so count remains 3/5 since v1.2 and no five-test archive snapshot is triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
