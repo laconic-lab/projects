@@ -3,8 +3,8 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.9  
-> **Record date:** 2026-11-07  
+> **Version:** 2.1  
+> **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
@@ -1337,6 +1337,24 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 
 **Conclusion:** UID-04 is complete and **FAILS the tested ownership-repair/application-write sequence**. The current `nomap` + root-owned entrypoint repair assumption is not validated for the candidate default UID/GID 1000:1000. Do not proceed to production mount testing or installation on the assumption that this boundary works. A design review must first identify a different, explicitly bounded ownership/mount strategy and its security trade-offs. Any changed strategy requires a newly scoped test and separate approval.
 
+### DR-01 — Named-volume / non-root storage architecture review
+
+- **Date:** 2026-11-08
+- **Status:** DESIGN REVIEW ACCEPTED — source validation pending; no runtime validation
+- **Decision owner:** USER approved the proposed direction; assistant recommendation recorded below.
+- **Decision:** Pursue Podman-managed named volumes with a fixed non-root application identity as the first candidate storage architecture. Keep the design explicitly **PROPOSED** until read-only source review confirms that the pinned application can operate under the proposed storage contract.
+- **Evidence:** UID-04 (scoped FAIL); UID-03; MOUNT-01; Phase 1.4 pinned source review of Dockerfile, `docker/entrypoint.sh` and `docker-compose.yml`.
+- **Reason:** UID-04 showed that the tested rootless `--userns=nomap` + host-owned mode-0700 bind mount + runtime ownership repair sequence fails: `chown` returned EPERM and application UID/GID 1000:1000 could not write (EACCES). The deployment must not depend on successful runtime ownership repair.
+- **Preferred candidate:** Separate Podman-managed named volumes for only the application paths shown by source review to be necessary. Start the application directly as a fixed non-root identity. The runtime must not need to repair ownership of host bind mounts.
+- **Fallback:** Host-prepared, narrowly scoped bind mounts only where source evidence establishes a genuine requirement, after the complete nested UID/GID mapping and host-side ownership plan are understood. Explicit custom UID/GID mapping remains a secondary fallback if necessary and separately justified.
+- **Rejected for initial profile:** Mapping the application directly to host UID 1000; broad host-home mounts; mounting `/app/.ssh`; retaining all upstream Compose mounts without requirement analysis; running the application as container root merely to avoid UID mismatch.
+- **Storage candidates to review:** `/app/data` (likely persistent application data); `/app/logs` (consider bounded stdout/stderr logging); `/app/.ssh` (omit); `/app/.cache/huggingface` (omit unless a required feature needs a dedicated cache); `/app/.local` (retain only if source proves necessary).
+- **Required source questions:** Identify which paths are read/written during startup and normal operation; determine whether SSH/cache/local state is optional; determine whether logs can go to stdout/stderr; identify all startup code that assumes root, calls `chown`, creates users/groups or drops privileges; establish whether a deployment-specific entrypoint can run directly as non-root without breaking required behavior.
+- **Security requirements:** No host `deck` application identity; no host-root mapping; fixed documented non-root identity; explicit minimal writable-path allowlist; no SSH/credential mounts; read-only root filesystem where compatible; no Agent shell, Podman socket or arbitrary host filesystem access.
+- **Evidence boundary:** This is a design decision to investigate, not proof that named volumes work or that the application can run without the upstream root-started entrypoint. No volume, container, directory, image, package, service or host configuration was created or changed.
+- **Next action:** Read-only review of the exact pinned source files and relevant application code to produce a storage/identity contract. No runtime experiment or installation is authorized by this decision.
+- **Repeat / approval rule:** Any later volume or mapping test must have a distinct test ID, exact disposable boundary, cleanup plan and separate explicit user approval.
+
 ### MOUNT-01 — Private host directory bind-mount isolation
 
 - **Status:** PASS for the tested path/configuration
@@ -2350,7 +2368,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.9  
+**Canonical version:** 2.1  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2379,7 +2397,9 @@ NET-03, NET-04, NET-05 and NET-06 are complete. NET-06 Stage A was a read-only p
 
 NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary IPv6-enabled internal network. Stage C1 found that both internal DNS gateways answered the tested `example.com` A/AAAA UDP/TCP queries with NXDOMAIN; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the probe container; selected public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Stage D cleanup removed the exact temporary container and network; independent absence checks passed. Podman escalated to SIGKILL after the 10-second SIGTERM timeout. **NET-06 is complete with scoped findings and a lifecycle caveat.**
 
-**Gate 5 / UID-04 is complete and failed for the tested configuration.** The disposable rootless Podman `--userns=nomap` container started successfully from the cached image, but the root ownership change of the host-owned mode-0700 scratch mount failed with EPERM; the application identity 1000:1000 then failed to create a file with EACCES. The exact temporary container and scratch directory were removed and independently verified absent. Podman escalated from SIGTERM to SIGKILL after 10 seconds. See the UID-04 ledger entry in §11 for exact output, command-scope differences and evidence limits. **Next action: design-only review of alternative ownership/mount strategies and their security trade-offs.** Do not proceed to the candidate production mount allowlist or installation on the assumption that this boundary works. Any revised strategy requires separate approval and testing. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
+**Gate 5 / UID-04 is complete and failed for the tested configuration.** The disposable rootless Podman `--userns=nomap` container started successfully from the cached image, but the root ownership change of the host-owned mode-0700 scratch mount failed with EPERM; the application identity 1000:1000 then failed to create a file with EACCES. The exact temporary container and scratch directory were removed and independently verified absent. Podman escalated from SIGTERM to SIGKILL after 10 seconds. See the UID-04 ledger entry in §11 for exact output, command-scope differences and evidence limits.
+
+**DR-01 design direction is accepted:** investigate Podman-managed named volumes with a fixed non-root application identity first. This remains **PROPOSED**, not validated. The next work is a read-only review of the exact pinned application source to determine which writable paths are genuinely required, whether logs can use stdout/stderr, whether `/app/.ssh` and caches can be omitted, and whether the application can start directly as non-root without upstream runtime ownership repair. Produce a storage/identity contract; do not create volumes or containers. Host-prepared bind mounts and explicit custom UID/GID mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Any later runtime test requires a distinct scope and separate explicit approval. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
@@ -2419,6 +2439,7 @@ The first assistant action in a new conversation should be:
 | 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
 | 1.8 | 2026-11-07 | Recorded NET-06 Stage D exact cleanup command and output: Podman escalated from SIGTERM to SIGKILL after 10 seconds, then removed the exact probe container and temporary network; independent absence checks passed. Marked NET-06 complete, updated Gate 4 and the handoff to Gate 5 (candidate UID/application identity). Two completed tests since the v1.2 checkpoint (NET-05 and NET-06); no five-test snapshot triggered. |
 | 1.9 | 2026-11-08 | Added read-only Gate 5 source review at the Phase 1.4 pinned commit: candidate defaults to PUID/PGID 1000:1000; root-started entrypoint performs ownership repair on five writable mounts and drops to the app user with gosu. Recorded source blob SHAs, the unresolved Phase 1.3 repository discrepancy, and the gap between UID-03/MOUNT-01 and application-identity compatibility. Defined UID-04 as a proposed disposable numeric ownership/write probe; approval remains pending. No runtime test, container, scratch directory, image build or host change. Test count remains 2/5 since the v1.2 checkpoint; no archive snapshot triggered. |
+| 2.1 | 2026-11-08 | Reconciled the canonical header/handoff version with the prior 2.0 UID-04 record. Added DR-01: user-approved design direction to investigate Podman-managed named volumes with a fixed non-root application identity first, explicitly PROPOSED pending read-only source validation. Recorded minimum storage-path review, omission candidates (`/app/.ssh`, optional cache/local state), stdout/stderr logging consideration, fallback strategies, rejected shortcuts and the no-runtime-change boundary. Updated the continuation handoff to read-only pinned-source review. No test, container, volume, directory, image, package, service or host change; completed-test count remains 3/5 since the v1.2 checkpoint. No five-test snapshot triggered. |
 | 2.0 | 2026-11-08 | Recorded UID-04 runtime results: cached-image rootless `nomap` probe created the exact disposable container and scratch directory; container-root ownership repair failed with EPERM and application UID/GID 1000:1000 write failed with EACCES. Recorded namespace-relative maps, observed 65534:65534 mount ownership, exact executed-operation/capability differences from the broader proposal, evidence limits, SIGTERM timeout/SIGKILL escalation, and independently verified cleanup. Marked Gate 5 runtime probe complete with a scoped FAIL and changed the next action to a design-only ownership/mount strategy review. Test count advances from 2/5 to 3/5 since the v1.2 checkpoint; no five-test archive snapshot triggered. |
 
 ---
