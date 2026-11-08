@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.3  
+> **Version:** 3.4  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1545,9 +1545,18 @@ It also identifies required deployment-source adaptations before that contract c
 - **Build provenance:** before any build proposal, pin the base-image digest, control OS package versions/sources, hash-lock Python dependencies, eliminate mutable npm/npx execution, pin all service images and record final image digest/provenance.
 - **Evidence boundary:** every item above is a source/design recommendation. None has been implemented or runtime-tested. The build, image pull, dependency download, container, volume and host changes remain unauthorized.
 
+#### Targeted source follow-up — database path normalization and bootstrap primitive
+
+A targeted read-only fetch of `core/database.py`, `core/auth.py`, `routes/auth_routes.py` and `setup.py` resolved two source-level questions:
+
+- **Database URL parsing:** `core/database.py` normalizes relative SQLite paths against `get_app_root()`; Compose's `sqlite:///./data/app.db` therefore resolves against the app root (expected `/app/data/app.db` in the container). The default URL is derived from `DATA_DIR`. However, setting `ODYSSEUS_DATA_DIR` independently while retaining a different `DATABASE_URL` can still split application state and the database. The implementation contract should set `ODYSSEUS_DATA_DIR=/app/data` and explicitly use `sqlite:////app/data/app.db`, or leave `DATABASE_URL` unset and verify the derived default; do not rely on two independently configured paths. This conclusion is source-derived and has not been exercised in a container.
+- **Offline bootstrap candidate:** `AuthManager.setup(username, password)` validates the first-user condition and writes the application's normal auth configuration; its `_setup_lock` protects concurrent setup calls within one process, not across separate processes. The HTTP route checks `is_configured` before calling that method, so multiple processes can still race. A better candidate is a one-shot operator-controlled bootstrap process that invokes the application's own auth primitive while the server is not listening, obtains the password interactively without placing it in an environment variable or command line, verifies successful auth-file creation without printing secrets, exits, and only then permits the server to start. The unauthenticated HTTP setup route should be removed or made unavailable in the hardened build. This is a design candidate only; no bootstrap code was written or executed.
+
+The candidate is preferable to upstream `setup.py`, which has separate directory, environment-file and initial-admin behavior and may print a generated temporary password. The exact bootstrap script, safe failure behavior, file mode/ownership, and restart/idempotency rules still require source review and later explicit approval before implementation.
+
 #### Next gate
 
-Continue read-only source tracing only where it can resolve the one-shot bootstrap implementation and exact `DATABASE_URL` parsing, then consolidate the DR-02 design into an implementation checklist. Do not begin a build or runtime test until the source/design gates are reviewed and separate explicit approval is obtained. Completed runtime-test count remains **3/5**; this source-review continuation is not a runtime test and does not trigger an archive snapshot.
+Consolidate DR-02 into an implementation checklist covering the fixed UID/GID and volume mapping, single `/app/data` state root, non-root startup, offline first-admin bootstrap, removal of Agent execution routes/tools, disabled-feature list, and immutable build inputs. The source review can now specify a candidate contract, but it does not authorize implementation, build or runtime testing. Do not begin a build or runtime test until the source/design gates are reviewed and separate explicit approval is obtained. Completed runtime-test count remains **3/5**; this source-review continuation is not a runtime test and does not trigger an archive snapshot.
 
 ### MOUNT-01 — Private host directory bind-mount isolation
 
@@ -2653,6 +2662,7 @@ The first assistant action in a new conversation should be:
 | 3.1 | 2026-11-08 | User confirmed `odysseus-dev/odysseus` as the authoritative Phase 1.4 source. Read-only GitHub API verification pinned the observed `dev` head to `1c1509094963f9eb9445928d57f2856296057cf4` (2026-11-08T02:44:56Z; GitHub signature verification valid) and recorded tree/file blob identities plus updated startup/build observations. SRC-01 is resolved for Phase 1.4; historical Phase 1.3 pin remains unchanged. Created unchanged v3.0 archive snapshot before editing. SRC-02–SRC-10 and DR-02 require revalidation against the chosen pin. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no five-test checkpoint triggered. |
 | 3.2 | 2026-11-08 | Revalidated SRC-02–SRC-10 against the user-confirmed exact upstream pin. Confirmed the cache-path mismatch, default built-in MCP/npx behavior, setup failure suppression, incomplete MCP-disable scope, root-dependent entrypoint, custom-font image-tree path, DATA_DIR/DATABASE_URL divergence and first-admin bootstrap boundary. Corrected SRC-10: current Compose pins ChromaDB, SearXNG and ntfy by digest, but the base image lacks a digest, app image defaults to mutable `:latest`, and main Python dependencies are not hash-locked. Updated the gate and README. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5. |
 | 3.3 | 2026-11-08 | Continued DR-02 read-only review at the exact pinned source: recorded the fixed non-root identity/volume-mapping dependency after UID-04, a single consistent DATA_DIR/database URL contract, the local-process race in HTTP first-admin bootstrap, and the need to remove shell/Python/Cookbook/custom-MCP/background execution from both route registration and Agent tool dispatch. Refined read-only-root and build-provenance requirements. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
+| 3.4 | 2026-11-08 | Targeted source follow-up confirmed SQLAlchemy's relative SQLite URL normalization against the app root and identified `AuthManager.setup()` as a candidate for a one-shot offline first-admin bootstrap; its lock is process-local, so the HTTP route remains unsuitable as the sole race boundary. Replaced the vague next step with a DR-02 implementation-checklist gate. No code was written or executed; no build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
