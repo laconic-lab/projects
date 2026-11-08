@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.4  
+> **Version:** 3.5  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2595,19 +2595,100 @@ Only documents and outputs actually retrieved or recorded may be described as re
 14. NET-05 cleanup removed the listener and network and independently verified both absent; port `18085` had no remaining listener. SIGTERM exceeded 10 seconds and Podman escalated to SIGKILL; removal still succeeded.
 15. No Odysseus container, LXC container or production network has been created.
 
-### 18.2 Immediate next action
+### 18.2 DR-02 deployment implementation checklist — design only
 
-NET-03, NET-04, NET-05 and NET-06 are complete. NET-06 Stage A was a read-only preflight and is not counted as a separate completed test. The host has global IPv6 addresses, a selected IPv6 default route and IPv6 kernel support enabled; host IPv6 packet delivery was not tested by NET-06. Podman uses Netavark; the existing default bridge remains IPv4-only. Host DNS includes systemd-resolved stubs and an existing UDP/TCP listener on `192.168.1.161:53` owned by `passt.avx2`; it was not modified or used as a target. NET-05 demonstrated a host-to-container HTTP 200 path through a listener published only on `127.0.0.1:18085`; the same published port was refused through the host LAN address. Its cleanup independently verified both temporary resources absent and port `18085` released. Preserve the 10-second SIGTERM timeout/SIGKILL escalation as a lifecycle caveat.
+**Status:** DESIGN CHECKLIST RECORDED — NOT APPROVED FOR IMPLEMENTATION.  
+**Source:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`.  
+**Runtime count:** 3/5 since the v1.2 archive checkpoint. UID-04 remains a scoped FAIL for the tested `--userns=nomap` bind-mount ownership transition. This checklist is not a test.
 
-NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary IPv6-enabled internal network. Stage C1 found that both internal DNS gateways answered the tested `example.com` A/AAAA UDP/TCP queries with NXDOMAIN; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the probe container; selected public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Stage D cleanup removed the exact temporary container and network; independent absence checks passed. Podman escalated to SIGKILL after the 10-second SIGTERM timeout. **NET-06 is complete with scoped findings and a lifecycle caveat.**
+Status meanings: **ESTABLISHED** = supported by current evidence; **PROPOSED** = intended design, not implemented; **UNRESOLVED** = decision/proof still missing.
 
-**Gate 5 / UID-04 is complete and failed for the tested configuration.** The disposable rootless Podman `--userns=nomap` container started successfully from the cached image, but the root ownership change of the host-owned mode-0700 scratch mount failed with EPERM; the application identity 1000:1000 then failed to create a file with EACCES. The exact temporary container and scratch directory were removed and independently verified absent. Podman escalated from SIGTERM to SIGKILL after 10 seconds. See the UID-04 ledger entry in §11 for exact output, command-scope differences and evidence limits.
+#### A. Identity and storage
 
-**DR-01 design direction is accepted; DR-02 first-pass source review is recorded.** The named-volume/non-root architecture remains **PROPOSED**. The pinned source review confirms that `/app/data` is the primary sensitive state root and includes `.app_key`, auth/vault/database/user state and uploads; upstream Agent tools also use `DATA_DIR` as their working directory and file-tool root, so the volume itself is not an Agent/secret boundary. The active app logger writes to `DATA_DIR/logs/app.log`; the separate `/app/logs` Compose mount is not used by the reviewed primary logger. `/app/.ssh` supports Cookbook remote SSH; `/app/.cache/huggingface` persists model downloads; `/app/.local` persists executable Python CLIs/serve engines. These are excluded from the initial profile unless their features are separately approved.
+| ID | Requirement | Status / acceptance evidence |
+|---|---|---|
+| ID-01 | Bake one fixed numeric application UID/GID into the image. Upstream candidate is 1000:1000, but not yet approved for this isolated profile. | PROPOSED; record exact identity and prove its namespace mapping. |
+| ID-02 | Run directly as non-root. No runtime user/group creation, ownership repair, recursive `chown`, `gosu` transition or privileged init wrapper. | REQUIRED; inspect entrypoint, process identity and capabilities. |
+| ID-03 | Resolve a rootless Podman volume strategy compatible with the actual UID map. Do not assume named volumes, `nomap`, subordinate IDs or host pre-chown solve UID-04. | BLOCKING; separately approved disposable probe must prove intended write access and host-path isolation. Do not repeat UID-04 unchanged. |
+| ID-04 | Prefer read-only image/root filesystem and one dedicated writable application state root at `/app/data`. | PROPOSED; verify mount flags and negative writes outside the data root. |
+| ID-05 | Treat `/app/data` as sensitive state, not an Agent sandbox: it contains app key, auth/vault/database/user state, uploads and Agent workspace path. | ESTABLISHED; execution tools must be disabled independently. |
+| ID-06 | Omit host-home, credentials, SSH keys, Podman socket, model cache and executable user-package mounts. Exclude upstream `/app/.ssh`, `/app/.cache/huggingface`, `/app/.local` and separate `/app/logs` from the initial profile. | REQUIRED; verify final mount inventory and negative access probes. |
 
-The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete. The pinned source also provides a first-run `/api/auth/setup` route (only while no users exist, rate-limited), so a custom profile can omit `setup.py` and bootstrap the admin through loopback; keep the app unavailable to LAN/other peers until that bootstrap is completed and authentication verified. The extended startup trace confirms directory creation, readiness probes and search analytics write under `DATA_DIR`; built-in MCP is enabled by default and may install browser MCP through `npx` on first start, so set `ODYSSEUS_DISABLE_MCP=1`. Custom-font additions write under `static/fonts/custom` in the image tree and must be disabled or redesigned for a read-only root.
+#### B. Storage and database
 
-**Next action:** SRC-01 is resolved and SRC-02–SRC-10 are revalidated as source findings at `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`. Continue the read-only DR-02 design review of fixed non-root startup/bootstrap, storage consistency, Agent execution boundaries and immutable build inputs. These source findings do not prove runtime enforcement; do not build or run the application until design gates are resolved and separate build/runtime authorization is obtained. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
+| ID | Requirement | Status / acceptance evidence |
+|---|---|---|
+| DB-01 | Use one authoritative data root: `ODYSSEUS_DATA_DIR=/app/data`. | PROPOSED; verify environment and resolved constants. |
+| DB-02 | Ensure SQLAlchemy `DATABASE_URL` resolves to exactly `/app/data/app.db`; candidate explicit URL: `sqlite:////app/data/app.db`. Leave it unset only if the pinned default is retained and verified. | REQUIRED; inspect engine URL and actual opened DB path; prove no duplicate DB. |
+| DB-03 | Keep other persistent state under the same root unless a separately justified store is approved. | REQUIRED; enumerate constants and runtime write paths. |
+| DB-04 | Do not invoke upstream `setup.py` during startup. | REQUIRED; inspect image and entrypoint. |
+| DB-05 | Decide whether ChromaDB is omitted (accept degraded/unavailable vector memory and RAG) or retained as a separately secured service with its own volume, network and backup policy. | UNRESOLVED; record explicit feature decision. |
+| DB-06 | Prefer stdout/stderr logging initially; verify actual logger destinations rather than assuming separate `/app/logs` is required. | PROPOSED; inspect and test log paths. |
+
+#### C. Startup and first-admin bootstrap
+
+| ID | Requirement | Status / acceptance evidence |
+|---|---|---|
+| ST-01 | Replace upstream entrypoint with a deployment-specific fail-closed entrypoint. No runtime identity creation, ownership repair, dependency download or suppressed mandatory setup failure. | REQUIRED; static review and negative startup tests. |
+| ST-02 | Keep application listener stopped until offline bootstrap and verification finish. | REQUIRED; prove process/listener ordering. |
+| ST-03 | Evaluate one-shot operator-controlled bootstrap using pinned `AuthManager.setup(username, password)`. Its lock is process-local; safety depends on one bootstrap process running while the server is stopped. | CANDIDATE; inspect serialization, validation, file permissions, key dependencies and idempotency. |
+| ST-04 | Obtain password interactively or through approved secret input; never put it in argv, shell history, image layers, logs or ordinary environment variables. | REQUIRED; review secret handling. |
+| ST-05 | Remove or hard-disable unauthenticated `POST /api/auth/setup`. Loopback-only exposure is not the primary race-control mechanism. | REQUIRED; verify route absent/unreachable. |
+| ST-06 | Verify administrator record, successful authentication and mandatory state before listener start. Readiness fails closed if setup is incomplete. | REQUIRED; explicit success/failure-path tests. |
+
+#### D. Agent execution and API attack surface
+
+| ID | Capability | Initial-profile decision |
+|---|---|---|
+| EX-01 | Shell/Bash, host-shell bridge, arbitrary Python and equivalent code execution | DENY; remove routes and tool dispatch. |
+| EX-02 | Cookbook installs, package management, model download/serve and remote SSH | DENY; remove routes, tools and background handlers. |
+| EX-03 | Built-in/custom MCP, MCP OAuth and bridge execution | DENY; set `ODYSSEUS_DISABLE_MCP=1` only as defense in depth, not sole control. |
+| EX-04 | Background jobs, scheduler/task execution, detached processes and persistent automation | DENY initially; remove/hard-disable routes and dispatch. |
+| EX-05 | Browser automation, web fetch/search, downloads, integrations, webhooks, provider tools and internal HTTP routes | DEFAULT DENY; each retained capability needs a named allowlist and separate review. |
+| EX-06 | Custom-font writes to `static/fonts/custom` and other image-tree write routes | DENY; preserve read-only root. |
+| EX-07 | Agent file tools and application-state access | DENY initially unless a narrowly scoped workspace-only capability is designed and proven. `DATA_DIR` is not an Agent/secret boundary. |
+| EX-08 | Podman socket, host shell, host filesystem and host credentials | NEVER MOUNT/EXPOSE. |
+| EX-09 | Enforcement | Remove execution surfaces at both API registration and Agent dispatch. Application policy is not an OS sandbox; inspect every alternate bridge/dispatch path. |
+
+#### E. Network and optional services
+
+| ID | Requirement | Status / acceptance evidence |
+|---|---|---|
+| NW-01 | Do not use default Podman bridge as isolation boundary; it allowed tested LAN/router/public connectivity. | ESTABLISHED; select a dedicated topology. |
+| NW-02 | Use a dedicated internal network only for explicitly required private service communication; internal networks still permit peer communication. | PROPOSED; define peer allowlist and test. |
+| NW-03 | Publish no application port by default. Any UI/API listener requires explicit interface binding and LAN verification. | PROPOSED; inspect port mappings and reachability. |
+| NW-04 | Default-deny outbound traffic until required model/provider destinations are documented. | UNRESOLVED; define destination/protocol allowlist and enforcement test. |
+| NW-05 | Do not start ChromaDB, SearXNG, ntfy or other optional services solely because upstream Compose defines them. | REQUIRED; justify each service and its storage/network policy. |
+
+#### F. Reproducible build and release controls
+
+| ID | Requirement | Status / acceptance evidence |
+|---|---|---|
+| SB-01 | Pin Python base image by immutable digest and build from exact approved source commit. | REQUIRED; record source and image identities. |
+| SB-02 | Pin OS package sources/versions and hash-lock Python dependencies. | REQUIRED; verify lockfiles and hash-enforced installation. |
+| SB-03 | Eliminate mutable `:latest` references and runtime `npx`/implicit dependency downloads. | REQUIRED; inspect manifests and test without network. |
+| SB-04 | Pin every retained service image by digest and record final image digests. | REQUIRED; inspect final deployment manifest. |
+| SB-05 | Produce SBOM/build provenance; keep credentials out of build arguments and image layers. | REQUIRED; inspect artifacts and secret scan. |
+| QA-01 | No build until A–F have no unresolved blocker and the user separately approves build scope. | RELEASE GATE. |
+| QA-02 | No runtime experiment without separate approval defining resources, commands, limits, cleanup and rollback. | RELEASE GATE. |
+| QA-03 | Back up persistent state before migrations/first real-data startup; verify restore with disposable data. | REQUIRED. |
+| QA-04 | Define rollback for image and database/schema state; image rollback alone may not reverse migrations. | REQUIRED. |
+| QA-05 | Independently verify temporary containers, networks, volumes, listeners and scratch paths are absent after each approved experiment. | REQUIRED. |
+
+#### DR-02 checklist conclusion
+
+The design is explicit enough to guide closure review, but **not implementation-ready**. Six blockers remain:
+
+1. Rootless UID/GID mapping and writable-volume strategy without runtime ownership repair.
+2. Exact offline bootstrap implementation, including auth-file, app-key, permission and idempotency dependencies.
+3. Final API/tool/feature allowlist, including any browser, provider or integration capability.
+4. ChromaDB/vector-memory decision and associated service/storage/network requirements.
+5. Narrowly scoped network and outbound egress policy.
+6. Immutable build inputs and tested rollback strategy.
+
+**Next gate:** targeted read-only closure review of these six decisions, beginning with UID/volume strategy and bootstrap implementation details. No code changes, build, image pull, dependency download, container, volume, package installation or host change is authorized by this checklist.
+
+
 
 ### 18.3 Explicitly not authorized
 
@@ -2662,6 +2743,7 @@ The first assistant action in a new conversation should be:
 | 3.1 | 2026-11-08 | User confirmed `odysseus-dev/odysseus` as the authoritative Phase 1.4 source. Read-only GitHub API verification pinned the observed `dev` head to `1c1509094963f9eb9445928d57f2856296057cf4` (2026-11-08T02:44:56Z; GitHub signature verification valid) and recorded tree/file blob identities plus updated startup/build observations. SRC-01 is resolved for Phase 1.4; historical Phase 1.3 pin remains unchanged. Created unchanged v3.0 archive snapshot before editing. SRC-02–SRC-10 and DR-02 require revalidation against the chosen pin. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no five-test checkpoint triggered. |
 | 3.2 | 2026-11-08 | Revalidated SRC-02–SRC-10 against the user-confirmed exact upstream pin. Confirmed the cache-path mismatch, default built-in MCP/npx behavior, setup failure suppression, incomplete MCP-disable scope, root-dependent entrypoint, custom-font image-tree path, DATA_DIR/DATABASE_URL divergence and first-admin bootstrap boundary. Corrected SRC-10: current Compose pins ChromaDB, SearXNG and ntfy by digest, but the base image lacks a digest, app image defaults to mutable `:latest`, and main Python dependencies are not hash-locked. Updated the gate and README. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5. |
 | 3.3 | 2026-11-08 | Continued DR-02 read-only review at the exact pinned source: recorded the fixed non-root identity/volume-mapping dependency after UID-04, a single consistent DATA_DIR/database URL contract, the local-process race in HTTP first-admin bootstrap, and the need to remove shell/Python/Cookbook/custom-MCP/background execution from both route registration and Agent tool dispatch. Refined read-only-root and build-provenance requirements. No build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
+| 3.5 | 2026-11-08 | Consolidated DR-02 into a traceable implementation checklist covering fixed non-root identity and volume ownership, one-root storage/database consistency, fail-closed startup and offline bootstrap, Agent/API execution-surface removal, network/service policy, immutable build inputs, release acceptance and rollback. Retained UID-04's scoped FAIL and six unresolved design blockers. Corrected the next gate to targeted read-only closure review. Documentation-only change; no code, build, image pull, dependency download, runtime test, container, volume, package or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
 | 3.4 | 2026-11-08 | Targeted source follow-up confirmed SQLAlchemy's relative SQLite URL normalization against the app root and identified `AuthManager.setup()` as a candidate for a one-shot offline first-admin bootstrap; its lock is process-local, so the HTTP route remains unsuitable as the sole race boundary. Replaced the vague next step with a DR-02 implementation-checklist gate. No code was written or executed; no build, image pull, dependency download, runtime test or host/resource change; completed-test count remains 3/5; no archive snapshot triggered. |
 ---
 
