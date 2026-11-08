@@ -1,50 +1,71 @@
-# Waydroid — Android-on-Deck Feasibility Research
+# Waydroid SSH — Feasibility Project (Closed)
 
-This project investigates whether Android workloads can run on the Steam Deck OLED while Linux Mint and Windows act as remote display and input clients. SSH is part of the intended control and secure transport model.
+**Final status: CLOSED — NOT FEASIBLE UNDER THE CURRENT REQUIREMENTS AND SECURITY BOUNDARY.**
 
-This is a **feasibility investigation**, not an approved or completed Waydroid installation.
+This project investigated whether Android could run on the Steam Deck OLED while Linux Mint and Windows acted as SSH-controlled remote display/input clients. The intended deployment required Waydroid inside a rootless Podman boundary, with no native Waydroid installation, no privileged outer container, no broad host integration and no disruption to SteamOS or existing Deck services.
+
+The audit is complete. This directory is retained as a record of the investigation and its findings, **not as an installation guide or an invitation to continue testing**.
 
 ## Documentation
 
-- [Consolidated SSH feasibility audit](./1.audit/1.0_Waydroid-SSH-Consolidated-Audit.md)
-- [Historical audit source](./1.audit/_1.0_%20Waydroid%20SSH%20Feasibility%20Audit.md)
-- [Audit material directory](./1.audit/)
+- **[Final feasibility conclusion](./2.conclusion/WAYDROID-SSH-FEASIBILITY-CONCLUSION.md)** — executive decision, visual architecture schemas, constraint analysis, evidence classification and closure rationale.
+- **[Canonical living feasibility audit — v5.14](./1.audit/WAYDROID-SSH-LIVING-FEASIBILITY-AUDIT.md)** — historical test ledger, source analysis, decisions and final handoff.
+- [Historical audit materials](./1.audit/) — supporting and earlier records retained for traceability.
+
+Start with the conclusion for the short version; consult the canonical audit for the underlying evidence and limitations.
 
 ## Intended architecture
 
-```text
-Linux Mint client                 Windows client
- SSH / display / input             SSH / display / input
-          \                           /
-           \                         /
-             Steam Deck / SteamOS
-                      |
-           isolated container runtime
-                      |
-             Android / Waydroid
-                      |
-          project-specific secure transport
+```mermaid
+flowchart TB
+    subgraph CLIENTS["Remote clients"]
+        MINT["Linux Mint"]
+        WIN["Windows"]
+    end
+
+    subgraph DECK["Steam Deck OLED / SteamOS"]
+        HOST["SteamOS host session"]
+        POD["Rootless Podman"]
+        LXC["Inner LXC lifecycle"]
+        ANDROID["Waydroid / Android userspace"]
+        HOST --> POD --> LXC --> ANDROID
+    end
+
+    MINT -. "SSH control / remote display" .-> HOST
+    WIN -. "SSH control / remote display" .-> HOST
+
+    RESULT["Target experience was not demonstrated"]
+    ANDROID -.-> RESULT
+    style RESULT fill:#f8d7da,stroke:#842029,color:#842029
 ```
 
-The intended constraints are strict:
+This diagram describes the intended stack, **not a working deployment**.
 
-- Waydroid must run in a container environment if feasible.
+## Final conclusion at a glance
+
+The hardware was not the main blocker. The difficulty was the interaction of three layers:
+
+| Constraint | Finding |
+|---|---|
+| **Steam Deck / SteamOS** | Managed host paths, image-based updates, package-manager and trust limitations, and protected host services make the normal host-integrated Waydroid deployment unsuitable for this project's boundary. |
+| **Rootless Podman / nested LXC** | Useful namespace and BinderFS primitives were confirmed, but the nested cgroup2 mount was observed read-only. Host-side cgroup tests did not establish a usable nested LXC lifecycle. |
+| **Waydroid architecture** | The normal manager relies on host-side service integration, LXC, Binder/device preparation, rootfs handling, networking and desktop-session handoff. A compliant end-to-end implementation was not established. |
+
+Some prerequisites were positively tested, while rootfs handling, real Android Binder activity, GPU acceleration, isolated Android networking, Android boot and Mint/Windows remote-client operation remained untested. The decision does **not** claim that every component was experimentally proven impossible. It means that no sufficiently credible, secure and maintainable route was established within the agreed requirements.
+
+## Project boundary and closure
+
 - No native Waydroid installation on SteamOS.
-- No privileged container or broad host filesystem, network, PID or IPC sharing.
-- Reuse the existing KDE Wayland session; do not add another compositor without demonstrated need.
-- Avoid host-wide firewall, forwarding, kernel, service or package changes merely to force success.
-- Existing Deck projects and services remain protected.
-- Manual lifecycle; no autostart unless explicitly approved.
+- No LXC or Waydroid package installation was performed.
+- No privileged outer container, broad host mounts or host namespace sharing as a workaround.
+- No persistent host firewall, forwarding, service, kernel or network changes for this project.
+- Existing Deck services and projects, including Pi-hole and Odysseus, remain protected.
+- The separate LXC-only experimental branch is also closed.
+- Unresolved package provenance and pacman safety issues are historical blockers, not pending tasks.
+- No further experiment is planned under the current requirements.
 
-## Current recorded verdict
-
-**Conditionally promising, not proven.** The consolidated audit records positive BinderFS and namespace experiments, but important end-to-end requirements remain untested, including actual nested LXC operation, Binder transactions, Android service stability, GPU use, Wayland/D-Bus/audio handoff, ADB and scrcpy transport.
-
-The audit's latest recorded operation is a pending capability-isolation test. No installation or persistent host modification is authorized by the audit.
-
-## How to continue
-
-Read the consolidated audit before proposing another test. It preserves completed evidence, unresolved blockers and the next recorded investigation point. Do not repeat completed tests without checking the audit, and do not turn a promising feasibility result into permission to install or modify SteamOS.
+**Do not resume the former test sequence, retry pacman, install LXC/Waydroid or relax the security boundary.** Reopening requires a materially different architecture or requirement set, documented as a new scope and explicitly approved.
 
 ---
-*Project documentation index — Steam Deck Lab.*
+
+*Steam Deck Lab — project index and closure notice.*
