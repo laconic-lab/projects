@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.5  
+> **Version:** 2.6  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1388,6 +1388,12 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 | `src/rag_vector.py` | `0e967bd874b02cfdc213d6b38f648d1a439b69af` | RAG vector initialization catches failures and marks the vector subsystem unhealthy. |
 | `routes/auth_routes.py` | `5c7a4e04abf35771b7232baf9536c845daa9ac42` | Exposes a first-run `POST /api/auth/setup` route only while no accounts exist; rate-limited and creates the first admin through AuthManager. |
 | `core/auth.py` | `4bc9a70ddb6ea8cba19bac12a7a31799137be741` | Missing `auth.json` loads as an empty configuration; AuthManager can create the first admin and persist auth state. |
+| `src/config.py` | `fa8b17ce5d25ceb0bf4b2b761bb85d8bac7f12b7` | Import-time configuration validation creates data directories under `DATA_DIR`. |
+| `src/app_initializer.py` | `1b29f06d2631830c2e048e9b382c8a06be1f31a2` | Creates core data directories and initializes managers; memory-vector failure is caught and reported as degraded. |
+| `src/readiness.py` | `9c5baa04c4d08e26a025d3821fbfa288e3a4eb4d` | Readiness probe creates and removes a temporary file under `DATA_DIR`, requiring it to be writable. |
+| `services/search/analytics.py` | `b5602bae48952ff7203f49346ce6799d8c58be29` | Search error log and analytics JSON are stored under `DATA_DIR/logs`. |
+| `src/builtin_mcp.py` | `f64ae0e82c7d623b609dd7cffab68c93e27177d6` | Built-in MCP is enabled by default; browser MCP may run `npx -y` and install on first start unless disabled/cache-gated. |
+| `routes/font_routes.py` | `3451db8c72e19e1607f0545aa2f7484702ca0619` | Custom fonts are served from `static/fonts/custom` in the image/source tree, not `DATA_DIR`; adding fonts requires modifying that path. |
 
 **Storage findings**
 
@@ -1404,6 +1410,10 @@ The ownership operation actually executed was Python `os.chown("/probe", 1000, 1
 11. **`/app/.local`:** Used for Cookbook-installed Python CLIs and serving engines (including packages installed with `pip install --user`). This is executable, mutable software state, not merely inert cache. Omit initially with Cookbook package-install/serve-engine features disabled. Reconsider only with a separate threat review.
 12. **`/app/logs` mount:** Setup creates the directory, but the reviewed primary application logger writes under `DATA_DIR/logs`. Its continued need is not established; omit from the initial storage allowlist unless a further source trace identifies a writer.
 13. **ChromaDB:** Compose uses a separate named volume for the standalone ChromaDB HTTP service; it is not included in the app's `DATA_DIR` backup. `src/chroma_client.py` describes the dependency as optional for RAG and memory vectors. `MemoryVectorStore` and `VectorRAG` catch initialization failures and mark their vector functions unhealthy, rather than allowing those initialization errors to abort their constructors. Therefore ChromaDB can be excluded from a minimal initial profile only if semantic memory/vector RAG are explicitly accepted as unavailable/degraded. If retained, it requires a separate service, dedicated volume and independent backup policy; never share the app data volume.
+14. **Remaining startup/runtime writes:** `src/config.py` and `src/app_initializer.py` create directories under `DATA_DIR`; `src/readiness.py` creates/removes a probe file under `DATA_DIR`; search analytics/error logs are under `DATA_DIR/logs`. These are compatible with a single writable data volume. Shell/background-job state and MCP OAuth state are also rooted under `DATA_DIR` by the central constants, but their features remain disabled in the initial profile.
+15. **Built-in MCP must be explicitly disabled.** The pinned `src/builtin_mcp.py` enables built-in MCP by default. Its browser MCP can invoke `npx -y @playwright/mcp@latest` and install on first startup unless cache-gated; the default cache gate is false. The source documentation's cache-only startup description is therefore stale relative to this pinned code. Set `ODYSSEUS_DISABLE_MCP=1` in the initial profile to prevent built-in MCP subprocesses and implicit npm downloads. This also avoids reliance on the default npm cache under the app user's home (outside `DATA_DIR`).
+16. **Custom fonts are an optional source-tree write path.** `routes/font_routes.py` uses `static/fonts/custom`, and the pinned tree contains that directory. Listing existing fonts can work read-only, but adding custom fonts requires writing into the image/source tree and is incompatible with a read-only root filesystem. Disable custom-font additions initially or redesign the path to use data storage.
+
 
 **DR-02 assessment**
 
@@ -1422,7 +1432,7 @@ It also identifies required deployment-source adaptations before that contract c
 **Open source-review questions (not runtime tests)**
 
 - Continue tracing any remaining direct writes outside `DATA_DIR`. The targeted search found that Dockerfile pre-creates `/app/services/cache/search`, but the active `services/search/cache.py` implementation writes its disk caches under `DATA_DIR/cache/search` and `DATA_DIR/cache/content`; the Dockerfile path appears unused by the reviewed implementation. The only located `/app/logs` reference outside Compose/entrypoint/Dockerfile is setup directory creation; the primary app logger writes under `DATA_DIR/logs`.
-- Identify every feature that writes to Hugging Face cache, `.local`, or `.ssh`, and define the initial disabled-feature set.
+- Complete the initial disabled-feature set: disable built-in MCP with `ODYSSEUS_DISABLE_MCP=1` (the pinned code can install the browser MCP via npx by default); disable Cookbook/local model downloads and serve-engine installation; omit SSH key integration and custom-font writes to the image tree.
 - Confirm whether the application can initialize auth/database and start with a pre-created data volume and a deployment-specific non-root entrypoint.
 - Decide whether the initial profile needs semantic memory/vector RAG. The pinned source shows these features use a separate ChromaDB HTTP service and degrade to unhealthy when initialization fails; if enabled, retain a separate ChromaDB service/volume and independent backup plan.
 - Reconcile the source identity discrepancy recorded between Phase 1.3 and Phase 1.4 before any build.
@@ -2442,7 +2452,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 2.5  
+**Canonical version:** 2.6  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2475,7 +2485,7 @@ NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary I
 
 **DR-01 design direction is accepted; DR-02 first-pass source review is recorded.** The named-volume/non-root architecture remains **PROPOSED**. The pinned source review confirms that `/app/data` is the primary sensitive state root and includes `.app_key`, auth/vault/database/user state and uploads; upstream Agent tools also use `DATA_DIR` as their working directory and file-tool root, so the volume itself is not an Agent/secret boundary. The active app logger writes to `DATA_DIR/logs/app.log`; the separate `/app/logs` Compose mount is not used by the reviewed primary logger. `/app/.ssh` supports Cookbook remote SSH; `/app/.cache/huggingface` persists model downloads; `/app/.local` persists executable Python CLIs/serve engines. These are excluded from the initial profile unless their features are separately approved.
 
-The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete. The pinned source also provides a first-run `/api/auth/setup` route (only while no users exist, rate-limited), so a custom profile can omit `setup.py` and bootstrap the admin through loopback; keep the app unavailable to LAN/other peers until that bootstrap is completed and authentication verified.
+The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete. The pinned source also provides a first-run `/api/auth/setup` route (only while no users exist, rate-limited), so a custom profile can omit `setup.py` and bootstrap the admin through loopback; keep the app unavailable to LAN/other peers until that bootstrap is completed and authentication verified. The extended startup trace confirms directory creation, readiness probes and search analytics write under `DATA_DIR`; built-in MCP is enabled by default and may install browser MCP through `npx` on first start, so set `ODYSSEUS_DISABLE_MCP=1`. Custom-font additions write under `static/fonts/custom` in the image tree and must be disabled or redesigned for a read-only root.
 
 **Next action:** continue read-only tracing of remaining writable paths and startup dependencies, then finalize the storage/identity contract. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
 
@@ -2523,6 +2533,7 @@ The first assistant action in a new conversation should be:
 | 2.3 | 2026-11-08 | Extended DR-02 source tracing: inspected the active search-cache implementation and pinned threat model. Confirmed search/content caches are under `DATA_DIR/cache/`, while Dockerfile's `services/cache/search` pre-created path appears unused by the reviewed implementation; confirmed the threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. Refined remaining source-trace questions and handoff. No runtime test or resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 | 2.4 | 2026-11-08 | Extended DR-02 source review for ChromaDB. Inspected the HTTP client, memory vector store and RAG vector initialization. Confirmed ChromaDB is a separate optional service for vector memory/RAG; vector subsystem initialization catches failures and marks itself unhealthy, so a minimal profile may omit ChromaDB only by explicitly accepting degraded/unavailable vector features. If retained, ChromaDB requires its own service, volume and backup policy. Updated open review question and handoff. No runtime test or resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 | 2.5 | 2026-11-08 | Extended DR-02 startup review: inspected `routes/auth_routes.py` and `core/auth.py`. Confirmed a first-run `/api/auth/setup` route creates the initial admin only when no account exists and is rate-limited; a missing auth file loads as empty config. `core/database.py` initializes schema on import. Recorded a possible non-root bootstrap path that omits upstream `setup.py` and uses loopback-only first-admin setup, with LAN/peer exposure prohibited until authentication is verified. This is source evidence only; no runtime confirmation. No resources changed; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
+| 2.6 | 2026-11-08 | Extended DR-02 startup/write-path tracing: inspected config and app initializers, readiness probe, search analytics, built-in MCP and custom-font route. Confirmed data-dir writes for directory creation, readiness probes and search logs; found built-in MCP is enabled by default and browser MCP can run npx install on first start, so initial profile must set `ODYSSEUS_DISABLE_MCP=1`; custom-font additions write to `static/fonts/custom` outside `DATA_DIR` and must be disabled or redesigned for read-only root. Updated source table and disabled-feature gate. No runtime test/resource/host change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 
 ---
 
