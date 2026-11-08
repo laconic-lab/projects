@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.23  
+> **Version:** 3.24  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -3972,6 +3972,39 @@ echo "===== STAGE D COMPLETE ====="
 
 **Next action — Stage B (not yet authorized):** After separate explicit user approval, create only the disposable named volume and stopped probe container using the exact cached image, the five MAP-F-validated UID/GID map segments, `--network=none`, read-only container root, all capabilities dropped, no-new-privileges, UID/GID 1000:1000, and the new volume mounted read/write at `/probe`. Do not start the container in Stage B. Inspect both resources before any runtime execution. If either creation command fails, stop and preserve the exact state/error; do not improvise retries or cleanup without first checking resource identity.
 
+### 18.5.9 VOL-05-MAP-G — Stage B resource creation (2026-11-08)
+
+**Status:** Stage B PASS — disposable named volume and stopped probe container created. Container was not started. Stage B2 read-only inspection is next.
+
+**Exact executed command:** The user executed the previously supplied Stage B wrapper. It used:
+- Image: `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`
+- Volume: `odysseus-vol05-mapg-20261108`, created with `podman volume create --uid 1000 --gid 1000`.
+- Container: `odysseus-vol05-mapg-20261108`.
+- The five explicit UID mappings and identical five GID mappings validated in MAP-F.
+- `--pull=never`, `--network=none`, `--read-only`, `--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--user=1000:1000`.
+- The new named volume mounted read/write at `/probe`.
+- Container command was the bounded Python identity/write/readback probe, but it has **not** executed because the container was not started.
+
+**Observed output:**
+~~~text
+===== 1. CREATE NAMED VOLUME =====
+odysseus-vol05-mapg-20261108
+
+===== 2. CREATE STOPPED PROBE CONTAINER =====
+61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30
+
+===== STAGE B COMPLETE — CONTAINER NOT STARTED =====
+~~~
+The full container ID is `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30`.
+
+**Interpretation:** Both resource-creation commands returned success. This establishes that the named volume was created and Podman accepted the stopped container configuration with the explicit maps and volume mount. It does not yet prove that the container's effective mount, namespace maps, process identity, volume ownership or write/readback behavior match the intended design. Those require Stage B2 inspection and Stage C runtime execution.
+
+**Safety/evidence boundary:** The only resources intentionally created were the named volume and the stopped probe container listed above. The container was not started. No image pull was requested; no network, package, service or host configuration was changed. Do not run Stage C until Stage B2 inspection is reviewed. Do not remove either resource until exact identities and cleanup conditions are checked.
+
+**Runtime-test accounting:** Stage B is a setup stage of VOL-05-MAP-G, not the runtime probe. Counter remains **0/5 since the unchanged v3.20 archive checkpoint**.
+
+**Next action — Stage B2:** Perform read-only inspection of the exact container ID and named volume. Confirm the container remains Created/not running, exact image and mapping configuration, security settings, and the `/probe` mount source/destination/read-write mode; inspect volume metadata. Any mismatch stops progression to Stage C.
+
 ### 18.6 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
@@ -4051,6 +4084,7 @@ The first assistant action in a new conversation should be:
 | 3.22 | 2026-11-08 | Added §18.5.7 as a transcript supplement preserving the complete user-executed shell wrappers for VOL-05-MAP-F Stages B, B2, C and D, including headings, status capture and completion markers. The runtime result, cleanup, v3.20 archive snapshot and next gate are unchanged. Documentation-only correction; no new test or resource/host operation. |
 
 
+| 3.24 | 2026-11-08 | Recorded VOL-05-MAP-G Stage B: created the disposable named volume with UID/GID 1000 and created the stopped restricted probe container using the MAP-F-validated explicit UID/GID maps, exact cached image, no network, read-only root, dropped capabilities, no-new-privileges and UID/GID 1000:1000. Recorded full container ID; container was not started. Stage B2 read-only inspection is next; runtime-test count remains 0/5 since v3.20. No image pull, package/service/host configuration change. |
 | 3.23 | 2026-11-08 | Corrected the §18 handoff's stale canonical-version reference (v3.21 → v3.23) and clarified the current 0/5 runtime-test counter since the unchanged v3.20 checkpoint. Marked the DR-02 checklist's 3/5 count explicitly historical. Formalized VOL-05-MAP-G as the next dependency with a read-only preflight followed by separate explicit approval before any volume/container creation. No runtime test or resource/host change. |
 
 
