@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.12  
+> **Version:** 3.13  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2572,10 +2572,10 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.12  
+**Canonical version:** 3.13  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current Phase 1.4 source-review pin (user-confirmed repository; exact commit fixed):** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. Phase 1.3's different historical pin is preserved in §2.1; SRC-01 is resolved for current Phase 1.4 authority. SRC-02–SRC-10 have been revalidated as source findings at this pin; DR-02 architecture and all runtime enforcement remain open before any build can be considered.  
-**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
+**Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled. VOL-04 has now reached a disposable named-volume creation/cleanup attempt: volume creation with `--uid 1000 --gid 1000` succeeded and `podman unshare stat` reported owner 1000:1000, mode 755; the subsequent container create failed because explicit `--userns=private` was supplied without a UID/GID mapping. No probe container was created and no application-identity write test ran. The exact temporary volume was removed and its absence verified. See §18.4. Runtime-test count is now 4/5 since the v1.2 checkpoint.
 
 ### 18.1 What is already established
 
@@ -3050,10 +3050,134 @@ CLEAR: container name is unused
 - **Resources created or changed:** None.
 - **Cleanup:** Not applicable; this was read-only.
 - **Interpretation:** Both exact names were unused in the queried Podman listings at the time of the check. This does not reserve the names, guarantee they remain unused, or demonstrate that named-volume ownership works.
-- **Decision:** Name-collision prerequisite cleared. The next step is to present the complete exact VOL-04 experiment and cleanup sequence for explicit approval. Do not create either resource until that sequence is approved.
-- **Runtime-test accounting:** No increment; remains **3/5** since the v1.2 checkpoint.
+- **Decision:** Name-collision prerequisite cleared. The subsequent approved VOL-04 attempt and its result are recorded in §18.4. This earlier preflight remains a historical record.
+- **Runtime-test accounting:** At the time of this preflight, no increment; the later VOL-04 attempt advances the current count to **4/5** since the v1.2 checkpoint.
 
-### 18.4 Explicitly not authorized
+### 18.4 VOL-04 — named-volume creation and container-create attempt (2026-11-08)
+
+- **Status:** PARTIAL / INCONCLUSIVE. The named-volume creation and ownership inspection succeeded. Container creation failed before a container existed; the non-root write/readback behavior was NOT TESTED.
+- **Question:** Can a rootless Podman named volume initialized with numeric UID/GID 1000:1000 be mounted by a restricted container running as UID/GID 1000:1000 and written without ownership repair?
+- **Approval:** The user approved the exact VOL-04 Stages A–E sequence presented in the preceding conversation. This record is limited to the disposable volume/container names and cached image specified there.
+- **Environment:** SteamOS x86_64 host; user `deck` UID/GID 1000:1000; rootless Podman returned `true`; cached Python image ID `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`.
+- **Resource names:** `odysseus-vol04-probe-20261108` for both volume and container.
+- **Safety boundary:** No existing volume/container was used or modified; no image was pulled; no network, host configuration, package, service or persistent application resource was changed.
+
+#### Stage A — final safety preflight
+
+**Executed checks and observed output:**
+- `uname -m` → `x86_64`.
+- `id` → `uid=1000(deck) gid=1000(deck) groups=1000(deck),973(steamos-log-submitter),998(wheel)`.
+- `podman info --format '{{.Host.Security.Rootless}}'` → `true`.
+- `podman image exists "$IMAGE_ID"` → printed `PASS: exact image exists locally`.
+- Exact volume and container name checks both printed `CLEAR`.
+- Stage completed. No numeric shell exit status was captured for the full stage.
+
+#### Stage B — create and inspect named volume
+
+**Exact creation command:**
+
+~~~bash
+podman volume create --uid 1000 --gid 1000 odysseus-vol04-probe-20261108
+~~~
+
+**Observed result:** Podman returned the volume name, indicating creation succeeded.
+
+**Volume inspection (relevant fields):**
+
+~~~text
+Name: odysseus-vol04-probe-20261108
+Driver: local
+Mountpoint: /home/deck/.local/share/containers/storage/volumes/odysseus-vol04-probe-20261108/_data
+CreatedAt: 2026-11-08T19:55:52.005217566+01:00
+UID: 1000
+GID: 1000
+MountCount: 0
+NeedsCopyUp: true
+~~~
+
+**Rootless namespace ownership command:**
+
+~~~bash
+podman unshare stat -c 'OWNER=%u:%g MODE=%a PATH=%n' "$MOUNTPOINT"
+~~~
+
+**Observed output:**
+
+~~~text
+OWNER=1000:1000 MODE=755 PATH=/home/deck/.local/share/containers/storage/volumes/odysseus-vol04-probe-20261108/_data
+~~~
+
+**Interpretation:** Podman accepted the requested numeric UID/GID metadata and the directory appeared as 1000:1000, mode 755, from the `podman unshare` namespace. This is positive evidence about volume initialization only. It does **not** prove that container UID/GID 1000:1000 sees the directory as writable, because the planned container user namespace was never successfully configured or created. Do not conflate the rootless unshare view with the eventual container process's mapped identity.
+
+#### Stage C — container creation failed
+
+The executed `podman create` included these material options:
+
+~~~bash
+podman create \
+  --pull=never \
+  --name odysseus-vol04-probe-20261108 \
+  --user 1000:1000 \
+  --userns=private \
+  --network=none \
+  --read-only \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  --volume odysseus-vol04-probe-20261108:/probe:rw \
+  sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 \
+  python3 -c '<write/readback probe>'
+~~~
+
+**Actual Podman error:**
+
+~~~text
+Error: must provide at least one UID or GID mapping to configure a user namespace
+~~~
+
+No container was created. The subsequent `podman inspect` did not inspect a container; its template evaluation failed because no container object existed. The transcript did not capture a numeric exit status for `podman create` itself.
+
+**Interpretation:** The explicit `--userns=private` option was rejected in this invocation because Podman required at least one UID or GID mapping to configure that user namespace. This establishes a command/configuration failure, not a named-volume write failure. It does not yet establish which alternative user-namespace mode or explicit mapping is correct. Do not retry by simply removing or changing `--userns`; first resolve the mapping semantics against the recorded VOL-01 subordinate-ID map and the volume's rootless ownership view.
+
+#### Stage D — execution attempt
+
+The executed command was `podman start --attach odysseus-vol04-probe-20261108`.
+
+**Actual output:**
+
+~~~text
+Error: no container with name or ID "odysseus-vol04-probe-20261108" found: no such container
+CONTAINER PROCESS EXIT CODE: 125
+~~~
+
+The subsequent container inspect template also failed because the container did not exist. Volume inspection still showed the same volume metadata (UID 1000, GID 1000, MountCount 0). The write/readback Python program never ran. Exit code 125 belongs to the recorded start attempt, not to the earlier create operation.
+
+#### Stage E — exact cleanup
+
+The executed cleanup checked and removed only the exact proposed container and volume names.
+
+**Observed output:**
+
+~~~text
+Container already absent
+odysseus-vol04-probe-20261108
+PASS: container absent
+PASS: volume absent
+~~~
+
+The exact temporary volume was removed successfully. The exact container was already absent. Both independent absence checks passed. No other resource was targeted.
+
+#### VOL-04 conclusion and accounting
+
+- **Volume creation:** PASS — Podman created the named volume with requested UID/GID 1000:1000 metadata.
+- **Rootless unshare ownership inspection:** PASS — observed 1000:1000, mode 755.
+- **Container creation:** FAIL — explicit private user namespace could not be configured without at least one UID/GID mapping.
+- **Application UID/GID write/readback:** NOT TESTED.
+- **Cleanup:** PASS — exact temporary volume and container names independently verified absent.
+- **Overall VOL-04:** PARTIAL / INCONCLUSIVE; it is not a successful storage-compatibility test and not evidence that named-volume writes fail.
+- **Runtime-test accounting:** Count advances from **3/5 to 4/5** since the v1.2 archive checkpoint. This failed/partial runtime attempt counts under §0.4/§0.5; one more completed test triggers the five-test consistency review and unchanged archive snapshot. No snapshot is due yet.
+- **Next gate:** Read-only Podman user-namespace/mapping review specific to rootless `--userns=private`, explicit `--uidmap`/`--gidmap`, and how those mappings interact with the volume ownership reported by `podman unshare stat`. Reconcile with VOL-01 before proposing any corrected probe. No container/volume creation is authorized by this next review; obtain separate approval before another runtime attempt.
+
+### 18.5 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
 - Downloading images or source dependencies.
@@ -3065,7 +3189,7 @@ CLEAR: container name is unused
 - Host firewall, DNS, routing, cgroup, systemd or kernel changes.
 - Boot autostart, background tasks or persistent services.
 
-### 18.5 New ChatGPT session opening instruction
+### 18.6 New ChatGPT session opening instruction
 
 The first assistant action in a new conversation should be:
 
@@ -3115,6 +3239,7 @@ The first assistant action in a new conversation should be:
 | 3.10 | 2026-11-08 | Recorded VOL-04-PREFLIGHT cached-image inventory. Python 3 Alpine and Debian 12 slim are already cached and unreferenced by containers according to the image listing; Python Alpine is the provisional probe candidate by exact local image ID and digest, pending read-only image-config inspection. Recorded a volume-accounting discrepancy between six named volumes and higher per-container LOCAL VOLUMES counts; all existing resources remain protected. No image/container/volume/network operation or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.11 | 2026-11-08 | Recorded VOL-04-PREFLIGHT-2: exact cached Python image exists and reports linux/amd64, empty configured user, no entrypoint, default command python3, and two repository digests. Image was inspected but not run. Prepared next gate as a proposed disposable named-volume experiment requiring exact command review and separate explicit approval. No runtime test, container, volume, image execution, pull or host change. Runtime-test count remains 3/5; no archive snapshot triggered. |
 | 3.12 | 2026-11-08 | Recorded VOL-04-NAME-PREFLIGHT: exact proposed volume and container names both returned CLEAR in read-only Podman listings. Added the exact executed command/output, scope and evidence limits; advanced VOL-04 to exact sequence review pending explicit approval. Corrected the continuation handoff version to 3.12. No resources created or changed; this is not a runtime test, so count remains 3/5 since v1.2 and no five-test archive snapshot is triggered. |
+| 3.13 | 2026-11-08 | Recorded the approved VOL-04 disposable runtime attempt. Final preflight passed on x86_64/rootless Podman with the exact cached image and names clear. Named-volume creation with `--uid 1000 --gid 1000` succeeded; `podman volume inspect` reported UID/GID 1000 and `podman unshare stat` reported 1000:1000, mode 755. Container creation failed because the explicit `--userns=private` invocation supplied no UID/GID mapping; no container was created and the write/readback probe did not run. Start attempt returned 125 because the container did not exist. Exact volume cleanup and independent container/volume absence checks passed. Overall VOL-04 is PARTIAL/INCONCLUSIVE, not a volume-write failure. Runtime-test count advances to 4/5 since v1.2; no five-test snapshot yet. Updated §18 handoff to a read-only user-namespace/mapping review; no installation or host configuration change. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
