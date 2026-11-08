@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 1.8  
+> **Version:** 1.9  
 > **Record date:** 2026-11-07  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1236,6 +1236,57 @@ The following entries consolidate actual results recorded in the audit journey a
 - **Conclusion:** Positive identity separation for this tested invocation. Application UID compatibility and all mounted data ownership still require separate verification.
 - **Repeat policy:** Only after mapping/runtime configuration changes.
 
+
+### UID-04 preflight — pinned candidate application identity and entrypoint review (read-only; not a completed runtime test)
+
+**Review date:** 2026-11-08  
+**Review location:** GitHub source at the exact Phase 1.4 pinned commit; no Steam Deck host or container commands executed for this source review.  
+**Status:** SOURCE REVIEW COMPLETE — runtime compatibility remains NOT TESTED. This review does not increment the five-test counter and creates no test resources.
+
+**Candidate source identity used for this review**
+
+- Repository: `odysseus-dev/odysseus-current`
+- Branch recorded by Phase 1.4: `dev`
+- Pinned commit: `142b93ad86073efb24981df385423f58fe5376b1`
+- This is the source baseline recorded in Phase 1.4 and the 1.4.8 architecture export. Phase 1.3 also records an earlier, separate repository/commit (`odysseus-dev/odysseus`, `03d25943ee4a35f6f0535112976123a721cff5cb)); the historical discrepancy remains visible and must be reconciled at the source/build reproducibility gate before any build. This Gate 5 review does not silently resolve it.
+
+**Pinned files retrieved**
+
+| File | Git blob SHA | Relevant evidence |
+|---|---|---|
+| [`Dockerfile`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/Dockerfile) | `3732d20a6cb5b25ee98a338b650f7e82939eb166` | Uses `docker/entrypoint.sh` as ENTRYPOINT and Uvicorn as CMD; no Dockerfile `USER` directive appears before it. |
+| [`docker/entrypoint.sh`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/docker/entrypoint.sh) | `aec3b8eec57f1540c340415917f6a4b57584a605` | Defaults `PUID=1000`, `PGID=1000`; creates/reuses numeric group/user; performs ownership-repair operations; runs setup through `gosu`; finally execs the application through `gosu` as the application account. |
+| [`docker-compose.yml`](https://github.com/odysseus-dev/odysseus-current/blob/142b93ad86073efb24981df385423f58fe5376b1/docker-compose.yml) | `b1f2c37ee64c3108bcbb0a3f68f4c79027c1e199` | Sets default `PUID=1000` and `PGID=1000`; declares writable bind mounts for `/app/data`, `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` and `/app/.local`. |
+
+**Exact source behavior relevant to Gate 5**
+
+1. The Dockerfile does not set a non-root `USER`; the image's default root process starts the entrypoint.
+2. The entrypoint uses `PUID` and `PGID`, defaulting both to 1000. It creates the group/user if the numeric IDs are not already present.
+3. It recursively repairs ownership under application paths and separately attempts ownership repair for the five writable mount paths listed above. Several `chown`/repair errors are explicitly suppressed with `|| true`; an unsuccessful repair therefore does not necessarily stop startup.
+4. It runs `/app/setup.py` as the application account (also allowing setup failure) and then uses `exec gosu "$ODY_USER" "$@"` to start Uvicorn as that account.
+5. Therefore the upstream default application process identity is **numeric UID 1000 / GID 1000**, after a root-started ownership-preparation phase. The values are configurable, but 1000:1000 is the candidate default being evaluated here.
+
+**Prior evidence and unresolved compatibility question**
+
+- UID-03 established the recorded `--userns=nomap` container-root mapping, not the mapping of application UID/GID 1000.
+- MOUNT-01 found that a host-owned mode-700 test directory appeared inside the tested `nomap` container as UID/GID 65534 and was inaccessible to container root. That test did not execute an ownership repair or test a process running as UID/GID 1000.
+- The recorded `nomap` map and the observed mount ownership do not, by themselves, prove that the upstream entrypoint can change a host-owned bind mount to UID/GID 1000 or that the resulting application process can write it.
+- The upstream entrypoint suppresses ownership-repair failures. A successful container start would not prove persistent data is writable.
+
+**Interpretation:** The candidate default identity is now source-grounded as UID/GID 1000, but its mapping and writable-volume compatibility with `--userns=nomap` remain unproven. Do not infer that container UID 1000 maps to host UID 1000, or to any particular subordinate host ID, without runtime evidence.
+
+**Proposed next runtime test — UID-04**
+
+- **Question:** Under the recorded rootless `--userns=nomap` configuration, what host UID/GID correspond to a process running as container UID/GID 1000, and can the root-started ownership-repair step change one disposable host-owned scratch bind mount to 1000:1000 so that the application identity can create a file?
+- **Prior evidence:** UID-03 and MOUNT-01.
+- **Why new:** UID-03 measured container root only; MOUNT-01 measured container-root access without exercising ownership repair or the final UID/GID 1000 process. UID-04 tests both the previously untested application identity and the relevant ownership transition.
+- **Execution location:** SteamOS host invoking one disposable rootless Podman container based only on the already cached `docker.io/library/python:3-alpine` test image; no upstream application image build.
+- **Proposed resource boundary:** one uniquely named temporary container; one fresh scratch directory under `/home/deck` mounted only at `/probe`; `--network=none`; `--pull=never`; no ports, credentials, sockets, protected project paths or other host mounts; read-only container root; only `CHOWN` and `DAC_OVERRIDE` added to an otherwise dropped capability set for the ownership-repair phase; no-new-privileges; bounded memory/PIDs; restart disabled.
+- **Probe sequence:** record root and application-process `/proc/self/uid_map` and `gid_map`; record mount ownership; as container root attempt the same numeric `chown -R 1000:1000` behavior used by the entrypoint; then execute a write probe as numeric UID/GID 1000:1000; inspect resulting host-side ownership and file state; remove only the named test container and scratch directory; independently verify absence.
+- **Evidence limitation:** this is a focused numeric identity/ownership compatibility probe, not execution of the upstream entrypoint, not an application image test, and not approval for any production mount.
+- **Approval:** NOT YET GRANTED. No test container or scratch directory may be created until the user explicitly approves the exact test and command.
+
+
 ### MOUNT-01 — Private host directory bind-mount isolation
 
 - **Status:** PASS for the tested path/configuration
@@ -1979,7 +2030,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 2 | Internal component communication (NET-04) | Two peers communicate bidirectionally while both fail named external-egress probes; cleanup verified | **COMPLETED — PASS with SIGTERM/SIGKILL lifecycle caveat** |
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
-| 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the intended non-root application UID, ownership and entrypoint | NOT TESTED |
+| 5 | Exact candidate UID/application identity | Validate `nomap` compatibility with the source-grounded default application UID/GID 1000, ownership repair and entrypoint | **SOURCE REVIEW COMPLETE; UID-04 runtime test proposed, approval pending** |
 | 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
@@ -2249,7 +2300,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 1.8  
+**Canonical version:** 1.9  
 **Audit status:** ACTIVE — no installation authorized.  
 **Current source baseline:** `odysseus-dev/odysseus-current`, branch `dev`, commit `142b93ad86073efb24981df385423f58fe5376b1` (must be rechecked before a build).  
 **Current runtime evidence:** rootless Podman 6.0.2, Netavark 2.0.0, crun 1.28/1.28-dirty, cgroup v2/systemd, seccomp enabled, AppArmor/SELinux disabled.
@@ -2278,13 +2329,14 @@ NET-03, NET-04, NET-05 and NET-06 are complete. NET-06 Stage A was a read-only p
 
 NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary IPv6-enabled internal network. Stage C1 found that both internal DNS gateways answered the tested `example.com` A/AAAA UDP/TCP queries with NXDOMAIN; direct public DNS endpoints were network-unreachable. Stage C2 confirmed no default IPv4 or IPv6 route in the probe container; selected public numeric TCP destinations were network-unreachable, while TCP to both internal DNS gateways succeeded. Stage D cleanup removed the exact temporary container and network; independent absence checks passed. Podman escalated to SIGKILL after the 10-second SIGTERM timeout. **NET-06 is complete with scoped findings and a lifecycle caveat.**
 
-**Next open dependency:** Gate 5 — exact candidate UID/application identity. Before defining a test, read the corresponding source export and the recorded `nomap` evidence; determine the intended non-root application UID, entrypoint and ownership requirements. Do not create a container or change resources until the exact test and approval boundary are presented. Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
+**Next open dependency:** Gate 5 — exact candidate UID/application identity. The pinned Phase 1.4 source candidate defaults to application UID/GID 1000:1000; its root-started entrypoint attempts ownership repair on five writable bind mounts, then drops to that identity with `gosu`. UID-03 and MOUNT-01 do not establish whether this sequence works under `--userns=nomap`. The proposed next test is UID-04 as defined in §11: a disposable `python:3-alpine` container, cached image only, one scratch bind mount, no network, and a numeric ownership-repair/write probe. **Approval is pending. Do not create the container or scratch directory until the user approves the exact test.** Do not repeat NET-03 through NET-06 absent a documented changed condition or newly identified behavior.
 
 ### 18.3 Explicitly not authorized
 
 - Installing Odysseus, LXC, LXD, Incus or additional packages.
 - Downloading images or source dependencies.
 - Creating a permanent Odysseus network, container, directory or service.
+- Creating the proposed temporary UID-04 container or scratch directory before explicit approval.
 - Starting/stopping protected projects or LocalAI.
 - Provider API calls or credential access.
 - MCP, SSH, shell/Python execution by the Agent.
@@ -2316,6 +2368,7 @@ The first assistant action in a new conversation should be:
 | 1.6 | 2026-11-07 | Recorded NET-06 Stage C1 DNS results: container resolver points to both internal gateways; both gateways returned NXDOMAIN for the tested external A/AAAA queries over UDP/TCP; direct public DNS endpoints were network-unreachable. Updated remaining gate and handoff to Stage C2 numeric connectivity. No five-test checkpoint triggered. |
 | 1.7 | 2026-11-07 | Recorded NET-06 Stage C2 route tables and numeric TCP probes: no default route in either address family; public numeric IPv4/IPv6 TCP probes returned `connect_ex=101`; both internal DNS gateway TCP port-53 probes returned `connect_ex=0`. Updated gate and handoff; temporary resources retained pending cleanup. No five-test checkpoint triggered. |
 | 1.8 | 2026-11-07 | Recorded NET-06 Stage D exact cleanup command and output: Podman escalated from SIGTERM to SIGKILL after 10 seconds, then removed the exact probe container and temporary network; independent absence checks passed. Marked NET-06 complete, updated Gate 4 and the handoff to Gate 5 (candidate UID/application identity). Two completed tests since the v1.2 checkpoint (NET-05 and NET-06); no five-test snapshot triggered. |
+| 1.9 | 2026-11-08 | Added read-only Gate 5 source review at the Phase 1.4 pinned commit: candidate defaults to PUID/PGID 1000:1000; root-started entrypoint performs ownership repair on five writable mounts and drops to the app user with gosu. Recorded source blob SHAs, the unresolved Phase 1.3 repository discrepancy, and the gap between UID-03/MOUNT-01 and application-identity compatibility. Defined UID-04 as a proposed disposable numeric ownership/write probe; approval remains pending. No runtime test, container, scratch directory, image build or host change. Test count remains 2/5 since the v1.2 checkpoint; no archive snapshot triggered. |
 
 ---
 
