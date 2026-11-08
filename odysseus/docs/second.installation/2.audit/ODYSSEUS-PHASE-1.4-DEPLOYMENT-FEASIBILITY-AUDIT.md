@@ -3,8 +3,8 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.29  
-> **Record date:** 2026-11-08  
+> **Version:** 3.30  
+> **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
@@ -19,7 +19,7 @@ This is the authoritative, cumulative technical record for **Audit 2 / Phase 1.4
 ### 0.1 Non-negotiable workflow
 
 1. Read this canonical document from top to bottom before proposing audit work.
-2. Read the parent [second.installation README](../README.md) and the closed [Phase 1.3 audit](../1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md).
+2. Read the parent [second.installation README](../README.md), the repository [Engineering & Security Baseline](../../../../deck/docs/ENGINEERING-AND-SECURITY-BASELINE.md), and the closed [Phase 1.3 audit](../1.audit/archive/ODYSSEUS%20%E2%80%94%20Phase%201.3%20Reset%20%26%20Security%20Audit.md).
 3. Read the archived source export relevant to the next test when its exact command or output is needed.
 4. Identify the next **open dependency gate** in §12. Do not restart from generic groundwork.
 5. Before any command, state:
@@ -82,6 +82,26 @@ This document is not:
 - proof that a proposed architecture is secure;
 - a replacement for the original chronological source exports preserved in the archive;
 - a substitute for revalidation after a relevant kernel, SteamOS, Podman, runtime or application-source change.
+
+### 0.5 Relationship to the shared Deck Engineering & Security Baseline
+
+The repository-level [Engineering & Security Baseline](../../../../deck/docs/ENGINEERING-AND-SECURITY-BASELINE.md) is the cross-project authority for shared engineering and security principles. It is part of the governing context for this audit, but it is not duplicated here and does not replace Odysseus-specific evidence or decisions.
+
+| Baseline principle | Phase 1.4 application | Assessment |
+|---|---|---|
+| Diagnose first; read-only before change | Ordered dependency gates, preflight, evidence and explicit approval before resource changes | ALIGNED |
+| Least privilege and verify isolation | UID/GID maps, mounts, capabilities, namespaces, sockets and network tests | ALIGNED; deployment gates remain open |
+| Minimise exposure | Internal/none network testing, loopback-only publication checks and no broad host integration | ALIGNED; final egress policy remains open |
+| Protect secrets | Credential contents excluded from tests, logs and Git; provider broker is proposed | ALIGNED; implementation not built |
+| Preserve working systems and protected assets | Explicit protected-resource exclusions and exact disposable-resource cleanup | ALIGNED |
+| Lifecycle and persistence | Manual lifecycle, named-volume/data contract, backup and recovery requirements | ALIGNED IN PRINCIPLE; recovery validation remains open |
+| Evidence-based status | CONFIRMED/PASS/FAIL/PARTIAL/INCONCLUSIVE/NOT TESTED vocabulary and exact test ledger | ALIGNED |
+| Documentation hierarchy | Separate README, audit, installation and future operations/recovery documents | ALIGNED |
+| Distrobox is not a hardened sandbox | §5.2 warns against treating integration defaults as isolation | ALIGNED |
+
+**Project-specific deployment-path convention:** future Odysseus deployment assets and durable project state must be organized under /home/deck/odysseus-box/, rather than relying on mutable SteamOS system paths or an opaque container layer. If Distrobox is selected for a future project environment, its project deployment must follow the same /home/deck-rooted convention and use a dedicated project HOME beneath that root. This is a project layout rule, not permission to expose the complete host /home/deck tree to the application. Exact Distrobox --home behavior, mounts, identity and security implications must be verified before use.
+
+**Audit boundary:** this reconciliation checks the audit's documented approach against the shared baseline. It is not a fresh host inspection, does not close any technical gate, does not validate runtime security, and does not authorize installation. The current installation status remains **NOT AUTHORIZED**.
 
 ---
 
@@ -4511,6 +4531,8 @@ The first assistant action in a new conversation should be:
 ---
 
 ## 19. Change log
+
+| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
 
 | Version | Date | Change |
 |---|---|---|
