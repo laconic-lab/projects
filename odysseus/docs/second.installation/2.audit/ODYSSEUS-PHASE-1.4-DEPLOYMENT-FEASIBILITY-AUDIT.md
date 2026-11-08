@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 2.8  
+> **Version:** 2.9  
 > **Record date:** 2026-11-08  
 > **Status:** ACTIVE — AUDIT ONLY / NO INSTALLATION AUTHORIZED  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -1421,7 +1421,7 @@ A second targeted scan of the same pinned source commit confirmed the four discr
 
 | ID | Finding | Evidence / impact | Disposition |
 |---|---|---|---|
-| SRC-01 | Phase 1.3 / Phase 1.4 source lineage is unresolved | Phase 1.3 records an earlier installation-baseline candidate `odysseus-dev/odysseus@03d25943ee4a35f6f0535112976123a721cff5cb`; its final Authority Matrix and Phase 1.4 identify `odysseus-dev/odysseus-current@142b93ad86073efb24981df385423f58fe5376b1`. The cited Dockerfiles have different blob SHAs and materially different build instructions. The reason for the transition and user-approved final authority are not established. | **OPEN — BLOCKS ANY BUILD.** User must confirm source authority; record lineage and re-pin before build. |
+| SRC-01 | Phase 1.3 / Phase 1.4 source lineage is unresolved | Read-only GitHub inspection finds two distinct public repositories under the same organization. `odysseus-current` has a single visible `Initial public snapshot` commit dated 2026-07-23; its README links the `main` branch to the separate `odysseus` repository. The historical `odysseus` candidate commit is dated 2026-10-30 and belongs to a repository with ongoing branch/commit activity. Both contain the Odysseus application, but pinned README, Dockerfile, `app.py`, `requirements.txt`, and `docker/entrypoint.sh` blobs differ. This supports an older snapshot/export relationship, but Git ancestry and the user's intended deployment authority are not proven. | **OPEN — BLOCKS ANY BUILD.** Evidence provisionally favors `odysseus` as the maintained upstream; user must confirm intent and exact commit. |
 | SRC-02 | Dockerfile pre-creates an apparently unused search-cache path | Dockerfile creates `/app/services/cache/search`; active `services/search/cache.py` writes disk cache beneath `DATA_DIR/cache/search` and `DATA_DIR/cache/content`. | Confirmed source discrepancy; document as unused for the reviewed implementation, not as an active writable path. |
 | SRC-03 | Upstream MCP documentation lags pinned implementation | `src/builtin_mcp.py` enables built-in MCP by default and can invoke `npx -y @playwright/mcp@latest` on first startup unless disabled/cache-gated; the default cache gate is false. | Confirmed. Built-in MCP must be explicitly disabled in the initial profile; mutable runtime package download is also a reproducibility defect. |
 | SRC-04 | `setup.py` is incompatible with the proposed immutable/non-root startup when `.env` is absent | `setup.py` attempts to copy `.env.example` to `/app/.env`. In a root-owned/read-only application tree that write can fail; the stock entrypoint suppresses setup failure with `|| true`, potentially allowing startup to continue after setup steps were skipped. | Confirmed. Do not run upstream setup blindly; design explicit bootstrap and fail-closed checks. |
@@ -1437,6 +1437,39 @@ A second targeted scan of the same pinned source commit confirmed the four discr
 **First-admin bootstrap qualification:** the rate-limited first-run route is a potential bootstrap mechanism, not an approved one. Loopback-only publication limits network reachability but any local process with access to the host loopback endpoint may race to create the first administrator. A bootstrap design must establish how the intended operator is authenticated/authorized before enabling the route, and must keep the service unavailable to LAN/peer networks until admin setup and authentication verification are complete.
 
 **Build provenance qualification:** pinning the Git commit is necessary but insufficient. A reproducibility record must also capture immutable base-image digests, controlled OS package repositories/versions, locked Python dependencies, any npm/npx packages, all service-image digests, and the final image digest/build provenance. The two historical Dockerfile snapshots must not be combined or treated as interchangeable.
+
+### SRC-01 — read-only repository-lineage investigation (2026-11-08)
+
+The following evidence was collected through GitHub repository, branch, commit, and pinned-file reads. No repository or branch was changed.
+
+| Evidence | `odysseus-dev/odysseus-current` | `odysseus-dev/odysseus` |
+|---|---|---|
+| GitHub repository ID | `1310066833` | `1255180606` |
+| Organization | `odysseus-dev` (same organization ID) | `odysseus-dev` (same organization ID) |
+| Visibility / archived | Public / not archived | Public / not archived |
+| Default branch | `dev` | `dev` |
+| Relevant pinned commit | `142b93ad86073efb24981df385423f58fe5376b1` — “Initial public snapshot”, 2026-07-23 | `03d25943ee4a35f6f0535112976123a721cff5cb` — merge of PR #6993, 2026-10-30 |
+| Commit-search observation | Search returned the initial snapshot as the only commit in the visible result set | Search returned multiple later commits; branch search showed ongoing development branches |
+
+Additional cross-checks:
+
+- The `odysseus-current` README describes the same self-hosted AI workspace and explicitly links its `main` branch to `odysseus-dev/odysseus`.
+- The historical candidate commit in `odysseus` changes the gallery editor and its end-to-end tests; it is not an unrelated project commit.
+- At the two cited pins, the following file blobs differ:
+
+| File | `odysseus` at 2026-10-30 | `odysseus-current` at 2026-07-23 |
+|---|---|---|
+| `Dockerfile` | `fe6a6792fb0d706bfe944a17e33ab8c58d0b8781` | `3732d20a6cb5b25ee98a338b650f7e82939eb166` |
+| `README.md` | `06d4b5f1eb09dcd3fbffe567bfe019c455544cd0` | `705ec6b682f12b02fff96a387ef236c2ae84eb98` |
+| `app.py` | `ae859a5793a00d5b7969e3c7a5a287b45d285131` | `e740ad5180043dc751a8e868ae29e18603bf594f` |
+| `requirements.txt` | `415b4b50369645f33b842484598fcf5bba19ccd2` | `be5f5d4505083b76bdeaa3ced2b61c70e305a9e1` |
+| `docker/entrypoint.sh` | `5ad824a5af98e7693ee648772d57353e9c39e7c0` | `aec3b8eec57f1540c340415917f6a4b57584a605` |
+
+**Interpretation:** The available evidence strongly suggests that `odysseus-current` is an earlier public snapshot/export of the same application, while `odysseus` is the actively maintained upstream repository. However, the connector's commit response does not expose enough parent/ancestry data to prove a shared Git history, and repository history alone cannot establish which source the user intended to deploy.
+
+**Provisional technical recommendation:** If the intended source is the maintained upstream, candidate 1 — `odysseus-dev/odysseus` — is now better supported than `odysseus-current`. This is a recommendation only, not an authority decision. Do not silently re-pin or build.
+
+**Evidence limitation:** The repository comparison establishes repository identity, commit dates, branch/search observations, README cross-link, and differing pinned file contents. It does not establish an ancestor/descendant relationship between the repositories, the reason `odysseus-current` was created, or the user's deployment intent.
 
 **Disposition:** SRC-01 is the first dependency and blocks any build. SRC-02 through SRC-10 remain open deployment-contract defects or design requirements. These findings do not change the prior UID-04 runtime result and do not authorize a new test or installation.
 
@@ -1468,7 +1501,7 @@ It also identifies required deployment-source adaptations before that contract c
 - Enforce a consistent `DATA_DIR` / `DATABASE_URL` storage location and close the conditional custom-font write path.
 - Replace the stock root-started ownership-repair entrypoint and upstream `setup.py` invocation with a fail-closed non-root startup/bootstrap contract.
 
-**Next action:** Resolve SRC-01 with the user before further deployment-source work. After the authoritative repository/commit is explicitly selected, resume read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. A targeted trace now confirms the search disk cache is under `DATA_DIR/cache/`; the Dockerfile's `services/cache/search` pre-created directory appears unused by the reviewed search-cache implementation. The pinned threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. The source review also confirms ChromaDB is a separate optional HTTP service for vector memory/RAG; those features can be unavailable/degraded if omitted, and any retained ChromaDB store requires its own volume and backup. Do not create a volume or container. No runtime test or installation is authorized.
+**Next action:** Ask the user to confirm whether the maintained upstream candidate `odysseus-dev/odysseus@03d25943ee4a35f6f0535112976123a721cff5cb` is the intended deployment authority, or whether the earlier `odysseus-current` snapshot was intentionally selected. Do not re-pin or build until the user confirms. After confirmation, resume read-only source tracing for remaining writable paths and startup dependencies, then produce a final storage/identity contract. A targeted trace now confirms the search disk cache is under `DATA_DIR/cache/`; the Dockerfile's `services/cache/search` pre-created directory appears unused by the reviewed search-cache implementation. The pinned threat model explicitly acknowledges no shell/filesystem sandbox for admin Agent tools. The source review also confirms ChromaDB is a separate optional HTTP service for vector memory/RAG; those features can be unavailable/degraded if omitted, and any retained ChromaDB store requires its own volume and backup. Do not create a volume or container. No runtime test or installation is authorized.
 
 ### MOUNT-01 — Private host directory bind-mount isolation
 
@@ -2519,7 +2552,7 @@ NET-06 Stage B allocated IPv4 and ULA IPv6 addresses on the approved temporary I
 
 The source review also found that upstream startup is root-dependent: the entrypoint creates users/groups and performs ownership repair; `setup.py` as non-root attempts to create `/app/.env` from `.env.example`, which can fail on a root-owned/read-only app tree and is hidden by `|| true`, potentially skipping initial admin creation. A deployment-specific build-time identity and non-root entrypoint/setup path are therefore required before the named-volume contract is complete. The pinned source also provides a first-run `/api/auth/setup` route (only while no users exist, rate-limited), so a custom profile can omit `setup.py` and bootstrap the admin through loopback; keep the app unavailable to LAN/other peers until that bootstrap is completed and authentication verified. The extended startup trace confirms directory creation, readiness probes and search analytics write under `DATA_DIR`; built-in MCP is enabled by default and may install browser MCP through `npx` on first start, so set `ODYSSEUS_DISABLE_MCP=1`. Custom-font additions write under `static/fonts/custom` in the image tree and must be disabled or redesigned for a read-only root.
 
-**Next action:** resolve SRC-01 first: ask the user to confirm the authoritative upstream repository/commit and explain the Phase 1.3 transition. No build or runtime test may use either candidate until this is recorded. Then continue read-only tracing and close SRC-02–SRC-10. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
+**Next action:** SRC-01 lineage investigation is recorded in §14.1. Evidence provisionally favors the maintained `odysseus-dev/odysseus` repository, while the user's intent remains unconfirmed. Ask the user to confirm the exact authoritative repository/commit; do not re-pin or build until confirmed. No build or runtime test may use either candidate until this is recorded. Then continue read-only tracing and close SRC-02–SRC-10. No volumes, containers, images, packages, services or host changes. No runtime test or installation authorized. Host-prepared bind mounts/custom mapping remain alternatives requiring separate justification. Do not map the app to host UID 1000 or run it as container root merely to make startup work. Do not repeat NET-03 through NET-06 absent a documented changed condition.
 
 ### 18.3 Explicitly not authorized
 
@@ -2570,6 +2603,7 @@ The first assistant action in a new conversation should be:
 | 2.7 | 2026-11-08 | Expanded DR-02 into a source-integrity/deployment-contract discrepancy review. Reconciled the wording of the Phase 1.3 historical repository candidate versus its final Authority Matrix and Phase 1.4 source pin; recorded SRC-01 as unresolved and build-blocking, including distinct Dockerfile blob SHAs. Added SRC-02–SRC-10 for the unused Dockerfile cache path, stale MCP docs/default npx behavior, setup.py failure masked by entrypoint, incomplete MCP disable scope, root-dependent ownership-repair entrypoint, custom-font image-tree writes, DATA_DIR/DATABASE_URL divergence, first-admin local race, and mutable build inputs. Corrected next gate to source-authority resolution; no runtime test or host/resource change; test count remains 3/5 since v1.2 checkpoint; no archive snapshot triggered. |
 
 | 2.8 | 2026-11-08 | Reconciled the current-verdict summary with NET-04 by removing the stale statement that peer-to-peer behavior remained untested; NET-04 had already confirmed bidirectional peer DNS/TCP communication. Reordered the 2.6/2.7 changelog entries chronologically and repaired the malformed line break between entries 1.4 and 1.5. Updated the canonical version to 2.8. Documentation-only change: no tests, runtime resources or host state changed; completed-test count remains 3/5 since the v1.2 checkpoint; no archive snapshot triggered. |
+| 2.9 | 2026-11-08 | Added the read-only SRC-01 repository-lineage investigation: confirmed distinct public repository IDs under the same organization, the `odysseus-current` “Initial public snapshot” dated 2026-07-23, the later `odysseus` candidate commit dated 2026-10-30, README cross-link to the `odysseus` repository, branch/commit activity observations, and differing pinned blobs for README, Dockerfile, app.py, requirements.txt and entrypoint. Recorded the evidence-based interpretation that `odysseus-current` appears to be an earlier snapshot/export and that `odysseus` is the better-supported maintained-upstream candidate, while explicitly leaving Git ancestry and user intent unproven. SRC-01 remains open and build-blocking pending user confirmation. No build, runtime test, repository change or host/resource change; completed-test count remains 3/5 since v1.2; no archive snapshot triggered. |
 ---
 
 *End of canonical Phase 1.4 audit record.*
