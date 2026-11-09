@@ -4594,10 +4594,12 @@ This probe validates the generic candidate mount location and the read-only-root
 **Status and next action**
 
 - MOUNT-02-REVIEW-01: **READ-ONLY SOURCE REVIEW COMPLETE**.
+- MOUNT-02 Stage A: **PASS** — preflight completed without resource changes.
+- MOUNT-02 Stage B: **RESOURCE CREATION COMPLETE** — named volume and stopped restricted container created; container remains unstarted.
 - Gate 6 runtime mount test: **NOT TESTED**.
 - Candidate allowlist: **PROVISIONAL — ONE RW NAMED VOLUME AT `/app/data`; NO INSPECTOR MOUNT SELECTED**.
-- No resource was created or changed; no runtime-test counter increment. Counter remains **1/5 since v3.20**.
-- Next: prepare the exact read-only Stage A preflight for the new volume/container names and exact cached image; review Stage A before seeking separate approval for resource creation and runtime execution. Do not touch any existing volume/container or protected project.
+- Runtime-test counter remains **1/5 since v3.20**; Stage B is setup, not runtime execution.
+- Next: MOUNT-02 Stage B2 read-only inspection of the created container and volume. Do not start, modify or clean up either resource before inspection; do not touch any existing volume/container or protected project.
 
 
 ### 18.9 MOUNT-02 — candidate /app/data named-volume mount probe (2026-11-09)
@@ -4853,7 +4855,9 @@ The user supplied the completion output but not a separately captured shell exit
 
 ## 19. Change log
 
-| 3.33 | 2026-11-09 | Recorded MOUNT-02 Stage B resource creation with the exact approved command and user-supplied completion output: dedicated named volume created and restricted container ID 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c created but not started. Python remains unexecuted; configuration and mount behavior await read-only Stage B2 inspection. No cleanup; resources intentionally retained. Runtime-test counter remains 1/5 since v3.20; installation remains NOT AUTHORIZED. |\n| 3.31 | 2026-11-09 | Recorded MOUNT-02-REVIEW-01 read-only source reconciliation at the pinned Odysseus commit; identified one provisional RW named-volume candidate at /app/data, excluded upstream convenience mounts, deferred the unselected Inspector mount and preserved ChromaDB as unresolved. Updated Gate 6 handoff and current 1/5 runtime-test counter. No runtime test or resource creation; installation remains NOT AUTHORIZED. |\n| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
+| 3.33 | 2026-11-09 | Recorded MOUNT-02 Stage B resource creation with the exact approved command and user-supplied completion output: dedicated named volume created and restricted container ID 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c created but not started. Python remains unexecuted; configuration and mount behavior await read-only Stage B2 inspection. No cleanup; resources intentionally retained. Runtime-test counter remains 1/5 since v3.20; installation remains NOT AUTHORIZED. |
+| 3.32 | 2026-11-09 | Recorded MOUNT-02 Stage A read-only preflight PASS with exact user command/output: rootless Podman 6.0.2, cached Python image ID and linux/amd64, unused exact container/volume names, and current rootless UID/GID maps. No resources changed; preflight is not a runtime test; counter remains 1/5 since v3.20. Gate 6 runtime validation remains open; Stage B requires separate explicit approval. |
+| 3.31 | 2026-11-09 | Recorded MOUNT-02-REVIEW-01 read-only source reconciliation at the pinned Odysseus commit; identified one provisional RW named-volume candidate at /app/data, excluded upstream convenience mounts, deferred the unselected Inspector mount and preserved ChromaDB as unresolved. Updated Gate 6 handoff and current 1/5 runtime-test counter. No runtime test or resource creation; installation remains NOT AUTHORIZED. |\n| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
 
 | Version | Date | Change |
 |---|---|---|
