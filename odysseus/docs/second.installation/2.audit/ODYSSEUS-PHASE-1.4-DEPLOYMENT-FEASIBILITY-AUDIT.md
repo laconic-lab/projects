@@ -4957,7 +4957,169 @@ echo "READ-ONLY INSPECTION ONLY — NO START OR CLEANUP"
 - **Risk and side-effect boundary:** Starts and stops only the exact disposable container; writes one uniquely named marker to the exact disposable named volume. No host configuration, package, image, network or protected-resource changes. No resource deletion.
 - **Resources created or changed:** No new container or volume. Existing exact container started/stopped/restarted; one marker file was created in the named volume and retained.
 
-**Exact command supplied for execution:** The complete eight-step shell command shown immediately before the user-provided result in this conversation: it verifies the exact container ID and pre-start configuration, starts the container, executes the UID/GID and marker write/readback assertions, stops/restarts, verifies persistence, inspects final state, and stops the container. No altered command or retry was reported.
+**Exact command supplied for execution**
+
+~~~bash
+set -euo pipefail
+
+echo "===== MOUNT-02 STAGE C: RUNTIME MOUNT VALIDATION ====="
+
+CONTAINER_NAME="odysseus-mount02-probe-20261109"
+EXPECTED_CONTAINER_ID="9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c"
+VOLUME_NAME="odysseus-mount02-data-20261109"
+MARKER_NAME="stage-c-mount02-20261109.txt"
+MARKER_CONTENT="MOUNT-02-STAGE-C-PERSISTENCE-2026-11-09"
+
+echo
+echo "===== 1. VERIFY EXACT CONTAINER ID ====="
+
+ACTUAL_CONTAINER_ID="$(podman container inspect \
+  --format '{{.Id}}' "$CONTAINER_NAME")"
+
+if [ "$ACTUAL_CONTAINER_ID" != "$EXPECTED_CONTAINER_ID" ]; then
+  echo "FAIL: container ID does not match expected ID."
+  echo "Expected: $EXPECTED_CONTAINER_ID"
+  echo "Actual:   $ACTUAL_CONTAINER_ID"
+  exit 1
+fi
+
+echo "PASS: exact container ID confirmed."
+
+echo
+echo "===== 2. VERIFY PRE-START CONFIGURATION ====="
+
+podman container inspect "$CONTAINER_NAME" \
+  --format 'State={{.State.Status}} Running={{.State.Running}} ReadonlyRootfs={{.HostConfig.ReadonlyRootfs}} NetworkMode={{.HostConfig.NetworkMode}} User={{.Config.User}}'
+
+podman container inspect "$CONTAINER_NAME" \
+  --format '{{range .Mounts}}{{.Name}} -> {{.Destination}} RW={{.RW}}{{println}}{{end}}'
+
+STATE="$(podman container inspect --format '{{.State.Status}}' "$CONTAINER_NAME")"
+READONLY="$(podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$CONTAINER_NAME")"
+NETWORK="$(podman container inspect --format '{{.HostConfig.NetworkMode}}' "$CONTAINER_NAME")"
+USER_CONFIG="$(podman container inspect --format '{{.Config.User}}' "$CONTAINER_NAME")"
+
+if [ "$STATE" != "created" ]; then
+  echo "STOP: expected state 'created'; found '$STATE'."
+  exit 1
+fi
+
+if [ "$READONLY" != "true" ] || [ "$NETWORK" != "none" ] || [ "$USER_CONFIG" != "1000:1000" ]; then
+  echo "STOP: one or more expected security settings do not match."
+  exit 1
+fi
+
+MOUNT_COUNT="$(podman container inspect "$CONTAINER_NAME" \
+  --format '{{range .Mounts}}{{if and (eq .Name "odysseus-mount02-data-20261109") (eq .Destination "/app/data") (eq .RW true)}}1{{end}}{{end}}')"
+
+if [ "$MOUNT_COUNT" != "1" ]; then
+  echo "STOP: expected RW named-volume mount was not confirmed."
+  exit 1
+fi
+
+echo "PASS: stopped state and expected configuration confirmed."
+
+echo
+echo "===== 3. START THE EXACT PROBE CONTAINER ====="
+
+podman start "$CONTAINER_NAME"
+
+echo
+echo "===== 4. RUNTIME IDENTITY AND VOLUME WRITE/READBACK ====="
+
+podman exec --user 1000:1000 "$CONTAINER_NAME" \
+  python -c '
+import os
+from pathlib import Path
+
+target = Path("/app/data/stage-c-mount02-20261109.txt")
+expected = "MOUNT-02-STAGE-C-PERSISTENCE-2026-11-09"
+
+print("Runtime UID:", os.getuid())
+print("Runtime GID:", os.getgid())
+
+assert os.getuid() == 1000, "Unexpected runtime UID"
+assert os.getgid() == 1000, "Unexpected runtime GID"
+
+directory = Path("/app/data")
+print("Mount directory exists:", directory.is_dir())
+assert directory.is_dir(), "Mounted directory is missing"
+
+target.write_text(expected + "\n", encoding="utf-8")
+
+actual = target.read_text(encoding="utf-8").rstrip("\n")
+metadata = target.stat()
+
+print("Marker path:", target)
+print("Marker content:", actual)
+print("Marker owner UID:", metadata.st_uid)
+print("Marker owner GID:", metadata.st_gid)
+
+assert actual == expected, "Readback content mismatch"
+assert metadata.st_uid == 1000, "Unexpected marker UID"
+assert metadata.st_gid == 1000, "Unexpected marker GID"
+
+print("PASS: runtime identity, write, readback and ownership.")
+'
+
+echo
+echo "===== 5. STOP AND RESTART THE SAME CONTAINER ====="
+
+podman stop --time 5 "$CONTAINER_NAME"
+podman start "$CONTAINER_NAME"
+
+echo
+echo "===== 6. VERIFY PERSISTENCE AFTER RESTART ====="
+
+podman exec --user 1000:1000 "$CONTAINER_NAME" \
+  python -c '
+import os
+from pathlib import Path
+
+target = Path("/app/data/stage-c-mount02-20261109.txt")
+expected = "MOUNT-02-STAGE-C-PERSISTENCE-2026-11-09"
+
+print("Runtime UID:", os.getuid())
+print("Runtime GID:", os.getgid())
+
+assert os.getuid() == 1000, "Unexpected runtime UID"
+assert os.getgid() == 1000, "Unexpected runtime GID"
+
+assert target.is_file(), "Marker missing after container restart"
+
+actual = target.read_text(encoding="utf-8").rstrip("\n")
+metadata = target.stat()
+
+print("Marker content after restart:", actual)
+print("Marker owner UID after restart:", metadata.st_uid)
+print("Marker owner GID after restart:", metadata.st_gid)
+
+assert actual == expected, "Persistent content mismatch"
+assert metadata.st_uid == 1000, "Persistent marker UID mismatch"
+assert metadata.st_gid == 1000, "Persistent marker GID mismatch"
+
+print("PASS: volume data and ownership persisted across restart.")
+'
+
+echo
+echo "===== 7. FINAL CONTAINER STATE ====="
+
+podman container inspect "$CONTAINER_NAME" \
+  --format 'State={{.State.Status}} Running={{.State.Running}}'
+
+echo
+echo "===== 8. STOP THE PROBE CONTAINER ====="
+
+podman stop --time 5 "$CONTAINER_NAME"
+
+podman container inspect "$CONTAINER_NAME" \
+  --format 'FinalState={{.State.Status}} Running={{.State.Running}}'
+
+echo
+echo "===== MOUNT-02 STAGE C COMMAND SEQUENCE COMPLETE ====="
+echo "The container and named volume have been retained."
+echo "The marker file has been retained for evidence."
+~~~
 
 **Actual output supplied by the user**
 
