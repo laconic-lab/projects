@@ -280,3 +280,12 @@ MOUNT-02 Stage B2 subsequently passed read-only configuration inspection: exact 
 
 This checkpoint does not authorize installation or runtime execution. The next step is preparation and review of the exact MOUNT-02 Stage C runtime test, followed by separate explicit user approval before starting the container. Refer to canonical audit §18.9.
 
+## 6.8 Gate 6 runtime checkpoint — MOUNT-02 Stage C (2026-11-09)
+
+The bounded MOUNT-02 Stage C runtime probe passed its positive named-volume checks. In the exact disposable container, the /app/data volume was active; the Python process ran as UID/GID 1000:1000; marker write/readback succeeded; marker ownership was UID/GID 1000:1000; and marker content and ownership persisted across a container stop/restart.
+
+Both five-second stop operations required Podman to escalate from SIGTERM to SIGKILL. The final state was exited / Running=false. This is a shutdown-behavior caveat for the lifecycle gate, not a failure of the positive volume checks.
+
+The container, volume and marker file remain present. No cleanup was performed. This probe does not establish application-image compatibility, negative writes outside /app/data, an Inspector mount, backup/restore or graceful SIGTERM shutdown. Gate 6 remains open for its unresolved requirements. Runtime-test count is **2/5 since the unchanged v3.20 archive checkpoint**. Installation remains **NOT AUTHORIZED**.
+
+See the canonical Phase 1.4 audit §18.9 for the recorded command, actual output, evidence limits and continuation handoff. This guide remains a planning document and does not authorize installation.
