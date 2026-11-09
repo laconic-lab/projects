@@ -226,3 +226,12 @@ Do not adopt the upstream Compose convenience mounts for `/app/logs`, `/app/.ssh
 **Stage A read-only preflight: PASS.** Confirmed rootless Podman 6.0.2, exact cached Python image ID sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 (linux/amd64), unused exact temporary container and volume names, and the current rootless UID/GID maps. No resources were created or modified. This is not a runtime test; the counter remains 1/5 since the v3.20 checkpoint.
 
 **Next:** Stage B command review and separate explicit approval before creating the exact new named volume and stopped probe container. Do not start the container. After creation, inspect it read-only and request separate approval before runtime execution. Full evidence is in canonical audit §18.9.
+
+## 6.2 Gate 6 resource-creation checkpoint — MOUNT-02 Stage B (2026-11-09)
+
+Stage B completed: the exact disposable named volume `odysseus-mount02-data-20261109` and stopped restricted container `odysseus-mount02-probe-20261109` were created using the cached Python image and the previously validated explicit UID/GID map. Container ID: `9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c`. The container was not started; Python was not executed. Both resources remain intentionally present.
+
+This is resource setup, not a runtime test. Runtime-test accounting remains **1/5** since the v3.20 archive checkpoint. Installation remains **NOT AUTHORIZED**.
+
+**Next:** MOUNT-02 Stage B2 read-only inspection of the created container and named volume. Verify actual state, image, effective mappings, security options, network, published ports and exact `/app/data` mount before requesting separate approval for Stage C. Do not start or clean up either resource before review. See canonical audit §18.9.
+
