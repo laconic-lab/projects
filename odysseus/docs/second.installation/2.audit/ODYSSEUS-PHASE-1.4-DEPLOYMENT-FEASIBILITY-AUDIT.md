@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.30  
+> **Version:** 3.31  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2822,19 +2822,17 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.27. The unchanged v3.20 checkpoint snapshot remains the latest archive snapshot; its five-test checkpoint was verified byte-for-byte. Runtime-test counter is **1/5 since v3.20**: VOL-05-MAP-G Stage C is the first completed runtime test after that checkpoint. Stages A/B2/D are preflight/read-only inspection; Stage B is resource setup, not a runtime test.
+**Canonical version:** 3.31. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Runtime-test counter: **1/5 since v3.20**; no five-test snapshot is due yet.
 
-**Audit status:** ACTIVE — audit only. **Installation is NOT YET AUTHORIZED.** The user directed that the installation authorization rule change only after all required container/runtime tests and final acceptance gates are green. Until then, all installation/build/deployment prohibitions remain in force. The conditional rule is recorded in §18.6; this volume-probe PASS alone does not trigger it.
+**Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling: every required runtime, source/build, security-boundary, lifecycle/recovery and final acceptance gate must be evidence-backed GREEN/PASS, with no unresolved blocker or scoped failure that invalidates the selected architecture. Even after the status transition, actual installation still requires separate approval of the exact plan.
 
-**Current Phase 1.4 source-review pin:** `odysseus-dev/odysseus`, branch `dev`, commit `1c1509094963f9eb9445928d57f2856296057cf4`. SRC-01 is resolved for Phase 1.4; SRC-02–SRC-10 are recorded against this pin. DR-02 architecture and application-level enforcement remain open; no build is authorized.
+**Phase 1.4 source pin:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`. SRC-01 is resolved; SRC-02–SRC-10 remain source findings at that pin. No build is authorized.
 
-**Latest runtime result — VOL-05-MAP-G Stage C PASS:** The exact disposable container `61f8eb161d7d2a4a8452ebadcfa0e108ef6ecaf53ad106f9f6762aca98acef30` was started once with `podman start --attach`. The bounded Python probe reported process UID/GID 1000:1000; /probe directory UID/GID 1000:1000 and mode 0755; successful file creation and byte-for-byte readback (`Readback matches: True`); proof-file UID/GID 1000:1000 and mode 0600. Start/attach returned 0; final container state was exited, not running, exit code 0, OOMKilled false, empty error; logs independently repeated the successful output. This establishes container-visible named-volume access and write/readback for this exact Podman 6.0.2 mapping/image/probe. It does not establish host-side ownership interpretation, persistence across container recreation, production application compatibility, or overall deployment security.
+**Latest completed runtime test — VOL-05-MAP-G:** Stage C PASS for container-visible named-volume ownership and write/readback under the explicit mapping, UID/GID 1000:1000. Stage D remains PARTIAL because ordinary host `ls -lan` was denied; `podman unshare` confirmed directory/file ownership and modes. Exact container and volume cleanup independently passed. Runtime-test counter is **1/5 since v3.20**.
 
-**Current storage conclusion:** VOL-05-MAP-G Stages A, B, B2, C and D are recorded. Stage D confirmed the directory and proof-file ownership/modes in the `podman unshare` view (UID/GID 1000:1000; directory 0755; file 0600). Ordinary host `ls -lan` was denied with `Permission denied`, so direct host-view inspection is unavailable; do not misreport it as a missing file or failed ownership mapping. The disposable volume and exited container remain present. Next is a separately approved/documented exact cleanup and independent absence verification.
+**Latest Gate 6 work — MOUNT-02-REVIEW-01:** read-only source reconciliation at the pinned commit is complete and recorded in §18.8. It identifies one provisional application-state mount candidate: a dedicated named volume at `/app/data`, read/write. The source review does **not** authorize a mount or prove application-image compatibility. No separate `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface`, `/app/.local`, host-home, source-tree, socket or Inspector mount is currently justified. A read-only Inspector mount is deferred because no concrete host path/service contract has been selected. ChromaDB remains a separate unresolved service/storage decision.
 
-**Runtime-test accounting:** Counter is **1/5 since the unchanged v3.20 archive checkpoint**. Stage C is counted once; A/B2 are not, and B is resource setup. When the fifth runtime test is completed, perform the mandatory documentation consistency review and unchanged versioned archive snapshot. No archive is due now.
-
-**Stage D disposition:** PARTIAL overall. The `podman unshare` view successfully inspected the exact volume directory and discovered `mapg-proof.txt`; both are owned by UID/GID 1000:1000 with modes 0755 and 0600 respectively. The ordinary host `ls -lan` returned `Permission denied`. The exact command and full output are recorded in §18.5.12. This confirms ownership in the rootless Podman user-namespace view, but does not provide a direct ordinary-host listing or independently establish host-visible numeric IDs. **Next gate:** separately documented exact cleanup of the disposable container and volume, followed by independent verification that both are absent. Installation remains unauthorized.
+**Next action:** review the exact Gate 6 probe design and perform only its read-only Stage A preflight. The probe should use the cached immutable Python image, the MAP-F-validated explicit UID/GID map, and a unique temporary named volume mounted at `/app/data`; it must verify application-state directory/write behavior and read-only-root negative writes. Resource creation and runtime execution require separate explicit approval after Stage A review. No existing volumes or protected resources may be touched.
 
 ### 18.1 What is already established
 
@@ -2858,7 +2856,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Status:** DESIGN CHECKLIST RECORDED — NOT APPROVED FOR IMPLEMENTATION.  
 **Source:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`.  
-**Runtime count at checklist creation:** 3/5 since the v1.2 archive checkpoint. UID-04 remains a scoped FAIL for the tested `--userns=nomap` bind-mount ownership transition. This is historical checklist metadata, not the current counter; the current counter is 0/5 since the v3.20 checkpoint. This checklist is not a test.
+**Runtime count at checklist creation:** 3/5 since the v1.2 archive checkpoint. UID-04 remains a scoped FAIL for the tested `--userns=nomap` bind-mount ownership transition. This is historical checklist metadata; the current counter is 1/5 since the v3.20 checkpoint. This checklist is not a test.
 
 Status meanings: **ESTABLISHED** = supported by current evidence; **PROPOSED** = intended design, not implemented; **UNRESOLVED** = decision/proof still missing.
 
@@ -4530,9 +4528,80 @@ The first assistant action in a new conversation should be:
 
 ---
 
+### 18.8 Gate 6 — MOUNT-02-REVIEW-01: candidate mount allowlist source reconciliation (2026-11-09)
+
+**Review type:** READ-ONLY SOURCE REVIEW at the exact Phase 1.4 source pin. No Steam Deck commands, runtime execution, mount, volume, container, image pull, build, package or host change was performed.
+
+**Question:** Which upstream application paths require persistence, which candidate mounts are justified for the initial restricted profile, and is there a concrete read-only Inspector mount to test?
+
+**Pinned source:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`.
+
+**Files reviewed and blob SHAs:**
+
+| File | Blob SHA | Relevance |
+|---|---|---|
+| `src/constants.py` | `6868e4549c3bb01a4c8ae87ce1c19243ee164b82` | Defines `DATA_DIR`, persisted file/directory constants, `AGENT_WORKSPACE_DIR`, and optional cache/attachment overrides |
+| `src/runtime_paths.py` | `9a8ffe7f972cb31fdd69078ec00100a3c47ca517` | Defines app-root and default data-root behavior |
+| `src/app_initializer.py` | `23fdc68ad11161b5ca71138b80dcbfa46de1df0d` | Creates data subdirectories and validates the canonical Agent workspace child |
+| `core/database.py` | `1c9fd2d98320d071a263f9b7ae1b29eca4847562` | Creates/initializes persistent database state beneath `DATA_DIR` |
+| `src/tool_execution.py` | `f31728e9706478d62cf6fd21a7bdb8a9095b6f1b` | Defines workspace execution context and distinguishes workspace cwd from a shell sandbox |
+| `src/agent_tools/filesystem_tools.py` | `46ea9a98955d04fe9605aac01e27a6b4d6ec7d9e` | Implements file-tool reads/writes; path restrictions are application logic, not a mount boundary |
+| `src/mail_attachment_paths.py` | `a2eb9c912ce93f823e757e38526e262817f2db3b` | Attachment path contract |
+| `routes/font_routes.py` | `fbfd2045891ee9c43fe88e13a269a08be5767787` | Reads custom fonts from the image/source tree |
+| `specs/persistence.md` | `50249841b99d83321f67518ec26f7e29c5b28c88` | Persistence inventory and startup migration behavior |
+| `specs/runtime.md` | `9295f27f3fc3f4b88af06f4fc995df1f130e7178` | Runtime ownership of logging, static assets and managers |
+| `docker-compose.yml` | `cd31f2c5438d144c83749cba5d3792163ec434b4` | Upstream default mounts; reviewed as source context, not adopted as the target profile |
+
+**Source-derived findings**
+
+1. `src.constants.DATA_DIR` is the common root for the application database, auth/session state, app encryption key, settings, integrations, vault, uploads, personal documents, generated media, logs, caches and other persistent stores. For the proposed container profile, `ODYSSEUS_DATA_DIR` must resolve to `/app/data`; `DATABASE_URL` must resolve to the same root, specifically `/app/data/app.db`. A second data root is not acceptable.
+2. The source defines `AGENT_WORKSPACE_DIR` as `DATA_DIR/agent_workspace`. `create_directories()` creates this as a real directory, rejects a symlink/non-directory at that entry, and attempts mode `0700`. It is a child of the sensitive application-state volume, not an independent host workspace or an independent trust boundary.
+3. The source file-tool path resolvers are application-level confinement. The execution source explicitly describes the shell as starting in the workspace while **not being sandboxed**. Therefore neither the workspace directory nor file-tool path filtering permits shell/Python access to be treated as confined. Shell, arbitrary Python and any equivalent execution route must remain disabled or independently brokered before a deployment can be accepted.
+4. `app.py` and the runtime specification place the primary application log under `DATA_DIR/logs`. A separate `/app/logs` mount is not required by the reviewed primary logger and would create an unnecessary second writable mount.
+5. The current upstream Compose file additionally mounts `/app/.ssh`, `/app/.cache/huggingface` and `/app/.local`. These correspond to Cookbook SSH identity, downloaded model cache, and locally installed executable Python tools/packages. They are not adopted for the initial restricted profile.
+6. Custom fonts are discovered under `static/fonts/custom`, outside `DATA_DIR`. The initial profile's read-only image root must not be weakened to preserve this convenience feature. Custom-font writes must be disabled or redesigned to persist under a separately reviewed data path.
+7. `MAIL_ATTACHMENTS_DIR` and `FASTEMBED_CACHE_DIR` have environment overrides. For the initial profile, leave the overrides unset or explicitly constrain them beneath `/app/data`; no external host path is approved.
+8. The source has a `CHROMA_DIR` under `DATA_DIR`, while the reviewed Compose file also defines ChromaDB as a separate service with its own named volume at `/data`. Whether ChromaDB is retained, omitted or replaced remains unresolved in DR-02. It is not included in the application container's mount allowlist by this review.
+9. The proposed Policy Gateway/Inspector architecture is not a concrete upstream mount contract. No distinct host project root, Inspector implementation, service identity or read-only source path has been selected. Therefore **no read-only Inspector mount is proposed or tested at this stage**. Do not substitute the entire `/home/deck`, `/home/deck/odysseus-box` or another broad path.
+
+**Provisional Gate 6 candidate allowlist — design only, not approved**
+
+| Source | Container destination | Access | Disposition |
+|---|---|---|---|
+| One new dedicated rootless Podman named volume | `/app/data` | RW | Sole provisional persistent application mount; sensitive application state |
+| Separate host logs directory | `/app/logs` | — | Omit; primary logger is under `DATA_DIR/logs` |
+| Host SSH identity / project SSH keys | `/app/.ssh` | — | Deny / omit |
+| HuggingFace/model cache | `/app/.cache/huggingface` | — | Deny / omit initially |
+| User-local Python packages/CLIs | `/app/.local` | — | Deny / omit |
+| Host home, project root, source tree, runtime sockets, Podman socket | Any | — | Deny / omit |
+| Custom-font directory | `/app/static/fonts/custom` | — | No writable mount; disable/rework feature |
+| Read-only Inspector source | Not selected | — | Deferred; no concrete path or implementation to test |
+| ChromaDB persistence | Separate service if retained | — | Unresolved DR-02 decision; not an app-container mount |
+
+**Required runtime validation for the one provisional mount**
+
+The next disposable probe should mount a new named volume at the actual candidate destination `/app/data` (not an existing project volume), use the exact cached Python image ID already recorded in §18.5, use the MAP-F-validated explicit UID/GID map and process identity 1000:1000, and retain `--pull=never`, `--network=none`, read-only root, all capabilities dropped, no-new-privileges, no published ports and no other mounts. The bounded probe should:
+
+- verify process UID/GID 1000:1000 and the effective UID/GID maps;
+- create the expected state subdirectories beneath `/app/data` (including `agent_workspace`, `uploads`, `personal_docs` and `logs`) with the intended modes;
+- write and read back a small disposable proof file beneath `/app/data`;
+- verify a write outside `/app/data` is denied by the read-only root;
+- verify no other mount or network is present by inspection;
+- use exact identity checks and independently verified cleanup.
+
+This probe validates the generic candidate mount location and the read-only-root boundary only. It does **not** run the Odysseus image, execute application initialization, validate migrations, prove Agent policy enforcement, test ChromaDB or create a read-only Inspector mount. Those remain separate gates.
+
+**Status and next action**
+
+- MOUNT-02-REVIEW-01: **READ-ONLY SOURCE REVIEW COMPLETE**.
+- Gate 6 runtime mount test: **NOT TESTED**.
+- Candidate allowlist: **PROVISIONAL — ONE RW NAMED VOLUME AT `/app/data`; NO INSPECTOR MOUNT SELECTED**.
+- No resource was created or changed; no runtime-test counter increment. Counter remains **1/5 since v3.20**.
+- Next: prepare the exact read-only Stage A preflight for the new volume/container names and exact cached image; review Stage A before seeking separate approval for resource creation and runtime execution. Do not touch any existing volume/container or protected project.
+
 ## 19. Change log
 
-| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
+| 3.31 | 2026-11-09 | Recorded MOUNT-02-REVIEW-01 read-only source reconciliation at the pinned Odysseus commit; identified one provisional RW named-volume candidate at /app/data, excluded upstream convenience mounts, deferred the unselected Inspector mount and preserved ChromaDB as unresolved. Updated Gate 6 handoff and current 1/5 runtime-test counter. No runtime test or resource creation; installation remains NOT AUTHORIZED. |\n| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
 
 | Version | Date | Change |
 |---|---|---|
