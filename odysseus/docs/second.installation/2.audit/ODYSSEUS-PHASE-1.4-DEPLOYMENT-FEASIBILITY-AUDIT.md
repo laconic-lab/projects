@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.34  
+> **Version:** 3.35  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2553,7 +2553,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
 | 5 | Exact candidate UID/application identity and explicit namespace map / named-volume ownership | Validate source-grounded application UID/GID 1000, explicit rootless UID/GID map, container-visible named-volume ownership and application-identity write/readback | **MAP-F PASS; MAP-G Stage C PASS for container-visible ownership/write/readback; Stage D PARTIAL overall: `podman unshare` confirms directory/file ownership and modes, but ordinary host `ls -lan` is denied; exact disposable-resource cleanup and independent absence verification PASS.** The exact Stage B container and named volume were removed and both independently verified absent. UID-04 remains a scoped FAIL for its distinct `nomap` bind-mount sequence. |
-| 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | MOUNT-02 Stages A and B2 PASS (preflight + read-only configuration inspection); Stage B resources created and retained; Stage C runtime mount/write validation NOT TESTED |
+| 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | **MOUNT-02 Stage A PASS; Stage B resource creation complete; Stage B2 PASS; Stage C PASS** for runtime activation, UID/GID 1000:1000 write/readback, marker ownership and restart persistence. One RW named volume at /app/data is validated for this disposable probe. Inspector mount remains deferred/unselected; negative writes outside /app/data and application-image compatibility remain untested. Resources retained; container exited. |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
 | 9 | Application execution bypass | Verify shell/Python/MCP/background paths are removed or externally denied in the actual build | NOT TESTED |
@@ -2822,13 +2822,13 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.32. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Runtime-test counter: **1/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.35. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Runtime-test counter: **2/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling: every required runtime, source/build, security-boundary, lifecycle/recovery and final acceptance gate must be evidence-backed GREEN/PASS, with no unresolved blocker or scoped failure that invalidates the selected architecture. Even after the status transition, actual installation still requires separate approval of the exact plan.
 
 **Phase 1.4 source pin:** `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`. SRC-01 is resolved; SRC-02–SRC-10 remain source findings at that pin. No build is authorized.
 
-**Latest completed runtime test — VOL-05-MAP-G:** Stage C PASS for container-visible named-volume ownership and write/readback under the explicit mapping, UID/GID 1000:1000. Stage D remains PARTIAL because ordinary host `ls -lan` was denied; `podman unshare` confirmed directory/file ownership and modes. Exact container and volume cleanup independently passed. Runtime-test counter is **1/5 since v3.20**.
+**Latest completed runtime test — MOUNT-02 Stage C:** PASS for the tested disposable container and named volume. Runtime mount at /app/data activated; the process ran as UID/GID 1000:1000; marker write/readback succeeded; marker ownership was UID/GID 1000:1000; and marker content plus ownership persisted across a container stop/restart. Both stop operations required SIGKILL escalation after the five-second SIGTERM grace period; final container state was exited. Container and volume retained. Runtime-test counter is **2/5 since v3.20**.
 
 **Latest Gate 6 work — MOUNT-02-REVIEW-01:** read-only source reconciliation at the pinned commit is complete and recorded in §18.8. It identifies one provisional application-state mount candidate: a dedicated named volume at `/app/data`, read/write. The source review does **not** authorize a mount or prove application-image compatibility. No separate `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface`, `/app/.local`, host-home, source-tree, socket or Inspector mount is currently justified. A read-only Inspector mount is deferred because no concrete host path/service contract has been selected. ChromaDB remains a separate unresolved service/storage decision.
 
@@ -4939,9 +4939,92 @@ echo "READ-ONLY INSPECTION ONLY — NO START OR CLEANUP"
 
 **Side effects:** Read-only inspection only. No container start, Python execution, data write, image pull, resource modification or cleanup occurred. The named volume and stopped container remain intentionally present.
 
-**Next gate:** MOUNT-02 Stage C — a bounded, separately approved runtime test of mount activation, process-visible ownership, write/readback and persistence. First present the exact command, expected effects, rollback/cleanup boundary and stop conditions. Do not start the container until the user explicitly approves that exact Stage C command. Installation remains NOT AUTHORIZED.
+**Stage C result:** PASS for the tested /app/data named-volume runtime behavior. See the Stage C record below for the exact command, user-supplied output, SIGKILL stop caveat and evidence limits. The container is exited; both it and the named volume remain present, including the marker file.
+
+**Next Gate 6 work:** Do not repeat the successful positive mount/write/readback/restart test. Determine whether a concrete read-only Inspector mount is required; it remains unselected because no host source path/service contract exists. Separately design and obtain approval for any negative-write tests needed to validate the read-only root outside /app/data, and assess application-image compatibility before treating this disposable Python probe as application proof. Installation remains NOT AUTHORIZED.
+### MOUNT-02 Stage C — runtime mount, ownership, write/readback and restart persistence (2026-11-09)
+
+- **Status:** PASS for the defined positive runtime-volume acceptance checks; shutdown behavior has a recorded SIGKILL escalation caveat.
+- **Environment:** SteamOS host; rootless Podman; exact disposable Python probe container.
+- **Prerequisites:** MOUNT-02 Stages A, B and B2; MAP-F validated explicit UID/GID mapping; exact Stage B container ID.
+- **Container:** odysseus-mount02-probe-20261109
+- **Container ID:** 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c
+- **Volume:** odysseus-mount02-data-20261109
+- **Image:** cached Python image sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5
+- **Question:** Does the configured named volume mount at /app/data, permit the configured UID/GID 1000:1000 process to write/read a file with matching ownership, and preserve that file across a container stop/restart?
+- **Acceptance criterion:** Exact container/configuration guard passes; runtime identity is 1000:1000; mount directory exists; marker write/readback and marker UID/GID are correct; same marker and ownership survive stop/restart; final container is stopped.
+- **Approval:** User explicitly approved the exact bounded Stage C command before execution.
+- **Risk and side-effect boundary:** Starts and stops only the exact disposable container; writes one uniquely named marker to the exact disposable named volume. No host configuration, package, image, network or protected-resource changes. No resource deletion.
+- **Resources created or changed:** No new container or volume. Existing exact container started/stopped/restarted; one marker file was created in the named volume and retained.
+
+**Exact command supplied for execution:** The complete eight-step shell command shown immediately before the user-provided result in this conversation: it verifies the exact container ID and pre-start configuration, starts the container, executes the UID/GID and marker write/readback assertions, stops/restarts, verifies persistence, inspects final state, and stops the container. No altered command or retry was reported.
+
+**Actual output supplied by the user**
+
+~~~text
+===== MOUNT-02 STAGE C: RUNTIME MOUNT VALIDATION =====
+
+===== 1. VERIFY EXACT CONTAINER ID =====
+PASS: exact container ID confirmed.
+
+===== 2. VERIFY PRE-START CONFIGURATION =====
+State=created Running=false ReadonlyRootfs=true NetworkMode=none User=1000:1000
+odysseus-mount02-data-20261109 -> /app/data RW=true
+
+PASS: stopped state and expected configuration confirmed.
+
+===== 3. START THE EXACT PROBE CONTAINER =====
+odysseus-mount02-probe-20261109
+
+===== 4. RUNTIME IDENTITY AND VOLUME WRITE/READBACK =====
+Runtime UID: 1000
+Runtime GID: 1000
+Mount directory exists: True
+Marker path: /app/data/stage-c-mount02-20261109.txt
+Marker content: MOUNT-02-STAGE-C-PERSISTENCE-2026-11-09
+Marker owner UID: 1000
+Marker owner GID: 1000
+PASS: runtime identity, write, readback and ownership.
+
+===== 5. STOP AND RESTART THE SAME CONTAINER =====
+WARN[0005] StopSignal SIGTERM failed to stop container odysseus-mount02-probe-20261109 in 5 seconds, resorting to SIGKILL
+odysseus-mount02-probe-20261109
+odysseus-mount02-probe-20261109
+
+===== 6. VERIFY PERSISTENCE AFTER RESTART =====
+Runtime UID: 1000
+Runtime GID: 1000
+Marker content after restart: MOUNT-02-STAGE-C-PERSISTENCE-2026-11-09
+Marker owner UID after restart: 1000
+Marker owner GID after restart: 1000
+PASS: volume data and ownership persisted across restart.
+
+===== 7. FINAL CONTAINER STATE =====
+State=running Running=true
+
+===== 8. STOP THE PROBE CONTAINER =====
+WARN[0005] StopSignal SIGTERM failed to stop container odysseus-mount02-probe-20261109 in 5 seconds, resorting to SIGKILL
+odysseus-mount02-probe-20261109
+FinalState=exited Running=false
+
+===== MOUNT-02 STAGE C COMMAND SEQUENCE COMPLETE =====
+The container and named volume have been retained.
+The marker file has been retained for evidence.
+~~~
+
+- **Exit status:** No separate numeric shell exit status was captured. The sequence reached its completion marker; no numeric exit code is inferred.
+- **Observed result:** Exact container ID and pre-start settings matched. The container started. The process reported UID/GID 1000:1000. /app/data existed. The marker was written/read back with exact content and UID/GID 1000:1000. After stop/restart, marker content and ownership were unchanged. The final stop left the container exited with Running=false.
+- **Stop behavior caveat:** Both podman stop --time 5 calls emitted StopSignal SIGTERM failed and escalated to SIGKILL. The probe did not demonstrate graceful SIGTERM shutdown within five seconds. Both stop operations completed, and the final state was exited. This is a probe-process lifecycle observation; it does not invalidate the positive volume write/readback/persistence checks, but remains relevant to the separate lifecycle gate.
+- **Resources retained:** Container and named volume remain present; marker file remains in the volume. No cleanup or absence verification was performed.
+- **What this proves:** For this exact disposable Python probe and mapping, the named volume mounted at /app/data; UID/GID 1000:1000 could write/read a file owned by 1000:1000; file content and ownership survived a container stop/restart.
+- **What this does not prove:** Application-image compatibility, application startup/migration behavior, negative writes outside /app/data, a selected/read-only Inspector mount, host-side ordinary ownership visibility, backup/restore, or graceful SIGTERM shutdown. It does not close Gate 6 as a whole or authorize installation.
+- **Runtime-test accounting:** MOUNT-02 Stage C is one completed runtime test. Counter advances from 1/5 to **2/5 since the unchanged v3.20 archive checkpoint**. No five-test snapshot is due.
+- **Decision:** Do not repeat the successful positive mount/write/restart probe. Continue with the remaining Gate 6 questions only after defining their exact scope and approval boundary. Installation remains **NOT AUTHORIZED**.
+
+
 ## 19. Change log
 
+| 3.35 | 2026-11-09 | Recorded MOUNT-02 Stage C runtime PASS for the exact disposable probe: /app/data mount activated; runtime UID/GID 1000:1000; marker write/readback and ownership passed; content and ownership persisted across restart. Preserved both SIGTERM timeout/SIGKILL escalations and final exited state. Container, volume and marker retained. Runtime counter advanced to 2/5 since v3.20; Gate 6 remains open for unresolved Inspector/negative-write/application compatibility questions; installation NOT AUTHORIZED. |
 | 3.34 | 2026-11-09 | Recorded MOUNT-02 Stage B2 read-only inspection PASS: exact container ID/image, stopped state, user 1000:1000, equivalent effective UID/GID map after adjacent-range coalescing, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, one RW named-volume attachment at /app/data, and volume UID/GID 1000:1000. Retained limitations: EffectiveCaps/BoundingCaps null while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback not demonstrated. Both resources retained. Runtime-test counter remains 1/5; installation NOT AUTHORIZED. Next: prepare Stage C command for separate approval. |
 | 3.32 | 2026-11-09 | Recorded MOUNT-02 Stage A read-only preflight PASS with exact user command/output: rootless Podman 6.0.2, cached Python image ID and linux/amd64, unused exact container/volume names, and current rootless UID/GID maps. No resources changed; preflight is not a runtime test; counter remains 1/5 since v3.20. Gate 6 runtime validation remains open; Stage B requires separate explicit approval. |
 | 3.31 | 2026-11-09 | Recorded MOUNT-02-REVIEW-01 read-only source reconciliation at the pinned Odysseus commit; identified one provisional RW named-volume candidate at /app/data, excluded upstream convenience mounts, deferred the unselected Inspector mount and preserved ChromaDB as unresolved. Updated Gate 6 handoff and current 1/5 runtime-test counter. No runtime test or resource creation; installation remains NOT AUTHORIZED. |
