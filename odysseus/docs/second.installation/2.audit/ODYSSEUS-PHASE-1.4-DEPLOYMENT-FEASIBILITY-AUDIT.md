@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.35  
+> **Version:** 3.36  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -5184,8 +5184,227 @@ The marker file has been retained for evidence.
 - **Decision:** Do not repeat the successful positive mount/write/restart probe. Continue with the remaining Gate 6 questions only after defining their exact scope and approval boundary. Installation remains **NOT AUTHORIZED**.
 
 
+
+### MOUNT-02-RO-01 — read-only mount and temporary-path inventory (2026-11-09)
+
+- **Status:** PASS — read-only configuration and filesystem-change inventory completed.
+- **Environment:** SteamOS host; rootless Podman CLI; stopped disposable Python probe.
+- **Container:** `odysseus-mount02-probe-20261109`
+- **Container ID:** `9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c`
+- **Image ID:** `sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5`
+- **Question:** Does the stopped probe's recorded configuration show additional explicit writable mounts or tmpfs declarations beyond the approved candidate `/app/data` volume, and what rootfs changes are visible?
+- **Approval / risk boundary:** Read-only inspection only. The command verified the exact container ID and `exited` state before inspection. It did not start the container, create or alter mounts, write files, modify resources or touch host configuration.
+- **Runtime-test accounting:** This is a read-only inspection, not a runtime test. Counter remains **2/5 since the unchanged v3.20 archive checkpoint**.
+
+**Exact user-executed command:**
+
+~~~bash
+set -euo pipefail
+
+echo "===== MOUNT-02-RO-01: READ-ONLY MOUNT INVENTORY ====="
+
+CONTAINER_NAME="odysseus-mount02-probe-20261109"
+EXPECTED_CONTAINER_ID="9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c"
+
+echo
+echo "===== 1. VERIFY EXACT CONTAINER AND STOPPED STATE ====="
+
+ACTUAL_CONTAINER_ID="$(podman container inspect \
+  --format '{{.Id}}' "$CONTAINER_NAME")"
+
+if [ "$ACTUAL_CONTAINER_ID" != "$EXPECTED_CONTAINER_ID" ]; then
+  echo "STOP: container ID mismatch."
+  exit 1
+fi
+
+STATE="$(podman container inspect --format '{{.State.Status}}' "$CONTAINER_NAME")"
+
+if [ "$STATE" != "exited" ]; then
+  echo "STOP: expected exited state; found '$STATE'."
+  exit 1
+fi
+
+echo "PASS: exact container ID confirmed; container is exited."
+
+IMAGE_ID="$(podman container inspect --format '{{.Image}}' "$CONTAINER_NAME")"
+
+echo
+echo "===== 2. CONTAINER CONFIGURATION: MOUNTS AND TEMPORARY PATHS ====="
+
+podman container inspect "$CONTAINER_NAME" | python -c '
+import json
+import sys
+
+doc = json.load(sys.stdin)
+obj = doc[0] if isinstance(doc, list) else doc
+hc = obj.get("HostConfig") or {}
+cfg = obj.get("Config") or {}
+state = obj.get("State") or {}
+
+print("Container ID:", obj.get("Id"))
+print("State:", state.get("Status"))
+print("ReadonlyRootfs:", hc.get("ReadonlyRootfs"))
+print("NetworkMode:", hc.get("NetworkMode"))
+print("Configured user:", cfg.get("User"))
+print("Working directory:", cfg.get("WorkingDir"))
+
+print()
+print("HostConfig.Tmpfs:")
+print(json.dumps(hc.get("Tmpfs"), indent=2))
+
+print()
+print("HostConfig.ShmSize:")
+print(hc.get("ShmSize"))
+
+print()
+print("HostConfig.Binds:")
+print(json.dumps(hc.get("Binds"), indent=2))
+
+print()
+print("HostConfig.Mounts:")
+print(json.dumps(hc.get("Mounts"), indent=2))
+
+print()
+print("Image-declared Config.Volumes:")
+print(json.dumps(cfg.get("Volumes"), indent=2))
+
+print()
+print("Effective configured mount inventory:")
+for mount in obj.get("Mounts") or []:
+    print(json.dumps({
+        key: mount.get(key)
+        for key in (
+            "Type", "Name", "Destination",
+            "RW", "Mode", "Propagation"
+        )
+    }, sort_keys=True))
+'
+
+echo
+echo "===== 3. CACHED IMAGE: DECLARED VOLUME AND WORKING-DIRECTORY METADATA ====="
+
+podman image inspect "$IMAGE_ID" | python -c '
+import json
+import sys
+
+doc = json.load(sys.stdin)
+obj = doc[0] if isinstance(doc, list) else doc
+cfg = obj.get("Config") or {}
+
+print("Image ID:", obj.get("Id"))
+print("Image user:", cfg.get("User"))
+print("Image working directory:", cfg.get("WorkingDir"))
+print("Image-declared volumes:")
+print(json.dumps(cfg.get("Volumes"), indent=2))
+'
+
+echo
+echo "===== 4. CONTAINER ROOT-FILESYSTEM CHANGE INVENTORY ====="
+
+podman diff "$CONTAINER_NAME"
+
+echo
+echo "===== MOUNT-02-RO-01 COMPLETE ====="
+echo "Read-only inspection only."
+echo "No container was started."
+echo "No files, mounts, containers or volumes were changed."
+~~~
+
+**Actual output supplied by the user:**
+
+~~~text
+===== MOUNT-02-RO-01: READ-ONLY MOUNT INVENTORY =====
+
+===== 1. VERIFY EXACT CONTAINER AND STOPPED STATE =====
+PASS: exact container ID confirmed; container is exited.
+
+===== 2. CONTAINER CONFIGURATION: MOUNTS AND TEMPORARY PATHS =====
+Container ID: 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c
+State: exited
+ReadonlyRootfs: True
+NetworkMode: none
+Configured user: 1000:1000
+Working directory: /
+
+HostConfig.Tmpfs:
+{}
+
+HostConfig.ShmSize:
+65536000
+
+HostConfig.Binds:
+[
+  "odysseus-mount02-data-20261109:/app/data:rw,rprivate,nosuid,nodev,rbind"
+]
+
+HostConfig.Mounts:
+null
+
+Image-declared Config.Volumes:
+null
+
+Effective configured mount inventory:
+{"Destination": "/app/data", "Mode": "", "Name": "odysseus-mount02-data-20261109", "Propagation": "rprivate", "RW": true, "Type": "volume"}
+
+===== 3. CACHED IMAGE: DECLARED VOLUME AND WORKING-DIRECTORY METADATA =====
+Image ID: b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5
+Image user: None
+Image working directory: /
+Image-declared volumes:
+null
+
+===== 4. CONTAINER ROOT-FILESYSTEM CHANGE INVENTORY =====
+A /app
+A /app/data
+
+===== MOUNT-02-RO-01 COMPLETE =====
+Read-only inspection only.
+No container was started.
+No files, mounts, containers or volumes were changed.
+~~~
+
+**Observed evidence:**
+
+| Item | Observed | Interpretation |
+|---|---|---|
+| Exact identity/state | Expected full ID; `exited` | PASS — correct stopped probe inspected |
+| Root filesystem | `ReadonlyRootfs=True` | Read-only root configured |
+| Network | `none` | No container network configured |
+| Process identity | `1000:1000` | Configured non-root identity |
+| Working directory | `/` | Image/container working directory |
+| `HostConfig.Tmpfs` | Empty object `{}` | No tmpfs entries declared in this field |
+| `HostConfig.ShmSize` | `65536000` | Shared-memory size setting recorded; not proof of a live `/dev/shm` mount or its write behavior |
+| `HostConfig.Binds` | One named-volume bind to `/app/data`, RW | Matches the intended candidate data mount |
+| `HostConfig.Mounts` | `null` | No entries in this field; do not treat null as evidence about live mount namespace |
+| Effective configured mount inventory | One volume at `/app/data`, `RW=true`, `rprivate` | Only explicit configured mount shown by this inspection |
+| Image `Config.Volumes` | `null` | No image-declared volumes recorded |
+| Rootfs diff | `A /app`, `A /app/data` | These paths were added to the container writable-layer diff; no other changes were listed |
+
+**Interpretation and evidence limits:**
+
+1. The stopped-container configuration shows one explicit writable mount: the dedicated named volume at `/app/data`. No other configured bind/volume mount is shown.
+2. The root filesystem is configured read-only. `HostConfig.Tmpfs` contains no entries, and the image declares no volumes.
+3. `ShmSize=65536000` is recorded as configuration metadata only. This stopped inspection does not prove whether or how `/dev/shm` is mounted at runtime, nor whether it is writable.
+4. `podman diff` lists only `/app` and `/app/data` as additions. It is a container rootfs-layer change inventory; it is not a listing of files inside the named volume and does not establish volume contents.
+5. This inspection does **not** establish the permissions or effective writability of `/tmp`, `/var/tmp`, `/dev/shm` or any other path. It does not prove that writes outside `/app/data` fail at runtime.
+6. No Inspector mount is selected. No new source path or service contract is inferred from this test.
+
+**Gate 6 status / next action:**
+
+- Positive `/app/data` named-volume runtime test: **PASS** for the exact disposable Python probe (Stage C).
+- MOUNT-02-RO-01: **PASS** for the read-only configuration and rootfs-diff inventory only.
+- Explicit configured writable mount inventory: one named volume at `/app/data`.
+- Runtime negative-write behavior outside `/app/data`: **NOT TESTED**.
+- Effective live `/dev/shm` behavior and temporary-path permissions: **NOT TESTED**.
+- Inspector mount: **NOT SELECTED**; no concrete source path/service contract exists.
+- Container, named volume and Stage C marker remain retained; no cleanup was performed.
+- Runtime-test counter remains **2/5 since v3.20**; this read-only inspection does not increment it.
+- **Next:** use the image metadata and, if necessary, a separately approved bounded runtime inspection to establish candidate path permissions and live mounts before selecting a negative-write test. Do not assume that `/tmp`, `/var/tmp` or `/dev/shm` is a valid test target without evidence. Any container start or write attempt requires a separately reviewed command and explicit approval.
+- Installation remains **NOT AUTHORIZED**.
+
 ## 19. Change log
 
+| 3.36 | 2026-11-09 | Recorded MOUNT-02-RO-01 read-only mount/tmpfs/image-volume/rootfs-diff inventory: exact stopped container verified; one explicit RW named volume at /app/data; Tmpfs empty; ShmSize 65536000 recorded without claiming live /dev/shm behavior; no image-declared volumes; rootfs diff only A /app and A /app/data. Runtime negative writes and temporary-path permissions remain untested. Runtime counter remains 2/5; installation NOT AUTHORIZED. |
 | 3.35 | 2026-11-09 | Recorded MOUNT-02 Stage C runtime PASS for the exact disposable probe: /app/data mount activated; runtime UID/GID 1000:1000; marker write/readback and ownership passed; content and ownership persisted across restart. Preserved both SIGTERM timeout/SIGKILL escalations and final exited state. Container, volume and marker retained. Runtime counter advanced to 2/5 since v3.20; Gate 6 remains open for unresolved Inspector/negative-write/application compatibility questions; installation NOT AUTHORIZED. |
 | 3.34 | 2026-11-09 | Recorded MOUNT-02 Stage B2 read-only inspection PASS: exact container ID/image, stopped state, user 1000:1000, equivalent effective UID/GID map after adjacent-range coalescing, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, one RW named-volume attachment at /app/data, and volume UID/GID 1000:1000. Retained limitations: EffectiveCaps/BoundingCaps null while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback not demonstrated. Both resources retained. Runtime-test counter remains 1/5; installation NOT AUTHORIZED. Next: prepare Stage C command for separate approval. |
 | 3.32 | 2026-11-09 | Recorded MOUNT-02 Stage A read-only preflight PASS with exact user command/output: rootless Podman 6.0.2, cached Python image ID and linux/amd64, unused exact container/volume names, and current rootless UID/GID maps. No resources changed; preflight is not a runtime test; counter remains 1/5 since v3.20. Gate 6 runtime validation remains open; Stage B requires separate explicit approval. |
