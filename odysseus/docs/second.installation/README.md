@@ -210,7 +210,7 @@ It records the durable /home/deck/odysseus-box/ project layout, SteamOS-update r
 
 ## 6. Current Gate 6 handoff — 2026-11-09
 
-The canonical Phase 1.4 audit is **v3.34**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
+The canonical Phase 1.4 audit is **v3.35**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
 
 Gate 5's explicit UID/GID map and generic named-volume write/readback probe passed for the tested configuration. The ordinary host ownership listing remained PARTIAL because it was denied; the rootless Podman namespace view confirmed ownership and modes. Exact cleanup passed.
 
@@ -237,3 +237,12 @@ This is resource setup, not a runtime test. Runtime-test accounting remains **1/
 
 **Next:** prepare MOUNT-02 Stage C's exact bounded runtime mount/write/readback command and safety boundary for separate explicit approval. Do not start or clean up either resource before that approval. Installation remains NOT AUTHORIZED. See canonical audit §18.9.
 
+## 6.3 Gate 6 runtime checkpoint — MOUNT-02 Stage C (2026-11-09)
+
+**MOUNT-02 Stage C: PASS** for the tested disposable Python probe. The exact container and pre-start configuration matched; runtime UID/GID were 1000:1000; the named volume was active at /app/data; marker write/readback succeeded with marker ownership UID/GID 1000:1000; and marker content plus ownership persisted across a container stop/restart.
+
+**Lifecycle caveat:** both five-second stop operations exceeded the SIGTERM grace period and Podman escalated to SIGKILL. The final container state was exited / Running=false. Record this as a shutdown-behavior observation for the lifecycle gate; it does not invalidate the positive volume checks.
+
+The exact container, named volume and marker file remain present. No cleanup was performed. Runtime-test accounting is now **2/5 since the unchanged v3.20 archive checkpoint**; no five-test snapshot is due. Installation remains **NOT AUTHORIZED**.
+
+This proves positive mount/write/readback/restart behavior for this disposable Python probe only. It does not prove application-image compatibility, negative writes outside /app/data, an Inspector mount, backup/restore or graceful SIGTERM shutdown. Do not repeat this positive probe. Continue by resolving the remaining Gate 6 questions and their separate approval boundaries. Full command and output are in canonical audit §18.9.
