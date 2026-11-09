@@ -4858,6 +4858,88 @@ The user supplied the completion output but not a separately captured shell exit
 
 **Next gate:** MOUNT-02 Stage C — bounded runtime mount/write/readback test. Prepare the exact command and safety boundary for review, then request separate explicit approval. Do not start the container before approval. Runtime-test counter remains 1/5; Stage B2 is inspection, not a runtime test.
 
+#### Stage B2 — read-only configuration inspection
+
+**Status:** PASS — read-only inspection of the exact Stage B container and volume completed. No resource was started, modified or removed. This is not a runtime test and does not increment the five-runtime-test counter.
+
+**Exact user-executed inspection command:**
+
+~~~bash
+echo "===== MOUNT-02 STAGE B2: READ-ONLY INSPECTION ====="
+
+CONTAINER_NAME="odysseus-mount02-probe-20261109"
+VOLUME_NAME="odysseus-mount02-data-20261109"
+EXPECTED_ID="9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c"
+
+echo
+echo "===== 1. VERIFY EXACT CONTAINER EXISTS ====="
+podman container exists "$CONTAINER_NAME" || {
+    echo "STOP: expected container is missing"
+    exit 1
+}
+
+echo
+echo "===== 2. INSPECT CONTAINER ====="
+podman inspect "$CONTAINER_NAME"
+
+echo
+echo "===== 3. VERIFY EXACT VOLUME EXISTS ====="
+podman volume exists "$VOLUME_NAME" || {
+    echo "STOP: expected volume is missing"
+    exit 1
+}
+
+echo
+echo "===== 4. INSPECT NAMED VOLUME ====="
+podman volume inspect "$VOLUME_NAME"
+
+echo
+echo "===== 5. CONFIRM FULL CONTAINER ID ====="
+ACTUAL_ID="$(podman inspect --format '{{.Id}}' "$CONTAINER_NAME")"
+echo "EXPECTED_ID=$EXPECTED_ID"
+echo "ACTUAL_ID=$ACTUAL_ID"
+
+if [ "$ACTUAL_ID" != "$EXPECTED_ID" ]; then
+    echo "STOP: container ID mismatch"
+    exit 1
+fi
+
+echo
+echo "===== 6. CONFIRM CONTAINER REMAINS STOPPED ====="
+podman inspect --format 'STATUS={{.State.Status}} RUNNING={{.State.Running}}' "$CONTAINER_NAME"
+
+echo
+echo "===== MOUNT-02 STAGE B2 INSPECTION COMPLETE ====="
+echo "READ-ONLY INSPECTION ONLY — NO START OR CLEANUP"
+~~~
+
+**Actual evidence supplied by the user:** the complete output is preserved in the conversation attachment `Pasted text(20261109-015120).txt`. Key observations:
+
+| Item | Observed value | Assessment |
+|---|---|---|
+| Container ID | Exact expected ID matched | PASS |
+| State | `created`; `Running=false`; PID 0 | PASS — remains stopped |
+| Image | Exact requested cached image ID | PASS |
+| Configured process user | `1000:1000` | PASS |
+| UID/GID maps | `0:1:999`, `999:1001:1`, `1000:1000:1`, `1001:1002:64535` | PASS — equivalent to supplied five segments after adjacent-range coalescing |
+| Root filesystem | `ReadonlyRootfs=true` | PASS |
+| Network | `NetworkMode=none`; network entry `none` | PASS |
+| Published ports | `PortBindings={}`; `Ports={}` | PASS |
+| Security option | `no-new-privileges` | PASS |
+| Capability configuration | `CapAdd=[]`; `CapDrop` lists the runtime's capability set | PASS — configured setting observed |
+| Mounts | One volume mount; no additional mounts shown | PASS |
+| Mount source | Named volume `odysseus-mount02-data-20261109` | PASS |
+| Mount destination/access | `/app/data`; `RW=true` | PASS — configured attachment observed |
+| Volume ownership metadata | UID 1000, GID 1000 | PASS |
+| Volume mount count | `MountCount=0` | EXPECTED BEFORE START; runtime mount not demonstrated |
+| Volume copy-up flag | `NeedsCopyUp=true` | RECORDED; behavior not yet tested |
+| Effective/bounding capabilities | `EffectiveCaps=null`, `BoundingCaps=null` | NOT OBSERVED — container is stopped |
+
+**Interpretation and limitations:** The four displayed UID/GID map ranges preserve the same mapping as the five explicit ranges passed to `podman create`; the first two adjacent ranges were coalesced in inspection output. The configured `--cap-drop=ALL` is reflected by `CapAdd=[]` and the listed `CapDrop` entries, but no effective or bounding capability state is inferred from the stopped container. `MountCount=0` is consistent with the container not having started. The inspection verifies the configured volume attachment, not actual runtime mount activation, write access, ownership as seen by the running process, or persistence after restart.
+
+**Side effects:** Read-only inspection only. No container start, Python execution, data write, image pull, resource modification or cleanup occurred. The named volume and stopped container remain intentionally present.
+
+**Next gate:** MOUNT-02 Stage C — a bounded, separately approved runtime test of mount activation, process-visible ownership, write/readback and persistence. First present the exact command, expected effects, rollback/cleanup boundary and stop conditions. Do not start the container until the user explicitly approves that exact Stage C command. Installation remains NOT AUTHORIZED.
 ## 19. Change log
 
 | 3.34 | 2026-11-09 | Recorded MOUNT-02 Stage B2 read-only inspection PASS: exact container ID/image, stopped state, user 1000:1000, equivalent effective UID/GID map after adjacent-range coalescing, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, one RW named-volume attachment at /app/data, and volume UID/GID 1000:1000. Retained limitations: EffectiveCaps/BoundingCaps null while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback not demonstrated. Both resources retained. Runtime-test counter remains 1/5; installation NOT AUTHORIZED. Next: prepare Stage C command for separate approval. |
