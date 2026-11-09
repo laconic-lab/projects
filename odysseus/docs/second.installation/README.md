@@ -206,3 +206,16 @@ Stage D remains **PARTIAL overall**: `podman unshare stat/find` confirmed direct
 It records the durable /home/deck/odysseus-box/ project layout, SteamOS-update resilience requirements, security constraints inherited from Phase 1.4, recovery requirements and future approval gates. It must remain consistent with the audit and the shared Deck baseline.
 
 **Distrobox reminder:** if Distrobox is selected for a project environment, keep that project's deployment rooted under /home/deck/<project-name>/ and use a dedicated HOME beneath that root. This is not permission to expose the whole host home or to treat Distrobox as a hardened sandbox.
+
+
+## 6. Current Gate 6 handoff — 2026-11-09
+
+The canonical Phase 1.4 audit is **v3.31**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
+
+Gate 5's explicit UID/GID map and generic named-volume write/readback probe passed for the tested configuration. The ordinary host ownership listing remained PARTIAL because it was denied; the rootless Podman namespace view confirmed ownership and modes. Exact cleanup passed.
+
+**Gate 6 source reconciliation is complete (MOUNT-02-REVIEW-01).** At the pinned upstream commit, the only provisional application-container persistent mount is one dedicated named volume at `/app/data`, read/write. The application database, auth/session state, encryption keys, uploads, personal documents, logs and other persistent stores resolve under `DATA_DIR`; `ODYSSEUS_DATA_DIR` and `DATABASE_URL` must point to the same data root.
+
+Do not adopt the upstream Compose convenience mounts for `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` or `/app/.local`. Do not expose the host home, project root, source tree or runtime sockets. Custom-font writes outside `DATA_DIR` must be disabled or redesigned for a read-only image root. The Agent workspace is a child of `/app/data`, not an independent sandbox; shell/Python execution must remain disabled or separately brokered. No read-only Inspector mount has been selected because no concrete host source path or Inspector implementation exists. ChromaDB remains an unresolved separate-service decision.
+
+**Next:** read-only Stage A preflight for a new disposable mount probe at `/app/data`, using the exact cached Python image and MAP-F-validated mapping. Resource creation/runtime execution require separate approval after Stage A review. See canonical audit §18.8 for evidence, scope and exact validation criteria.
