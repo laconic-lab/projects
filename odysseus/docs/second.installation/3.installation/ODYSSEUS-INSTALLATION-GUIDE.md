@@ -264,3 +264,10 @@ Do not fill these fields from assumptions or historical observations. Use the ac
 | Date | Change |
 |---|---|
 | 2026-11-09 | Created as a separate future installation planning document. Captures durable /home/deck/odysseus-box/ layout, SteamOS update resilience, Distrobox dedicated-HOME reminder, security requirements inherited from Phase 1.4, approval gates and future recovery requirements. No installation commands authorized. |
+
+
+## 6.6 Gate 6 preflight checkpoint — MOUNT-02 Stage A
+
+The read-only Stage A preflight passed on 2026-11-09. It verified rootless Podman 6.0.2, the exact cached Python image ID (linux/amd64), availability of the exact disposable container and volume names, and the current rootless UID/GID maps. No resources were created or modified. This does not validate the /app/data mount at runtime and does not authorize resource creation.
+
+The next step is review and separate approval of the exact Stage B command to create one named volume and one stopped disposable container. Stage C execution requires a further separate approval after read-only inspection of Stage B. See the canonical audit §18.9 for the full command/output and evidence.
