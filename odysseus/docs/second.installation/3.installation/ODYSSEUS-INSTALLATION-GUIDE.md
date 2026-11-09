@@ -276,5 +276,7 @@ The next step is review and separate approval of the exact Stage B command to cr
 
 On 2026-11-09, the approved bounded Stage B setup created the disposable named volume `odysseus-mount02-data-20261109` and stopped restricted container `odysseus-mount02-probe-20261109` (ID `9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c`). The container was not started and Python was not executed. The resources remain in place for read-only inspection.
 
-This checkpoint does not authorize installation or runtime execution. The next step is MOUNT-02 Stage B2 read-only inspection; Stage C requires separate explicit approval after inspection results are reviewed. Refer to canonical audit §18.9.
+MOUNT-02 Stage B2 subsequently passed read-only configuration inspection: exact container ID/image and stopped state, configured user 1000:1000, equivalent effective UID/GID mapping, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, and the exact RW named-volume attachment at `/app/data` were confirmed. The volume reports UID/GID 1000:1000, `MountCount=0` and `NeedsCopyUp=true`. EffectiveCaps/BoundingCaps were null while stopped. Runtime mount activation, process-visible ownership, write/readback and persistence remain untested. The container and volume remain in place.
+
+This checkpoint does not authorize installation or runtime execution. The next step is preparation and review of the exact MOUNT-02 Stage C runtime test, followed by separate explicit user approval before starting the container. Refer to canonical audit §18.9.
 
