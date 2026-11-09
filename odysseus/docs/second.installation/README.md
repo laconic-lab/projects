@@ -210,7 +210,7 @@ It records the durable /home/deck/odysseus-box/ project layout, SteamOS-update r
 
 ## 6. Current Gate 6 handoff — 2026-11-09
 
-The canonical Phase 1.4 audit is **v3.35**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
+The canonical Phase 1.4 audit is **v3.36**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **2/5** since that checkpoint.
 
 Gate 5's explicit UID/GID map and generic named-volume write/readback probe passed for the tested configuration. The ordinary host ownership listing remained PARTIAL because it was denied; the rootless Podman namespace view confirmed ownership and modes. Exact cleanup passed.
 
@@ -218,7 +218,7 @@ Gate 5's explicit UID/GID map and generic named-volume write/readback probe pass
 
 Do not adopt the upstream Compose convenience mounts for `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` or `/app/.local`. Do not expose the host home, project root, source tree or runtime sockets. Custom-font writes outside `DATA_DIR` must be disabled or redesigned for a read-only image root. The Agent workspace is a child of `/app/data`, not an independent sandbox; shell/Python execution must remain disabled or separately brokered. No read-only Inspector mount has been selected because no concrete host source path or Inspector implementation exists. ChromaDB remains an unresolved separate-service decision.
 
-**Next:** read-only Stage A preflight for a new disposable mount probe at `/app/data`, using the exact cached Python image and MAP-F-validated mapping. Resource creation/runtime execution require separate approval after Stage A review. See canonical audit §18.8 for evidence, scope and exact validation criteria.
+**MOUNT-02 Stage C has passed** for positive `/app/data` write/readback and restart persistence in the disposable Python probe. The subsequent MOUNT-02-RO-01 read-only inventory found one explicit RW named volume at `/app/data`, an empty tmpfs configuration, no image-declared volumes and only `/app` plus `/app/data` in the rootfs diff. `ShmSize=65536000` is metadata only; live `/dev/shm` behavior and temporary-path permissions remain untested. The exact container, volume and marker remain present. See canonical audit §18.9 for exact evidence.
 
 
 ## 6.1 Gate 6 preflight update — MOUNT-02 Stage A (2026-11-09)
@@ -246,3 +246,12 @@ This is resource setup, not a runtime test. Runtime-test accounting remains **1/
 The exact container, named volume and marker file remain present. No cleanup was performed. Runtime-test accounting is now **2/5 since the unchanged v3.20 archive checkpoint**; no five-test snapshot is due. Installation remains **NOT AUTHORIZED**.
 
 This proves positive mount/write/readback/restart behavior for this disposable Python probe only. It does not prove application-image compatibility, negative writes outside /app/data, an Inspector mount, backup/restore or graceful SIGTERM shutdown. Do not repeat this positive probe. Continue by resolving the remaining Gate 6 questions and their separate approval boundaries. Full command and output are in canonical audit §18.9.
+
+
+## 6.4 Gate 6 read-only mount inventory — MOUNT-02-RO-01 (2026-11-09)
+
+**MOUNT-02-RO-01: PASS** for read-only configuration inspection. The exact MOUNT-02 probe container ID was confirmed in the `exited` state. Inspection recorded `ReadonlyRootfs=True`, `NetworkMode=none`, configured user `1000:1000`, working directory `/`, an empty `HostConfig.Tmpfs` object, `ShmSize=65536000`, one explicit RW named volume at `/app/data`, no image-declared volumes, and a rootfs diff containing only `A /app` and `A /app/data`.
+
+The `ShmSize` value does not prove a live `/dev/shm` mount or its write behavior. This stopped-container inspection does not establish permissions or runtime writability for `/tmp`, `/var/tmp`, `/dev/shm` or other paths. The positive Stage C volume test is not repeated; no resources were started, modified or removed by RO-01.
+
+The canonical audit is now **v3.36**. Runtime-test accounting remains **2/5 since the unchanged v3.20 archive checkpoint**; RO-01 is read-only and does not increment the counter. The container, named volume and Stage C marker remain retained. **Next:** establish candidate path permissions and effective live mount behavior through a separately reviewed and explicitly approved bounded runtime inspection before designing any negative-write test. Do not assume a temporary path is a valid target. Installation remains **NOT AUTHORIZED**. Full command, output and limitations are in canonical audit §18.9.
