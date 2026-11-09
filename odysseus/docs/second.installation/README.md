@@ -219,3 +219,10 @@ Gate 5's explicit UID/GID map and generic named-volume write/readback probe pass
 Do not adopt the upstream Compose convenience mounts for `/app/logs`, `/app/.ssh`, `/app/.cache/huggingface` or `/app/.local`. Do not expose the host home, project root, source tree or runtime sockets. Custom-font writes outside `DATA_DIR` must be disabled or redesigned for a read-only image root. The Agent workspace is a child of `/app/data`, not an independent sandbox; shell/Python execution must remain disabled or separately brokered. No read-only Inspector mount has been selected because no concrete host source path or Inspector implementation exists. ChromaDB remains an unresolved separate-service decision.
 
 **Next:** read-only Stage A preflight for a new disposable mount probe at `/app/data`, using the exact cached Python image and MAP-F-validated mapping. Resource creation/runtime execution require separate approval after Stage A review. See canonical audit §18.8 for evidence, scope and exact validation criteria.
+
+
+## 6.1 Gate 6 preflight update — MOUNT-02 Stage A (2026-11-09)
+
+**Stage A read-only preflight: PASS.** Confirmed rootless Podman 6.0.2, exact cached Python image ID sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5 (linux/amd64), unused exact temporary container and volume names, and the current rootless UID/GID maps. No resources were created or modified. This is not a runtime test; the counter remains 1/5 since the v3.20 checkpoint.
+
+**Next:** Stage B command review and separate explicit approval before creating the exact new named volume and stopped probe container. Do not start the container. After creation, inspect it read-only and request separate approval before runtime execution. Full evidence is in canonical audit §18.9.
