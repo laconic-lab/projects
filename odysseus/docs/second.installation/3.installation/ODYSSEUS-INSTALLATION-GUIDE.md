@@ -148,6 +148,22 @@ The proposed initial profile is default-deny for powerful Agent capabilities:
 - Manual lifecycle is the default. No boot autostart, scheduled job or automatic restart without separate approval.
 - Document startup order, shutdown behavior, health checks and recovery.
 
+## 6.5 Provisional mount scope from Gate 6 source review
+
+The pinned-source review recorded in the Phase 1.4 audit (§18.8) identifies **one provisional application-container persistent mount**: a dedicated rootless Podman named volume at `/app/data`, read/write. This is a design candidate only; it has not yet passed the Gate 6 runtime probe and is not authorized for creation.
+
+The following upstream convenience mounts are not adopted for the initial restricted profile:
+
+- `/app/logs` — the reviewed primary application logger writes beneath `DATA_DIR/logs`.
+- `/app/.ssh` — enables Cookbook remote SSH identity access.
+- `/app/.cache/huggingface` — persists downloaded model cache.
+- `/app/.local` — persists locally installed executable Python tools/packages.
+- `/app/static/fonts/custom` — outside `DATA_DIR`; custom-font writes must be disabled or redesigned while the image root is read-only.
+
+No host-home, project-root, source-tree, runtime-socket or Podman-socket mount is approved. The Agent workspace is a canonical child of `/app/data`; it is not a separate OS sandbox. A read-only Inspector mount is deferred because no concrete source path or Inspector service contract has been selected. ChromaDB remains a separate unresolved service/storage decision and is not included in this application-container allowlist.
+
+The exact mount list, access modes and negative write tests remain subject to Gate 6 completion in the audit. This guide does not authorize resource creation.
+
 ## 7. Pre-installation gate — no deployment until all conditions are met
 
 Before installation can be considered, all of the following must be true:
