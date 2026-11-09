@@ -271,3 +271,10 @@ Do not fill these fields from assumptions or historical observations. Use the ac
 The read-only Stage A preflight passed on 2026-11-09. It verified rootless Podman 6.0.2, the exact cached Python image ID (linux/amd64), availability of the exact disposable container and volume names, and the current rootless UID/GID maps. No resources were created or modified. This does not validate the /app/data mount at runtime and does not authorize resource creation.
 
 The next step is review and separate approval of the exact Stage B command to create one named volume and one stopped disposable container. Stage C execution requires a further separate approval after read-only inspection of Stage B. See the canonical audit §18.9 for the full command/output and evidence.
+
+## 6.7 Gate 6 resource-creation checkpoint — MOUNT-02 Stage B
+
+On 2026-11-09, the approved bounded Stage B setup created the disposable named volume `odysseus-mount02-data-20261109` and stopped restricted container `odysseus-mount02-probe-20261109` (ID `9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c`). The container was not started and Python was not executed. The resources remain in place for read-only inspection.
+
+This checkpoint does not authorize installation or runtime execution. The next step is MOUNT-02 Stage B2 read-only inspection; Stage C requires separate explicit approval after inspection results are reviewed. Refer to canonical audit §18.9.
+
