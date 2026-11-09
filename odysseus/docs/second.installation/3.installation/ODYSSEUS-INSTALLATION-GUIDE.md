@@ -289,3 +289,10 @@ Both five-second stop operations required Podman to escalate from SIGTERM to SIG
 The container, volume and marker file remain present. No cleanup was performed. This probe does not establish application-image compatibility, negative writes outside /app/data, an Inspector mount, backup/restore or graceful SIGTERM shutdown. Gate 6 remains open for its unresolved requirements. Runtime-test count is **2/5 since the unchanged v3.20 archive checkpoint**. Installation remains **NOT AUTHORIZED**.
 
 See the canonical Phase 1.4 audit §18.9 for the recorded command, actual output, evidence limits and continuation handoff. This guide remains a planning document and does not authorize installation.
+
+
+## 6.9 Gate 6 read-only mount inventory — MOUNT-02-RO-01 (2026-11-09)
+
+MOUNT-02-RO-01 passed as a read-only inspection of the exact stopped probe. The recorded configuration has a read-only root, network mode `none`, configured user `1000:1000`, an empty `HostConfig.Tmpfs` object, `ShmSize=65536000`, one explicit RW named volume at `/app/data`, and no image-declared volumes. The rootfs diff listed only `A /app` and `A /app/data`.
+
+This does not prove live `/dev/shm` mount behavior or permissions/writability of `/tmp`, `/var/tmp` or any other path. Runtime negative-write behavior remains untested. No Inspector mount is selected. The container, volume and Stage C marker remain retained. Runtime-test accounting remains **2/5 since the unchanged v3.20 archive checkpoint**. See canonical audit §18.9 for the exact command, output and limitations. Installation remains **NOT AUTHORIZED**.
