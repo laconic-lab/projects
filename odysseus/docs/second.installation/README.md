@@ -210,7 +210,7 @@ It records the durable /home/deck/odysseus-box/ project layout, SteamOS-update r
 
 ## 6. Current Gate 6 handoff — 2026-11-09
 
-The canonical Phase 1.4 audit is **v3.31**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
+The canonical Phase 1.4 audit is **v3.34**. Installation remains **NOT AUTHORIZED**. The latest unchanged archive snapshot is v3.20; runtime-test accounting is **1/5** since that checkpoint.
 
 Gate 5's explicit UID/GID map and generic named-volume write/readback probe passed for the tested configuration. The ordinary host ownership listing remained PARTIAL because it was denied; the rootless Podman namespace view confirmed ownership and modes. Exact cleanup passed.
 
@@ -233,5 +233,7 @@ Stage B completed: the exact disposable named volume `odysseus-mount02-data-2026
 
 This is resource setup, not a runtime test. Runtime-test accounting remains **1/5** since the v3.20 archive checkpoint. Installation remains **NOT AUTHORIZED**.
 
-**Next:** MOUNT-02 Stage B2 read-only inspection of the created container and named volume. Verify actual state, image, effective mappings, security options, network, published ports and exact `/app/data` mount before requesting separate approval for Stage C. Do not start or clean up either resource before review. See canonical audit §18.9.
+**MOUNT-02 Stage B2: PASS — read-only configuration inspection.** Exact container ID/image and stopped state confirmed; configured user 1000:1000; effective UID/GID mapping equivalent to the five supplied ranges; read-only root; network none; no published ports; no-new-privileges and cap-drop-all configured; exact RW named-volume attachment at `/app/data`; volume UID/GID 1000:1000. EffectiveCaps/BoundingCaps remain unobserved while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback are not yet demonstrated. Both resources remain present. Runtime-test count remains 1/5.
+
+**Next:** prepare MOUNT-02 Stage C's exact bounded runtime mount/write/readback command and safety boundary for separate explicit approval. Do not start or clean up either resource before that approval. Installation remains NOT AUTHORIZED. See canonical audit §18.9.
 
