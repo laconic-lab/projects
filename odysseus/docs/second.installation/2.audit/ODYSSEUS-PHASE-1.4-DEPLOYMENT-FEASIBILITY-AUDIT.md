@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.33  
+> **Version:** 3.34  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2553,7 +2553,7 @@ The next test must be the earliest safe, useful, unclosed dependency. Do not ski
 | 3 | Host-service and published-port boundary (NET-05) | Verify host reachability and exposure behavior for candidate network/published-port configuration | **COMPLETED — scoped loopback-only publishing result; cleanup PASS** |
 | 4 | IPv6 and DNS behavior (NET-06) | Establish whether IPv6, DNS forwarding or resolver configuration creates an unintended egress path | **COMPLETED — scoped isolation findings; cleanup PASS; SIGKILL lifecycle caveat** |
 | 5 | Exact candidate UID/application identity and explicit namespace map / named-volume ownership | Validate source-grounded application UID/GID 1000, explicit rootless UID/GID map, container-visible named-volume ownership and application-identity write/readback | **MAP-F PASS; MAP-G Stage C PASS for container-visible ownership/write/readback; Stage D PARTIAL overall: `podman unshare` confirms directory/file ownership and modes, but ordinary host `ls -lan` is denied; exact disposable-resource cleanup and independent absence verification PASS.** The exact Stage B container and named volume were removed and both independently verified absent. UID-04 remains a scoped FAIL for its distinct `nomap` bind-mount sequence. |
-| 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | MOUNT-02 Stage A PASS; Stage B created the dedicated named volume and stopped restricted container; Stage B2 read-only inspection NOT YET RUN; runtime mount/write validation NOT TESTED |
+| 6 | Candidate mount allowlist | Test each proposed dedicated data mount and read-only Inspector mount | MOUNT-02 Stages A and B2 PASS (preflight + read-only configuration inspection); Stage B resources created and retained; Stage C runtime mount/write validation NOT TESTED |
 | 7 | Resource enforcement | Demonstrate CPU, memory and PID limits on the exact candidate runtime | NOT TESTED |
 | 8 | Source/build reproducibility | Reconfirm upstream commit, dependency lock, image digest and build-time downloads | NOT TESTED |
 | 9 | Application execution bypass | Verify shell/Python/MCP/background paths are removed or externally denied in the actual build | NOT TESTED |
@@ -4594,12 +4594,15 @@ This probe validates the generic candidate mount location and the read-only-root
 **Status and next action**
 
 - MOUNT-02-REVIEW-01: **READ-ONLY SOURCE REVIEW COMPLETE**.
-- MOUNT-02 Stage A: **PASS** — preflight completed without resource changes.
+- MOUNT-02 Stage A: **PASS** — read-only preflight complete.
 - MOUNT-02 Stage B: **RESOURCE CREATION COMPLETE** — named volume and stopped restricted container created; container remains unstarted.
-- Gate 6 runtime mount test: **NOT TESTED**.
+- MOUNT-02 Stage B2: **PASS — READ-ONLY CONFIGURATION INSPECTION** — exact container ID/image, stopped state, application identity, equivalent effective UID/GID map, read-only root, network isolation, no published ports, configured `no-new-privileges`, configured `--cap-drop=ALL`, and exact RW named-volume attachment at `/app/data` observed.
+- Inspection limitations: `EffectiveCaps` and `BoundingCaps` are null because the container has not started; no effective runtime capability state is claimed. Volume `MountCount=0` and `NeedsCopyUp=true` are recorded; runtime mount activation and write/readback remain untested.
+- Gate 6 Stage C runtime mount/write test: **NOT TESTED**.
 - Candidate allowlist: **PROVISIONAL — ONE RW NAMED VOLUME AT `/app/data`; NO INSPECTOR MOUNT SELECTED**.
-- Runtime-test counter remains **1/5 since v3.20**; Stage B is setup, not runtime execution.
-- Next: MOUNT-02 Stage B2 read-only inspection of the created container and volume. Do not start, modify or clean up either resource before inspection; do not touch any existing volume/container or protected project.
+- Runtime-test counter remains **1/5 since v3.20**; Stages A, B and B2 are preflight/setup/inspection, not runtime tests.
+- Both disposable resources remain present. Do not remove them before the runtime test and separately reviewed cleanup.
+- Next: prepare the exact bounded Stage C runtime command for review. It must test mount activation, process-visible ownership, write/readback and persistence without networking or unrelated host access. Stage C requires separate explicit user approval. Do not start the container until that approval is given; do not touch existing resources or protected projects.
 
 
 ### 18.9 MOUNT-02 — candidate /app/data named-volume mount probe (2026-11-09)
@@ -4851,11 +4854,13 @@ The user supplied the completion output but not a separately captured shell exit
 
 **Side effects and cleanup:** Exactly one new named volume and one stopped container were intentionally created. Both remain in place for Stage B2. No image pull, network creation, package installation, host configuration change or existing-project resource change was reported. Do not remove either resource before inspection.
 
-**Next gate:** MOUNT-02 Stage B2 — read-only inspection of the exact container and named volume. Confirm container state, image ID, process identity, effective UID/GID mappings, network mode, read-only root, capabilities, no-new-privileges, exact `/app/data` mount source/destination/access mode, and absence of unexpected mounts or published ports. Stage C Python execution requires separate explicit approval after B2 results are reviewed.
+**Stage B2 result:** PASS for read-only configuration inspection. The full container ID and requested cached image ID matched; state was `created` with `Running=false`; configured user was `1000:1000`; effective UID/GID mappings were `0:1:999`, `999:1001:1`, `1000:1000:1`, `1001:1002:64535`, equivalent to the original five supplied ranges after adjacent-range coalescing. `ReadonlyRootfs=true`, `NetworkMode=none`, empty `PortBindings`, `SecurityOpt=[no-new-privileges]`, `CapAdd=[]`, and `CapDrop` contained the runtime's listed capability set. The exact volume `odysseus-mount02-data-20261109` was attached in configuration at `/app/data`, `RW=true`; volume inspection reported UID/GID 1000:1000, `MountCount=0`, `NeedsCopyUp=true`. No additional mounts were shown. `EffectiveCaps` and `BoundingCaps` were null in the stopped-container inspection, so effective runtime capability state remains unverified. The zero mount count is consistent with the container never having started; it does not prove runtime mount activation.
+
+**Next gate:** MOUNT-02 Stage C — bounded runtime mount/write/readback test. Prepare the exact command and safety boundary for review, then request separate explicit approval. Do not start the container before approval. Runtime-test counter remains 1/5; Stage B2 is inspection, not a runtime test.
 
 ## 19. Change log
 
-| 3.33 | 2026-11-09 | Recorded MOUNT-02 Stage B resource creation with the exact approved command and user-supplied completion output: dedicated named volume created and restricted container ID 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c created but not started. Python remains unexecuted; configuration and mount behavior await read-only Stage B2 inspection. No cleanup; resources intentionally retained. Runtime-test counter remains 1/5 since v3.20; installation remains NOT AUTHORIZED. |
+| 3.34 | 2026-11-09 | Recorded MOUNT-02 Stage B2 read-only inspection PASS: exact container ID/image, stopped state, user 1000:1000, equivalent effective UID/GID map after adjacent-range coalescing, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, one RW named-volume attachment at /app/data, and volume UID/GID 1000:1000. Retained limitations: EffectiveCaps/BoundingCaps null while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback not demonstrated. Both resources retained. Runtime-test counter remains 1/5; installation NOT AUTHORIZED. Next: prepare Stage C command for separate approval. |
 | 3.32 | 2026-11-09 | Recorded MOUNT-02 Stage A read-only preflight PASS with exact user command/output: rootless Podman 6.0.2, cached Python image ID and linux/amd64, unused exact container/volume names, and current rootless UID/GID maps. No resources changed; preflight is not a runtime test; counter remains 1/5 since v3.20. Gate 6 runtime validation remains open; Stage B requires separate explicit approval. |
 | 3.31 | 2026-11-09 | Recorded MOUNT-02-REVIEW-01 read-only source reconciliation at the pinned Odysseus commit; identified one provisional RW named-volume candidate at /app/data, excluded upstream convenience mounts, deferred the unselected Inspector mount and preserved ChromaDB as unresolved. Updated Gate 6 handoff and current 1/5 runtime-test counter. No runtime test or resource creation; installation remains NOT AUTHORIZED. |\n| 3.30 | 2026-11-09 | Reconciled Phase 1.4 documentation with the shared Deck Engineering & Security Baseline; recorded alignment matrix, explicit /home/deck/odysseus-box/ durability convention and Distrobox dedicated-HOME reminder. Preserved v3.29 unchanged before restructuring. No runtime tests, host changes or installation authorization. |
 
