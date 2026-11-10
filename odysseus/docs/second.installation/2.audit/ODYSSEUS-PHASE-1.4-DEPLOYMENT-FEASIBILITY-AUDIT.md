@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.37  
+> **Version:** 3.38  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -5590,6 +5590,73 @@ No files were written. No resources were created or removed.
 - Installation remains **NOT AUTHORIZED**.
 
 **Next recommended action:** a read-only permission survey of likely rootfs directories and their ancestors, using the exact cached image and/or the existing container's filesystem metadata, to find a path where UID 1000 has DAC write permission absent the read-only mount. Do not make a write attempt until that candidate and the precise test semantics have been reviewed and explicitly approved. Do not alter permissions or add a tmpfs to manufacture a test target.
+
+## MOUNT-02-RO-03 — root identity and capability inspection (2026-11-10)
+
+- **Status:** PASS — bounded live read-only identity/capability and directory-metadata inspection completed; exact probe stopped and verified.
+- **Container:** odysseus-mount02-probe-20261109
+- **Container ID:** 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c
+- **Purpose:** determine whether a root-identity process with no Linux capabilities has ordinary DAC permission to write to a candidate rootfs directory, so a later negative-write test can isolate the read-only mount rather than fail because of directory permissions.
+- **Boundary:** Started the exact existing stopped disposable probe; used `podman exec --user 0:0` only to inspect process identity, `/proc/self/status` capability sets and `/app` metadata; stopped the same container and verified its final state. No write operations, file creation, resource creation/removal, mount changes or host configuration changes.
+- **Runtime-test accounting:** Read-only metadata inspection only. It does not increment the functional acceptance-test counter, which remains **2/5 since v3.20**.
+
+**Command executed:** The user ran the approved MOUNT-02-RO-03 procedure: exact container-ID and exited-state guard; start the existing probe; verify the exact running container; execute Python as UID/GID 0:0 to print UID/GID/EUID/EGID, `CapInh`, `CapPrm`, `CapEff`, `CapBnd`, `CapAmb`, and `/app` owner/mode/type; stop the exact probe; verify its ID, exited state and `Running=false`. No write operation was included.
+
+**Actual user-supplied output:**
+
+~~~text
+Process identity:
+  UID: 0
+  GID: 0
+  EUID: 0
+  EGID: 0
+
+Linux capability fields from /proc/self/status:
+  CapInh: 0000000000000000
+  CapPrm: 0000000000000000
+  CapEff: 0000000000000000
+  CapBnd: 0000000000000000
+  CapAmb: 0000000000000000
+
+/app directory metadata:
+  Owner UID: 0
+  Owner GID: 0
+  Mode: 1755
+  Is directory: True
+  Owner matches EUID: True
+  Owner-write mode bit: True
+  Owner execute mode bit: True
+  Owner read mode bit: True
+
+Stop warning: SIGTERM failed within 5 seconds; Podman escalated to SIGKILL
+Final exact container ID matched; state exited; Running=false.
+No files were written. No resources were created or removed.
+~~~
+
+**Interpretation:**
+
+1. The inspection process ran as UID/GID/EUID/EGID 0:0.
+2. All five inspected capability sets were zero, including the effective and bounding sets. This is direct runtime evidence that this `podman exec --user 0:0` process had no Linux capabilities at inspection time.
+3. `/app` is a directory owned by UID/GID 0:0 with mode 1755. The process EUID matches the owner, and the owner read/write/execute mode bits are present. Therefore ordinary owner DAC permissions do not independently deny a create operation in `/app` for this root-identity process.
+4. Combined with RO-02, which confirmed that `/app` is covered by the read-only root fuse-overlayfs mount and `statvfs` reports read-only, `/app` is now a suitable candidate for a separately approved negative-write test using the same root identity with no capabilities.
+5. This inspection did **not** attempt a write and does not yet prove that the kernel will return `EROFS`. The actual negative-write behavior remains **NOT TESTED**.
+6. This does not make UID 1000's create attempt in `/app` a clean test: UID 1000 is not the directory owner and mode 1755 does not grant it directory write permission. The candidate is specifically the root-identity/no-capability test, not the application UID test.
+7. Stop again exceeded the five-second SIGTERM grace period and Podman escalated to SIGKILL. Final exact ID, exited state and `Running=false` were verified.
+8. No files were written; no resources were created or removed.
+
+**Gate 6 status / next action:**
+
+- Stage C positive named-volume write/readback and restart persistence: **PASS**.
+- RO-01 stopped configuration and rootfs-diff inventory: **PASS**.
+- RO-02 live mount/path metadata inspection: **PASS**.
+- RO-03 root identity/capability and `/app` DAC metadata inspection: **PASS**.
+- Root filesystem read-only behavior: **confirmed by live mount metadata; negative write still NOT TESTED**.
+- Candidate for isolating the read-only mount: `/app`, using UID/GID 0:0 with all inspected capability sets zero; owner DAC write/execute permission is present.
+- Writable tmpfs mounts remain separately identified at `/tmp`, `/var/tmp` and `/dev/shm`; they are not rootfs test targets.
+- Runtime-test counter remains **2/5 since v3.20**; RO-03 is read-only inspection and does not increment it.
+- Existing container, named volume and Stage C marker remain retained.
+- **Next:** prepare a narrowly scoped negative-write test that attempts creation of one uniquely named disposable marker directly under `/app` as UID/GID 0:0, confirms the process capability sets remain zero, captures the exact errno (expected `EROFS`), and verifies that no marker was created. This requires a separately reviewed command and explicit user approval. Do not alter permissions or mounts.
+- Installation remains **NOT AUTHORIZED**.
 
 ## 19. Change log
 
