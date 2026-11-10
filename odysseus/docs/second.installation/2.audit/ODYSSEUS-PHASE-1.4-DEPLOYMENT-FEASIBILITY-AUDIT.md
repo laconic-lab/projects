@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.36  
+> **Version:** 3.37  
 > **Record date:** 2026-11-09  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -5392,18 +5392,208 @@ No files, mounts, containers or volumes were changed.
 **Gate 6 status / next action:**
 
 - Positive `/app/data` named-volume runtime test: **PASS** for the exact disposable Python probe (Stage C).
-- MOUNT-02-RO-01: **PASS** for the read-only configuration and rootfs-diff inventory only.
-- Explicit configured writable mount inventory: one named volume at `/app/data`.
-- Runtime negative-write behavior outside `/app/data`: **NOT TESTED**.
-- Effective live `/dev/shm` behavior and temporary-path permissions: **NOT TESTED**.
+- MOUNT-02-RO-01: **PASS** for the stopped configuration and rootfs-diff inventory.
+- MOUNT-02-RO-02: **PASS** for live mount and path metadata inspection; /tmp, /var/tmp and /dev/shm are writable tmpfs mounts; /app is read-only; /app/data is a writable ext4 named volume.
+- Runtime negative-write behavior outside /app/data: **NOT TESTED**.
+- A clean negative-write target remains unselected because /app mode 1755 denies UID 1000 directory write permission independently of the read-only mount.
 - Inspector mount: **NOT SELECTED**; no concrete source path/service contract exists.
 - Container, named volume and Stage C marker remain retained; no cleanup was performed.
 - Runtime-test counter remains **2/5 since v3.20**; this read-only inspection does not increment it.
 - **Next:** use the image metadata and, if necessary, a separately approved bounded runtime inspection to establish candidate path permissions and live mounts before selecting a negative-write test. Do not assume that `/tmp`, `/var/tmp` or `/dev/shm` is a valid test target without evidence. Any container start or write attempt requires a separately reviewed command and explicit approval.
 - Installation remains **NOT AUTHORIZED**.
 
+
+### MOUNT-02-RO-02 — live mount and path-permission inspection (2026-11-10)
+
+- **Status:** PASS — live read-only inspection completed; exact probe stopped and verified.
+- **Container:** odysseus-mount02-probe-20261109
+- **Container ID:** 9e8747dd89a928520beef95079077ddc815003c065b43b0bee0733e020e5577c
+- **Image ID:** sha256:b7d482700d83c15b2bcc100042762f32064728a74ff84abe9183d892690779a5
+- **Purpose:** establish effective live mount state and metadata for candidate temporary paths, without attempting writes.
+- **Boundary:** Started the exact existing stopped probe; inspected process identity, /proc/self/mountinfo, directory metadata and statvfs; stopped the same container and verified its final state. No write attempts, file creation, resource creation/removal, mount changes or host configuration changes.
+- **Runtime-test accounting:** This is a bounded runtime inspection, not a write/functional runtime test. The acceptance-test counter remains **2/5 since v3.20**. It is recorded separately to make the temporary runtime start/stop auditable.
+
+**Command executed:** The user ran the full MOUNT-02-RO-02 shell procedure: exact-ID and exited-state guard; podman start; trap-protected stop; podman exec Python inspection of UID/GID/EUID/EGID, /proc/self/mountinfo, stat(path), statvfs(path), and most-specific covering mount for /tmp, /var/tmp, /dev/shm, /app and /app/data; explicit podman stop --time 5; final exact-ID, exited-state and Running=false verification. The full command is retained in the conversation record; the critical inspection script is reproduced below.
+
+~~~python
+import os
+import re
+import stat
+
+paths = ["/tmp", "/var/tmp", "/dev/shm", "/app", "/app/data"]
+
+def unescape_mount_field(value):
+    return re.sub(
+        r"\\([0-7]{3})",
+        lambda m: chr(int(m.group(1), 8)),
+        value
+    )
+
+print("Process identity:")
+print("  UID:", os.getuid())
+print("  GID:", os.getgid())
+print("  EUID:", os.geteuid())
+print("  EGID:", os.getegid())
+
+mounts = []
+with open("/proc/self/mountinfo", "r", encoding="utf-8") as f:
+    for line in f:
+        fields = line.rstrip("\n").split()
+        try:
+            sep = fields.index("-")
+        except ValueError:
+            continue
+        mountpoint = unescape_mount_field(fields[4])
+        mounts.append({
+            "mountpoint": mountpoint,
+            "mount_options": fields[5],
+            "fstype": fields[sep + 1],
+            "source": fields[sep + 2],
+            "super_options": fields[sep + 3],
+        })
+
+for path in paths:
+    print("\nPATH:", path)
+    try:
+        st = os.stat(path)
+        print("  Exists: yes")
+        print("  UID:", st.st_uid)
+        print("  GID:", st.st_gid)
+        print("  Mode: %04o" % stat.S_IMODE(st.st_mode))
+        print("  Device:", st.st_dev)
+        vfs = os.statvfs(path)
+        print("  statvfs read-only flag:",
+              bool(vfs.f_flag & getattr(os, "ST_RDONLY", 1)))
+        candidates = [
+            m for m in mounts
+            if path == m["mountpoint"]
+            or path.startswith(m["mountpoint"].rstrip("/") + "/")
+            or m["mountpoint"] == "/"
+        ]
+        if candidates:
+            m = max(candidates, key=lambda x: len(x["mountpoint"]))
+            print("  Covering mountpoint:", m["mountpoint"])
+            print("  Filesystem:", m["fstype"])
+            print("  Source:", m["source"])
+            print("  Mount options:", m["mount_options"])
+            print("  Super options:", m["super_options"])
+    except OSError as e:
+        print("  Inspection error:", repr(e))
+
+print("\nInspection complete. No write operations were performed.")
+~~~
+
+**Actual user-supplied output:**
+
+~~~text
+Process identity:
+  UID: 1000
+  GID: 1000
+  EUID: 1000
+  EGID: 1000
+
+PATH: /tmp
+  UID: 0
+  GID: 0
+  Mode: 1777
+  Device: 115
+  statvfs read-only flag: False
+  Covering mountpoint: /tmp
+  Filesystem: tmpfs
+  Source: tmpfs
+  Mount options: rw,nosuid,nodev,relatime
+  Super options: rw,uid=100000,gid=100000,inode64,huge=advise
+
+PATH: /var/tmp
+  UID: 0
+  GID: 0
+  Mode: 1777
+  Device: 122
+  statvfs read-only flag: False
+  Covering mountpoint: /var/tmp
+  Filesystem: tmpfs
+  Source: tmpfs
+  Mount options: rw,nosuid,nodev,relatime
+  Super options: rw,uid=100000,gid=100000,inode64,huge=advise
+
+PATH: /dev/shm
+  UID: 0
+  GID: 0
+  Mode: 1777
+  Device: 110
+  statvfs read-only flag: False
+  Covering mountpoint: /dev/shm
+  Filesystem: tmpfs
+  Source: shm
+  Mount options: rw,nosuid,nodev,noexec,relatime
+  Super options: rw,size=64000k,uid=1000,gid=1000,inode64,huge=advise
+
+PATH: /app
+  UID: 0
+  GID: 0
+  Mode: 1755
+  Device: 111
+  statvfs read-only flag: True
+  Covering mountpoint: /
+  Filesystem: fuse.fuse-overlayfs
+  Source: fuse-overlayfs
+  Mount options: ro,nodev,noatime
+  Super options: rw,user_id=0,group_id=0,default_permissions,allow_other
+
+PATH: /app/data
+  UID: 1000
+  GID: 1000
+  Mode: 0755
+  Device: 66312
+  statvfs read-only flag: False
+  Covering mountpoint: /app/data
+  Filesystem: ext4
+  Source: /dev/nvme0n1p8
+  Mount options: rw,nosuid,nodev,relatime
+  Super options: rw
+
+Stop warning: SIGTERM failed within 5 seconds; Podman escalated to SIGKILL.
+Final exact container ID matched; state exited; Running=false.
+No files were written. No resources were created or removed.
+~~~
+
+**Interpretation:**
+
+| Path | Owner:group | Mode | Filesystem / mount | Read-only |
+|---|---:|---:|---|---:|
+| /tmp | 0:0 | 1777 | tmpfs, rw,nosuid,nodev | No |
+| /var/tmp | 0:0 | 1777 | tmpfs, rw,nosuid,nodev | No |
+| /dev/shm | 0:0 | 1777 | tmpfs, rw,nosuid,nodev,noexec | No |
+| /app | 0:0 | 1755 | fuse-overlayfs, mount option ro | Yes |
+| /app/data | 1000:1000 | 0755 | ext4 named volume, rw,nosuid,nodev | No |
+
+1. The process and effective process IDs were UID/GID 1000:1000.
+2. /tmp, /var/tmp and /dev/shm are separate live writable tmpfs mounts. They are not evidence that the root overlay is writable.
+3. /app is covered by the root fuse-overlayfs mount. Its per-mount option is ro, and statvfs reports read-only. The superblock options show rw, but that does not override the read-only per-mount flag.
+4. /app/data is a separate writable ext4 mount, owned by UID/GID 1000:1000, consistent with the named-volume configuration and Stage C positive persistence test.
+5. /app mode 1755 does not grant UID 1000 write permission to the directory. A failed file creation there could be explained by ordinary DAC permissions as well as the read-only mount. Therefore /app itself is not yet a clean negative-write target if the aim is to isolate read-only mount behavior.
+6. The three tmpfs mounts are intentionally outside the rootfs negative-write question. Their writable state must be accounted for in any later policy/design; do not misclassify them as a read-only rootfs failure.
+7. The container stop again required SIGKILL after the five-second SIGTERM grace period. Final exact ID, exited state and Running=false were verified.
+8. No write attempt occurred, so no negative-write test has been performed.
+
+**Gate 6 update:**
+
+- Stage C positive named-volume write/readback and restart persistence: **PASS**.
+- RO-01 stopped configuration and rootfs-diff inventory: **PASS**.
+- RO-02 live mount and path metadata inspection: **PASS**.
+- Root filesystem read-only behavior: **observed in live mount metadata; negative write not yet tested**.
+- Writable tmpfs mounts: /tmp, /var/tmp, /dev/shm.
+- Writable persistent volume: /app/data.
+- Clean negative-write candidate: **not selected yet**; need a rootfs directory whose permissions would otherwise permit UID 1000 to create a file, or a carefully designed alternative that distinguishes EROFS from EACCES.
+- Runtime-test counter remains **2/5 since v3.20**; this was a metadata-only runtime inspection.
+- Existing container, named volume and marker remain retained.
+- Installation remains **NOT AUTHORIZED**.
+
+**Next recommended action:** a read-only permission survey of likely rootfs directories and their ancestors, using the exact cached image and/or the existing container's filesystem metadata, to find a path where UID 1000 has DAC write permission absent the read-only mount. Do not make a write attempt until that candidate and the precise test semantics have been reviewed and explicitly approved. Do not alter permissions or add a tmpfs to manufacture a test target.
+
 ## 19. Change log
 
+| 3.37 | 2026-11-10 | Recorded MOUNT-02-RO-02 live mount and path metadata inspection: UID/GID 1000:1000; /tmp, /var/tmp and /dev/shm are separate writable tmpfs mounts; /app is read-only fuse-overlayfs (mount ro and statvfs RO) but mode 1755 is DAC-confounded for a negative-write test; /app/data is separate writable ext4 named volume. Probe stopped and verified; SIGTERM timed out after 5 seconds and Podman escalated to SIGKILL. No writes. Acceptance-test counter remains 2/5; installation NOT AUTHORIZED. |
 | 3.36 | 2026-11-09 | Recorded MOUNT-02-RO-01 read-only mount/tmpfs/image-volume/rootfs-diff inventory: exact stopped container verified; one explicit RW named volume at /app/data; Tmpfs empty; ShmSize 65536000 recorded without claiming live /dev/shm behavior; no image-declared volumes; rootfs diff only A /app and A /app/data. Runtime negative writes and temporary-path permissions remain untested. Runtime counter remains 2/5; installation NOT AUTHORIZED. |
 | 3.35 | 2026-11-09 | Recorded MOUNT-02 Stage C runtime PASS for the exact disposable probe: /app/data mount activated; runtime UID/GID 1000:1000; marker write/readback and ownership passed; content and ownership persisted across restart. Preserved both SIGTERM timeout/SIGKILL escalations and final exited state. Container, volume and marker retained. Runtime counter advanced to 2/5 since v3.20; Gate 6 remains open for unresolved Inspector/negative-write/application compatibility questions; installation NOT AUTHORIZED. |
 | 3.34 | 2026-11-09 | Recorded MOUNT-02 Stage B2 read-only inspection PASS: exact container ID/image, stopped state, user 1000:1000, equivalent effective UID/GID map after adjacent-range coalescing, read-only root, network none, no published ports, configured no-new-privileges and cap-drop-all, one RW named-volume attachment at /app/data, and volume UID/GID 1000:1000. Retained limitations: EffectiveCaps/BoundingCaps null while stopped; MountCount=0 and NeedsCopyUp=true; runtime mount/write/readback not demonstrated. Both resources retained. Runtime-test counter remains 1/5; installation NOT AUTHORIZED. Next: prepare Stage C command for separate approval. |
