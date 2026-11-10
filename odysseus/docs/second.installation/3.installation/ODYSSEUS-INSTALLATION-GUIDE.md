@@ -296,3 +296,10 @@ See the canonical Phase 1.4 audit §18.9 for the recorded command, actual output
 MOUNT-02-RO-01 passed as a read-only inspection of the exact stopped probe. The recorded configuration has a read-only root, network mode `none`, configured user `1000:1000`, an empty `HostConfig.Tmpfs` object, `ShmSize=65536000`, one explicit RW named volume at `/app/data`, and no image-declared volumes. The rootfs diff listed only `A /app` and `A /app/data`.
 
 This does not prove live `/dev/shm` mount behavior or permissions/writability of `/tmp`, `/var/tmp` or any other path. Runtime negative-write behavior remains untested. No Inspector mount is selected. The container, volume and Stage C marker remain retained. Runtime-test accounting remains **2/5 since the unchanged v3.20 archive checkpoint**. See canonical audit §18.9 for the exact command, output and limitations. Installation remains **NOT AUTHORIZED**.
+
+
+## 6.10 Gate 6 live mount inspection — MOUNT-02-RO-02 (2026-11-10)
+
+MOUNT-02-RO-02 passed as a bounded live metadata inspection. The process ran as UID/GID 1000:1000. /tmp, /var/tmp and /dev/shm are separate writable tmpfs mounts; /app is covered by the read-only fuse-overlayfs root mount; /app/data is a separate writable ext4 named volume. No writes were attempted. The exact probe was stopped and verified exited, with the previously observed five-second SIGTERM timeout and SIGKILL escalation.
+
+A negative create attempt directly in /app would be DAC-confounded because /app is mode 1755 and UID 1000 lacks directory write permission. Next is a read-only permission survey to find a rootfs candidate where DAC would otherwise permit a write. No permission or mount changes are authorized. Acceptance-test count remains **2/5**; installation remains **NOT AUTHORIZED**. See canonical audit §18.10.
