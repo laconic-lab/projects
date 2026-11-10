@@ -302,7 +302,7 @@ This does not prove live `/dev/shm` mount behavior or permissions/writability of
 
 MOUNT-02-RO-02 passed as a bounded live metadata inspection. The process ran as UID/GID 1000:1000. /tmp, /var/tmp and /dev/shm are separate writable tmpfs mounts; /app is covered by the read-only fuse-overlayfs root mount; /app/data is a separate writable ext4 named volume. No writes were attempted. The exact probe was stopped and verified exited, with the previously observed five-second SIGTERM timeout and SIGKILL escalation.
 
-A negative create attempt directly in /app would be DAC-confounded because /app is mode 1755 and UID 1000 lacks directory write permission. Next is a read-only permission survey to find a rootfs candidate where DAC would otherwise permit a write. No permission or mount changes are authorized. Acceptance-test count remains **2/5**; installation remains **NOT AUTHORIZED**. See canonical audit §18.10.
+For UID 1000, a negative create attempt directly in /app remains DAC-confounded because /app is mode 1755 and that identity lacks directory write permission. RO-03 subsequently established a candidate for a separate negative-write test as UID/GID 0:0 with all inspected capability sets zero; /app is owned by 0:0 and grants owner write/execute permission. The actual write-denial behavior and errno remain untested and require a separate reviewed command and explicit approval. No permission or mount changes are authorized. Acceptance-test count remains **2/5**; installation remains **NOT AUTHORIZED**. See canonical audit v3.38.
 
 
 ## 6.11 Gate 6 root identity and capability inspection — MOUNT-02-RO-03 (2026-11-10)
