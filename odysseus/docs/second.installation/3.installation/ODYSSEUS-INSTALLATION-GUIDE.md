@@ -4,7 +4,7 @@
 > **Status:** PLANNING — NOT AUTHORIZED / NOT EXECUTABLE  
 > **Applies to:** Odysseus second rebuild  
 > **Canonical path:** odysseus/docs/second.installation/3.installation/ODYSSEUS-INSTALLATION-GUIDE.md  
-> **Last reviewed:** 2026-11-09
+> **Last reviewed:** 2026-11-10
 
 ## 1. Purpose and phase separation
 
@@ -303,3 +303,12 @@ This does not prove live `/dev/shm` mount behavior or permissions/writability of
 MOUNT-02-RO-02 passed as a bounded live metadata inspection. The process ran as UID/GID 1000:1000. /tmp, /var/tmp and /dev/shm are separate writable tmpfs mounts; /app is covered by the read-only fuse-overlayfs root mount; /app/data is a separate writable ext4 named volume. No writes were attempted. The exact probe was stopped and verified exited, with the previously observed five-second SIGTERM timeout and SIGKILL escalation.
 
 A negative create attempt directly in /app would be DAC-confounded because /app is mode 1755 and UID 1000 lacks directory write permission. Next is a read-only permission survey to find a rootfs candidate where DAC would otherwise permit a write. No permission or mount changes are authorized. Acceptance-test count remains **2/5**; installation remains **NOT AUTHORIZED**. See canonical audit §18.10.
+
+
+## 6.11 Gate 6 root identity and capability inspection — MOUNT-02-RO-03 (2026-11-10)
+
+MOUNT-02-RO-03 passed as a bounded read-only runtime inspection. The exact probe's root-identity inspection process reported UID/GID/EUID/EGID 0:0, with `CapInh`, `CapPrm`, `CapEff`, `CapBnd` and `CapAmb` all zero. The `/app` directory was owned by 0:0, mode 1755, and its owner write/execute permission bits were present.
+
+Together with RO-02's live read-only mount evidence, `/app` is a suitable candidate for a separately approved negative-write test using root identity without capabilities. The actual write-denial behavior and errno remain **NOT TESTED**. This does not make `/app` a clean target for UID 1000 because that identity lacks directory write permission.
+
+The probe was stopped and verified exited; SIGTERM again timed out after five seconds and Podman escalated to SIGKILL. No files or resources were changed. Functional acceptance-test count remains **2/5**. See canonical audit v3.38 for the full evidence and limitations. Installation remains **NOT AUTHORIZED**.
