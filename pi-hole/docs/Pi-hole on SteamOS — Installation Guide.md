@@ -1,4 +1,4 @@
-# **Pi-hole on SteamOS — Installation Guide**
+# Pi-hole on SteamOS — Installation Guide
 
 **Project:** Pi-hole on Steam Deck OLED  
 **Repository:** `laconic-lab/projects`  
@@ -8,7 +8,27 @@
 
 ---
 
-## **1\. Purpose**
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Target architecture](#2-target-architecture)
+- [3. Installation prerequisites](#3-installation-prerequisites)
+- [4. Persistent storage preparation](#4-persistent-storage-preparation)
+- [5. Rootless Podman networking](#5-rootless-podman-networking)
+- [6. Firewall preparation](#6-firewall-preparation)
+- [7. Pi-hole image selection](#7-pi-hole-image-selection)
+- [8. Credential handling — mandatory validation gate](#8-credential-handling-mandatory-validation-gate)
+- [9. Container configuration](#9-container-configuration)
+- [10. Initial container verification](#10-initial-container-verification)
+- [11. DNS and administration testing](#11-dns-and-administration-testing)
+- [12. Lifecycle management](#12-lifecycle-management)
+- [13. Backup preparation](#13-backup-preparation)
+- [14. Installation completion checklist](#14-installation-completion-checklist)
+- [15. Installation boundaries](#15-installation-boundaries)
+- [16. Evidence and validation status](#16-evidence-and-validation-status)
+- [17. Change history](#17-change-history)
+
+## 1. Purpose
 
 This document describes how to install Pi-hole on SteamOS using rootless Podman and `pasta` networking.
 
@@ -18,7 +38,7 @@ The existing installation is documented separately in:
 
 `Pi-hole on SteamOS — Architecture & Operations.md`
 
-### **Operating principles**
+### Operating principles
 
 1. Diagnose before modifying.  
 2. Use read-only checks before installation.  
@@ -32,11 +52,11 @@ The existing installation is documented separately in:
 
 ---
 
-## **2\. Target architecture**
+## 2. Target architecture
 
 The intended architecture is:
 
-```
+```text
                  LOCAL LAN
               192.168.1.0/24
                       |
@@ -57,7 +77,7 @@ The intended architecture is:
                 DNS upstreams
 ```
 
-### **Components**
+### Components
 
 | Component | Responsibility |
 | ----- | ----- |
@@ -75,9 +95,9 @@ The host owns the Podman container lifecycle.
 
 ---
 
-## **3\. Installation prerequisites**
+## 3. Installation prerequisites
 
-### **3.1 Hardware and host**
+### 3.1 Hardware and host
 
 The installation target should have:
 
@@ -102,11 +122,11 @@ The existing installation used:
 
 These are installation-specific values. A fresh installation must verify its own network configuration.
 
-### **3.2 Read-only preflight**
+### 3.2 Read-only preflight
 
 Run these checks before creating directories, changing sysctl settings or modifying firewall rules.
 
-```
+```bash
 echo "===== USER ====="
 id
 
@@ -147,11 +167,11 @@ Do not proceed if:
 * The expected network interface or address is incorrect.  
 * The firewall configuration is unclear.
 
-### **3.3 Port availability**
+### 3.3 Port availability
 
 Inspect the intended ports:
 
-```
+```bash
 sudo ss -lntup | grep -E ':(53|8080|8443)([[:space:]]|$)'
 ```
 
@@ -168,13 +188,13 @@ Do not terminate an existing listener merely to make installation possible. Iden
 
 ---
 
-## **4\. Persistent storage preparation**
+## 4. Persistent storage preparation
 
-### **4.1 Directory layout**
+### 4.1 Directory layout
 
 The existing project uses:
 
-```
+```text
 /home/deck/pihole-box/
 ├── etc-pihole/
 └── etc-dnsmasq.d/
@@ -184,18 +204,18 @@ The directories are bind-mounted into the Pi-hole container.
 
 The Distrobox itself is not a runtime dependency of the Pi-hole container.
 
-### **4.2 Create directories**
+### 4.2 Create directories
 
 Only after confirming that the paths do not contain an existing installation:
 
-```
+```bash
 mkdir -p /home/deck/pihole-box/etc-pihole
 mkdir -p /home/deck/pihole-box/etc-dnsmasq.d
 ```
 
 Verify:
 
-```
+```bash
 ls -ld /home/deck/pihole-box
 ls -ld /home/deck/pihole-box/etc-pihole
 ls -ld /home/deck/pihole-box/etc-dnsmasq.d
@@ -203,7 +223,7 @@ ls -ld /home/deck/pihole-box/etc-dnsmasq.d
 
 Do not recursively change ownership or permissions without first inspecting the existing state and the requirements of the selected Pi-hole image.
 
-### **4.3 Persistence requirement**
+### 4.3 Persistence requirement
 
 The following host directories must survive container recreation:
 
@@ -214,9 +234,9 @@ The container's writable layer is not a substitute for persistent configuration 
 
 ---
 
-## **5\. Rootless Podman networking**
+## 5. Rootless Podman networking
 
-### **5.1 Network mode**
+### 5.1 Network mode
 
 The intended network mode is `pasta`, the rootless networking mechanism used by Podman.
 
@@ -226,25 +246,25 @@ Do not switch to:
 * Privileged container networking.  
 * An unverified custom network configuration.
 
-### **5.2 Port 53 requirement**
+### 5.2 Port 53 requirement
 
 Rootless networking normally restricts binding to ports below 1024\.
 
 The existing SteamOS installation uses:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
 Persistent configuration:
 
-```
+```text
 /etc/sysctl.d/99-pihole.conf
 ```
 
 Expected content:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
@@ -260,7 +280,7 @@ Before applying it on a fresh installation:
 
 Read-only inspection:
 
-```
+```bash
 sysctl net.ipv4.ip_unprivileged_port_start
 
 grep -R "ip_unprivileged_port_start" \
@@ -271,13 +291,13 @@ Do not overwrite another sysctl configuration file or duplicate an existing sett
 
 ---
 
-## **6\. Firewall preparation**
+## 6. Firewall preparation
 
-### **6.1 Intended DNS access**
+### 6.1 Intended DNS access
 
 The intended policy is to allow DNS only from the local IPv4 LAN:
 
-```
+```text
 192.168.1.0/24
 ```
 
@@ -290,9 +310,9 @@ The administration interfaces use ports 8080 and 8443\.
 
 Their exposure must be assessed separately. Do not assume that opening DNS also authorizes unrestricted administration access.
 
-### **6.2 Inspect before changing**
+### 6.2 Inspect before changing
 
-```
+```bash
 sudo firewall-cmd --state
 sudo firewall-cmd --get-active-zones
 sudo firewall-cmd --zone=public --list-all
@@ -301,7 +321,7 @@ sudo firewall-cmd --zone=public --list-rich-rules
 
 The existing installation uses the `public` zone, but a fresh installation must verify its active zone and interface association.
 
-### **6.3 Firewall policy**
+### 6.3 Firewall policy
 
 Do not replace the complete firewall configuration.
 
@@ -316,11 +336,11 @@ Keep runtime and permanent configurations consistent.
 
 ---
 
-## **7\. Pi-hole image selection**
+## 7. Pi-hole image selection
 
 The existing installation used:
 
-```
+```bash
 docker.io/pihole/pihole:latest
 ```
 
@@ -346,7 +366,7 @@ Official documentation:
 
 ---
 
-## **8\. Credential handling — mandatory validation gate**
+## 8. Credential handling — mandatory validation gate
 
 The web administration password must not be included directly in:
 
@@ -364,7 +384,7 @@ Pi-hole documents `WEBPASSWORD_FILE` in conjunction with Docker Compose secrets.
 
 However, compatibility with the selected rootless Podman setup must be tested before adopting that method.
 
-### **Required validation**
+### Required validation
 
 Before container creation, confirm:
 
@@ -381,7 +401,7 @@ If a secure method cannot be validated, stop at this stage and resolve credentia
 
 ---
 
-## **9\. Container configuration**
+## 9. Container configuration
 
 The intended container configuration is:
 
@@ -403,11 +423,11 @@ The intended container configuration is:
 | Automatic restart | Not enabled initially |
 | Host network | Not used |
 
-### **Capability policy**
+### Capability policy
 
 The existing container has:
 
-```
+```text
 Privileged=false
 CapAdd=["CAP_NET_ADMIN"]
 CapDrop=[]
@@ -421,7 +441,7 @@ For a fresh installation without DHCP, assess whether `NET_ADMIN` is actually re
 
 Do not automatically copy the existing capability set without reviewing the selected image version and intended features.
 
-### **Container creation**
+### Container creation
 
 The final Podman creation command is intentionally not included in this draft.
 
@@ -439,19 +459,19 @@ This prevents a copied command from silently reintroducing the old plaintext cre
 
 ---
 
-## **10\. Initial container verification**
+## 10. Initial container verification
 
 After the approved container creation procedure, inspect the result.
 
-### **Container state**
+### Container state
 
-```
+```bash
 podman ps -a --filter name=pihole
 ```
 
-### **Container identity**
+### Container identity
 
-```
+```bash
 podman inspect --format \
 'Name={{.Name}}
 Image={{.ImageName}}
@@ -459,22 +479,22 @@ Status={{.State.Status}}
 Privileged={{.HostConfig.Privileged}}' pihole
 ```
 
-### **Port mappings**
+### Port mappings
 
-```
+```bash
 podman port pihole
 ```
 
-### **Persistent mounts**
+### Persistent mounts
 
-```
+```bash
 podman inspect --format \
 '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}' pihole
 ```
 
-### **Capabilities**
+### Capabilities
 
-```
+```bash
 podman inspect --format \
 'CapAdd={{json .HostConfig.CapAdd}}
 CapDrop={{json .HostConfig.CapDrop}}
@@ -486,29 +506,29 @@ Never dump the complete container environment into a terminal transcript or docu
 
 ---
 
-## **11\. DNS and administration testing**
+## 11. DNS and administration testing
 
-### **11.1 DNS listener**
+### 11.1 DNS listener
 
 Inspect host-side listeners:
 
-```
+```bash
 sudo ss -lntup | grep -E ':(53|8080|8443)([[:space:]]|$)'
 ```
 
 Expected host bindings should match the intended LAN address and ports.
 
-### **11.2 DNS query**
+### 11.2 DNS query
 
 From a LAN client:
 
-```
+```bash
 nslookup example.com 192.168.1.161
 ```
 
 Alternatively:
 
-```
+```bash
 dig @192.168.1.161 example.com
 ```
 
@@ -516,11 +536,11 @@ A successful response confirms that the client can reach Pi-hole and receive a D
 
 It does not independently prove that blocking is working.
 
-### **11.3 Administration interface**
+### 11.3 Administration interface
 
 The intended administration addresses are:
 
-```
+```text
 http://192.168.1.161:8080/admin/
 https://192.168.1.161:8443/admin/
 ```
@@ -536,9 +556,9 @@ Verify:
 
 ---
 
-## **12\. Lifecycle management**
+## 12. Lifecycle management
 
-### **12.1 Initial policy**
+### 12.1 Initial policy
 
 Do not enable automatic startup immediately after container creation.
 
@@ -552,11 +572,11 @@ First verify:
 6. Manual container restart.  
 7. Data persistence after restart.
 
-### **12.2 systemd user service**
+### 12.2 systemd user service
 
 The existing installation uses:
 
-```
+```text
 /home/deck/.config/systemd/user/pihole.service
 ```
 
@@ -573,7 +593,7 @@ Do not copy the existing unit unchanged without checking:
 * Startup timeout.  
 * Shutdown timeout.
 
-### **12.3 Automatic startup**
+### 12.3 Automatic startup
 
 Automatic startup requires a separate approval.
 
@@ -590,13 +610,13 @@ Do not enable both a custom systemd lifecycle and an independently configured re
 
 ---
 
-## **13\. Backup preparation**
+## 13. Backup preparation
 
 Before declaring the installation complete, establish a backup procedure.
 
 At minimum, preserve:
 
-```
+```text
 /home/deck/pihole-box/etc-pihole
 /home/deck/pihole-box/etc-dnsmasq.d
 ```
@@ -622,7 +642,7 @@ A backup is not considered verified until its contents can be inspected and a re
 
 ---
 
-## **14\. Installation completion checklist**
+## 14. Installation completion checklist
 
 * Host prerequisites verified.  
 * Existing containers and data checked.  
@@ -647,7 +667,7 @@ A backup is not considered verified until its contents can be inspected and a re
 
 ---
 
-## **15\. Installation boundaries**
+## 15. Installation boundaries
 
 The following actions require separate approval:
 
@@ -669,7 +689,7 @@ This guide does not authorize modification of an existing Pi-hole installation.
 
 ---
 
-## **16\. Evidence and validation status**
+## 16. Evidence and validation status
 
 | Item | Status |
 | ----- | ----- |
@@ -689,7 +709,7 @@ This guide does not authorize modification of an existing Pi-hole installation.
 
 ---
 
-## **17\. Change history**
+## 17. Change history
 
 | Version | Date | Description |
 | ----- | ----- | ----- |
