@@ -4,6 +4,16 @@
 **Status:** Recovery guidance; no recovery drill performed.  
 **Last audited:** 2026-11-06
 
+## Contents
+
+- [Purpose](#purpose)
+- [Critical items](#critical-items)
+- [Backup principles](#backup-principles)
+- [Read-only checks](#read-only-checks)
+- [Recovery scenarios](#recovery-scenarios)
+- [Restore governance](#restore-governance)
+- [Limitations](#limitations)
+
 ## Purpose
 
 Preserve the ability to recover SSH access without exposing private key material or accidentally locking out the administrator. This document does not authorize changes. Obtain approval before restoring or modifying configuration.
