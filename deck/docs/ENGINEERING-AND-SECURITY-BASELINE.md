@@ -13,6 +13,23 @@ Shared engineering principles for the `laconic-lab/projects` repository.
 
 ---
 
+## Contents
+
+- [1. How this repository works](#1-how-this-repository-works)
+- [2. Non-negotiable working rules](#2-non-negotiable-working-rules)
+- [3. Execution environments and trust boundaries](#3-execution-environments-and-trust-boundaries)
+- [4. Network and remote access](#4-network-and-remote-access)
+- [5. Credentials and sensitive information](#5-credentials-and-sensitive-information)
+- [6. AI agents, automation and external services](#6-ai-agents-automation-and-external-services)
+- [7. Lifecycle and persistence](#7-lifecycle-and-persistence)
+- [8. Change management](#8-change-management)
+- [9. Evidence and status](#9-evidence-and-status)
+- [10. Documentation structure](#10-documentation-structure)
+- [11. Working with AI assistants](#11-working-with-ai-assistants)
+- [12. Exceptions and review](#12-exceptions-and-review)
+
+---
+
 ## 1. How this repository works
 
 This repository is a collection of projects with different purposes and maturity levels: infrastructure services, local applications, development environments, security work and feasibility investigations.
