@@ -1,4 +1,4 @@
-# **Pi-hole on SteamOS — Architecture & Operations**
+# Pi-hole on SteamOS — Architecture & Operations
 
 **Project:** Pi-hole on Steam Deck OLED  
 **Repository:** `laconic-lab/projects`  
@@ -9,7 +9,29 @@
 
 ---
 
-## **1\. Purpose**
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Architecture overview](#2-architecture-overview)
+- [3. Host environment](#3-host-environment)
+- [4. Distrobox environment](#4-distrobox-environment)
+- [5. Podman container](#5-podman-container)
+- [6. Network architecture](#6-network-architecture)
+- [7. Port 53 and unprivileged port binding](#7-port-53-and-unprivileged-port-binding)
+- [8. Firewall configuration](#8-firewall-configuration)
+- [9. Lifecycle management](#9-lifecycle-management)
+- [10. DNS configuration](#10-dns-configuration)
+- [11. Persistent data and backup strategy](#11-persistent-data-and-backup-strategy)
+- [12. Security considerations](#12-security-considerations)
+- [13. Installation architecture — historical reconstruction](#13-installation-architecture-historical-reconstruction)
+- [14. Verification command reference](#14-verification-command-reference)
+- [15. Recovery procedure](#15-recovery-procedure)
+- [16. Known observations and troubleshooting](#16-known-observations-and-troubleshooting)
+- [17. Operational boundaries](#17-operational-boundaries)
+- [18. Evidence and maintenance status](#18-evidence-and-maintenance-status)
+- [19. Change history](#19-change-history)
+
+## 1. Purpose
 
 This document describes the architecture, configuration, operation, security boundaries and recovery procedures of the Pi-hole installation running on SteamOS.
 
@@ -24,7 +46,7 @@ The installation uses:
 
 This document is intended to be the authoritative technical reference for the existing installation.
 
-### **Operating principles**
+### Operating principles
 
 1. Diagnose before modifying.  
 2. Prefer read-only inspection.  
@@ -37,9 +59,9 @@ This document is intended to be the authoritative technical reference for the ex
 
 ---
 
-## **2\. Architecture overview**
+## 2. Architecture overview
 
-```
+```text
                          LOCAL LAN
                       192.168.1.0/24
                              |
@@ -67,7 +89,7 @@ This document is intended to be the authoritative technical reference for the ex
                          Google / Cloudflare / Quad9
 ```
 
-### **Component responsibilities**
+### Component responsibilities
 
 | Component | Responsibility |
 | ----- | ----- |
@@ -84,9 +106,9 @@ This document is intended to be the authoritative technical reference for the ex
 
 ---
 
-## **3\. Host environment**
+## 3. Host environment
 
-### **3.1 Hardware and operating system**
+### 3.1 Hardware and operating system
 
 | Property | Value |
 | ----- | ----- |
@@ -102,17 +124,17 @@ This document is intended to be the authoritative technical reference for the ex
 
 The Pi-hole installation uses the wired Ethernet connection.
 
-### **3.2 Host-side storage**
+### 3.2 Host-side storage
 
 Podman's rootless storage:
 
-```
+```text
 /home/deck/.local/share/containers/storage
 ```
 
 Podman's runtime directory:
 
-```
+```text
 /run/user/1000/containers
 ```
 
@@ -120,9 +142,9 @@ The Pi-hole project data is stored separately from the Podman container storage.
 
 ---
 
-## **4\. Distrobox environment**
+## 4. Distrobox environment
 
-### **4.1 Container**
+### 4.1 Container
 
 | Property | Value |
 | ----- | ----- |
@@ -131,9 +153,9 @@ The Pi-hole project data is stored separately from the Podman container storage.
 | Purpose | Project environment and data organisation |
 | Current observed state | Exited |
 
-### **4.2 Persistent data directories**
+### 4.2 Persistent data directories
 
-```
+```text
 /home/deck/pihole-box/
 ├── etc-pihole/
 └── etc-dnsmasq.d/
@@ -149,9 +171,9 @@ Both the Distrobox and Pi-hole container are protected project components. Autom
 
 ---
 
-## **5\. Podman container**
+## 5. Podman container
 
-### **5.1 Container identity**
+### 5.1 Container identity
 
 | Property | Value |
 | ----- | ----- |
@@ -166,11 +188,11 @@ Both the Distrobox and Pi-hole container are protected project components. Autom
 
 The `latest` image tag is mutable. The exact image digest and installed Pi-hole version should be recorded separately when required for reproducibility.
 
-### **5.2 Capabilities and security**
+### 5.2 Capabilities and security
 
 Last inspected configuration:
 
-```
+```text
 Privileged=false
 CapAdd=["CAP_NET_ADMIN"]
 CapDrop=[]
@@ -186,7 +208,7 @@ Interpretation:
 
 The presence of `CAP_NET_ADMIN` is a security-relevant permission and should be documented rather than silently removed. Any future capability change requires compatibility testing and explicit approval.
 
-### **5.3 Persistent volume mounts**
+### 5.3 Persistent volume mounts
 
 | Host directory | Container directory | Mode |
 | ----- | ----- | ----- |
@@ -197,7 +219,7 @@ These directories contain persistent configuration and DNS-related data.
 
 Do not delete, recreate or overwrite them when troubleshooting container startup.
 
-### **5.4 Container recreation**
+### 5.4 Container recreation
 
 The existing container is an established installation.
 
@@ -213,9 +235,9 @@ Any recreation must first include a full inspection of the existing configuratio
 
 ---
 
-## **6\. Network architecture**
+## 6. Network architecture
 
-### **6.1 Published ports**
+### 6.1 Published ports
 
 The container publishes the following services on the Steam Deck's LAN IPv4 address:
 
@@ -228,14 +250,14 @@ The container publishes the following services on the Steam Deck's LAN IPv4 addr
 
 Administration URLs:
 
-```
+```text
 http://192.168.1.161:8080/admin/
 https://192.168.1.161:8443/admin/
 ```
 
 The HTTP and HTTPS administration endpoints are published on the LAN address. Their access should remain subject to the host firewall and Pi-hole authentication.
 
-### **6.2 Exposed versus published ports**
+### 6.2 Exposed versus published ports
 
 The Pi-hole image declares additional ports, including UDP 67 and UDP 123\.
 
@@ -245,13 +267,13 @@ An image-declared or exposed container port is not equivalent to a published LAN
 
 DHCP is not part of the current Pi-hole configuration.
 
-### **6.3 pasta networking**
+### 6.3 pasta networking
 
 Podman uses `pasta` for container networking.
 
 The host-side listener process has been observed as:
 
-```
+```text
 passt.avx2
 ```
 
@@ -259,7 +281,7 @@ It provides the host-side port forwarding for the Pi-hole container.
 
 The inspected process listens on:
 
-```
+```text
 192.168.1.161:53       TCP / UDP
 192.168.1.161:8080     TCP
 192.168.1.161:8443     TCP
@@ -267,18 +289,18 @@ The inspected process listens on:
 
 The host listeners are bound to the Deck's LAN IPv4 address.
 
-### **6.4 Host DNS listeners**
+### 6.4 Host DNS listeners
 
 `systemd-resolved` also listens on port 53, but only on loopback:
 
-```
+```text
 127.0.0.53:53
 127.0.0.54:53
 ```
 
 The Pi-hole forwarding listener uses:
 
-```
+```text
 192.168.1.161:53
 ```
 
@@ -286,23 +308,23 @@ These are different local addresses. The inspection did not show a direct listen
 
 ---
 
-## **7\. Port 53 and unprivileged port binding**
+## 7. Port 53 and unprivileged port binding
 
 The SteamOS host has the following sysctl setting:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start = 53
 ```
 
 Persistent configuration:
 
-```
+```text
 /etc/sysctl.d/99-pihole.conf
 ```
 
 Expected file content:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
@@ -314,9 +336,9 @@ The setting is part of the existing rootless Podman networking arrangement.
 
 ---
 
-## **8\. Firewall configuration**
+## 8. Firewall configuration
 
-### **8.1 Firewall**
+### 8.1 Firewall
 
 The host uses `firewalld`.
 
@@ -327,28 +349,28 @@ Last inspected state:
 * Ethernet interface: `enp4s0f3u1u4`.  
 * Runtime and permanent configurations were consistent.
 
-### **8.2 DNS access**
+### 8.2 DNS access
 
 The LAN subnet is permitted to access DNS:
 
-```
+```text
 192.168.1.0/24
 ```
 
 Allowed services:
 
-```
+```text
 TCP 53
 UDP 53
 ```
 
 The firewall also contains an SSH allowance for the administrative PC:
 
-```
+```text
 192.168.1.169/32
 ```
 
-### **8.3 Other inspected firewall rules**
+### 8.3 Other inspected firewall rules
 
 The previous audit identified:
 
@@ -363,7 +385,7 @@ The purpose and necessity of the broad port-range rules have not been establishe
 
 **Do not remove or alter them as part of Pi-hole maintenance.** They require a separate firewall investigation.
 
-### **8.4 Firewall recovery**
+### 8.4 Firewall recovery
 
 The existing recovery script checks for `firewalld`, verifies the active zone and ensures the persistent LAN DNS rules exist.
 
@@ -371,19 +393,19 @@ It does not replace the entire firewall configuration.
 
 ---
 
-## **9\. Lifecycle management**
+## 9. Lifecycle management
 
-### **9.1 systemd user service**
+### 9.1 systemd user service
 
 Unit:
 
-```
+```text
 /home/deck/.config/systemd/user/pihole.service
 ```
 
 Observed configuration:
 
-```
+```ini
 [Unit]
 Description=Pi-hole container
 After=network-online.target
@@ -404,7 +426,7 @@ WantedBy=default.target
 
 The startup precondition waits for the Ethernet interface to obtain the expected IPv4 address and then waits an additional five seconds.
 
-### **9.2 Service behaviour**
+### 9.2 Service behaviour
 
 | Setting | Meaning |
 | ----- | ----- |
@@ -419,11 +441,11 @@ The unit's active state does not mean that a continuously running systemd proces
 
 The container's actual state must be checked separately.
 
-### **9.3 User linger**
+### 9.3 User linger
 
 Observed:
 
-```
+```text
 Linger=yes
 ```
 
@@ -431,22 +453,22 @@ This allows the user's systemd manager to remain active after logout.
 
 The service is enabled under:
 
-```
+```text
 default.target
 ```
 
-### **9.4 Podman restart policy**
+### 9.4 Podman restart policy
 
 The container reports:
 
-```
+```text
 RestartPolicy=unless-stopped
 RestartRetries=0
 ```
 
 However, the user-level Podman restart service was inspected as:
 
-```
+```text
 Loaded: loaded
 Active: inactive (dead)
 Enabled: disabled
@@ -458,30 +480,30 @@ The presence of the container restart policy should be recorded, but it must not
 
 Do not alter either mechanism without testing the startup and shutdown sequence.
 
-### **9.5 Manual lifecycle commands**
+### 9.5 Manual lifecycle commands
 
 **Status**
 
-```
+```bash
 systemctl --user status pihole.service --no-pager
 podman ps --filter name=pihole
 ```
 
 **Start**
 
-```
+```bash
 systemctl --user start pihole.service
 ```
 
 **Stop**
 
-```
+```bash
 systemctl --user stop pihole.service
 ```
 
 **Logs**
 
-```
+```bash
 journalctl --user -u pihole.service -n 100 --no-pager
 podman logs --tail 100 pihole
 ```
@@ -490,9 +512,9 @@ These commands are for intentional lifecycle operations. A status check should n
 
 ---
 
-## **10\. DNS configuration**
+## 10. DNS configuration
 
-### **10.1 Upstream providers**
+### 10.1 Upstream providers
 
 The inspected Pi-hole FTL upstream configuration contains:
 
@@ -504,13 +526,13 @@ The inspected Pi-hole FTL upstream configuration contains:
 
 The configuration was read using:
 
-```
+```bash
 podman exec pihole pihole-FTL --config dns.upstreams
 ```
 
 The output confirms the configured addresses, not the current availability or performance of every upstream.
 
-### **10.2 DNS operation**
+### 10.2 DNS operation
 
 Pi-hole FTL was previously observed:
 
@@ -521,7 +543,7 @@ Pi-hole FTL was previously observed:
 
 The historical query statistics are not a permanent baseline and should not be treated as current performance figures.
 
-### **10.3 Blocklists**
+### 10.3 Blocklists
 
 Previously recorded configuration included:
 
@@ -535,13 +557,13 @@ Gravity updates are separate maintenance operations and are intentionally exclud
 
 ---
 
-## **11\. Persistent data and backup strategy**
+## 11. Persistent data and backup strategy
 
-### **11.1 Data preservation**
+### 11.1 Data preservation
 
 The persistent data directories are:
 
-```
+```text
 /home/deck/pihole-box/etc-pihole
 /home/deck/pihole-box/etc-dnsmasq.d
 ```
@@ -554,7 +576,7 @@ They must be preserved during:
 * Image updates.  
 * Container troubleshooting.
 
-### **11.2 Backup principles**
+### 11.2 Backup principles
 
 A valid backup should preserve:
 
@@ -569,7 +591,7 @@ Backups should be taken before modifying configuration, updating the image or pe
 
 A backup should be verified before relying on it.
 
-### **11.3 Do not assume container storage is the backup**
+### 11.3 Do not assume container storage is the backup
 
 The Podman container's writable layer is not the primary persistent configuration store.
 
@@ -577,13 +599,13 @@ The two bind-mounted host directories are the important persistent data location
 
 ---
 
-## **12\. Security considerations**
+## 12. Security considerations
 
-### **12.1 Credentials**
+### 12.1 Credentials
 
 The container has an environment variable named:
 
-```
+```text
 FTLCONF_webserver_api_password
 ```
 
@@ -595,7 +617,7 @@ The rotation status has not been verified in this document.
 
 Future inspection commands must display environment variable names only, never their values.
 
-### **12.2 Container privileges**
+### 12.2 Container privileges
 
 Current inspected configuration:
 
@@ -607,7 +629,7 @@ Current inspected configuration:
 
 This is not equivalent to a fully hardened container. Security decisions must account for the actual capability set, mounts and network exposure.
 
-### **12.3 Network exposure**
+### 12.3 Network exposure
 
 Pi-hole DNS is reachable on the LAN through TCP and UDP port 53\.
 
@@ -615,7 +637,7 @@ The web administration interfaces are published on ports 8080 and 8443\.
 
 Firewall restrictions and Pi-hole authentication are therefore important parts of the security boundary.
 
-### **12.4 No unnecessary permissions**
+### 12.4 No unnecessary permissions
 
 Do not introduce:
 
@@ -630,7 +652,7 @@ Any proposed security change must be evaluated against the existing working inst
 
 ---
 
-## **13\. Installation architecture — historical reconstruction**
+## 13. Installation architecture — historical reconstruction
 
 The original installation command was previously inspected.
 
@@ -666,35 +688,35 @@ These steps should be reconstructed and validated before being published as a re
 
 ---
 
-## **14\. Verification command reference**
+## 14. Verification command reference
 
 All commands in this section are inspection-oriented unless explicitly indicated.
 
-### **14.1 Container state**
+### 14.1 Container state
 
-```
+```bash
 podman ps --filter name=pihole
 podman inspect --format \
 'Name={{.Name}} Image={{.ImageName}} Status={{.State.Status}}' pihole
 ```
 
-### **14.2 Port publication**
+### 14.2 Port publication
 
-```
+```bash
 podman port pihole
 sudo ss -lntup | grep -E ':(53|8080|8443)([[:space:]]|$)'
 ```
 
-### **14.3 Persistent mounts**
+### 14.3 Persistent mounts
 
-```
+```bash
 podman inspect --format \
 '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}' pihole
 ```
 
-### **14.4 Capability configuration**
+### 14.4 Capability configuration
 
-```
+```bash
 podman inspect --format \
 'CapAdd={{json .HostConfig.CapAdd}}
 CapDrop={{json .HostConfig.CapDrop}}
@@ -702,40 +724,40 @@ Privileged={{.HostConfig.Privileged}}
 SecurityOpt={{json .HostConfig.SecurityOpt}}' pihole
 ```
 
-### **14.5 systemd state**
+### 14.5 systemd state
 
-```
+```bash
 systemctl --user status pihole.service --no-pager
 systemctl --user is-enabled pihole.service
 loginctl show-user deck -p Linger
 ```
 
-### **14.6 Firewall**
+### 14.6 Firewall
 
-```
+```bash
 sudo firewall-cmd --get-active-zones
 sudo firewall-cmd --zone=public --list-all
 sudo firewall-cmd --zone=public --list-rich-rules
 ```
 
-### **14.7 Port 53 sysctl**
+### 14.7 Port 53 sysctl
 
-```
+```bash
 sysctl net.ipv4.ip_unprivileged_port_start
 cat /etc/sysctl.d/99-pihole.conf
 ```
 
-### **14.8 DNS tests**
+### 14.8 DNS tests
 
 From a LAN client:
 
-```
+```bash
 nslookup example.com 192.168.1.161
 ```
 
 From the Steam Deck host, if `dig` is installed:
 
-```
+```bash
 dig @192.168.1.161 example.com
 ```
 
@@ -743,31 +765,31 @@ A successful response confirms that the queried client can reach Pi-hole and rec
 
 ---
 
-## **15\. Recovery procedure**
+## 15. Recovery procedure
 
-### **15.1 Existing recovery script**
+### 15.1 Existing recovery script
 
 Repository location:
 
-```
+```text
 pi-hole/scripts/pihole-update-recovery.sh
 ```
 
 Repository:
 
-```
+```text
 https://github.com/laconic-lab/projects
 ```
 
 Raw script:
 
-```
+```text
 https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/pi-hole/scripts/pihole-update-recovery.sh
 ```
 
 The script is a recovery procedure for an existing installation. It is not an installation or container-recreation script.
 
-### **15.2 Recovery script responsibilities**
+### 15.2 Recovery script responsibilities
 
 The reviewed script:
 
@@ -792,7 +814,7 @@ It does not:
 * Restore an old `.env` file.  
 * Rebuild the Distrobox.
 
-### **15.3 Recovery safety**
+### 15.3 Recovery safety
 
 Before running recovery:
 
@@ -806,13 +828,13 @@ Recovery should preserve the current installation rather than rebuild it unneces
 
 ---
 
-## **16\. Known observations and troubleshooting**
+## 16. Known observations and troubleshooting
 
-### **16.1 pasta UDP-flow warning**
+### 16.1 pasta UDP-flow warning
 
 A previous journal inspection showed warnings similar to:
 
-```
+```text
 Couldn't open flow specific socket: Address already in use
 ```
 
@@ -820,7 +842,7 @@ The affected traffic involved outgoing UDP DNS packets to configured upstream re
 
 The previous source port was `55893`, within the host ephemeral range:
 
-```
+```text
 32768–60999
 ```
 
@@ -832,11 +854,11 @@ The latest service journal query did not reproduce the warning.
 
 No change to upstream DNS, ephemeral port range or published port mappings is justified by the available evidence.
 
-### **16.2 Cloudflare IPv6 warning**
+### 16.2 Cloudflare IPv6 warning
 
 A previous Pi-hole log reported a TCP connection warning involving:
 
-```
+```text
 2620:fe::fe
 ```
 
@@ -844,7 +866,7 @@ This address is one of the configured Quad9 IPv6 upstream addresses, not Cloudfl
 
 The warning alone does not establish a persistent DNS failure.
 
-### **16.3 Clock and database observations**
+### 16.3 Clock and database observations
 
 A previous database import warning showed timestamps that differed by several hours.
 
@@ -854,7 +876,7 @@ The historical database timestamp discrepancy remains unexplained.
 
 The database was not deleted or rebuilt.
 
-### **16.4 Container capabilities**
+### 16.4 Container capabilities
 
 The container lacks `CAP_SYS_TIME` and `CAP_SYS_NICE`.
 
@@ -862,7 +884,7 @@ Previous logs showed related warnings.
 
 These permissions have not been added. No evidence has established that they are required for normal DNS operation.
 
-### **16.5 systemd-resolved**
+### 16.5 systemd-resolved
 
 The host's local DNS resolver listens on loopback only. The Pi-hole published listener uses the LAN IPv4 address.
 
@@ -870,7 +892,7 @@ No port conflict was found during the latest listener inspection.
 
 ---
 
-## **17\. Operational boundaries**
+## 17. Operational boundaries
 
 The following actions require separate diagnosis and explicit approval:
 
@@ -896,7 +918,7 @@ Pi-hole and `pihole-box` must remain protected from automated cleanup and shutdo
 
 ---
 
-## **18\. Evidence and maintenance status**
+## 18. Evidence and maintenance status
 
 This document separates observed facts from historical records and unresolved questions.
 
@@ -926,7 +948,7 @@ This document separates observed facts from historical records and unresolved qu
 
 ---
 
-## **19\. Change history**
+## 19. Change history
 
 | Version | Date | Description |
 | ----- | ----- | ----- |
