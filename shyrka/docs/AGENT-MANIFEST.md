@@ -124,21 +124,15 @@ restored because the graph has no persistent checkpointer.
 
 ## Component relationship schema
 
-```mermaid
-flowchart TB
-    subgraph Runtime["localai-box · Ubuntu 24.04"]
-        A["Shyrka LangGraph agent"]
-        T["Approved diagnostic tools"]
-        M["Local Ollama endpoint"]
-        V["Granite 4.1 8B profile"]
-        A --> T
-        A --> M
-        M --> V
-        A --> D["LAN dashboard"]
-        A --> S["SQLite conversation archive"]
-    end
-    U["User"] --> D
-    D --> A
+```text
+localai-box (Ubuntu 24.04)
+  |
+  `-- Shyrka LangGraph agent
+        |-- Approved diagnostic tools
+        |-- Local Ollama endpoint
+        |     `-- Granite 4.1 8B profile
+        |-- LAN dashboard <--> User
+        `-- SQLite conversation archive
 ```
 
 The schema summarizes components described in this manifest. It does not assert that any component is currently running.
