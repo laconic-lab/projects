@@ -1,0 +1,40 @@
+PS C:\Users\Laco> $dir = 'D:\TempDownload'
+PS C:\Users\Laco>
+PS C:\Users\Laco> $files = @(
+>>     'windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu',
+>>     'windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu'
+>> )
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "===== TEST-20: SHA-256 HASH CAPTURE ====="
+===== TEST-20: SHA-256 HASH CAPTURE =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($name in $files) {
+>>     $path = Join-Path $dir $name
+>>
+>>     Write-Output "`n===== $name ====="
+>>
+>>     if (Test-Path -LiteralPath $path -PathType Leaf) {
+>>         $hash = Get-FileHash -LiteralPath $path -Algorithm SHA256
+>>         Write-Output "Algorithm: $($hash.Algorithm)"
+>>         Write-Output "Hash:      $($hash.Hash)"
+>>         Write-Output "Path:      $($hash.Path)"
+>>     }
+>>     else {
+>>         Write-Output "MISSING: $path"
+>>     }
+>> }
+
+===== windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu =====
+Algorithm: SHA256
+Hash:      819632610A101AF11C72907FB13FF05B5FB4222C0E263EE9A03BCC1D1D5F26A4
+Path:      D:\TempDownload\windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
+
+===== windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu =====
+Algorithm: SHA256
+Hash:      8966A4EA203519C0E082DC1193580B723EC86E21BD72009AC9781E8014AE798B
+Path:      D:\TempDownload\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== TEST-20 COMPLETE ====="
+
+===== TEST-20 COMPLETE =====
+PS C:\Users\Laco>

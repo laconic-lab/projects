@@ -1,0 +1,277 @@
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "===== TEST-25: TEMP/TMP RESTORATION PREFLIGHT ====="
+===== TEST-25: TEMP/TMP RESTORATION PREFLIGHT =====
+PS C:\Users\Laco> Write-Output "READ-ONLY: NO SYSTEM CHANGES"
+READ-ONLY: NO SYSTEM CHANGES
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 1. Resolve expected Windows default locations
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 1. EXPECTED DEFAULT PATHS ====="
+
+===== 1. EXPECTED DEFAULT PATHS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $userProfile = [Environment]::GetFolderPath("UserProfile")
+PS C:\Users\Laco> $localAppData = [Environment]::GetFolderPath("LocalApplicationData")
+PS C:\Users\Laco> $systemRoot = $env:SystemRoot
+PS C:\Users\Laco>
+PS C:\Users\Laco> $expectedUserTemp = Join-Path $localAppData "Temp"
+PS C:\Users\Laco> $expectedMachineTemp = Join-Path $systemRoot "Temp"
+PS C:\Users\Laco>
+PS C:\Users\Laco> $expectedPaths = @(
+>>     [pscustomobject]@{
+>>         Name = "User default TEMP/TMP"
+>>         Path = $expectedUserTemp
+>>     }
+>>     [pscustomobject]@{
+>>         Name = "Machine default TEMP/TMP"
+>>         Path = $expectedMachineTemp
+>>     }
+>> )
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($item in $expectedPaths) {
+>>     Write-Output "`n$($item.Name): $($item.Path)"
+>>
+>>     if (Test-Path -LiteralPath $item.Path) {
+>>         Get-Item -LiteralPath $item.Path -Force |
+>>             Format-List FullName, Attributes, LinkType, Target
+>>     }
+>>     else {
+>>         Write-Output "STATUS: DIRECTORY DOES NOT EXIST"
+>>     }
+>> }
+
+User default TEMP/TMP: C:\Users\Laco\AppData\Local\Temp
+
+
+FullName   : C:\Users\Laco\AppData\Local\Temp
+Attributes : Directory
+LinkType   :
+Target     : {}
+
+
+
+
+Machine default TEMP/TMP: C:\WINDOWS\Temp
+
+
+FullName   : C:\WINDOWS\Temp
+Attributes : Directory
+LinkType   :
+Target     : {}
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 2. Current user and machine registry values, including types
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 2. REGISTRY VALUE TYPES AND DATA ====="
+
+===== 2. REGISTRY VALUE TYPES AND DATA =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $registryTargets = @(
+>>     [pscustomobject]@{
+>>         Name = "User environment"
+>>         Path = "HKCU:\Environment"
+>>     }
+>>     [pscustomobject]@{
+>>         Name = "Machine environment"
+>>         Path = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+>>     }
+>> )
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($target in $registryTargets) {
+>>     Write-Output "`n--- $($target.Name) ---"
+>>
+>>     if (Test-Path -LiteralPath $target.Path) {
+>>         $key = Get-Item -LiteralPath $target.Path
+>>
+>>         foreach ($valueName in @("TEMP", "TMP")) {
+>>             if ($key.GetValueNames() -contains $valueName) {
+>>                 [pscustomobject]@{
+>>                     Name = $valueName
+>>                     Type = $key.GetValueKind($valueName)
+>>                     Data = $key.GetValue(
+>>                         $valueName,
+>>                         $null,
+>>                         [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+>>                     )
+>>                 }
+>>             }
+>>             else {
+>>                 [pscustomobject]@{
+>>                     Name = $valueName
+>>                     Type = "(not explicitly configured)"
+>>                     Data = "(absent)"
+>>                 }
+>>             }
+>>         }
+>>     }
+>>     else {
+>>         Write-Output "Registry key does not exist."
+>>     }
+>> }
+
+--- User environment ---
+
+Name         Type Data
+----         ---- ----
+TEMP ExpandString R:\Temp
+TMP  ExpandString R:\Temp
+
+--- Machine environment ---
+TEMP ExpandString R:\Temp
+TMP  ExpandString R:\Temp
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 3. Confirm current profile and relevant environment values
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 3. PROFILE AND ENVIRONMENT CONTEXT ====="
+
+===== 3. PROFILE AND ENVIRONMENT CONTEXT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> [pscustomobject]@{
+>>     USERPROFILE = $env:USERPROFILE
+>>     HOMEDRIVE = $env:HOMEDRIVE
+>>     HOMEPATH = $env:HOMEPATH
+>>     LOCALAPPDATA = $env:LOCALAPPDATA
+>>     SystemRoot = $env:SystemRoot
+>>     WINDIR = $env:WINDIR
+>>     ProcessTEMP = $env:TEMP
+>>     ProcessTMP = $env:TMP
+>> } | Format-List
+
+
+USERPROFILE  : C:\Users\Laco
+HOMEDRIVE    : C:
+HOMEPATH     : \Users\Laco
+LOCALAPPDATA : C:\Users\Laco\AppData\Local
+SystemRoot   : C:\WINDOWS
+WINDIR       : C:\WINDOWS
+ProcessTEMP  : R:\Temp
+ProcessTMP   : R:\Temp
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 4. Directory access inspection (read-only)
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 4. EXPECTED DIRECTORY ACCESS ====="
+
+===== 4. EXPECTED DIRECTORY ACCESS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($item in $expectedPaths) {
+>>     Write-Output "`n--- $($item.Path) ---"
+>>
+>>     if (Test-Path -LiteralPath $item.Path) {
+>>         icacls.exe $item.Path
+>>     }
+>>     else {
+>>         Write-Output "Skipped: directory does not exist."
+>>     }
+>> }
+
+--- C:\Users\Laco\AppData\Local\Temp ---
+C:\Users\Laco\AppData\Local\Temp AUTORITE NT\Système:(I)(OI)(CI)(F)
+                                 BUILTIN\Administrateurs:(I)(OI)(CI)(F)
+                                 UNKNOWN\Laco:(I)(OI)(CI)(F)
+
+Successfully processed 1 files; Failed processing 0 files
+
+--- C:\WINDOWS\Temp ---
+C:\WINDOWS\Temp BUILTIN\Utilisateurs:(CI)(S,WD,AD,X)
+                BUILTIN\Administrateurs:(F)
+                BUILTIN\Administrateurs:(OI)(CI)(IO)(F)
+                AUTORITE NT\Système:(F)
+                AUTORITE NT\Système:(OI)(CI)(IO)(F)
+                CREATEUR PROPRIETAIRE:(OI)(CI)(IO)(F)
+                UNKNOWN\Laco:(OI)(CI)(F)
+
+Successfully processed 1 files; Failed processing 0 files
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 5. RAM-drive temporary directory reference
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 5. CURRENT RAM-DRIVE TEMP DIRECTORY ====="
+
+===== 5. CURRENT RAM-DRIVE TEMP DIRECTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> if (Test-Path -LiteralPath "R:\Temp") {
+>>     Get-Item -LiteralPath "R:\Temp" -Force |
+>>         Format-List FullName, Attributes, LinkType, Target
+>> }
+
+
+FullName   : R:\Temp
+Attributes : Directory
+LinkType   :
+Target     : {}
+
+
+
+PS C:\Users\Laco> else {
+>>     Write-Output "R:\Temp does not exist."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco> # 6. Check common backup locations for environment exports
+PS C:\Users\Laco> # ------------------------------------------------------------
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 6. POSSIBLE ENVIRONMENT BACKUP FILES ====="
+
+===== 6. POSSIBLE ENVIRONMENT BACKUP FILES =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $backupLocations = @(
+>>     "$env:USERPROFILE\Desktop",
+>>     "$env:USERPROFILE\Documents",
+>>     "C:\KB5132061-Test23-Logs"
+>> )
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($location in $backupLocations) {
+>>     if (Test-Path -LiteralPath $location) {
+>>         Write-Output "`n--- $location ---"
+>>
+>>         Get-ChildItem -LiteralPath $location -File -Force |
+>>             Where-Object {
+>>                 $_.Name -match "environment|temp|tmp|registry|reg"
+>>             } |
+>>             Select-Object FullName, Length, LastWriteTime
+>>     }
+>> }
+
+--- C:\Users\Laco\Desktop ---
+
+FullName                                       Length LastWriteTime
+--------                                       ------ -------------
+C:\Users\Laco\Desktop\MusicBee Playlistemp.bat    815 31/03/25 15:36:39
+
+--- C:\Users\Laco\Documents ---
+C:\Users\Laco\Documents\HWiNFO64_settings.reg    8440 23/06/26 14:07:48
+
+--- C:\KB5132061-Test23-Logs ---
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== TEST-25 COMPLETE ====="
+
+===== TEST-25 COMPLETE =====
+PS C:\Users\Laco> Write-Output "READ-ONLY: NO FILES OR REGISTRY VALUES CHANGED"
+READ-ONLY: NO FILES OR REGISTRY VALUES CHANGED
+PS C:\Users\Laco>

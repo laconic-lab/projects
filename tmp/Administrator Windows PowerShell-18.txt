@@ -1,0 +1,127 @@
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "===== TEST-24: STORAGE AND TEMPORARY DIRECTORY AUDIT ====="
+===== TEST-24: STORAGE AND TEMPORARY DIRECTORY AUDIT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 1. VOLUME INVENTORY ====="
+
+===== 1. VOLUME INVENTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-Volume |
+>>     Select-Object DriveLetter, FileSystemLabel, FileSystem,
+>>         HealthStatus, Size, SizeRemaining |
+>>     Format-Table -AutoSize
+
+DriveLetter FileSystemLabel FileSystem HealthStatus          Size SizeRemaining
+----------- --------------- ---------- ------------          ---- -------------
+          C OS              NTFS       Healthy       498971353088  354687520768
+          D DATA            NTFS       Healthy      1000202039296  681234665472
+          R RamDisk         NTFS       Healthy         4294963200    3109289984
+                            FAT32      Healthy         1071624192     539553792
+                            NTFS       Healthy         1025503232     114626560
+                            FAT32      Healthy          100663296      60762112
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 2. WINDOWS LOGICAL DISKS ====="
+
+===== 2. WINDOWS LOGICAL DISKS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-CimInstance Win32_LogicalDisk |
+>>     Select-Object DeviceID, DriveType, VolumeName,
+>>         FileSystem, Size, FreeSpace |
+>>     Format-Table -AutoSize
+
+DeviceID DriveType VolumeName FileSystem          Size    FreeSpace
+-------- --------- ---------- ----------          ----    ---------
+C:               3 OS         NTFS        498971353088 354687520768
+D:               3 DATA       NTFS       1000202039296 681234665472
+R:               3 RamDisk    NTFS          4294963200   3109289984
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 3. TEMP/TMP BY ENVIRONMENT SCOPE ====="
+
+===== 3. TEMP/TMP BY ENVIRONMENT SCOPE =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $scopes = @("Process", "User", "Machine")
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($scope in $scopes) {
+>>     [pscustomobject]@{
+>>         Scope = $scope
+>>         TEMP  = [Environment]::GetEnvironmentVariable("TEMP", $scope)
+>>         TMP   = [Environment]::GetEnvironmentVariable("TMP", $scope)
+>>     }
+>> } | Format-Table -AutoSize
+At line:7 char:3
++ } | Format-Table -AutoSize
++   ~
+An empty pipe element is not allowed.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : EmptyPipeElement
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 4. WINDOWS DIRECTORY ====="
+
+===== 4. WINDOWS DIRECTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "WINDIR: $env:WINDIR"
+WINDIR: C:\WINDOWS
+PS C:\Users\Laco> Write-Output "SYSTEMROOT: $env:SYSTEMROOT"
+SYSTEMROOT: C:\WINDOWS
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 5. TEST-23 PACKAGE FOLDER SIZES ====="
+
+===== 5. TEST-23 PACKAGE FOLDER SIZES =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $results = foreach ($path in @(
+>>     "C:\KB5132061-Test23",
+>>     "C:\KB5132061-Test23-Logs"
+>> )) {
+>>     if (Test-Path -LiteralPath $path) {
+>>         $files = @(
+>>             Get-ChildItem -LiteralPath $path -File -Recurse -Force
+>>         )
+>>
+>>         [pscustomobject]@{
+>>             Path       = $path
+>>             FileCount  = $files.Count
+>>             TotalBytes = ($files | Measure-Object Length -Sum).Sum
+>>         }
+>>     }
+>> }
+PS C:\Users\Laco>
+PS C:\Users\Laco> $results | Format-Table -AutoSize
+
+Path                     FileCount TotalBytes
+----                     --------- ----------
+C:\KB5132061-Test23              2 5264574311
+C:\KB5132061-Test23-Logs         1       3402
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 6. WINDOWS TEMP DIRECTORY ====="
+
+===== 6. WINDOWS TEMP DIRECTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $windowsTemp = Join-Path $env:WINDIR "Temp"
+PS C:\Users\Laco>
+PS C:\Users\Laco> if (Test-Path -LiteralPath $windowsTemp) {
+>>     Get-Item -LiteralPath $windowsTemp |
+>>         Select-Object FullName, Attributes, LastWriteTime |
+>>         Format-List
+>> }
+
+
+FullName      : C:\WINDOWS\Temp
+Attributes    : Directory
+LastWriteTime : 11/11/26 13:46:24
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== TEST-24 COMPLETE ====="
+
+===== TEST-24 COMPLETE =====
+PS C:\Users\Laco> Write-Output "READ-ONLY: NO FILES CHANGED"
+READ-ONLY: NO FILES CHANGED
+PS C:\Users\Laco>

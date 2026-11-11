@@ -1,0 +1,300 @@
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "===== TEST-24B: TEMP/TMP AND DISM SCRATCH INVESTIGATION ====="
+===== TEST-24B: TEMP/TMP AND DISM SCRATCH INVESTIGATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 1. ENVIRONMENT VARIABLES BY SCOPE ====="
+
+===== 1. ENVIRONMENT VARIABLES BY SCOPE =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $scopes = @("Process", "User", "Machine")
+PS C:\Users\Laco>
+PS C:\Users\Laco> $envRows = foreach ($scope in $scopes) {
+>>     [pscustomobject]@{
+>>         Scope = $scope
+>>         TEMP = [Environment]::GetEnvironmentVariable("TEMP", $scope)
+>>         TMP  = [Environment]::GetEnvironmentVariable("TMP", $scope)
+>>     }
+>> }
+PS C:\Users\Laco>
+PS C:\Users\Laco> $envRows | Format-Table -AutoSize
+
+Scope   TEMP    TMP
+-----   ----    ---
+Process R:\Temp R:\Temp
+User    R:\Temp R:\Temp
+Machine R:\Temp R:\Temp
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 2. USER ENVIRONMENT REGISTRY ====="
+
+===== 2. USER ENVIRONMENT REGISTRY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $userKey = "HKCU:\Environment"
+PS C:\Users\Laco>
+PS C:\Users\Laco> if (Test-Path $userKey) {
+>>     Get-ItemProperty -LiteralPath $userKey |
+>>         Select-Object TEMP, TMP |
+>>         Format-List
+>> }
+
+
+TEMP : R:\Temp
+TMP  : R:\Temp
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 3. MACHINE ENVIRONMENT REGISTRY ====="
+
+===== 3. MACHINE ENVIRONMENT REGISTRY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $machineKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+PS C:\Users\Laco>
+PS C:\Users\Laco> if (Test-Path $machineKey) {
+>>     Get-ItemProperty -LiteralPath $machineKey |
+>>         Select-Object TEMP, TMP |
+>>         Format-List
+>> }
+
+
+TEMP : R:\Temp
+TMP  : R:\Temp
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 4. WINDOWS TEMP DIRECTORY ====="
+
+===== 4. WINDOWS TEMP DIRECTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $windowsTemp = Join-Path $env:WINDIR "Temp"
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-Item -LiteralPath $windowsTemp -Force |
+>>     Format-List FullName, Attributes, LinkType, Target
+
+
+FullName   : C:\WINDOWS\Temp
+Attributes : Directory
+LinkType   :
+Target     : {}
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 5. RESOLVE ALL CONFIGURED TEMP PATHS ====="
+
+===== 5. RESOLVE ALL CONFIGURED TEMP PATHS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $paths = [ordered]@{
+>>     Process_TEMP = [Environment]::GetEnvironmentVariable("TEMP", "Process")
+>>     Process_TMP = [Environment]::GetEnvironmentVariable("TMP", "Process")
+>>     User_TEMP = [Environment]::GetEnvironmentVariable("TEMP", "User")
+>>     User_TMP = [Environment]::GetEnvironmentVariable("TMP", "User")
+>>     Machine_TEMP = [Environment]::GetEnvironmentVariable("TEMP", "Machine")
+>>     Machine_TMP = [Environment]::GetEnvironmentVariable("TMP", "Machine")
+>>     Windows_Temp = $windowsTemp
+>> }
+PS C:\Users\Laco>
+PS C:\Users\Laco> $pathRows = foreach ($entry in $paths.GetEnumerator()) {
+>>     $path = $entry.Value
+>>
+>>     if ($path) {
+>>         $expanded = [Environment]::ExpandEnvironmentVariables($path)
+>>
+>>         [pscustomobject]@{
+>>             Name = $entry.Key
+>>             ConfiguredPath = $path
+>>             ExpandedPath = $expanded
+>>             Exists = Test-Path -LiteralPath $expanded
+>>             Root = [IO.Path]::GetPathRoot($expanded)
+>>         }
+>>     }
+>> }
+PS C:\Users\Laco>
+PS C:\Users\Laco> $pathRows | Format-Table -AutoSize
+
+Name         ConfiguredPath  ExpandedPath    Exists Root
+----         --------------  ------------    ------ ----
+Process_TEMP R:\Temp         R:\Temp           True R:\
+Process_TMP  R:\Temp         R:\Temp           True R:\
+User_TEMP    R:\Temp         R:\Temp           True R:\
+User_TMP     R:\Temp         R:\Temp           True R:\
+Machine_TEMP R:\Temp         R:\Temp           True R:\
+Machine_TMP  R:\Temp         R:\Temp           True R:\
+Windows_Temp C:\WINDOWS\Temp C:\WINDOWS\Temp   True C:\
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 6. TEST-23 DISM ERROR CONTEXT ====="
+
+===== 6. TEST-23 DISM ERROR CONTEXT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Select-String `
+>>     -Path "C:\Windows\Logs\DISM\dism.log" `
+>>     -Pattern "0x80070070|Error: 112|not enough space|scratch" `
+>>     -Context 8,8 |
+>>     Select-Object -Last 15 |
+>>     Format-List
+
+
+IgnoreCase : True
+LineNumber : 52863
+Line       : 2026-11-11 13:43:42, Info                  DISM   PID=3048 TID=8936 Scratch directory set to
+             'C:\WINDOWS\SystemTemp\'. - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 52865
+Line       : 2026-11-11 13:43:42, Info                  DISM   PID=3048 TID=8936 Scratch directory set to
+             'C:\$WinREAgent\Scratch'. - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 52867
+Line       : 2026-11-11 15:08:28, Info                  DISM   PID=8600 TID=3952 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53240
+Line       : 2026-11-11 15:10:47, Info                  DISM   PID=10596 TID=16896 Scratch directory set to
+             'R:\Temp\'. - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53300
+Line       : 2026-11-11 15:37:45, Info                  DISM   PID=16080 TID=16128 Scratch directory set to
+             'R:\Temp\'. - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53540
+Line       : 2026-11-11 15:37:50, Info                  DISM   PID=8884 TID=8872 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53593
+Line       : 2026-11-11 15:39:17, Info                  DISM   PID=8696 TID=14396 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53653
+Line       : 2026-11-11 15:39:32, Info                  DISM   PID=9200 TID=1824 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53710
+Line       : 2026-11-11 16:54:08, Info                  DISM   PID=7552 TID=13888 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 53950
+Line       : 2026-11-11 17:20:28, Info                  DISM   PID=16556 TID=3024 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 54005
+Line       : 2026-11-11 17:20:31, Info                  DISM   PID=10980 TID=2208 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 54245
+Line       : 2026-11-11 17:31:43, Info                  DISM   PID=16632 TID=9652 Scratch directory set to 'R:\Temp\'.
+             - CDISMManager::put_ScratchDir
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 54309
+Line       : 2026-11-11 17:31:43, Error                 DISM   MsuManager: PID=11864 TID=1228 WIMApplyImage failed! -
+             CDismMsuPackage::Expand(hr:0x80070070)
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 54310
+Line       : 2026-11-11 17:31:43, Error                 DISM   MsuManager: PID=11864 TID=1228 Failed to expand the MSU
+             file into temp folder R:\Temp\2EE93C5D-4F1F-4D9B-8175-9791DE79171C. -
+             CDismMsuPackage::Install(hr:0x80070070)
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+IgnoreCase : True
+LineNumber : 54311
+Line       : 2026-11-11 17:31:45, Error                 DISM   DISM Package Manager: PID=11864 TID=1228 Failed while
+             processing command add-package. - CPackageManagerCLIHandler::ExecuteCmdLine(hr:0x80070070)
+Filename   : dism.log
+Path       : C:\Windows\Logs\DISM\dism.log
+Pattern    : 0x80070070|Error: 112|not enough space|scratch
+Context    : Microsoft.PowerShell.Commands.MatchInfoContext
+Matches    : {0}
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== TEST-24B COMPLETE ====="
+
+===== TEST-24B COMPLETE =====
+PS C:\Users\Laco> Write-Output "READ-ONLY: NO FILES OR REGISTRY VALUES CHANGED"
+READ-ONLY: NO FILES OR REGISTRY VALUES CHANGED
+PS C:\Users\Laco>
