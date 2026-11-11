@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.43  
+> **Version:** 3.44  
 > **Record date:** 2026-11-11  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2822,7 +2822,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.43. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.44. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling. Actual installation still requires separate approval of the exact plan.
 
@@ -5860,12 +5860,39 @@ The 256 MiB `/tmp` cap is a design ceiling, **not** a memory reservation or evid
 
 **Next dependency:** find and review a non-blocked, immutable Chroma release; separately complete Gate 6 mount/runtime compatibility. Do not pull an image, build, create resources or begin Gate 7 until Gate 6 is formally closed. Functional runtime-test count remains **3/5 since v3.20**; this documentation reconciliation is not a runtime test. No archive snapshot is due. Installation remains **NOT AUTHORIZED**.
 
+## 18.13 CHROMA-RELEASE-REVIEW-01 — fixed-release and source-validation review (2026-11-11)
+
+**Review type:** READ-ONLY public release/registry review and upstream source inspection through GitHub. No Steam Deck commands, image pulls, local builds, container execution, dependency downloads, resource creation or host changes.
+
+### Release status
+
+- The official Chroma GitHub release page reviewed on 2026-11-11 still lists **1.5.9 as the latest stable release**. The same page's latest development release is `1.5.10.dev312`; the official container registry exposes later `1.5.10.dev` builds, including `1.5.10.dev326`. These development builds are not approved substitutes for a stable release.
+- No fixed, stable, release-pinned image candidate was identified in this review. Therefore **no replacement candidate is accepted** and the existing `1.5.9` image remains **BLOCKED — DO NOT PULL OR RUN**.
+- Registry pages show platform-specific digests for development builds, but a digest only establishes image identity/immutability. It does not make a development build suitable or establish complete provenance/security.
+
+### Upstream source evidence for the fix direction
+
+- The exact 1.5.9 source file `rust/types/src/hnsw_configuration.rs`, blob SHA `247879ffd4dd19688c802fe4b1e41a0e06a5ec98`, defines `ef_construction`, `ef_search` and `max_neighbors` as `usize` without maximum-range validators on those fields.
+- Upstream commit [`fd5a216ac3cc94451f1a010725ad68454e8c2809`](https://github.com/chroma-core/chroma/commit/fd5a216ac3cc94451f1a010725ad68454e8c2809), titled “Validate HNSW resource bounds,” is dated 2026-09-30 and describes validation across collection creation, updates, schemas and legacy configuration loading, plus bounded generated test settings. The current `main` source file `rust/types/src/hnsw_configuration.rs`, blob SHA `bbc9faad5b3a46beaa6b2ff426e36ba889c10412`, now defines bounds including `ef_construction` 1–4096, `ef_search` 1–4096 and `max_neighbors` 2–128. This is evidence that the upstream development branch contains a relevant fix direction; it is **not evidence that an approved stable release or container image includes the fix**.
+- The commit description references CI and prior review of the stacked change, but this audit did not independently run tests, verify a release artifact's source lineage, or verify signatures/attestations/SBOM for a candidate image.
+
+### Disposition and next action
+
+1. Retain the architectural decision: Chroma remains a separate internal-only service, with its own `/data` named volume, private app-to-Chroma connectivity, no host-published port and independent backup/recovery.
+2. Keep the exact 1.5.9 digest blocked. Do not use `latest`, a mutable tag, a development tag, or a locally rebuilt image as an implicit workaround.
+3. Recheck official stable release notes, release tags, the relevant HNSW validation source and immutable registry digest when a stable candidate appears. Then review the candidate's image user, entrypoint, writable paths, base-image/dependency exposure, provenance, multi-platform digests and compatibility with the accepted runtime contract before considering any pull.
+4. While awaiting a suitable release, continue **read-only Gate 6** review of mount/runtime requirements that can be established independently of the final Chroma image. Do not begin Gate 7 until Gate 6 is formally closed.
+
+**Gate status:** Gate 6 remains **OPEN**. No image candidate accepted; no image pulled; no runtime test or resource change. Functional runtime-test counter remains **3/5 since v3.20**. No five-test archive snapshot is due. Installation remains **NOT AUTHORIZED**.
+
+---
 ## 19. Change log
 
 Entries are ordered by version, newest first. Each row records one canonical-document revision; runtime-test results are distinguished from read-only reviews and documentation-only changes in the entry text.
 
 | Version | Date | Change |
 |---|---|---|
+| 3.44 | 2026-11-11 | Added §18.13 CHROMA-RELEASE-REVIEW-01 after read-only official release/registry and upstream source review. No fixed stable release candidate was identified: 1.5.9 remains the latest stable release in the reviewed release page, while observed 1.5.10 tags are development builds. Confirmed upstream `main` contains HNSW resource-bound validation at commit `fd5a216ac3cc94451f1a010725ad68454e8c2809`, but did not treat that as proof a stable image includes the fix. Kept 1.5.9 BLOCKED — DO NOT PULL OR RUN; next step is read-only Gate 6 mount/runtime review independent of the final Chroma image. No image pull, build, runtime test, resource creation or host change; functional runtime-test count remains 3/5 since v3.20; no archive snapshot due. Installation remains NOT AUTHORIZED. |
 | 3.43 | 2026-11-11 | Recovered and restored the missing historical §19 entries for v3.40 and v3.33 from their corresponding prior canonical audit revisions and verified the original descriptions against GitHub commits `778163efda22d2f73713bfac8daa01c6c48a9bd7` and `73fe9e9b74c3a1cd62785f0ada677e79dd9202ff`. Historical descriptions were preserved verbatim. No test, runtime resource, image, build or host action; functional runtime-test count remains 3/5 since v3.20. Installation remains NOT AUTHORIZED. |
 | 3.42 | 2026-11-11 | Added §18.12 read-only reconciliation of the archived first-installation ChromaDB baseline: same 1.5.9 digest, loopback-only published listener observed at 127.0.0.1:8100, historical host bind mount, telemetry setting, initial unless-stopped policy later changed to no, and broad firewall-range limitation. Explicitly distinguished historical exposure reduction from vulnerability mitigation or proof of harmlessness; recorded no documented incident as absence of evidence, not proof of safety. Marked §18.10's retain/omit request superseded, updated DR-02 DB-05 to the accepted retention decision, and updated the current handoff/version. Gate 6 remains OPEN; 1.5.9 remains BLOCKED — DO NOT PULL OR RUN; runtime counter remains 3/5; no runtime test, image pull, resource or host change. Installation remains NOT AUTHORIZED. |
 | 3.41 | 2026-11-10 | Recorded the user's decision to retain ChromaDB as a separate internal-only service and completed a read-only review of the pinned 1.5.9 image's public digest, upstream Rust Dockerfile/config and vulnerability evidence. CVE-2026-85664 blocks the exact 1.5.9 image pin; explicitly prohibited pull/run while retaining the architecture decision. Defined the tmpfs design policy: `/tmp` bounded 256 MiB rw,nosuid,nodev,noexec; `/var/tmp` non-writable; `/dev/shm` bounded at 65,536,000 bytes rw,nosuid,nodev,noexec. Gate 6 remains OPEN pending a non-blocked Chroma image candidate and runtime compatibility; Gate 7 must account for tmpfs memory. No runtime test, image pull, build, resource creation or host change; runtime counter remains 3/5. Installation remains NOT AUTHORIZED. |
