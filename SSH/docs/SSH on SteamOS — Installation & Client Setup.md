@@ -4,6 +4,17 @@
 **Status:** Existing host deployment documented; client setup reference  
 **Last audited:** 2026-11-06
 
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Existing host baseline](#2-existing-host-baseline)
+- [3. Client connection](#3-client-connection)
+- [4. Host identity verification](#4-host-identity-verification)
+- [5. Authorized client keys](#5-authorized-client-keys)
+- [6. Client key management principles](#6-client-key-management-principles)
+- [7. Firewall dependency](#7-firewall-dependency)
+- [8. Fresh installation warning](#8-fresh-installation-warning)
+
 ## 1. Purpose
 
 The Steam Deck already has an operational host SSH service. This document records the verified host baseline and client connection model. It is not authorization to reinstall OpenSSH, replace keys, enable password authentication, or change firewall policy.
@@ -48,7 +59,7 @@ A Windows public key is present in `authorized_keys`, but the audit did not prov
 
 Audited ED25519 host-key fingerprint:
 
-```
+```text
 SHA256:CgY3GLIC7bEaWP7O05IrjOjkWAa38l+qeLrPoO1+UdA
 ```
 
