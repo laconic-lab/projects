@@ -1,0 +1,140 @@
+PS D:\TempDownload> $ErrorActionPreference = "Continue"
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-49: READ-ONLY CONTAINER INSPECTION CAPABILITY ====="
+===== TEST-49: READ-ONLY CONTAINER INSPECTION CAPABILITY =====
+PS D:\TempDownload>
+PS D:\TempDownload> $cache = "C:\Windows\SoftwareDistribution\Download\82828f696919ef9d"
+PS D:\TempDownload>
+PS D:\TempDownload> $containers = @(
+>>     (Join-Path $cache "Windows11.0-KB5043080-x64.wim"),
+>>     (Join-Path $cache "Windows11.0-KB5132061-x64.mumx.esd")
+>> )
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 1. AVAILABLE INSPECTION UTILITIES ---"
+
+--- 1. AVAILABLE INSPECTION UTILITIES ---
+PS D:\TempDownload>
+PS D:\TempDownload> $utilityNames = @(
+>>     "7z.exe",
+>>     "7za.exe",
+>>     "7zz.exe",
+>>     "wimlib-imagex.exe",
+>>     "dism.exe",
+>>     "expand.exe"
+>> )
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($name in $utilityNames) {
+>>
+>>     $found = Get-Command $name -ErrorAction SilentlyContinue
+>>
+>>     if ($found) {
+>>         foreach ($item in $found) {
+>>             Write-Output "FOUND: $name"
+>>             Write-Output "PATH: $($item.Source)"
+>>             Write-Output "COMMAND TYPE: $($item.CommandType)"
+>>         }
+>>     }
+>>     else {
+>>         Write-Output "NOT FOUND: $name"
+>>     }
+>> }
+NOT FOUND: 7z.exe
+NOT FOUND: 7za.exe
+NOT FOUND: 7zz.exe
+NOT FOUND: wimlib-imagex.exe
+FOUND: dism.exe
+PATH: C:\WINDOWS\system32\Dism.exe
+COMMAND TYPE: Application
+FOUND: expand.exe
+PATH: C:\WINDOWS\system32\expand.exe
+COMMAND TYPE: Application
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 2. CONTAINER SIGNATURES ---"
+
+--- 2. CONTAINER SIGNATURES ---
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($path in $containers) {
+>>
+>>     Write-Output "`nFILE: $path"
+>>
+>>     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+>>         Write-Output "STATUS: MISSING"
+>>         continue
+>>     }
+>>
+>>     $stream = [System.IO.File]::OpenRead($path)
+>>
+>>     try {
+>>         $buffer = New-Object byte[] 32
+>>         $read = $stream.Read($buffer, 0, $buffer.Length)
+>>
+>>         $hex = [System.BitConverter]::ToString(
+>>             $buffer, 0, $read
+>>         )
+>>
+>>         $ascii = [System.Text.Encoding]::ASCII.GetString(
+>>             $buffer, 0, $read
+>>         )
+>>
+>>         Write-Output "FIRST 32 BYTES: $hex"
+>>         Write-Output "ASCII VIEW: $ascii"
+>>     }
+>>     finally {
+>>         $stream.Dispose()
+>>     }
+>> }
+
+FILE: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5043080-x64.wim
+FIRST 32 BYTES: 4D-53-57-49-4D-00-00-00-D0-00-00-00-00-0E-00-00-82-00-08-00-00-00-02-00-0A-FC-3D-24-13-09-27-B6
+ASCII VIEW: MSWIM??
+?=$     '?
+
+FILE: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd
+FIRST 32 BYTES: 4D-53-57-49-4D-00-00-00-D0-00-00-00-00-0D-01-00-80-00-00-00-00-00-00-00-8E-03-1D-C6-90-CA-B6-BE
+???????IEW: MSWIM?
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 3. READ-ONLY ARCHIVE LISTING ---"
+
+--- 3. READ-ONLY ARCHIVE LISTING ---
+PS D:\TempDownload>
+PS D:\TempDownload> $sevenZip = Get-Command "7z.exe" -ErrorAction SilentlyContinue |
+>>     Select-Object -First 1
+PS D:\TempDownload>
+PS D:\TempDownload> if (-not $sevenZip) {
+>>     $sevenZip = Get-Command "7za.exe" -ErrorAction SilentlyContinue |
+>>         Select-Object -First 1
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if (-not $sevenZip) {
+>>     $sevenZip = Get-Command "7zz.exe" -ErrorAction SilentlyContinue |
+>>         Select-Object -First 1
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if ($sevenZip) {
+>>
+>>     foreach ($path in $containers) {
+>>
+>>         Write-Output "`nARCHIVE LIST: $path"
+>>
+>>         if (Test-Path -LiteralPath $path -PathType Leaf) {
+>>             & $sevenZip.Source l -slt $path
+>>             Write-Output "7-ZIP EXIT CODE: $LASTEXITCODE"
+>>         }
+>>     }
+>> }
+PS D:\TempDownload> else {
+>>     Write-Output "SKIPPED: No 7-Zip executable found in command search path."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== TEST-49 COMPLETE ====="
+
+===== TEST-49 COMPLETE =====
+PS D:\TempDownload>

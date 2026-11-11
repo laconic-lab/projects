@@ -1,0 +1,202 @@
+PS D:\TempDownload>
+PS D:\TempDownload> $ErrorActionPreference = "Stop"
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-48: CACHED UPDATE CONTAINER AND METADATA INSPECTION ====="
+===== TEST-48: CACHED UPDATE CONTAINER AND METADATA INSPECTION =====
+PS D:\TempDownload>
+PS D:\TempDownload> $cache = "C:\Windows\SoftwareDistribution\Download\82828f696919ef9d"
+PS D:\TempDownload>
+PS D:\TempDownload> $checkpointWim = Join-Path $cache "Windows11.0-KB5043080-x64.wim"
+PS D:\TempDownload> $targetEsd = Join-Path $cache "Windows11.0-KB5132061-x64.mumx.esd"
+PS D:\TempDownload>
+PS D:\TempDownload> $metadataFiles = @(
+>>     (Join-Path $cache "Metadata\CompDB_KB5043080_bundle.xml"),
+>>     (Join-Path $cache "Metadata\CompDB_KB5132061_bundle.xml"),
+>>     (Join-Path $cache "Metadata\LCUCompDB_KB5043080.xml"),
+>>     (Join-Path $cache "Metadata\LCUCompDB_KB5132061.xml"),
+>>     (Join-Path $cache "Metadata\Windows11.0-KB5132061-x64.msu.cix.xml")
+>> )
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 1. CONTAINER FILE INVENTORY ---"
+
+--- 1. CONTAINER FILE INVENTORY ---
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($path in @($checkpointWim, $targetEsd)) {
+>>     if (Test-Path -LiteralPath $path -PathType Leaf) {
+>>         $file = Get-Item -LiteralPath $path
+>>
+>>         Write-Output "`nFILE: $($file.FullName)"
+>>         Write-Output "SIZE: $($file.Length)"
+>>         Write-Output "MODIFIED: $($file.LastWriteTime)"
+>>         Write-Output "SHA256: $((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash)"
+>>     }
+>>     else {
+>>         Write-Output "`nMISSING: $path"
+>>     }
+>> }
+
+FILE: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5043080-x64.wim
+SIZE: 113666182
+MODIFIED: 11/11/2026 13:49:59
+SHA256: 43738FAAC82AAFB3975AD81E82C3E738940236EBDC10D4D605C17AEA08BCCDBF
+
+FILE: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd
+SIZE: 126473539
+MODIFIED: 11/11/2026 13:50:35
+SHA256: 3668B4184BD52D3E8381E60EA11310D823B034E51BFA950C14AF7BF697E0AEDB
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 2. DISM CONTAINER INFORMATION ---"
+
+--- 2. DISM CONTAINER INFORMATION ---
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($path in @($checkpointWim, $targetEsd)) {
+>>     Write-Output "`nCONTAINER: $path"
+>>
+>>     if (Test-Path -LiteralPath $path -PathType Leaf) {
+>>         & dism.exe /English /Get-WimInfo "/WimFile:$path"
+>>         Write-Output "DISM EXIT CODE: $LASTEXITCODE"
+>>     }
+>>     else {
+>>         Write-Output "SKIPPED: file not present"
+>>     }
+>> }
+
+CONTAINER: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5043080-x64.wim
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Details for image : C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5043080-x64.wim
+
+Index : 1
+Name : content
+Description : <undefined>
+Size : 737 305 661 bytes
+
+The operation completed successfully.
+DISM EXIT CODE: 0
+
+CONTAINER: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Details for image : C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd
+
+Index : 1
+Name : content
+Description : <undefined>
+Size : 126 461 250 bytes
+
+The operation completed successfully.
+DISM EXIT CODE: 0
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- 3. XML METADATA INVENTORY ---"
+
+--- 3. XML METADATA INVENTORY ---
+PS D:\TempDownload>
+PS D:\TempDownload> $pattern = '(?i)(ftpsvc|IIS-FTPSvc|Internet Information Services|w3svc|inetinfo)'
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($path in $metadataFiles) {
+>>
+>>     Write-Output "`nMETADATA: $path"
+>>
+>>     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+>>         Write-Output "STATUS: FILE NOT PRESENT"
+>>         continue
+>>     }
+>>
+>>     $settings = New-Object System.Xml.XmlReaderSettings
+>>     $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+>>     $settings.XmlResolver = $null
+>>
+>>     $reader = [System.Xml.XmlReader]::Create($path, $settings)
+>>
+>>     try {
+>>         $xml = New-Object System.Xml.XmlDocument
+>>         $xml.XmlResolver = $null
+>>         $xml.Load($reader)
+>>     }
+>>     finally {
+>>         $reader.Dispose()
+>>     }
+>>
+>>     $elements = @($xml.SelectNodes("//*"))
+>>     $attributes = 0
+>>     $hits = @()
+>>
+>>     foreach ($element in $elements) {
+>>
+>>         if ($element.Attributes) {
+>>             $attributes += $element.Attributes.Count
+>>
+>>             foreach ($attribute in $element.Attributes) {
+>>                 if ($attribute.Value -match $pattern) {
+>>                     $hits += [PSCustomObject]@{
+>>                         Type = "Attribute"
+>>                         Node = $element.Name
+>>                         Name = $attribute.Name
+>>                         Value = $attribute.Value
+>>                     }
+>>                 }
+>>             }
+>>         }
+>>
+>>         if ($element.InnerText -match $pattern) {
+>>             $hits += [PSCustomObject]@{
+>>                 Type = "ElementText"
+>>                 Node = $element.Name
+>>                 Name = ""
+>>                 Value = $element.InnerText
+>>             }
+>>         }
+>>     }
+>>
+>>     Write-Output "ROOT: $($xml.DocumentElement.Name)"
+>>     Write-Output "ELEMENT COUNT: $($elements.Count)"
+>>     Write-Output "ATTRIBUTE COUNT: $attributes"
+>>     Write-Output "IIS/FTPSVC MATCHES: $($hits.Count)"
+>>
+>>     if ($hits.Count -gt 0) {
+>>         $hits |
+>>             Format-List Type,Node,Name,Value |
+>>             Out-String |
+>>             Write-Output
+>>     }
+>> }
+
+METADATA: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Metadata\CompDB_KB5043080_bundle.xml
+ROOT: CompDB
+ELEMENT COUNT: 10
+ATTRIBUTE COUNT: 29
+IIS/FTPSVC MATCHES: 0
+
+METADATA: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Metadata\CompDB_KB5132061_bundle.xml
+ROOT: CompDB
+ELEMENT COUNT: 10
+ATTRIBUTE COUNT: 29
+IIS/FTPSVC MATCHES: 0
+
+METADATA: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Metadata\LCUCompDB_KB5043080.xml
+ROOT: CompDB
+ELEMENT COUNT: 17
+ATTRIBUTE COUNT: 46
+IIS/FTPSVC MATCHES: 0
+
+METADATA: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Metadata\LCUCompDB_KB5132061.xml
+ROOT: CompDB
+ELEMENT COUNT: 18
+ATTRIBUTE COUNT: 52
+IIS/FTPSVC MATCHES: 0
+
+METADATA: C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Metadata\Windows11.0-KB5132061-x64.msu.cix.xml
+ROOT: 81ff5c34-1cdc-493d-a433-b13fbd41a0eb.wim
+ELEMENT COUNT: 582
+ATTRIBUTE COUNT: 1397
+IIS/FTPSVC MATCHES: 0
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== TEST-48 COMPLETE ====="
+
+===== TEST-48 COMPLETE =====
+PS D:\TempDownload>
+PS D:\TempDownload>
