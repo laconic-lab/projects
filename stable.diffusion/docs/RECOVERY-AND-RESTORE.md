@@ -4,6 +4,20 @@
 > **Scope:** Project tree and Distrobox recovery, not a full SteamOS image  
 > **Status:** Clean-container restore procedure has not been documented as tested.
 
+## Contents
+
+- [Purpose and limits](#purpose-and-limits)
+- [Recovery flow](#recovery-flow)
+- [1. Locate and verify a backup (SteamOS host)](#1-locate-and-verify-a-backup-steamos-host)
+- [2. Restore to a separate directory first](#2-restore-to-a-separate-directory-first)
+- [3. If Stable-box still exists](#3-if-stable-box-still-exists)
+- [4. If the container must be recreated](#4-if-the-container-must-be-recreated)
+- [5. Verify the recovered project](#5-verify-the-recovered-project)
+- [6. Safety boundaries](#6-safety-boundaries)
+- [Related documents](#related-documents)
+
+---
+
 ## Purpose and limits
 
 The project-level backup preserves the project tree, including source, submodules, build outputs, model, local Node.js tools, scripts, outputs, and logs. It does **not** store Ubuntu packages as a separate Distrobox image and is not a complete SteamOS snapshot.
