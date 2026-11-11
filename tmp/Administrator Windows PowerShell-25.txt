@@ -1,0 +1,55 @@
+PS C:\Users\Laco> Write-Output "===== KB5132061 RETRY: SIGNATURE VERIFICATION ====="
+===== KB5132061 RETRY: SIGNATURE VERIFICATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $signatureResults = foreach ($file in @($checkpoint, $target)) {
+>>     if (Test-Path -LiteralPath $file -PathType Leaf) {
+>>         $sig = Get-AuthenticodeSignature -LiteralPath $file
+>>
+>>         [pscustomobject]@{
+>>             File       = Split-Path $file -Leaf
+>>             Status     = $sig.Status
+>>             Signer     = $sig.SignerCertificate.Subject
+>>             StatusInfo = $sig.StatusMessage
+>>         }
+>>     }
+>> }
+PS C:\Users\Laco>
+PS C:\Users\Laco> $signatureResults | Format-List
+
+
+File       : windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu
+Status     : Valid
+Signer     : CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
+StatusInfo : Signature verified.
+
+File       : windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu
+Status     : Valid
+Signer     : CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US
+StatusInfo : Signature verified.
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== SIGNATURE CHECK SUMMARY ====="
+
+===== SIGNATURE CHECK SUMMARY =====
+PS C:\Users\Laco> if ($signatureResults.Count -eq 2 -and
+>>     @($signatureResults | Where-Object {
+>>         $_.Status -ne 'Valid' -or
+>>         $_.Signer -notlike '*Microsoft Corporation*'
+>>     }).Count -eq 0) {
+>>     Write-Output "PASS: Both MSUs have valid Microsoft signatures."
+>> }
+PASS: Both MSUs have valid Microsoft signatures.
+PS C:\Users\Laco> else {
+>>     Write-Output "STOP: One or both MSU signature checks did not pass."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\Laco>

@@ -1,0 +1,107 @@
+PS C:\Users\Laco> Write-Output "===== KB5132061 RETRY: READ-ONLY PREFLIGHT ====="
+===== KB5132061 RETRY: READ-ONLY PREFLIGHT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $packageFolder = 'C:\KB5132061-Test23'
+PS C:\Users\Laco> $checkpoint = Join-Path $packageFolder 'windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu'
+PS C:\Users\Laco> $target = Join-Path $packageFolder 'windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu'
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== TEMP/TMP ====="
+
+===== TEMP/TMP =====
+PS C:\Users\Laco> [pscustomobject]@{
+>>     ProcessTEMP = $env:TEMP
+>>     ProcessTMP  = $env:TMP
+>>     UserTEMP    = [Environment]::GetEnvironmentVariable('TEMP', 'User')
+>>     UserTMP     = [Environment]::GetEnvironmentVariable('TMP', 'User')
+>>     MachineTEMP = [Environment]::GetEnvironmentVariable('TEMP', 'Machine')
+>>     MachineTMP  = [Environment]::GetEnvironmentVariable('TMP', 'Machine')
+>> } | Format-List
+
+
+ProcessTEMP : C:\Users\Laco\AppData\Local\Temp
+ProcessTMP  : C:\Users\Laco\AppData\Local\Temp
+UserTEMP    : C:\Users\Laco\AppData\Local\Temp
+UserTMP     : C:\Users\Laco\AppData\Local\Temp
+MachineTEMP : C:\WINDOWS\TEMP
+MachineTMP  : C:\WINDOWS\TEMP
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== PACKAGE FILES ====="
+
+===== PACKAGE FILES =====
+PS C:\Users\Laco> foreach ($file in @($checkpoint, $target)) {
+>>     if (Test-Path -LiteralPath $file -PathType Leaf) {
+>>         Get-Item -LiteralPath $file |
+>>             Select-Object FullName, Length, LastWriteTime
+>>     }
+>>     else {
+>>         Write-Output "MISSING: $file"
+>>     }
+>> }
+
+FullName                                                                                       Length LastWriteTime
+--------                                                                                       ------ -------------
+C:\KB5132061-Test23\windows11.0-kb5043080-x64_953449672073f8fb99badb4cc6d5d7849b9c83e8.msu  533761740 11/11/26 15:03:15
+C:\KB5132061-Test23\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu 4730812571 11/11/26 15:04:21
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== PACKAGE SIGNATURES ====="
+
+===== PACKAGE SIGNATURES =====
+PS C:\Users\Laco> foreach ($file in @($checkpoint, $target)) {
+>>     if (Test-Path -LiteralPath $file -PathType Leaf) {
+>>         $sig = Get-AuthenticodeSignature -LiteralPath $file
+>>         [pscustomobject]@{
+>>             File       = Split-Path $file -Leaf
+>>             Status     = $sig.Status
+>>             Signer     = $sig.SignerCertificate.Subject
+>>             StatusInfo = $sig.StatusMessage
+>>         }
+>>     }
+>> } | Format-List
+At line:11 char:3
++ } | Format-List
++   ~
+An empty pipe element is not allowed.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : EmptyPipeElement
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== C: FREE SPACE ====="
+
+===== C: FREE SPACE =====
+PS C:\Users\Laco> Get-PSDrive -Name C |
+>>     Select-Object Name, Used, Free |
+>>     Format-List
+
+
+Name : C
+Used : 143942508544
+Free : 355028844544
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== WINDOWS TEMP DIRECTORY ====="
+
+===== WINDOWS TEMP DIRECTORY =====
+PS C:\Users\Laco> Get-Item 'C:\Windows\Temp' |
+>>     Select-Object FullName, Attributes, LinkType, Target |
+>>     Format-List
+
+
+FullName   : C:\Windows\Temp
+Attributes : Directory
+LinkType   :
+Target     : {}
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== PREFLIGHT COMPLETE ====="
+
+===== PREFLIGHT COMPLETE =====
+PS C:\Users\Laco>
