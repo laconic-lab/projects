@@ -4,6 +4,22 @@
 > **Evidence date:** 2026-10-25  
 > **Scope:** Recorded configuration and historical test results; not a live audit.
 
+## Contents
+
+- [Purpose](#purpose)
+- [At a glance](#at-a-glance)
+- [Architecture](#architecture)
+- [Source and submodule revisions](#source-and-submodule-revisions)
+- [Model reference](#model-reference)
+- [GPU and backend](#gpu-and-backend)
+- [WebUI and remote access](#webui-and-remote-access)
+- [Operations](#operations)
+- [Known non-blocking issue](#known-non-blocking-issue)
+- [SteamOS reboot evidence and limitations](#steamos-reboot-evidence-and-limitations)
+- [Evidence and related documents](#evidence-and-related-documents)
+
+---
+
 ## Purpose
 
 This document records the known project configuration for local Stable Diffusion image generation on the Steam Deck OLED. Values below describe the state observed and documented on the evidence date. They must not be treated as confirmation of current state.
