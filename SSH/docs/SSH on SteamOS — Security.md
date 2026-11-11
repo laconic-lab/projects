@@ -4,6 +4,17 @@
 **Status:** Security posture documented; findings require review  
 **Last audited:** 2026-11-06
 
+## Contents
+
+- [1. Security objectives](#1-security-objectives)
+- [2. Positive controls verified](#2-positive-controls-verified)
+- [3. Important security findings](#3-important-security-findings)
+- [4. Adjacent listeners observed](#4-adjacent-listeners-observed)
+- [5. Key and host identity](#5-key-and-host-identity)
+- [6. Read-only security checks](#6-read-only-security-checks)
+- [7. Remediation governance](#7-remediation-governance)
+- [8. Residual uncertainty](#8-residual-uncertainty)
+
 ## 1. Security objectives
 
 Provide authenticated remote administration to the Steam Deck from trusted LAN clients while minimizing unnecessary host exposure.
@@ -36,7 +47,7 @@ These are configuration observations, not a penetration test.
 
 The active and permanent `public` zone contains:
 
-```
+```text
 1024-65535/tcp
 1024-65535/udp
 ```
@@ -53,7 +64,7 @@ The audit did not perform a complete remote reachability test for every listener
 
 Effective settings include:
 
-```
+```text
 AllowTcpForwarding yes
 AllowAgentForwarding yes
 GatewayPorts no
