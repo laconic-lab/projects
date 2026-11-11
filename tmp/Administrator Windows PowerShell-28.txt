@@ -1,0 +1,398 @@
+PS D:\TempDownload> Write-Output "===== TEST-33A: IIS / FTP FEATURE STATE ====="
+===== TEST-33A: IIS / FTP FEATURE STATE =====
+PS D:\TempDownload>
+PS D:\TempDownload> Get-WindowsOptionalFeature -Online |
+>>     Where-Object { $_.FeatureName -match 'IIS|FTP' } |
+>>     Select-Object FeatureName, State |
+>>     Format-Table -AutoSize
+
+FeatureName                                   State
+-----------                                   -----
+TFTP                                       Disabled
+IIS-WebServerRole                          Disabled
+IIS-WebServer                              Disabled
+IIS-CommonHttpFeatures                     Disabled
+IIS-HttpErrors                             Disabled
+IIS-HttpRedirect                           Disabled
+IIS-ApplicationDevelopment                 Disabled
+IIS-Security                               Disabled
+IIS-RequestFiltering                       Disabled
+IIS-NetFxExtensibility                     Disabled
+IIS-NetFxExtensibility45                   Disabled
+IIS-HealthAndDiagnostics                   Disabled
+IIS-HttpLogging                            Disabled
+IIS-LoggingLibraries                       Disabled
+IIS-RequestMonitor                         Disabled
+IIS-HttpTracing                            Disabled
+IIS-URLAuthorization                       Disabled
+IIS-IPSecurity                             Disabled
+IIS-Performance                            Disabled
+IIS-HttpCompressionDynamic                 Disabled
+IIS-WebServerManagementTools               Disabled
+IIS-ManagementScriptingTools               Disabled
+IIS-IIS6ManagementCompatibility            Disabled
+IIS-Metabase                               Disabled
+IIS-HostableWebCore                        Disabled
+IIS-StaticContent                          Disabled
+IIS-DefaultDocument                        Disabled
+IIS-DirectoryBrowsing                      Disabled
+IIS-WebDAV                                 Disabled
+IIS-WebSockets                             Disabled
+IIS-ApplicationInit                        Disabled
+IIS-ISAPIFilter                            Disabled
+IIS-ISAPIExtensions                        Disabled
+IIS-ASPNET                                 Disabled
+IIS-ASPNET45                               Disabled
+IIS-ASP                                    Disabled
+IIS-CGI                                    Disabled
+IIS-ServerSideIncludes                     Disabled
+IIS-CustomLogging                          Disabled
+IIS-BasicAuthentication                    Disabled
+IIS-HttpCompressionStatic                  Disabled
+IIS-ManagementConsole                      Disabled
+IIS-ManagementService                      Disabled
+IIS-WMICompatibility                       Disabled
+IIS-LegacyScripts                          Disabled
+IIS-FTPServer                              Disabled
+IIS-FTPSvc                                 Disabled
+IIS-FTPExtensibility                       Disabled
+IIS-CertProvider                           Disabled
+IIS-WindowsAuthentication                  Disabled
+IIS-DigestAuthentication                   Disabled
+IIS-ClientCertificateMappingAuthentication Disabled
+IIS-IISCertificateMappingAuthentication    Disabled
+IIS-ODBCLogging                            Disabled
+
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-33B: RELATED SERVICING PACKAGES ====="
+===== TEST-33B: RELATED SERVICING PACKAGES =====
+PS D:\TempDownload>
+PS D:\TempDownload> DISM.exe /Online /Get-Packages /Format:Table |
+>>     Select-String -Pattern '26100.1742|26100.9818|26100.9974|IIS-FTPSvc|RollupFix'
+
+Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-OneCore-ApplicationModel-Sync-Desktop-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Accessibility-Braille-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Accessibility-Braille-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742              | Staged     |
+Language Pack   |
+Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818              | Installed  |
+Language Pack   | 30/10/26 03:31
+Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742              | Staged     |
+Language Pack   | 06/09/24 04:10
+Microsoft-Windows-Client-LanguagePack-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818              | Installed  |
+Language Pack   | 30/10/26 03:31
+Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Ethernet-Client-Intel-E1i68x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742       | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Ethernet-Client-Intel-E2f68-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742 | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Ethernet-Client-Realtek-Rtcx21x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818 | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Ethernet-Client-Vmware-Vmxnet3-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-FodMetadataServicing-Desktop-Metadata-Package~31bf3856ad364e35~amd64~~10.0.26100.1742 | Superseded |
+Feature Pack    | 06/09/24 04:10
+Microsoft-Windows-FodMetadataServicing-Desktop-Metadata-Package~31bf3856ad364e35~amd64~~10.0.26100.9818 | Installed  |
+Feature Pack    | 30/10/26 03:31
+Microsoft-Windows-Hello-Face-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                            | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Hello-Face-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                            | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~en-US~11.0.26100.1742        | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~en-US~11.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~~11.0.26100.1742             | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~~11.0.26100.9818             | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-Basic-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.1742          | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-Basic-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9818          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-Basic-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.1742          | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-LanguageFeatures-Basic-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9818          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.1742    | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-Handwriting-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9818    | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-Handwriting-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.1742    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-LanguageFeatures-Handwriting-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9818    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-OCR-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.1742            | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-OCR-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9818            | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-OCR-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.1742            | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-LanguageFeatures-OCR-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9818            | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-Speech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.1742         | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-Speech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9818         | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-Speech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.1742         | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-LanguageFeatures-Speech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9818         | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-LanguageFeatures-TextToSpeech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.1742   | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-TextToSpeech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9818   | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-LanguageFeatures-TextToSpeech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.1742   | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-LanguageFeatures-TextToSpeech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9818   | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Licenses-Professional-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742            | Staged     |
+Language Pack   |
+Microsoft-Windows-Licenses-Professional-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742            | Staged     |
+Language Pack   | 06/09/24 04:10
+Microsoft-Windows-Licenses-Professional-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                 | Staged     |
+Feature Pack    | 06/09/24 04:10
+Microsoft-Windows-NetFx3-OnDemand-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                       | Staged     |
+OnDemand Pack   | 10/03/25 18:43
+Microsoft-Windows-NetFx3-OnDemand-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742               | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818               | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742               | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818               | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.1742                    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742               | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818               | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742               | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818               | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.1742                    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742              | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818              | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742              | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818              | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                   | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                   | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818                 | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818                  | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818                  | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742                    | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742                    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818                    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                         | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                         | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.26100.1742                         | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.26100.9818                         | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                          | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742                     | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9818                     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742                     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9818                     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                          | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.1742                          | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9818                          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742 | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818 | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742    | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818    | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742   | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818   | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742       | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742       | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742 | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818 | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742        | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818        | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Realtek-Rtl8187se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtl8187se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Realtek-Rtl819xp-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtl819xp-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtl85n64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtl85n64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818      | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742       | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818       | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742     | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9818     | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1742                         | Staged     |
+OnDemand Pack   |
+Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1742                         | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                              | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.1742                              | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9818                              | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.1742                                          | Staged     |
+OnDemand Pack   | 06/09/24 04:10
+OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.9818                                          | Installed  |
+OnDemand Pack   | 30/10/26 03:31
+Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10                                           | Staged     |
+Security Update | 06/09/24 04:10
+Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9818.1.42                                           | Installed  |
+Update          | 30/10/26 03:31
+
+
+PS D:\TempDownload>

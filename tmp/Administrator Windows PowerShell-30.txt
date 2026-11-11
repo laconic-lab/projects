@@ -1,0 +1,47 @@
+PS D:\TempDownload> Write-Output "===== TEST-35A: EXACT COMPONENT FILES ====="
+===== TEST-35A: EXACT COMPONENT FILES =====
+PS D:\TempDownload>
+PS D:\TempDownload> $dll = Get-ChildItem "$env:windir\WinSxS" -Filter "ftpsvc.dll" -File -Recurse -ErrorAction SilentlyContinue
+PS D:\TempDownload>
+PS D:\TempDownload> $targetManifest = Get-ChildItem "$env:windir\WinSxS\Manifests" `
+>>     -Filter "amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_*.manifest" `
+>>     -File
+PS D:\TempDownload>
+PS D:\TempDownload> $dll | Select-Object FullName, Length, LastWriteTime
+
+FullName
+--------
+C:\WINDOWS\WinSxS\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\ftpsvc.dll
+
+
+PS D:\TempDownload> $targetManifest | Select-Object FullName, Length, LastWriteTime
+
+FullName
+--------
+C:\WINDOWS\WinSxS\Manifests\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d8...
+
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-35B: AVAILABLE DLL SHA256 ====="
+===== TEST-35B: AVAILABLE DLL SHA256 =====
+PS D:\TempDownload>
+PS D:\TempDownload> $dll | ForEach-Object {
+>>     Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
+>> }
+
+Algorithm       Hash                                                                   Path
+---------       ----                                                                   ----
+SHA256          CF3BE2A559084AB1150AAA85F2868874F86C8EE27881427DECE6CE368CA6FA0B       C:\WINDOWS\WinSxS\amd64_micro...
+
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-35C: TARGET MANIFEST DLL ENTRY ====="
+===== TEST-35C: TARGET MANIFEST DLL ENTRY =====
+PS D:\TempDownload>
+PS D:\TempDownload> if ($targetManifest) {
+>>     Select-String -LiteralPath $targetManifest.FullName `
+>>         -Pattern 'ftpsvc\.dll' -Context 3,3
+>> } else {
+>>     Write-Output "Target manifest not found using the expected filename pattern."
+>> }
+PS D:\TempDownload>

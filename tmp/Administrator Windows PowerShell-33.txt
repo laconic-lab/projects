@@ -1,0 +1,274 @@
+PS D:\TempDownload>
+PS D:\TempDownload> $ErrorActionPreference = "Stop"
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-42: CONTROLLED RESOURCE EXTRACTION ====="
+===== TEST-42: CONTROLLED RESOURCE EXTRACTION =====
+PS D:\TempDownload>
+PS D:\TempDownload> $dllPath = "C:\Windows\WinSxS\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.26100.9971_none_a4f22b5b777377f6\wcp.dll"
+PS D:\TempDownload> $outputDir = "D:\TempDownload\KB5132061-Test42"
+PS D:\TempDownload> $outputFile = Join-Path $outputDir "wcp-type614-name1-lang1033.xml"
+PS D:\TempDownload>
+PS D:\TempDownload> $expectedDllHash = "AFAEB01EF2EC16A85438BEA7CD2A25F8B355B9D6F07BF9B9DDD58FE9A388BAEB"
+PS D:\TempDownload> $expectedDllLength = 4582752
+PS D:\TempDownload>
+PS D:\TempDownload> # Exact resource range established by TEST-41.
+PS D:\TempDownload> $offset = 0x004510A0
+PS D:\TempDownload> $size = 9066
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 1. SOURCE VALIDATION ====="
+
+===== 1. SOURCE VALIDATION =====
+PS D:\TempDownload>
+PS D:\TempDownload> if (-not (Test-Path -LiteralPath $dllPath -PathType Leaf)) {
+>>     throw "Source DLL not found"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $dllInfo = Get-Item -LiteralPath $dllPath
+PS D:\TempDownload> $dllHash = (Get-FileHash -LiteralPath $dllPath -Algorithm SHA256).Hash
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Source length: $($dllInfo.Length)"
+Source length: 4582752
+PS D:\TempDownload> Write-Output "Source SHA256: $dllHash"
+Source SHA256: AFAEB01EF2EC16A85438BEA7CD2A25F8B355B9D6F07BF9B9DDD58FE9A388BAEB
+PS D:\TempDownload>
+PS D:\TempDownload> if ($dllInfo.Length -ne $expectedDllLength) {
+>>     throw "Source DLL length differs from TEST-40"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if ($dllHash -ne $expectedDllHash) {
+>>     throw "Source DLL SHA256 differs from TEST-40"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if (($offset + $size) -gt $dllInfo.Length) {
+>>     throw "Resource range exceeds source file"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if (Test-Path -LiteralPath $outputDir) {
+>>     throw "Destination directory already exists; refusing overwrite"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Source validation: PASS"
+Source validation: PASS
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 2. READ EXACT RESOURCE RANGE ====="
+
+===== 2. READ EXACT RESOURCE RANGE =====
+PS D:\TempDownload>
+PS D:\TempDownload> $sourceBytes = [System.IO.File]::ReadAllBytes($dllPath)
+PS D:\TempDownload> $resourceBytes = New-Object byte[] $size
+PS D:\TempDownload> [Array]::Copy($sourceBytes, $offset, $resourceBytes, 0, $size)
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Extracted byte count in memory: $($resourceBytes.Length)"
+Extracted byte count in memory: 9066
+PS D:\TempDownload> Write-Output "First 16 bytes: $([BitConverter]::ToString($resourceBytes,0,16))"
+First 16 bytes: 3C-3F-78-6D-6C-20-76-65-72-73-69-6F-6E-3D-22-31
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 3. SAFE XML PARSE IN MEMORY ====="
+
+===== 3. SAFE XML PARSE IN MEMORY =====
+PS D:\TempDownload>
+PS D:\TempDownload> $settings = New-Object System.Xml.XmlReaderSettings
+PS D:\TempDownload> $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+PS D:\TempDownload> $settings.XmlResolver = $null
+PS D:\TempDownload> $settings.MaxCharactersInDocument = 20000000
+PS D:\TempDownload>
+PS D:\TempDownload> $memoryStream = New-Object System.IO.MemoryStream(,$resourceBytes)
+PS D:\TempDownload> $reader = [System.Xml.XmlReader]::Create($memoryStream, $settings)
+PS D:\TempDownload> $xml = New-Object System.Xml.XmlDocument
+PS D:\TempDownload> $xml.XmlResolver = $null
+PS D:\TempDownload>
+PS D:\TempDownload> try {
+>>     $xml.Load($reader)
+>> }
+>> finally {
+>>     $reader.Dispose()
+>>     $memoryStream.Dispose()
+>> }
+Exception calling "Load" with "1" argument(s): "Data at the root level is invalid. Line 153, position 1."
+At line:2 char:5
++     $xml.Load($reader)
++     ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : DotNetMethodException
+
+PS D:\TempDownload>
+PS D:\TempDownload> $root = $xml.DocumentElement
+PS D:\TempDownload>
+PS D:\TempDownload> if ($null -eq $root) {
+>>     throw "XML has no document element"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "XML parse: PASS"
+XML parse: PASS
+PS D:\TempDownload> Write-Output "Root element: $($root.LocalName)"
+Root element: assembly
+PS D:\TempDownload> Write-Output "Root namespace: $($root.NamespaceURI)"
+Root namespace: urn:schemas-microsoft-com:asm.v3
+PS D:\TempDownload> Write-Output "Root prefix: $($root.Prefix)"
+Root prefix:
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nRoot attributes:"
+
+Root attributes:
+PS D:\TempDownload> foreach ($attribute in $root.Attributes) {
+>>     Write-Output ("  {0} = {1}" -f $attribute.Name, $attribute.Value)
+>> }
+  xmlns = urn:schemas-microsoft-com:asm.v3
+  manifestVersion = 1.0
+  description = Deployment
+  displayName = Deployment
+  copyright = Copyright (c) Microsoft Corporation. All Rights Reserved.
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nDirect child elements:"
+
+Direct child elements:
+PS D:\TempDownload> $directChildren = @($root.ChildNodes | Where-Object {
+>>     $_.NodeType -eq [System.Xml.XmlNodeType]::Element
+>> })
+PS D:\TempDownload>
+PS D:\TempDownload> if ($directChildren.Count -eq 0) {
+>>     Write-Output "  (none)"
+>> }
+PS D:\TempDownload> else {
+>>     $directChildren |
+>>         Group-Object { $_.LocalName } |
+>>         Sort-Object Name |
+>>         ForEach-Object {
+>>             Write-Output ("  {0}: {1}" -f $_.Name, $_.Count)
+>>         }
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nTotal descendant elements: $($xml.GetElementsByTagName('*').Count)"
+
+Total descendant elements: 95
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nFirst 40 distinct element names:"
+
+First 40 distinct element names:
+PS D:\TempDownload> $xml.GetElementsByTagName('*') |
+>>     ForEach-Object { $_.LocalName } |
+>>     Sort-Object -Unique |
+>>     Select-Object -First 40 |
+>>     ForEach-Object { Write-Output "  $_" }
+  accessControl
+  assembly
+  assemblyIdentity
+  categoryInstance
+  categoryMembership
+  channel
+  channels
+  complexType
+  configuration
+  configurationSchema
+  counter
+  counterAttribute
+  counterAttributes
+  counters
+  counterSet
+  data
+  dependency
+  dependentAssembly
+  deployment
+  DigestMethod
+  DigestValue
+  directories
+  directory
+  element
+  elements
+  event
+  events
+  feature
+  file
+  hash
+  id
+  include
+  instrumentation
+  keyword
+  keywords
+  localization
+  machineSpecific
+  map
+  maps
+  maxInclusive
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 4. CREATE ISOLATED OUTPUT ====="
+
+===== 4. CREATE ISOLATED OUTPUT =====
+PS D:\TempDownload>
+PS D:\TempDownload> New-Item -ItemType Directory -Path $outputDir | Out-Null
+PS D:\TempDownload>
+PS D:\TempDownload> if (Test-Path -LiteralPath $outputFile) {
+>>     throw "Output file unexpectedly exists; refusing overwrite"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> [System.IO.File]::WriteAllBytes($outputFile, $resourceBytes)
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Output file: $outputFile"
+Output file: D:\TempDownload\KB5132061-Test42\wcp-type614-name1-lang1033.xml
+PS D:\TempDownload> Write-Output "Output length: $((Get-Item -LiteralPath $outputFile).Length)"
+Output length: 9066
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 5. INDEPENDENT HASH VERIFICATION ====="
+
+===== 5. INDEPENDENT HASH VERIFICATION =====
+PS D:\TempDownload>
+PS D:\TempDownload> $outputHash = (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash
+PS D:\TempDownload>
+PS D:\TempDownload> # Re-read the original source range independently.
+PS D:\TempDownload> $sourceStream = [System.IO.File]::OpenRead($dllPath)
+PS D:\TempDownload>
+PS D:\TempDownload> try {
+>>     [void]$sourceStream.Seek($offset, [System.IO.SeekOrigin]::Begin)
+>>     $secondRead = New-Object byte[] $size
+>>     $totalRead = 0
+>>
+>>     while ($totalRead -lt $size) {
+>>         $n = $sourceStream.Read($secondRead, $totalRead, $size - $totalRead)
+>>         if ($n -le 0) {
+>>             throw "Unexpected end of source while independently reading resource"
+>>         }
+>>         $totalRead += $n
+>>     }
+>> }
+>> finally {
+>>     $sourceStream.Dispose()
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $sha = [System.Security.Cryptography.SHA256]::Create()
+PS D:\TempDownload> try {
+>>     $secondSourceHash = [BitConverter]::ToString(
+>>         $sha.ComputeHash($secondRead)
+>>     ).Replace("-", "")
+>> }
+>> finally {
+>>     $sha.Dispose()
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Extracted file SHA256: $outputHash"
+Extracted file SHA256: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload> Write-Output "Independent source-range SHA256: $secondSourceHash"
+Independent source-range SHA256: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload>
+PS D:\TempDownload> if ($outputHash -ne $secondSourceHash) {
+>>     throw "HASH MISMATCH: extracted file differs from source resource range"
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Independent hash verification: PASS"
+Independent hash verification: PASS
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== TEST-42 COMPLETE ====="
+
+===== TEST-42 COMPLETE =====
+PS D:\TempDownload> Write-Output "Only the isolated output directory was created."
+Only the isolated output directory was created.
+PS D:\TempDownload> Write-Output "No DLL was loaded. No servicing files were modified."
+No DLL was loaded. No servicing files were modified.
+PS D:\TempDownload>

@@ -1,0 +1,308 @@
+PS D:\TempDownload>
+PS D:\TempDownload> $ErrorActionPreference = "Stop"
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-46: STRING-TABLE AND PLACEHOLDER RELATIONSHIP MAPPING ====="
+===== TEST-46: STRING-TABLE AND PLACEHOLDER RELATIONSHIP MAPPING =====
+PS D:\TempDownload>
+PS D:\TempDownload> $file = "D:\TempDownload\KB5132061-Test42\wcp-type614-name1-lang1033.xml"
+PS D:\TempDownload> $expectedHash = "0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46"
+PS D:\TempDownload> $prefixLength = 8983
+PS D:\TempDownload>
+PS D:\TempDownload> if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+>>     throw "TEST-46 STOP: Source file not found."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $before = Get-FileHash -LiteralPath $file -Algorithm SHA256
+PS D:\TempDownload> $info = Get-Item -LiteralPath $file
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n--- SOURCE VALIDATION ---"
+
+--- SOURCE VALIDATION ---
+PS D:\TempDownload> Write-Output "Length: $($info.Length)"
+Length: 9066
+PS D:\TempDownload> Write-Output "SHA256: $($before.Hash)"
+SHA256: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload>
+PS D:\TempDownload> if ($info.Length -ne 9066 -or $before.Hash -ne $expectedHash) {
+>>     throw "TEST-46 STOP: Source identity differs from TEST-42."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $bytes = [System.IO.File]::ReadAllBytes($file)
+PS D:\TempDownload>
+PS D:\TempDownload> $stream = $null
+PS D:\TempDownload> $reader = $null
+PS D:\TempDownload> $doc = $null
+PS D:\TempDownload>
+PS D:\TempDownload> function Get-XmlNodePath {
+>>     param([System.Xml.XmlNode]$Node)
+>>
+>>     $parts = @()
+>>     $current = $Node
+>>
+>>     while ($null -ne $current -and
+>>            $current.NodeType -ne [System.Xml.XmlNodeType]::Document) {
+>>
+>>         if ($current.NodeType -eq [System.Xml.XmlNodeType]::Element) {
+>>             $index = 1
+>>             $sibling = $current.PreviousSibling
+>>
+>>             while ($null -ne $sibling) {
+>>                 if ($sibling.NodeType -eq [System.Xml.XmlNodeType]::Element -and
+>>                     $sibling.LocalName -eq $current.LocalName -and
+>>                     $sibling.NamespaceURI -eq $current.NamespaceURI) {
+>>                     $index++
+>>                 }
+>>                 $sibling = $sibling.PreviousSibling
+>>             }
+>>
+>>             $parts = @(
+>>                 "$($current.LocalName)[$index]"
+>>             ) + $parts
+>>         }
+>>
+>>         $current = $current.ParentNode
+>>     }
+>>
+>>     return "/" + ($parts -join "/")
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> try {
+>>     $settings = [System.Xml.XmlReaderSettings]::new()
+>>     $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+>>     $settings.XmlResolver = $null
+>>     $settings.ConformanceLevel = [System.Xml.ConformanceLevel]::Document
+>>     $settings.MaxCharactersInDocument = 1000000
+>>
+>>     $stream = [System.IO.MemoryStream]::new(
+>>         $bytes, 0, $prefixLength, $false, $true
+>>     )
+>>
+>>     $reader = [System.Xml.XmlReader]::Create($stream, $settings)
+>>
+>>     $doc = [System.Xml.XmlDocument]::new()
+>>     $doc.XmlResolver = $null
+>>     $doc.Load($reader)
+>>
+>>     Write-Output "`n--- XML ROOT ---"
+>>     Write-Output "Root: $($doc.DocumentElement.LocalName)"
+>>     Write-Output "Namespace: $($doc.DocumentElement.NamespaceURI)"
+>>
+>>     Write-Output "`n--- STRING TABLE ---"
+>>
+>>     $tables = $doc.SelectNodes(
+>>         "//*[local-name()='stringTable']"
+>>     )
+>>
+>>     Write-Output "stringTable count: $($tables.Count)"
+>>
+>>     foreach ($table in $tables) {
+>>         Write-Output "`nTABLE PATH: $(Get-XmlNodePath $table)"
+>>
+>>         foreach ($node in $table.SelectNodes(".//*")) {
+>>             Write-Output "`nNODE: $(Get-XmlNodePath $node)"
+>>             Write-Output "NAME: $($node.LocalName)"
+>>             Write-Output "VALUE: $($node.InnerText)"
+>>
+>>             foreach ($attr in $node.Attributes) {
+>>                 Write-Output "ATTRIBUTE: $($attr.Name) = $($attr.Value)"
+>>             }
+>>         }
+>>
+>>         foreach ($attr in $table.Attributes) {
+>>             Write-Output "TABLE ATTRIBUTE: $($attr.Name) = $($attr.Value)"
+>>         }
+>>     }
+>>
+>>     Write-Output "`n--- ALL STRING ELEMENTS ---"
+>>
+>>     $strings = $doc.SelectNodes(
+>>         "//*[local-name()='string']"
+>>     )
+>>
+>>     Write-Output "String element count: $($strings.Count)"
+>>
+>>     foreach ($node in $strings) {
+>>         Write-Output "`nPATH: $(Get-XmlNodePath $node)"
+>>         Write-Output "TEXT: $($node.InnerText)"
+>>
+>>         foreach ($attr in $node.Attributes) {
+>>             Write-Output "ATTRIBUTE: $($attr.Name) = $($attr.Value)"
+>>         }
+>>     }
+>>
+>>     Write-Output "`n--- SYMBOLIC REFERENCE INVENTORY ---"
+>>
+>>     $pattern = '\$\([^)]+\)|%[^%]+%'
+>>
+>>     foreach ($node in $doc.SelectNodes("//*")) {
+>>         $path = Get-XmlNodePath $node
+>>
+>>         foreach ($attr in $node.Attributes) {
+>>             if ($attr.Value -match $pattern) {
+>>                 Write-Output "ATTRIBUTE PATH: $path/@$($attr.Name)"
+>>                 Write-Output "REFERENCE: $($attr.Value)"
+>>             }
+>>         }
+>>
+>>         foreach ($child in $node.ChildNodes) {
+>>             if ($child.NodeType -eq [System.Xml.XmlNodeType]::Text -and
+>>                 $child.Value -match $pattern) {
+>>                 Write-Output "TEXT PATH: $path"
+>>                 Write-Output "REFERENCE: $($child.Value)"
+>>             }
+>>         }
+>>     }
+>>
+>>     Write-Output "`n--- ASSEMBLY IDENTITIES ---"
+>>
+>>     foreach ($node in $doc.SelectNodes(
+>>         "//*[local-name()='assemblyIdentity']"
+>>     )) {
+>>         Write-Output "`nPATH: $(Get-XmlNodePath $node)"
+>>
+>>         foreach ($attr in $node.Attributes) {
+>>             Write-Output "$($attr.Name) = $($attr.Value)"
+>>         }
+>>     }
+>>
+>>     Write-Output "`n--- FILE ELEMENT ---"
+>>
+>>     foreach ($node in $doc.SelectNodes("//*[local-name()='file']")) {
+>>         Write-Output "PATH: $(Get-XmlNodePath $node)"
+>>
+>>         foreach ($attr in $node.Attributes) {
+>>             Write-Output "$($attr.Name) = $($attr.Value)"
+>>         }
+>>     }
+>>
+>>     Write-Output "`n--- TEST INTEGRITY ---"
+>>
+>>     Write-Output "XML parsing: PASS"
+>>     Write-Output "XML prefix length: $prefixLength"
+>> }
+>> finally {
+>>     if ($null -ne $reader) {
+>>         $reader.Dispose()
+>>     }
+>>
+>>     if ($null -ne $stream) {
+>>         $stream.Dispose()
+>>     }
+>>
+>>     $doc = $null
+>> }
+
+--- XML ROOT ---
+Root: assembly
+Namespace: urn:schemas-microsoft-com:asm.v3
+
+--- STRING TABLE ---
+stringTable count: 1
+
+TABLE PATH: /assembly[1]/localization[1]/resources[1]/stringTable[1]
+
+NODE: /assembly[1]/localization[1]/resources[1]/stringTable[1]/string[1]
+NAME: string
+VALUE:
+ATTRIBUTE: id = description
+ATTRIBUTE: value = $(runtime.system32)
+
+NODE: /assembly[1]/localization[1]/resources[1]/stringTable[1]/string[2]
+NAME: string
+VALUE:
+ATTRIBUTE: id = displayName
+ATTRIBUTE: value =
+
+--- ALL STRING ELEMENTS ---
+String element count: 2
+
+PATH: /assembly[1]/localization[1]/resources[1]/stringTable[1]/string[1]
+TEXT:
+ATTRIBUTE: id = description
+ATTRIBUTE: value = $(runtime.system32)
+
+PATH: /assembly[1]/localization[1]/resources[1]/stringTable[1]/string[2]
+TEXT:
+ATTRIBUTE: id = displayName
+ATTRIBUTE: value =
+
+--- SYMBOLIC REFERENCE INVENTORY ---
+ATTRIBUTE PATH: /assembly[1]/file[1]/@destinationPath
+REFERENCE: $(runtime.system32)
+ATTRIBUTE PATH: /assembly[1]/file[1]/@importPath
+REFERENCE: $(build.nttree)\
+ATTRIBUTE PATH: /assembly[1]/directories[1]/directory[1]/@destinationPath
+REFERENCE: $(runtime.system32)\
+ATTRIBUTE PATH: /assembly[1]/directories[1]/directory[2]/@destinationPath
+REFERENCE: $(runtime.windows)\
+ATTRIBUTE PATH: /assembly[1]/memberships[1]/categoryMembership[1]/categoryInstance[1]/serviceData[1]/@displayName
+REFERENCE: @%SystemRoot%\system32\drivers\.sys,-1
+ATTRIBUTE PATH: /assembly[1]/localization[1]/resources[1]/stringTable[1]/string[1]/@value
+REFERENCE: $(runtime.system32)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/@messageFileName
+REFERENCE: %SystemRoot%\system32
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/opcodes[1]/opcode[1]/@message
+REFERENCE: $(string.HTTP_OPCODE_RECEIVE_REQUEST.OpcodeMessage)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/tasks[1]/task[1]/@message
+REFERENCE: $(string.HTTP_TASK_REQUEST.TaskMessage)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/channels[1]/channel[1]/@message
+REFERENCE: $(string.)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/keywords[1]/keyword[1]/@message
+REFERENCE: $(string.)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/maps[1]/valueMap[1]/map[1]/@message
+REFERENCE: $(string..Message)
+ATTRIBUTE PATH: /assembly[1]/instrumentation[1]/events[1]/provider[1]/events[1]/event[1]/@message
+REFERENCE: $(string.event)
+
+--- ASSEMBLY IDENTITIES ---
+
+PATH: /assembly[1]/assemblyIdentity[1]
+name = Microsoft-Windows-
+version = 6.
+processorArchitecture = x86
+language = neutral
+buildType = release
+publicKeyToken = 31bf3856ad364e35
+versionScope = nonSxS
+
+PATH: /assembly[1]/dependency[1]/dependentAssembly[1]/assemblyIdentity[1]
+name = .Resources
+version = 6.
+processorArchitecture = amd64
+language = *
+buildType = release
+publicKeyToken = 31bf3856ad364e35
+
+PATH: /assembly[1]/migration[1]/supportedComponents[1]/supportedComponent[1]/assemblyIdentity[1]
+name = _
+version = 1.0.0.0
+
+--- FILE ELEMENT ---
+PATH: /assembly[1]/file[1]
+name = .dll
+destinationPath = $(runtime.system32)
+sourceName = .dll
+importPath = $(build.nttree)\
+
+--- TEST INTEGRITY ---
+XML parsing: PASS
+XML prefix length: 8983
+PS D:\TempDownload>
+PS D:\TempDownload> $after = Get-FileHash -LiteralPath $file -Algorithm SHA256
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nBefore: $($before.Hash)"
+
+Before: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload> Write-Output "After:  $($after.Hash)"
+After:  0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload> Write-Output "Source unchanged: $($before.Hash -eq $after.Hash)"
+Source unchanged: True
+PS D:\TempDownload>
+PS D:\TempDownload> if ($before.Hash -ne $after.Hash) {
+>>     throw "TEST-46 FAIL: Source file hash changed."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== TEST-46 COMPLETE ====="
+
+===== TEST-46 COMPLETE =====
+PS D:\TempDownload>

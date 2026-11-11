@@ -1,0 +1,185 @@
+PS D:\TempDownload>
+PS D:\TempDownload> DISM.exe /Online /Add-Package /PackagePath:C:\KB5132061-Test23\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu /NoRestart
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Image Version: 10.0.26200.9818
+
+Processing 1 of 1 - Expand
+[==========================100.0%==========================]
+
+An error occurred - C:\KB5132061-Test23\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu Error: 0x800f0993
+
+Error: 0x800f0993
+
+DISM failed. No operation was performed.
+For more information, review the log file.
+
+The DISM log file can be found at C:\WINDOWS\Logs\DISM\dism.log
+PS D:\TempDownload>
+PS D:\TempDownload>
+PS D:\TempDownload>
+PS D:\TempDownload>
+PS D:\TempDownload> $log = "$env:windir\Logs\CBS\CBS.log"
+PS D:\TempDownload> Select-String -Path $log -Pattern '0x800f0993' -Context 12,12 |
+>>     Select-Object -Last 5 |
+>>     ForEach-Object { $_.ToString(); $_.Context.PreContext; $_.Line; $_.Context.PostContext }
+> C:\WINDOWS\Logs\CBS\CBS.log:738309:2026-11-11 18:16:39, Info                  CBS    Exec: Processing complete.  Session: 31289856_940815461, Package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10, Identifier: KB5043080 [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:37, Info                  CBS    Transaction UoW: {CB81562A-DDF0-11F1-BEF6-70CD0DDC322C} for CbsTransactionCreate
+2026-11-11 18:16:37, Info                  CBS    Reporting package change for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23, current: Resolved, pending: Default, start: Resolved, applicable: Installed, target: Staged, limit: Staged, status: 0x0, failure source: Stage, reboot required: False, client id: UpdateAgentLCU, initiated offline: False, execution sequence: 575, first merged sequence: 575, reboot reason: REBOOT_NOT_REQUIRED, RM App session: -1, RM App name: N/A, FileName in use: N/A, release type: Security Update, OC operation: False, download source: 5, download time (secs): 0, download status: 0x0 (S_OK), Download Size: 0 Used lower priority: False Priority changes: 1
+2026-11-11 18:16:37, Info                  CBS    Reporting package change completion for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23, current: Resolved, original: Resolved, target: Staged, status: 0x800f0993, failure source: Stage, failure details: "(null)", client id: UpdateAgentLCU, initiated offline: False, execution sequence:575, first merged sequence: 575, pending decision: InteractiveInstallFailed, primitive execution context: Interactive
+2026-11-11 18:16:37, Info                  CBS    Stage time performance datapoint is invalid. [HRESULT = 0x80070490 - ERROR_NOT_FOUND]
+2026-11-11 18:16:37, Info                  CBS    Execute time performance datapoint is invalid. [HRESULT = 0x80070490 - ERROR_NOT_FOUND]
+2026-11-11 18:16:38, Info                  CBS    Transaction UoW: {CB81562A-DDF0-11F1-BEF6-70CD0DDC322C} for CbsTransactionClose
+2026-11-11 18:16:38, Info                  CBS    Transaction UoW: {CB81562A-DDF0-11F1-BEF6-70CD0DDC322C} for CbsTransactionCommit
+2026-11-11 18:16:38, Info                  CBS    FinalCommitPackagesState: Completed persisting state of packages
+2026-11-11 18:16:39, Info                  CBS    Enabling LKG boot option
+2026-11-11 18:16:39, Info                  CBS    Exec: End: nested restore point - complete.
+2026-11-11 18:16:39, Info                  CBS    TryAutoRepair: bStoreCorruptionFound=1, SkipAsyncACR=(null)
+2026-11-11 18:16:39, Info                  CBS    Exec: Automatic corruption repair has already been attempted today, skip it.
+2026-11-11 18:16:39, Info                  CBS    Exec: Processing complete.  Session: 31289856_940815461, Package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10, Identifier: KB5043080 [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Error                 CBS    Failed to perform operation.  [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Operations recap:
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461
+2026-11-11 18:16:41, Info                  CBS    Correlation Vector: 9q2yBO4HtUSg8iu6.1
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+2026-11-11 18:16:41, Info                  CBS    =================
+> C:\WINDOWS\Logs\CBS\CBS.log:738310:2026-11-11 18:16:41, Error                 CBS    Failed to perform operation.  [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+  C:\WINDOWS\Logs\CBS\CBS.log:738311:2026-11-11 18:16:41, Info                  CBS    =================
+  C:\WINDOWS\Logs\CBS\CBS.log:738312:2026-11-11 18:16:41, Info                  CBS    Operations recap:
+  C:\WINDOWS\Logs\CBS\CBS.log:738313:2026-11-11 18:16:41, Info                  CBS    =================
+  C:\WINDOWS\Logs\CBS\CBS.log:738314:2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461
+  C:\WINDOWS\Logs\CBS\CBS.log:738315:2026-11-11 18:16:41, Info                  CBS    Correlation Vector: 9q2yBO4HtUSg8iu6.1
+  C:\WINDOWS\Logs\CBS\CBS.log:738316:2026-11-11 18:16:41, Info                  CBS    =================
+  C:\WINDOWS\Logs\CBS\CBS.log:738317:2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+  C:\WINDOWS\Logs\CBS\CBS.log:738318:2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+  C:\WINDOWS\Logs\CBS\CBS.log:738319:2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+  C:\WINDOWS\Logs\CBS\CBS.log:738320:2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+  C:\WINDOWS\Logs\CBS\CBS.log:738321:2026-11-11 18:16:41, Info                  CBS    =================
+  C:\WINDOWS\Logs\CBS\CBS.log:738322:2026-11-11 18:16:41, Info                  CBS    Total time: 76861ms
+2026-11-11 18:16:37, Info                  CBS    Reporting package change for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23, current: Resolved, pending: Default, start: Resolved, applicable: Installed, target: Staged, limit: Staged, status: 0x0, failure source: Stage, reboot required: False, client id: UpdateAgentLCU, initiated offline: False, execution sequence: 575, first merged sequence: 575, reboot reason: REBOOT_NOT_REQUIRED, RM App session: -1, RM App name: N/A, FileName in use: N/A, release type: Security Update, OC operation: False, download source: 5, download time (secs): 0, download status: 0x0 (S_OK), Download Size: 0 Used lower priority: False Priority changes: 1
+2026-11-11 18:16:37, Info                  CBS    Reporting package change completion for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23, current: Resolved, original: Resolved, target: Staged, status: 0x800f0993, failure source: Stage, failure details: "(null)", client id: UpdateAgentLCU, initiated offline: False, execution sequence:575, first merged sequence: 575, pending decision: InteractiveInstallFailed, primitive execution context: Interactive
+2026-11-11 18:16:37, Info                  CBS    Stage time performance datapoint is invalid. [HRESULT = 0x80070490 - ERROR_NOT_FOUND]
+2026-11-11 18:16:37, Info                  CBS    Execute time performance datapoint is invalid. [HRESULT = 0x80070490 - ERROR_NOT_FOUND]
+2026-11-11 18:16:38, Info                  CBS    Transaction UoW: {CB81562A-DDF0-11F1-BEF6-70CD0DDC322C} for CbsTransactionClose
+2026-11-11 18:16:38, Info                  CBS    Transaction UoW: {CB81562A-DDF0-11F1-BEF6-70CD0DDC322C} for CbsTransactionCommit
+2026-11-11 18:16:38, Info                  CBS    FinalCommitPackagesState: Completed persisting state of packages
+2026-11-11 18:16:39, Info                  CBS    Enabling LKG boot option
+2026-11-11 18:16:39, Info                  CBS    Exec: End: nested restore point - complete.
+2026-11-11 18:16:39, Info                  CBS    TryAutoRepair: bStoreCorruptionFound=1, SkipAsyncACR=(null)
+2026-11-11 18:16:39, Info                  CBS    Exec: Automatic corruption repair has already been attempted today, skip it.
+2026-11-11 18:16:39, Info                  CBS    Exec: Processing complete.  Session: 31289856_940815461, Package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10, Identifier: KB5043080 [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Error                 CBS    Failed to perform operation.  [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Operations recap:
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461
+2026-11-11 18:16:41, Info                  CBS    Correlation Vector: 9q2yBO4HtUSg8iu6.1
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Total time: 76861ms
+  C:\WINDOWS\Logs\CBS\CBS.log:738323:2026-11-11 18:16:41, Info                  CBS    =================
+> C:\WINDOWS\Logs\CBS\CBS.log:738324:2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461 finalized. Reboot required: no, RepairNeeded: no [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+  C:\WINDOWS\Logs\CBS\CBS.log:738325:2026-11-11 18:16:41, Info                  SXS    Waiting for winners preload to finish
+  C:\WINDOWS\Logs\CBS\CBS.log:738326:2026-11-11 18:16:41, Info                  CSI    00000051 Direct SIL provider: Number of files opened: 9.
+2026-11-11 18:16:41, Info                  CBS    Operations recap:
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461
+2026-11-11 18:16:41, Info                  CBS    Correlation Vector: 9q2yBO4HtUSg8iu6.1
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Total time: 76861ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461 finalized. Reboot required: no, RepairNeeded: no [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  SXS    Waiting for winners preload to finish
+2026-11-11 18:16:41, Info                  CSI    00000051 Direct SIL provider: Number of files opened: 9.
+2026-11-11 18:16:41, Info                  CBS    Failed finalizing session [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    Failed to call Process on TiWorker session [HRESULT = 0x800f0993]
+2026-11-11 18:16:41, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289856_940815461\
+2026-11-11 18:16:41, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289856_940815461\ to \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E}
+2026-11-11 18:16:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E} successful
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 18:16:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 18:16:43, Info                  CBS    Priority: Restoring default priority
+2026-11-11 18:16:58, Info                  CBS    Module starts contributing to an existing logging session
+> C:\WINDOWS\Logs\CBS\CBS.log:738327:2026-11-11 18:16:41, Info                  CBS    Failed finalizing session [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    Correlation Vector: 9q2yBO4HtUSg8iu6.1
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Total time: 76861ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461 finalized. Reboot required: no, RepairNeeded: no [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  SXS    Waiting for winners preload to finish
+2026-11-11 18:16:41, Info                  CSI    00000051 Direct SIL provider: Number of files opened: 9.
+2026-11-11 18:16:41, Info                  CBS    Failed finalizing session [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    Failed to call Process on TiWorker session [HRESULT = 0x800f0993]
+2026-11-11 18:16:41, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289856_940815461\
+2026-11-11 18:16:41, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289856_940815461\ to \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E}
+2026-11-11 18:16:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E} successful
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 18:16:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 18:16:43, Info                  CBS    Priority: Restoring default priority
+2026-11-11 18:16:58, Info                  CBS    Module starts contributing to an existing logging session
+2026-11-11 18:16:58, Info                  SXS    TurboStack version 10.0.26100.9971 (WinBuild.160101.0800) loaded fromC:\WINDOWS\winsxs\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.26100.9971_none_a4f22b5b777377f6
+2026-11-11 18:16:58, Info                  CSI    00000052@2026/11/11:17:16:58.442 WcpInitialize: wcp.dll version 10.0.26100.9971 (WinBuild.160101.0800)
+2026-11-11 18:16:58, Info                  CSI    00000053 Perf: LRU Cache Initialize @0x25c09210e10; Maximum Size: 1024 MiB; Initial Elements: 10485
+> C:\WINDOWS\Logs\CBS\CBS.log:738328:2026-11-11 18:16:41, Info                  CBS    Failed to call Process on TiWorker session [HRESULT = 0x800f0993]
+  C:\WINDOWS\Logs\CBS\CBS.log:738329:2026-11-11 18:16:41, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289856_940815461\
+  C:\WINDOWS\Logs\CBS\CBS.log:738330:2026-11-11 18:16:41, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289856_940815461\ to \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E}
+  C:\WINDOWS\Logs\CBS\CBS.log:738331:2026-11-11 18:16:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E} successful
+  C:\WINDOWS\Logs\CBS\CBS.log:738332:2026-11-11 18:16:43, Info                  SXS    Removing reference on previouslyloaded registry hive: \Registry\Machine\COMPONENTS
+  C:\WINDOWS\Logs\CBS\CBS.log:738333:2026-11-11 18:16:43, Info                  SXS    Removing reference on previouslyloaded registry hive: \Registry\User\.DEFAULT
+  C:\WINDOWS\Logs\CBS\CBS.log:738334:2026-11-11 18:16:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+  C:\WINDOWS\Logs\CBS\CBS.log:738335:2026-11-11 18:16:43, Info                  CBS    Priority: Restoring default priority
+  C:\WINDOWS\Logs\CBS\CBS.log:738336:2026-11-11 18:16:58, Info                  CBS    Module starts contributing to anexisting logging session
+  C:\WINDOWS\Logs\CBS\CBS.log:738337:2026-11-11 18:16:58, Info                  SXS    TurboStack version 10.0.26100.9971 (WinBuild.160101.0800) loaded from C:\WINDOWS\winsxs\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.26100.9971_none_a4f22b5b777377f6
+  C:\WINDOWS\Logs\CBS\CBS.log:738338:2026-11-11 18:16:58, Info                  CSI    00000052@2026/11/11:17:16:58.442WcpInitialize: wcp.dll version 10.0.26100.9971 (WinBuild.160101.0800)
+  C:\WINDOWS\Logs\CBS\CBS.log:738339:2026-11-11 18:16:58, Info                  CSI    00000053 Perf: LRU Cache Initialize @0x25c09210e10; Maximum Size: 1024 MiB; Initial Elements: 10485
+  C:\WINDOWS\Logs\CBS\CBS.log:738340:2026-11-11 18:16:58, Info                  SXS    Initialized store, arch=amd64, style=Desktop, compact=false, windir=(null), sandbox=
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Planning: 76355ms
+2026-11-11 18:16:41, Info                  CBS    CopyManifestFilesAndVerifyContent: 22727ms
+2026-11-11 18:16:41, Info                  CBS    Resolving: 18ms
+2026-11-11 18:16:41, Info                  CBS    Staging: 488ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Total time: 76861ms
+2026-11-11 18:16:41, Info                  CBS    =================
+2026-11-11 18:16:41, Info                  CBS    Session: 31289856_940815461 finalized. Reboot required: no, RepairNeeded: no [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  SXS    Waiting for winners preload to finish
+2026-11-11 18:16:41, Info                  CSI    00000051 Direct SIL provider: Number of files opened: 9.
+2026-11-11 18:16:41, Info                  CBS    Failed finalizing session [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 18:16:41, Info                  CBS    Failed to call Process on TiWorker session [HRESULT = 0x800f0993]
+2026-11-11 18:16:41, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289856_940815461\
+2026-11-11 18:16:41, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289856_940815461\ to \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E}
+2026-11-11 18:16:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{9189DE43-C7A8-4166-864D-1C226EB6356E} successful
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 18:16:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 18:16:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 18:16:43, Info                  CBS    Priority: Restoring default priority
+2026-11-11 18:16:58, Info                  CBS    Module starts contributing to an existing logging session
+2026-11-11 18:16:58, Info                  SXS    TurboStack version 10.0.26100.9971 (WinBuild.160101.0800) loaded fromC:\WINDOWS\winsxs\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.26100.9971_none_a4f22b5b777377f6
+2026-11-11 18:16:58, Info                  CSI    00000052@2026/11/11:17:16:58.442 WcpInitialize: wcp.dll version 10.0.26100.9971 (WinBuild.160101.0800)
+2026-11-11 18:16:58, Info                  CSI    00000053 Perf: LRU Cache Initialize @0x25c09210e10; Maximum Size: 1024 MiB; Initial Elements: 10485
+2026-11-11 18:16:58, Info                  SXS    Initialized store, arch=amd64, style=Desktop, compact=false, windir=(null), sandbox=
+PS D:\TempDownload>

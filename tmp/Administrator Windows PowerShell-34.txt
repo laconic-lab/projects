@@ -1,0 +1,327 @@
+PS D:\TempDownload> $ErrorActionPreference = "Stop"
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "===== TEST-43: RAW RESOURCE BOUNDARY DIAGNOSIS ====="
+===== TEST-43: RAW RESOURCE BOUNDARY DIAGNOSIS =====
+PS D:\TempDownload>
+PS D:\TempDownload> $file = "D:\TempDownload\KB5132061-Test42\wcp-type614-name1-lang1033.xml"
+PS D:\TempDownload>
+PS D:\TempDownload> if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+>>     throw "TEST-42 extracted file not found; stopping."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $before = Get-FileHash -LiteralPath $file -Algorithm SHA256
+PS D:\TempDownload> $bytes = [System.IO.File]::ReadAllBytes($file)
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 1. FILE IDENTITY ====="
+
+===== 1. FILE IDENTITY =====
+PS D:\TempDownload> Write-Output "Path: $file"
+Path: D:\TempDownload\KB5132061-Test42\wcp-type614-name1-lang1033.xml
+PS D:\TempDownload> Write-Output "Length: $($bytes.Length)"
+Length: 9066
+PS D:\TempDownload> Write-Output "SHA256: $($before.Hash)"
+SHA256: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload>
+PS D:\TempDownload> if ($bytes.Length -ne 9066) {
+>>     throw "Unexpected file length; expected 9066 bytes."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> $expectedHash = "0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46"
+PS D:\TempDownload> if ($before.Hash -ne $expectedHash) {
+>>     throw "File hash differs from TEST-42; stopping."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "TEST-42 identity verification: PASS"
+TEST-42 identity verification: PASS
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 2. ENCODING AND BYTE CHARACTERISTICS ====="
+
+===== 2. ENCODING AND BYTE CHARACTERISTICS =====
+PS D:\TempDownload>
+PS D:\TempDownload> $bom = "None"
+PS D:\TempDownload> $encoding = $null
+PS D:\TempDownload>
+PS D:\TempDownload> if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+>>     $bom = "UTF-8 BOM"
+>>     $encoding = New-Object System.Text.UTF8Encoding($false, $true)
+>> }
+PS D:\TempDownload> elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+>>     $bom = "UTF-16 LE BOM"
+>>     $encoding = New-Object System.Text.UnicodeEncoding($false, $false, $true)
+>> }
+elseif : The term 'elseif' is not recognized as the name of a cmdlet, function, script file, or operable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -e ...
++ ~~~~~~
+    + CategoryInfo          : ObjectNotFound: (elseif:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload> elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+>>     $bom = "UTF-16 BE BOM"
+>>     $encoding = New-Object System.Text.UnicodeEncoding($true, $false, $true)
+>> }
+elseif : The term 'elseif' is not recognized as the name of a cmdlet, function, script file, or operable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ elseif ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -e ...
++ ~~~~~~
+    + CategoryInfo          : ObjectNotFound: (elseif:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload> else {
+>>     $encoding = New-Object System.Text.UTF8Encoding($false, $true)
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "BOM: $bom"
+BOM: None
+PS D:\TempDownload>
+PS D:\TempDownload> $crlf = 0
+PS D:\TempDownload> $lf = 0
+PS D:\TempDownload> $cr = 0
+PS D:\TempDownload> $nul = 0
+PS D:\TempDownload>
+PS D:\TempDownload> for ($i = 0; $i -lt $bytes.Length; $i++) {
+>>     if ($bytes[$i] -eq 0) { $nul++ }
+>>
+>>     if ($bytes[$i] -eq 13) {
+>>         if (($i + 1) -lt $bytes.Length -and $bytes[$i + 1] -eq 10) {
+>>             $crlf++
+>>             $i++
+>>         }
+>>         else {
+>>             $cr++
+>>         }
+>>     }
+>>     elseif ($bytes[$i] -eq 10) {
+>>         $lf++
+>>     }
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "CRLF sequences: $crlf"
+CRLF sequences: 153
+PS D:\TempDownload> Write-Output "Standalone LF bytes: $lf"
+Standalone LF bytes: 0
+PS D:\TempDownload> Write-Output "Standalone CR bytes: $cr"
+Standalone CR bytes: 0
+PS D:\TempDownload> Write-Output "NUL bytes: $nul"
+NUL bytes: 0
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nFirst 32 bytes:"
+
+First 32 bytes:
+PS D:\TempDownload> Write-Output ([BitConverter]::ToString($bytes, 0, [Math]::Min(32, $bytes.Length)))
+3C-3F-78-6D-6C-20-76-65-72-73-69-6F-6E-3D-22-31-2E-30-22-20-65-6E-63-6F-64-69-6E-67-3D-22-55-54
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`nLast 64 bytes:"
+
+Last 64 bytes:
+PS D:\TempDownload> Write-Output ([BitConverter]::ToString($bytes, [Math]::Max(0, $bytes.Length - 64), [Math]::Min(64, $bytes.Length)))
+45-59-5F-4C-4F-43-41-4C-5F-4D-41-43-48-49-4E-45-62-6F-6F-6C-65-61-6E-73-74-72-69-6E-67-6D-75-6C-74-69-53-74-72-69-6E-67-75-6E-73-69-67-6E-65-64-49-6E-74-64-69-73-70-6C-61-79-4E-61-6D-65-0D-0A
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 3. BYTE-ACCURATE LINE INDEX ====="
+
+===== 3. BYTE-ACCURATE LINE INDEX =====
+PS D:\TempDownload>
+PS D:\TempDownload> $lines = New-Object System.Collections.Generic.List[object]
+PS D:\TempDownload> $lineStart = 0
+PS D:\TempDownload> $lineNumber = 1
+PS D:\TempDownload> $i = 0
+PS D:\TempDownload>
+PS D:\TempDownload> while ($i -lt $bytes.Length) {
+>>     if ($bytes[$i] -eq 10 -or $bytes[$i] -eq 13) {
+>>         $lineLength = $i - $lineStart
+>>
+>>         $lines.Add([pscustomobject]@{
+>>             Number = $lineNumber
+>>             Offset = $lineStart
+>>             Length = $lineLength
+>>         })
+>>
+>>         if ($bytes[$i] -eq 13 -and ($i + 1) -lt $bytes.Length -and $bytes[$i + 1] -eq 10) {
+>>             $i++
+>>         }
+>>
+>>         $lineStart = $i + 1
+>>         $lineNumber++
+>>     }
+>>
+>>     $i++
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> if ($lineStart -lt $bytes.Length) {
+>>     $lines.Add([pscustomobject]@{
+>>         Number = $lineNumber
+>>         Offset = $lineStart
+>>         Length = $bytes.Length - $lineStart
+>>     })
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "Total indexed lines: $($lines.Count)"
+Total indexed lines: 153
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 4. LINES 148-156 ====="
+
+===== 4. LINES 148-156 =====
+PS D:\TempDownload>
+PS D:\TempDownload> foreach ($entry in $lines | Where-Object { $_.Number -ge 148 -and $_.Number -le 156 }) {
+>>     $lineBytes = New-Object byte[] $entry.Length
+>>
+>>     if ($entry.Length -gt 0) {
+>>         [Array]::Copy($bytes, $entry.Offset, $lineBytes, 0, $entry.Length)
+>>     }
+>>
+>>     try {
+>>         $lineText = $encoding.GetString($lineBytes)
+>>     }
+>>     catch {
+>>         $lineText = "<DECODING ERROR: $($_.Exception.Message)>"
+>>     }
+>>
+>>     Write-Output ("LINE {0} | byte offset {1} | length {2}" -f $entry.Number, $entry.Offset, $entry.Length)
+>>     Write-Output ("TEXT: {0}" -f $lineText)
+>>     Write-Output ("HEX:  {0}" -f [BitConverter]::ToString($lineBytes, 0, [Math]::Min(96, $lineBytes.Length)))
+>> }
+LINE 148 | byte offset 8897 | length 14
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  20-20-20-20-3C-6D-65-74-61-64-61-74-61-3E
+LINE 149 | byte offset 8913 | length 18
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  20-20-20-20-20-20-3C-65-6C-65-6D-65-6E-74-73-20-2F-3E
+LINE 150 | byte offset 8933 | length 15
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  20-20-20-20-3C-2F-6D-65-74-61-64-61-74-61-3E
+LINE 151 | byte offset 8950 | length 18
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  20-20-3C-2F-63-6F-6E-66-69-67-75-72-61-74-69-6F-6E-3E
+LINE 152 | byte offset 8970 | length 11
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  3C-2F-61-73-73-65-6D-62-6C-79-3E
+LINE 153 | byte offset 8983 | length 81
+TEXT: <DECODING ERROR: You cannot call a method on a null-valued expression.>
+HEX:  61-6D-64-36-34-61-72-6D-52-45-47-5F-44-57-4F-52-44-48-4B-45-59-5F-4C-4F-43-41-4C-5F-4D-41-43-48-49-4E-45-62-6F-6F-6C-65-61-6E-73-74-72-69-6E-67-6D-75-6C-74-69-53-74-72-69-6E-67-75-6E-73-69-67-6E-65-64-49-6E-74-64-69-73-70-6C-61-79-4E-61-6D-65
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 5. XML STRUCTURAL MARKERS ====="
+
+===== 5. XML STRUCTURAL MARKERS =====
+PS D:\TempDownload>
+PS D:\TempDownload> try {
+>>     $decoded = $encoding.GetString($bytes)
+>>     Write-Output "Strict text decoding: PASS"
+>>
+>>     $markers = @(
+>>         @{ Name = "XML declarations"; Pattern = '<\?xml' },
+>>         @{ Name = "Assembly opening tags"; Pattern = '<assembly(?:\s|>)' },
+>>         @{ Name = "Assembly closing tags"; Pattern = '</assembly\s*>' },
+>>         @{ Name = "DOCTYPE declarations"; Pattern = '<!DOCTYPE' },
+>>         @{ Name = "Provider opening tags"; Pattern = '<provider(?:\s|>)' }
+>>     )
+>>
+>>     foreach ($marker in $markers) {
+>>         $matches = [regex]::Matches($decoded, $marker.Pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+>>         Write-Output "$($marker.Name): $($matches.Count)"
+>>
+>>         foreach ($match in $matches) {
+>>             $prefix = $decoded.Substring(0, $match.Index)
+>>             $line = ([regex]::Matches($prefix, "`n")).Count + 1
+>>             Write-Output ("  line {0}, character index {1}, text: {2}" -f $line, $match.Index, $match.Value)
+>>         }
+>>     }
+>> }
+>> catch {
+>>     Write-Output "Strict text decoding: FAILED"
+>>     Write-Output $_.Exception.Message
+>> }
+Strict text decoding: FAILED
+You cannot call a method on a null-valued expression.
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 6. STRICT XML PARSE ====="
+
+===== 6. STRICT XML PARSE =====
+PS D:\TempDownload>
+PS D:\TempDownload> $settings = New-Object System.Xml.XmlReaderSettings
+PS D:\TempDownload> $settings.DtdProcessing = [System.Xml.DtdProcessing]::Prohibit
+PS D:\TempDownload> $settings.XmlResolver = $null
+PS D:\TempDownload> $settings.ConformanceLevel = [System.Xml.ConformanceLevel]::Document
+PS D:\TempDownload> $settings.MaxCharactersInDocument = 20000000
+PS D:\TempDownload> $settings.IgnoreComments = $false
+PS D:\TempDownload> $settings.IgnoreWhitespace = $false
+PS D:\TempDownload>
+PS D:\TempDownload> $stream = [System.IO.File]::OpenRead($file)
+PS D:\TempDownload> $reader = $null
+PS D:\TempDownload> $parseSucceeded = $false
+PS D:\TempDownload>
+PS D:\TempDownload> try {
+>>     $reader = [System.Xml.XmlReader]::Create($stream, $settings)
+>>
+>>     while ($reader.Read()) {
+>>         # Read the complete document; do not build or inspect a partial XmlDocument.
+>>     }
+>>
+>>     $parseSucceeded = $true
+>>     Write-Output "STRICT XML PARSE: PASS"
+>> }
+>> catch {
+>>     Write-Output "STRICT XML PARSE: FAIL"
+>>     Write-Output "Exception: $($_.Exception.Message)"
+>>
+>>     if ($_.Exception.InnerException) {
+>>         Write-Output "Inner exception: $($_.Exception.InnerException.Message)"
+>>     }
+>>
+>>     if ($reader -and $reader -is [System.Xml.IXmlLineInfo]) {
+>>         Write-Output "Reader line: $($reader.LineNumber)"
+>>         Write-Output "Reader position: $($reader.LinePosition)"
+>>     }
+>> }
+STRICT XML PARSE: FAIL
+Exception: Exception calling "Read" with "0" argument(s): "Data at the root level is invalid. Line 153, position 1."
+Inner exception: Data at the root level is invalid. Line 153, position 1.
+Reader line: 153
+Reader position: 1
+PS D:\TempDownload> finally {
+>>     if ($reader) { $reader.Dispose() }
+>>     $stream.Dispose()
+>> }
+finally : The term 'finally' is not recognized as the name of a cmdlet, function, script file, or operable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ finally {
++ ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (finally:String) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== 7. FILE UNCHANGED VERIFICATION ====="
+
+===== 7. FILE UNCHANGED VERIFICATION =====
+PS D:\TempDownload>
+PS D:\TempDownload> $after = Get-FileHash -LiteralPath $file -Algorithm SHA256
+PS D:\TempDownload> Write-Output "Before SHA256: $($before.Hash)"
+Before SHA256: 0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload> Write-Output "After SHA256:  $($after.Hash)"
+After SHA256:  0AD8F100F1C56F4A1AAD990DEFADE9191F7D5BE929B930A04160EBBF99CD6B46
+PS D:\TempDownload>
+PS D:\TempDownload> if ($before.Hash -ne $after.Hash) {
+>>     throw "File changed during TEST-43; investigate."
+>> }
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "File unchanged: PASS"
+File unchanged: PASS
+PS D:\TempDownload> Write-Output "Strict XML parse result: $parseSucceeded"
+Strict XML parse result: False
+PS D:\TempDownload>
+PS D:\TempDownload> Write-Output "`n===== TEST-43 COMPLETE ====="
+
+===== TEST-43 COMPLETE =====
+PS D:\TempDownload> Write-Output "Read-only inspection only. No files were written or modified."
+Read-only inspection only. No files were written or modified.
+PS D:\TempDownload>
