@@ -7,13 +7,59 @@
 
 ## 1. Purpose
 
-This directory tracks the second Odysseus rebuild effort. The parent directory name, `second.installation`, is retained as a historical identifier for the second rebuild attempt; it does **not** mean that the project is currently in an installation phase.
+This directory governs the second Odysseus rebuild. The name `second.installation` is a historical identifier for this rebuild attempt; it does **not** mean that installation is currently authorized or underway.
+
+The purpose of this work is not simply to make Odysseus start successfully, nor merely to produce a container that passes a generic hardening checklist. It is to establish, with source review and bounded runtime evidence, that Odysseus can provide its intended local-agent capabilities **without receiving authority over the Steam Deck that the operator has not deliberately granted**.
+
+### 1.1 The governing security objective — the Holy Grail
+
+**The primary security objective is agent containment and least authority.**
+
+If Odysseus is manipulated by prompt injection, processes malicious or misleading content, invokes a faulty or compromised tool, behaves unexpectedly, or is itself compromised, its effective authority must remain bounded. It must not be able to turn an ordinary agent task into unrestricted control of the Steam Deck, the user's home directory, credentials, infrastructure or other protected data.
+
+The design must therefore answer, with evidence:
+
+> **If Odysseus becomes malicious, is manipulated, or simply behaves incorrectly, what can it actually do to the Steam Deck and the user's data?**
+
+The answer must be determined by enforceable operating-system and deployment boundaries, not by the Agent's instructions, prompt wording, tool descriptions, application-level promises or operator trust.
+
+In practical terms, Odysseus must receive only the files, data, network destinations, credentials, tools and execution capabilities required for its explicitly approved role. Sensitive or host-impacting actions must remain outside its autonomous authority unless a separately designed and operator-controlled mechanism explicitly authorizes them.
+
+### 1.2 Two distinct security tracks
+
+The audit distinguishes two related but different threat classes. Both matter; they must not be conflated.
+
+**Track A — infrastructure and application security (necessary baseline)**
+
+This addresses an attacker exploiting a reachable service, vulnerable dependency, exposed API, weak authentication, unsafe network path or resource-exhaustion flaw. Controls include private networking, minimal published ports, immutable and reviewed images, dependency/advisory review, authentication, rootless execution, capability restrictions and resource limits.
+
+**Track B — agent authority and containment (governing objective)**
+
+This addresses Odysseus exceeding its intended authority without requiring an external attacker. The cause may be the Agent itself, prompt injection in content it processes, a faulty tool, an unsafe integration or an overly permissive deployment. Controls include narrow filesystem mounts, no broad host-home or source-tree access, no unrestricted container-management socket, restricted execution surfaces, isolated credentials, explicit tool policy and operator-controlled authorization for sensitive actions.
+
+The tracks overlap: an external exploit may use excessive Agent permissions to reach host resources, while prompt injection may misuse an otherwise legitimate tool without any external network intrusion. Passing Track A does not prove Track B. A well-patched container with unrestricted host access is still an unacceptable design.
+
+### 1.3 Evidence standard and design principles
+
+Security claims must be tied to the layer that enforces them and to the exact scope tested:
+
+- **Source review** establishes what the selected source revision appears to implement; it does not prove runtime enforcement.
+- **Configuration inspection** establishes what a specific image/container is configured to request; it does not by itself prove effective runtime behavior.
+- **Runtime tests** establish only the observed behavior for the exact image, identity, mounts, capabilities, network and conditions tested.
+- **Negative tests** are essential: demonstrate that prohibited access or actions fail, not only that permitted operations succeed.
+- **Residual risk must be explicit.** A control that is untested, bypassable, application-only, or dependent on Agent self-restraint must not be described as an enforced security boundary.
+
+The design follows least privilege, deny-by-default, separation of services and data, minimal host integration, explicit lifecycle control, reproducibility, recoverability and operator authority. Convenience must not silently widen the Agent's authority.
+
+### 1.4 Work phases and authorization boundary
 
 The work is organized into two independent audits followed by a separate, future installation phase:
 
 - **Audit 1 — Phase 1.3:** source-level security audit of the local Odysseus Agent, its authority, execution routes and trust boundaries. Closed as a source audit only.
 - **Audit 2 — Phase 1.4:** deployment feasibility and runtime security validation. Active; installation is not authorized.
 - **Installation — 3.installation:** a separate future deployment phase. Its guide records requirements and pending procedures only; it does not authorize installation.
+
+A successful build, a healthy service, or a passing individual test is not installation authorization. Installation remains prohibited until every required gate is evidence-backed GREEN/PASS, unresolved blockers and accepted residual risks are explicitly dispositioned, the final installation plan is reviewed, and the user separately approves that exact plan.
 
 ## 2. Directory structure
 
@@ -66,15 +112,18 @@ This is the **single source of truth** for Audit 2's current status, evidence, c
 
 The audit determines whether the target architecture can be enforced on SteamOS before any installation decision. It includes rootless Podman identity/mount/network/cgroup validation and an explicit comparison of Podman, Distrobox, LXC, LXD, Incus, Docker/Compose and virtual-machine approaches.
 
-### Current Phase 1.4 / Gate 6 status — canonical audit v3.40 (2026-11-10)
+### Current Phase 1.4 / Gate 6 status — canonical audit v3.41 (2026-11-10)
 
 **Installation remains NOT AUTHORIZED.** Functional runtime-test count is 3/5 since the unchanged v3.20 archive checkpoint.
 
-MOUNT-02 Stage C validated the disposable `/app/data` named-volume write/readback and restart persistence. RO-01–RO-03 completed metadata inspections; RO-04 confirmed that a root-identity process with all five inspected capability sets zero receives `EROFS` when creating a file under `/app`, despite owner DAC write permission. The exact probe, volume and Stage C marker remain retained. SIGTERM-to-SIGKILL escalation remains an open lifecycle concern.
+MOUNT-02 Stage C validated disposable `/app/data` named-volume write/readback and restart persistence. RO-01–RO-03 completed metadata inspections; RO-04 confirmed that a root-identity process with all five inspected capability sets zero receives `EROFS` when creating a file under `/app`, despite owner DAC write permission. The exact probe, volume and Stage C marker remain retained. Repeated SIGTERM-to-SIGKILL escalation remains an open lifecycle concern.
 
-The pinned-source follow-up found that ChromaDB is not required for core SQLite/JSON persistence, but backs document RAG, semantic memory and vector-based tool retrieval. If retained, it needs its own internal-only service, `/data` named volume and backup/recovery path. PDF embedded-image processing uses the default temporary-file directory, so writable `/tmp` is justified. No direct app-source use of `/var/tmp` or `/dev/shm` was found in the reviewed files; third-party dependency compatibility remains open.
+The user selected ChromaDB retention as a separate internal-only service, with its own `/data` named volume and independent backup/recovery. The pinned 1.5.9 image remains blocked pending security disposition of CVE-2026-85664 and review of a non-blocked immutable candidate; do not pull or run it. Historical first-installation evidence has since confirmed that the same image digest was previously used with a loopback-only host binding. That history is relevant context, not proof that the advisory is harmless or that the historical deployment was exploitable. Keep the actual exposure path, compensating controls and residual risk explicit.
 
-**Next:** choose ChromaDB retention/exclusion, then finalize temporary-filesystem policy and the Gate 6 mount allowlist. Inspector remains excluded/deferred without a concrete implementation and host path. Do not begin Gate 7 until Gate 6 is formally closed. See canonical audit v3.40 §§12, 18 and 18.10.
+The tmpfs design policy is defined: writable bounded `/tmp`, non-writable `/var/tmp`, and bounded writable `/dev/shm`. Runtime compatibility and tmpfs memory accounting remain open. Inspector remains excluded/deferred without a concrete implementation and host path.
+
+**Next:** continue Gate 6's read-only ChromaDB risk/disposition review, including the historical v1 configuration, and complete tmpfs compatibility planning. Do not begin Gate 7 until Gate 6 is formally closed. See canonical audit v3.41 §§12, 18 and 18.10–18.11.
+
 ### Mandatory continuity protocol
 
 The following rules are mandatory:
