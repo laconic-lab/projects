@@ -289,6 +289,102 @@ Never convert a reported result into a verified result without performing the ch
 - Keep line length and paragraph size comfortable for GitHub's rendered view.
 - Avoid decorative banners, excessive capitalization, emoji-heavy headings and walls of unstructured text.
 
+### 7.1 Raw-source readability and ASCII-resilient Markdown
+
+Markdown remains the default documentation format. Documents should work well in both GitHub's rendered view and their unrendered source form, including when read in a terminal, editor, code review diff or AI-assisted workflow.
+
+This is **ASCII-resilient Markdown**, not ASCII-only documentation. Keep Markdown headings, links, lists, tables and fenced code blocks. Use plain-text diagrams where they communicate structure more clearly than prose or a table. Do not replace useful Markdown features merely to make a file look like a plain-text document.
+
+#### Core requirements
+
+- **Preserve meaning without rendering.** The document's purpose, scope, decisions, warnings, status and essential relationships must remain understandable from the source. Do not make color, emoji, HTML, badges or visual positioning the only carrier of important meaning.
+- **Use a consistent heading hierarchy.** Use one H1 for the document title, then progress through H2 and H3 in order. Do not use bold text as a substitute for headings or skip levels for visual effect. Number headings when numbering helps navigation or stable references; do not add numbering solely for decoration.
+- **Prefer ordinary Markdown syntax.** Use standard heading, list, link, table and fenced-code syntax. Avoid unnecessary escaped punctuation, bold-wrapped headings, embedded HTML and formatting tricks that make source harder to scan.
+- **Keep paragraphs and list items focused.** Use meaningful line breaks between structural elements. Wrap ordinary prose sensibly where it improves diffs and raw reading, but do not reflow historical evidence or alter exact command output merely to satisfy a line-width target.
+- **Use explicit textual status.** Important states must be written as words, not conveyed only by color, icons or badges. Reuse the evidence vocabulary in Section 6 and any stricter project-specific vocabulary.
+- **Distinguish current from historical information.** Label dated observations, superseded procedures, archived records and unverified claims clearly. A source-readable layout must not make historical evidence appear to be current operating guidance.
+- **Make links understandable in source.** Prefer descriptive link text and repository-relative links for files in this repository. Avoid relying on a rendered link's surrounding visual context to explain its destination.
+- **Keep exact technical material exact.** Commands, paths, hashes, identifiers, configuration values and copied evidence must not be wrapped, reformatted or edited in ways that change their meaning. Identify execution context and mutation risk around operational commands.
+
+#### ASCII and plain-text diagrams
+
+Use a fenced `text` code block for diagrams that explain architecture, components, network paths, trust boundaries, data flow, dependencies, process lifecycle or recovery relationships.
+
+A diagram should:
+
+1. Have a clear title or an immediately adjacent explanation.
+2. Use a consistent direction and simple, recognizable connectors.
+3. Label components and boundaries explicitly; do not rely on color or decorative symbols.
+4. Remain reasonably narrow where practical, while prioritizing correctness over an arbitrary character limit.
+5. Distinguish verified implementation from conceptual, proposed or historical architecture.
+6. Be followed by prose when a relationship, exception or security implication is not self-evident.
+
+Example:
+
+```text
+LAN client
+    |
+    | SSH / TCP 22
+    v
+Steam Deck host
+    |
+    +-- OpenSSH service
+    |
+    +-- User session
+          |
+          +-- Project files
+          +-- Isolated workloads
+```
+
+This is an illustrative layout only. A real project diagram must use the project's verified names, boundaries and paths, and state when it represents a proposal rather than an observed implementation.
+
+Do not force every document to contain a diagram. A diagram is useful when it makes relationships or boundaries easier to understand; otherwise, concise prose or a table is preferable.
+
+#### Tables, lists and structured information
+
+- Keep Markdown tables for compact inventories, comparisons, configuration summaries, evidence matrices and document-control metadata.
+- Give each table clear column headings. Keep cells concise and avoid putting long paragraphs, command transcripts or nested lists inside cells.
+- If a table becomes too wide or difficult to read in raw form, consider splitting it by topic or replacing relationship-oriented content with a diagram and explanatory text.
+- Use lists for sequences, requirements, checklists and unordered collections. Use numbered lists when order matters.
+- Do not convert all tables into ASCII-art tables. Markdown tables are more maintainable and render well on GitHub.
+
+#### Navigation and document size
+
+- Short documents generally do not need a table of contents.
+- For long guides, standards and audit records, provide useful navigation when it materially improves discovery. A manually maintained contents list is appropriate only when it can be kept accurate; otherwise use clear heading structure and GitHub heading anchors.
+- Keep opening sections especially informative: document purpose, scope, current status, authority, and important safety or continuation constraints should appear before lengthy detail where relevant.
+- Large living audits should identify the canonical record, current version or record date, continuation rules, evidence vocabulary and final/active disposition near the beginning.
+- Do not add navigation boilerplate to every file. Match the navigation mechanism to the document's length, role and rate of change.
+
+#### Document-specific flexibility
+
+This section defines shared readability principles, not a universal document template.
+
+- **README and index:** prioritize project purpose, current status, architecture at a glance, responsibilities and links to authoritative detail.
+- **Architecture and operations:** use diagrams for component relationships and operational flows; use tables for responsibilities, ports, settings and dependencies.
+- **Security documents:** make trust boundaries, controls, risks, evidence and authorization limits explicit in text as well as diagrams.
+- **Installation, backup and recovery guides:** organize by safe sequence, prerequisites, execution context, expected result, verification and rollback or recovery.
+- **Audits and living evidence records:** preserve chronology, test identifiers, exact results, decisions and limitations. Improve navigation and presentation without rewriting or silently consolidating evidence.
+- **Release notes and archives:** preserve historical wording and chronology where they are part of the record. Do not bulk-reformat archived material for stylistic consistency.
+
+#### Review checks
+
+Before publishing a substantive documentation change, check both the rendered GitHub view and the raw Markdown source where practical.
+
+Confirm that:
+
+- Heading levels and section order are logical.
+- Diagrams remain aligned and understandable in a monospaced view.
+- Tables have not become misleading, excessively wide or needlessly complex.
+- Important status, warnings and authorization boundaries remain explicit without styling.
+- Links and heading references resolve.
+- Commands, paths, hashes, test evidence and historical records have not been unintentionally changed.
+- The rendered and raw views communicate the same meaning.
+
+Prefer targeted improvements over wholesale reformatting. When a document already meets these requirements, preserve it.
+
+---
+
 ## 8. Documentation hierarchy and authority
 
 Use this practical order when documents disagree:
