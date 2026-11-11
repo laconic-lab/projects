@@ -5,6 +5,23 @@
 > **Conversion scope:** Markdown structure and presentation; underlying technical content retained. No Steam Deck audit or runtime revalidation was performed.
 
 
+## Contents
+
+- [Purpose](#purpose)
+- [2026-10-27 — Initial integrated feature baseline](#2026-10-27-initial-integrated-feature-baseline)
+- [Pending work — NOT YET A RELEASE](#pending-work-not-yet-a-release)
+- [Future release entry template](#future-release-entry-template)
+- [2026-10-27 — Naming migration and unified backup system](#2026-10-27-naming-migration-and-unified-backup-system)
+- [2026-10-27 — Lab recovery validation and backup cleanup](#2026-10-27-lab-recovery-validation-and-backup-cleanup)
+- [2026-10-27 — Command Center archive search](#2026-10-27-command-center-archive-search)
+- [2026-10-28 — Shyrka Command Center archive delete selection fix](#2026-10-28-shyrka-command-center-archive-delete-selection-fix)
+- [2026-10-28 — Shyrka Granite generation-limit tuning](#2026-10-28-shyrka-granite-generation-limit-tuning)
+- [2026-10-28 — Shyrka long-response validation follow-up](#2026-10-28-shyrka-long-response-validation-follow-up)
+- [2026-10-28 — Shyrka dashboard input controls and validation](#2026-10-28-shyrka-dashboard-input-controls-and-validation)
+- [2026-10-29 — Shyrka optional ElevenLabs cloud voice](#2026-10-29-shyrka-optional-elevenlabs-cloud-voice)
+
+---
+
 ## Purpose
 Feature-level history for Shyrka, the local LangGraph agent and its dashboard
 inside localai-box. The master platform history is maintained separately in
