@@ -1,11 +1,31 @@
-# **Pi-hole on SteamOS — Security**
+# Pi-hole on SteamOS — Security
 
 **Document:** `pi-hole/docs/SECURITY.md`  
 **Status:** Draft — review required  
 **Scope:** Rootless Podman Pi-hole deployment on SteamOS  
 **Last reviewed:** 2026-11-03
 
-## **1\. Purpose**
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Architecture and trust boundaries](#2-architecture-and-trust-boundaries)
+- [3. Confirmed security configuration](#3-confirmed-security-configuration)
+- [4. Container privilege and capabilities](#4-container-privilege-and-capabilities)
+- [5. Host-wide low-port setting](#5-host-wide-low-port-setting)
+- [6. Network exposure and firewall](#6-network-exposure-and-firewall)
+- [7. Persistent data and filesystem access](#7-persistent-data-and-filesystem-access)
+- [8. Credentials and secrets](#8-credentials-and-secrets)
+- [9. Service lifecycle and automatic startup](#9-service-lifecycle-and-automatic-startup)
+- [10. Updates and image integrity](#10-updates-and-image-integrity)
+- [11. Logging and diagnostics](#11-logging-and-diagnostics)
+- [12. Threat assessment](#12-threat-assessment)
+- [13. Security verification checklist](#13-security-verification-checklist)
+- [14. Approval boundaries](#14-approval-boundaries)
+- [15. Outstanding security items](#15-outstanding-security-items)
+- [16. References](#16-references)
+- [Change history](#change-history)
+
+## 1. Purpose
 
 This document defines the security boundaries, known risks, and operational safeguards for the Pi-hole deployment on the Steam Deck.
 
@@ -24,9 +44,9 @@ Security decisions follow these principles:
 
 This is a deployment-specific security record, not a guarantee that the container or host is immune to compromise.
 
-## **2\. Architecture and trust boundaries**
+## 2. Architecture and trust boundaries
 
-```
+```text
                  LAN: 192.168.1.0/24
                           |
               +-----------+-----------+
@@ -56,7 +76,7 @@ This is a deployment-specific security record, not a guarantee that the containe
                  Persistent host data
 ```
 
-### **Trust boundaries**
+### Trust boundaries
 
 | Component | Trust classification | Security boundary |
 | ----- | ----- | ----- |
@@ -70,7 +90,7 @@ This is a deployment-specific security record, not a guarantee that the containe
 
 The Distrobox named `pihole-box` is used for project organisation and data storage. Its presence does not mean that the Distrobox must be running for the Podman container to operate.
 
-## **3\. Confirmed security configuration**
+## 3. Confirmed security configuration
 
 The following reflects the documented deployment state. It should be rechecked before significant changes.
 
@@ -92,9 +112,9 @@ The following reflects the documented deployment state. It should be rechecked b
 
 A documented setting is not proof that the current live system still has that setting. Verify the active state before relying on it.
 
-## **4\. Container privilege and capabilities**
+## 4. Container privilege and capabilities
 
-### **4.1 Rootless execution**
+### 4.1 Rootless execution
 
 The container is intended to run as a rootless Podman container under the `deck` account.
 
@@ -109,7 +129,7 @@ Do not change the deployment to:
 * Broad host filesystem mounts  
 * Unrestricted host device access
 
-### **4.2 `CAP_NET_ADMIN`**
+### 4.2 `CAP_NET_ADMIN`
 
 The current deployment adds `CAP_NET_ADMIN`.
 
@@ -129,11 +149,11 @@ Do not remove capabilities based only on assumptions.
 
 Reference: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hole.net/docker/configuration/)
 
-## **5\. Host-wide low-port setting**
+## 5. Host-wide low-port setting
 
 The host uses:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
@@ -152,9 +172,9 @@ The setting's continued necessity should be reviewed against the current Podman 
 
 Do not remove or alter it without first establishing whether the current DNS port publishing method still depends on it.
 
-## **6\. Network exposure and firewall**
+## 6. Network exposure and firewall
 
-### **6.1 Published ports**
+### 6.1 Published ports
 
 The documented service bindings are:
 
@@ -169,7 +189,7 @@ The DNS service is intended for LAN clients. The administration interface is int
 
 Do not bind these services to `0.0.0.0` or expose them to the public internet without a separate security assessment.
 
-### **6.2 Firewall policy**
+### 6.2 Firewall policy
 
 The documented firewall uses `firewalld`, with the Ethernet interface in the `public` zone.
 
@@ -187,17 +207,17 @@ The architecture record also identifies broad TCP and UDP port ranges from 1024 
 
 **Unresolved:** Investigate those broad rules before treating the firewall as fully reviewed. Do not remove them without first identifying their origin and purpose.
 
-### **6.3 No public DNS exposure**
+### 6.3 No public DNS exposure
 
 The deployment is not intended to operate as an internet-accessible open resolver.
 
 Do not configure router port forwarding for Pi-hole DNS or its administration interface.
 
-## **7\. Persistent data and filesystem access**
+## 7. Persistent data and filesystem access
 
 The container uses two persistent host directories:
 
-```
+```text
 /home/deck/pihole-box/etc-pihole
     -> /etc/pihole
 
@@ -218,9 +238,9 @@ Security requirements:
 
 The Distrobox directory name does not grant the container permission to access the entire Distrobox or host home directory.
 
-## **8\. Credentials and secrets**
+## 8. Credentials and secrets
 
-### **8.1 API password exposure**
+### 8.1 API password exposure
 
 The Pi-hole API/web password was previously exposed in terminal output.
 
@@ -238,7 +258,7 @@ Required actions:
 
 Do not include the password itself in this document.
 
-### **8.2 Environment variables and inspection output**
+### 8.2 Environment variables and inspection output
 
 Pi-hole supports environment-based configuration, including `FTLCONF_webserver_api_password`.
 
@@ -252,7 +272,7 @@ That does not by itself establish that a particular Podman secret implementation
 
 Reference: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hole.net/docker/configuration/)
 
-### **8.3 Credential handling rules**
+### 8.3 Credential handling rules
 
 * Never place real credentials in GitHub documentation.  
 * Never paste API passwords or provider keys into shared command transcripts.  
@@ -261,7 +281,7 @@ Reference: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hol
 * Restrict permissions on any local secret files.  
 * Back up secrets only through a separately reviewed and protected process.
 
-## **9\. Service lifecycle and automatic startup**
+## 9. Service lifecycle and automatic startup
 
 The architecture record documents a user-level systemd unit named `pihole.service`, with linger enabled.
 
@@ -286,11 +306,11 @@ Before changing startup behaviour, inspect:
 
 Any change to automatic startup or restart behaviour requires explicit approval.
 
-## **10\. Updates and image integrity**
+## 10. Updates and image integrity
 
 The documented container image is:
 
-```
+```bash
 docker.io/pihole/pihole:latest
 ```
 
@@ -317,7 +337,7 @@ Do not combine an image update with unrelated firewall, sysctl, capability, or d
 
 Official image documentation: [https\://docs.pi-hole.net/docker/](https://docs.pi-hole.net/docker/)
 
-## **11\. Logging and diagnostics**
+## 11. Logging and diagnostics
 
 Logs can contain operational details and may expose configuration or credentials if commands are used carelessly.
 
@@ -331,7 +351,7 @@ Diagnostic requirements:
 
 A command that appears to be a status check can still disclose secrets. Treat inspection output as potentially sensitive.
 
-## **12\. Threat assessment**
+## 12. Threat assessment
 
 | Threat | Existing mitigation | Remaining concern |
 | ----- | ----- | ----- |
@@ -346,7 +366,7 @@ A command that appears to be a status check can still disclose secrets. Treat in
 | Unreviewed firewall exposure | `firewalld` active | Broad high-port rules remain unexplained |
 | Malicious or faulty update | Persistent data and manual review process | Mutable `latest` tag reduces reproducibility |
 
-## **13\. Security verification checklist**
+## 13. Security verification checklist
 
 Run checks as read-only inspections first. Do not modify the system merely because a check reports a difference.
 
@@ -367,7 +387,7 @@ Run checks as read-only inspections first. Do not modify the system merely becau
 * Review systemd and Podman restart behaviour.  
 * Confirm that no unrelated host directories or credentials are mounted.
 
-## **14\. Approval boundaries**
+## 14. Approval boundaries
 
 The following actions require explicit approval before execution:
 
@@ -384,7 +404,7 @@ The following actions require explicit approval before execution:
 
 Read-only inspection and documentation review may be performed first.
 
-## **15\. Outstanding security items**
+## 15. Outstanding security items
 
 | Item | Status |
 | ----- | ----- |
@@ -399,14 +419,14 @@ Read-only inspection and documentation review may be performed first.
 
 These items must remain visible as unresolved until supported by evidence.
 
-## **16\. References**
+## 16. References
 
 * Pi-hole Docker documentation: [https\://docs.pi-hole.net/docker/](https://docs.pi-hole.net/docker/)  
 * Pi-hole Docker configuration: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hole.net/docker/configuration/)  
 * Pi-hole FTL configuration: [https\://docs.pi-hole.net/ftldns/configfile/](https://docs.pi-hole.net/ftldns/configfile/)  
 * Podman documentation: [https\://docs.podman.io/](https://docs.podman.io/)
 
-## **Change history**
+## Change history
 
 | Date | Change |
 | ----- | ----- |
