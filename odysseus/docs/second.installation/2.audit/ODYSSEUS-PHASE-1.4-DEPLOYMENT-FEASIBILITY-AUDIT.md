@@ -3,8 +3,8 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.41  
-> **Record date:** 2026-11-10  
+> **Version:** 3.42  
+> **Record date:** 2026-11-11  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
@@ -2822,7 +2822,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.41. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.42. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling. Actual installation still requires separate approval of the exact plan.
 
@@ -2884,7 +2884,7 @@ Status meanings: **ESTABLISHED** = supported by current evidence; **PROPOSED** =
 | DB-02 | Ensure SQLAlchemy `DATABASE_URL` resolves to exactly `/app/data/app.db`; candidate explicit URL: `sqlite:////app/data/app.db`. Leave it unset only if the pinned default is retained and verified. | REQUIRED; inspect engine URL and actual opened DB path; prove no duplicate DB. |
 | DB-03 | Keep other persistent state under the same root unless a separately justified store is approved. | REQUIRED; enumerate constants and runtime write paths. |
 | DB-04 | Do not invoke upstream `setup.py` during startup. | REQUIRED; inspect image and entrypoint. |
-| DB-05 | Decide whether ChromaDB is omitted (accept degraded/unavailable vector memory and RAG) or retained as a separately secured service with its own volume, network and backup policy. | UNRESOLVED; record explicit feature decision. |
+| DB-05 | Retain ChromaDB as a separately secured internal-only service with its own `/data` named volume, private app-to-Chroma network path, no host-published port and independent backup/recovery. | **ACCEPTED architecture decision** (user-selected; §18.11). The exact 1.5.9 image pin is separately **BLOCKED** by CVE-2026-85664; no pull/run. |
 | DB-06 | Prefer stdout/stderr logging initially; verify actual logger destinations rather than assuming separate `/app/logs` is required. | PROPOSED; inspect and test log paths. |
 
 #### C. Startup and first-admin bootstrap
@@ -5726,6 +5726,8 @@ STOP_EXIT_CODE=0
 
 ### 18.10 Gate 6 follow-up source review — ChromaDB and temporary filesystem paths (2026-11-10)
 
+> **Historical decision state — SUPERSEDED by §18.11 (2026-11-10).** The source findings and tmpfs observations below remain valid. The proposal/request to choose whether to retain ChromaDB is no longer current: the user selected retention as a separate internal-only service. The later security review blocks only the 1.5.9 image pin, not the architecture decision.
+
 **Review type:** READ-ONLY SOURCE REVIEW at the exact Phase 1.4 source pin. No Steam Deck commands, application execution, container/resource changes, image pulls, builds, dependency downloads or host changes were performed.
 
 **Question:** Does the pinned application require ChromaDB for core persistence or only for vector features, and which writable temporary paths are directly justified by application code?
@@ -5773,9 +5775,9 @@ STOP_EXIT_CODE=0
 4. Preserve the current bounded `/dev/shm` behavior provisionally until native dependency compatibility is reviewed; no additional writable shared-memory path is approved.
 5. Keep Inspector excluded and do not mount a host path for it.
 
-**Status:** Source/design evidence only, not a runtime test. Functional runtime-test accounting remains **3/5 since v3.20**. No archive snapshot is due. Gate 6 remains OPEN pending the user's ChromaDB feature decision, final tmpfs policy and mount allowlist approval. Installation remains **NOT AUTHORIZED**.
+**Status:** Source/design evidence only, not a runtime test. Functional runtime-test accounting remains **3/5 since v3.20**. No archive snapshot was due at that point. Gate 6 remained OPEN pending the Chroma feature decision, final tmpfs policy and mount allowlist approval. Installation remained **NOT AUTHORIZED**.
 
-**Next decision requested:** choose whether the initial profile retains ChromaDB as a separate internal-only service (preserving vector RAG/memory/tool retrieval) or deliberately excludes it (accepting those feature degradations). No ChromaDB image pull, container, volume or network may be created before separate explicit approval.
+> **Decision request above — SUPERSEDED by §18.11.** The user selected ChromaDB retention as a separate internal-only service. Do not ask the retention question again. The current blocker is the exact 1.5.9 image pin, not the architectural choice. No image pull, container, volume or network is authorized.
 
 ### 18.11 Gate 6 — Chroma image security review and finalized tmpfs policy (2026-11-10)
 
@@ -5819,8 +5821,48 @@ The 256 MiB `/tmp` cap is a design ceiling, **not** a memory reservation or evid
 - Functional runtime-test count remains **3/5 since v3.20**. This source/advisory review is not a runtime test. No archive snapshot is due.
 - Installation remains **NOT AUTHORIZED**. No image pull, build, container, volume, network or other resource creation is authorized.
 
+### 18.12 Historical first-installation ChromaDB baseline and decision reconciliation (2026-11-11)
+
+**Review type:** READ-ONLY DOCUMENTATION RECONCILIATION. The archived first-installation transcript and current Phase 1.4 records were compared. No Steam Deck commands, application execution, image pulls, builds, container/resource changes or host changes were performed.
+
+**Historical source:** `odysseus/docs/aborted.first_installation/archive/originals/First Install only for references_1.0.Odysseus - Local AI, Agent Orchestrator.txt` (repository file; blob SHA `4600675c26205517252fd98a8f57bb7471a8c5f1`).
+
+#### Historical configuration and observed controls
+
+| Item | Archived evidence | Interpretation and limit |
+|---|---|---|
+| Image identity | Historical Compose and runtime command specify `docker.io/chromadb/chroma:1.5.9@sha256:1e0b73a187a28757c572acba508c46f48c9e8b0acaf5c20e6d95cdedce1acdf6` (archive lines 2603–2609 and 6051–6073). | The digest is the same multi-platform index digest now blocked in §18.11. This establishes historical use of the same immutable image identity, not its safety. |
+| Published endpoint | Compose default was `${CHROMADB_BIND:-127.0.0.1}:8100:8000`; the recorded runtime command explicitly used `-p 127.0.0.1:8100:8000` (lines 2609 and 6051–6073). | The archived host inspection later reported a listener on `127.0.0.1:8100` (line 8546). This is evidence of loopback binding at that inspection, not a complete proof that every possible access path was unreachable. |
+| Persistence | Compose used a dedicated `chromadb-data:/data` volume (lines 2613–2619). The actual recorded `podman run` used host bind path `/home/deck/OdysseusProject/data/chromadb:/data` (lines 6051–6073). | Historical runtime storage was a host bind mount, not the current proposed Podman named-volume design. The directory was recorded as owned by `deck` with mode 0755 (lines 6035–6048). Do not treat this as proof of the current volume/UID design. |
+| Telemetry | `ANONYMIZED_TELEMETRY=FALSE` was set in Compose and the recorded runtime command (lines 2619–2622 and 6051–6073). | A configuration setting, not an independent network-level telemetry test. |
+| Restart behavior | Compose and initial `podman run` used `unless-stopped`. The transcript records an explicit change using `podman update --restart=no`, followed by inspection reporting `Restart policy: no` (lines 8525–8587; later verification also appears at lines 11427–11585). | The final documented policy was manual-start/no automatic restart, consistent with the user's operational preference. The initial configuration was not consistent until changed. |
+| Firewall context | The archived public-zone output showed broad TCP/UDP port ranges `1024-65535`; the transcript separately recorded the Chroma listener bound to loopback (lines 8525–8546). | The broad firewall rule is not a Chroma-specific allow rule and should not be presented as a compensating control for Chroma. The loopback socket binding is the relevant recorded exposure control for the published endpoint. No exhaustive historical adversarial reachability test is claimed. |
+
+#### Security interpretation
+
+1. The historical deployment used the **same Chroma 1.5.9 digest** that is now blocked by CVE-2026-85664. The advisory's unauthenticated memory-exhaustion condition is therefore relevant to the historical software version as well as the current proposed pin.
+2. The historical host inspection recorded a loopback-only published listener at `127.0.0.1:8100`. This materially reduced direct LAN exposure through that published socket compared with a wildcard/LAN bind. It does **not** prove the service was safe against local processes, compromised Odysseus components, prompt-injection-driven use of legitimate application paths, or every other possible network path.
+3. The transcript documents a host bind mount for persistence and a later change to restart policy `no`. These operational choices do not mitigate the HNSW parameter vulnerability itself.
+4. No Chroma compromise, exploitation, memory-exhaustion incident or data loss is documented in the reviewed historical record. Absence of a recorded incident is not evidence that the vulnerable condition was unexploitable or that the service was never exposed through another path.
+5. The current Phase 1.4 architecture remains different: Chroma is selected as a separate internal-only service with a dedicated named volume at `/data`, no host-published port and independent backup/recovery. These are **design decisions**, not runtime-verified controls. The exact 1.5.9 image remains **BLOCKED — DO NOT PULL OR RUN**.
+
+#### Current decision ledger — authoritative
+
+| Question | Current disposition |
+|---|---|
+| Retain ChromaDB for vector RAG, semantic memory and vector-based tool retrieval? | **ACCEPTED** — user selected retention. |
+| Chroma deployment shape? | **ACCEPTED DESIGN** — separate internal-only service, dedicated `/data` named volume, private app-to-Chroma network path, no host-published port, independent backup/recovery. Runtime implementation remains untested and unauthorized. |
+| Use the exact 1.5.9 image digest? | **BLOCKED — DO NOT PULL OR RUN** pending a fixed, release-pinned candidate and fresh applicability/security review. |
+| Treat historical loopback binding as proof the CVE was harmless? | **NO** — it is a compensating exposure reduction for one observed path, not a vulnerability fix or complete containment proof. |
+| Re-ask whether Chroma should be retained? | **NO** — that decision is settled. |
+
+**Superseded records:** §18.10's “Next decision requested” is historical and superseded by the accepted retention decision in §18.11. The DR-02 checklist row DB-05 is updated to reflect that decision. Earlier README checkpoint text that said the retention choice was undecided must be read as historical, not current.
+
+**Next dependency:** find and review a non-blocked, immutable Chroma release; separately complete Gate 6 mount/runtime compatibility. Do not pull an image, build, create resources or begin Gate 7 until Gate 6 is formally closed. Functional runtime-test count remains **3/5 since v3.20**; this documentation reconciliation is not a runtime test. No archive snapshot is due. Installation remains **NOT AUTHORIZED**.
+
 ## 19. Change log
 
+| 3.42 | 2026-11-11 | Added §18.12 read-only reconciliation of the archived first-installation ChromaDB baseline: same 1.5.9 digest, loopback-only published listener observed at 127.0.0.1:8100, historical host bind mount, telemetry setting, initial unless-stopped policy later changed to no, and broad firewall-range limitation. Explicitly distinguished historical exposure reduction from vulnerability mitigation or proof of harmlessness; recorded no documented incident as absence of evidence, not proof of safety. Marked §18.10's retain/omit request superseded, updated DR-02 DB-05 to the accepted retention decision, and updated the current handoff/version. Gate 6 remains OPEN; 1.5.9 remains BLOCKED — DO NOT PULL OR RUN; runtime counter remains 3/5; no runtime test, image pull, resource or host change. Installation remains NOT AUTHORIZED. |
 | 3.41 | 2026-11-10 | Recorded the user's decision to retain ChromaDB as a separate internal-only service and completed a read-only review of the pinned 1.5.9 image's public digest, upstream Rust Dockerfile/config and vulnerability evidence. CVE-2026-85664 blocks the exact 1.5.9 image pin; explicitly prohibited pull/run while retaining the architecture decision. Defined the tmpfs design policy: `/tmp` bounded 256 MiB rw,nosuid,nodev,noexec; `/var/tmp` non-writable; `/dev/shm` bounded at 65,536,000 bytes rw,nosuid,nodev,noexec. Gate 6 remains OPEN pending a non-blocked Chroma image candidate and runtime compatibility; Gate 7 must account for tmpfs memory. No runtime test, image pull, build, resource creation or host change; runtime counter remains 3/5. Installation remains NOT AUTHORIZED. |\n| 3.39 | 2026-11-10 | Recorded MOUNT-02-RO-04 functional negative-write PASS: UID/GID 0:0, all five inspected capability sets zero, `/app` owner 0:0 mode 1755; exclusive create returned errno 30 / EROFS and marker remained absent. Exact container stopped and verified; SIGTERM timed out and Podman escalated to SIGKILL. Functional runtime-test counter advances from 2/5 to 3/5 since unchanged v3.20. Updated Gate 6 and handoff; ChromaDB and writable tmpfs policy remain open; Inspector deferred. Installation remains NOT AUTHORIZED. |\n| 3.38 | 2026-11-10 | Recorded MOUNT-02-RO-03 root identity/capability inspection PASS: UID/GID 0:0, all five inspected capability sets zero, `/app` owner 0:0 mode 1755; no write attempted. Read-only inspection only; functional runtime-test counter remains 2/5. |\n| 3.37 | 2026-11-10 | Recorded MOUNT-02-RO-02 live mount and path metadata inspection: UID/GID 1000:1000; /tmp, /var/tmp and /dev/shm are separate writable tmpfs mounts; /app is read-only fuse-overlayfs (mount ro and statvfs RO) but mode 1755 is DAC-confounded for a negative-write test; /app/data is separate writable ext4 named volume. Probe stopped and verified; SIGTERM timed out after 5 seconds and Podman escalated to SIGKILL. No writes. Acceptance-test counter remains 2/5; installation NOT AUTHORIZED. |
 | 3.36 | 2026-11-09 | Recorded MOUNT-02-RO-01 read-only mount/tmpfs/image-volume/rootfs-diff inventory: exact stopped container verified; one explicit RW named volume at /app/data; Tmpfs empty; ShmSize 65536000 recorded without claiming live /dev/shm behavior; no image-declared volumes; rootfs diff only A /app and A /app/data. Runtime negative writes and temporary-path permissions remain untested. Runtime counter remains 2/5; installation NOT AUTHORIZED. |
 | 3.35 | 2026-11-09 | Recorded MOUNT-02 Stage C runtime PASS for the exact disposable probe: /app/data mount activated; runtime UID/GID 1000:1000; marker write/readback and ownership passed; content and ownership persisted across restart. Preserved both SIGTERM timeout/SIGKILL escalations and final exited state. Container, volume and marker retained. Runtime counter advanced to 2/5 since v3.20; Gate 6 remains open for unresolved Inspector/negative-write/application compatibility questions; installation NOT AUTHORIZED. |
