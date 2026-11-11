@@ -1,29 +1,61 @@
 # SSH on SteamOS — Architecture & Operations
 
-**Project:** Steam Deck LAN SSH administration  
-**Host:** Steam Deck OLED — SteamOS — `Laco`  
-**Account:** `deck` (UID 1000)  
-**Status:** Existing configuration audited  
-**Last audited:** 2026-11-06
+| Document control | Value |
+|---|---|
+| Project | Steam Deck LAN SSH administration |
+| Host | Steam Deck OLED — SteamOS — `Laco` |
+| Account | `deck` (UID 1000) |
+| Status | Existing configuration audited |
+| Last audited | 2026-11-06 |
 
 ## 1. Purpose
 
 This document describes the observed host OpenSSH configuration, LAN access model, firewall integration, and adjacent SteamOS development services. It documents the existing system; it is not authorization to change it.
 
+## Contents
+
+- [Purpose](#1-purpose)
+- [Architecture](#2-architecture)
+- [Host and network profile](#3-host-and-network-profile)
+- [OpenSSH service](#4-openssh-service)
+- [Effective settings](#5-effective-settings)
+- [Client keys and host identity](#6-client-keys-and-host-identity)
+- [Firewall integration](#7-firewall-integration)
+- [SteamOS Devkit — separate component](#8-steamos-devkit--separate-component)
+- [Operational inspection](#9-operational-inspection)
+- [Findings and pending review](#10-findings-and-pending-review)
+- [Evidence limits](#11-evidence-limits)
+
 Operating principles: diagnose before modifying; prefer read-only inspection; preserve working access and existing keys; back up before approved changes; never publish private keys or secrets; distinguish OpenSSH from SteamOS Devkit.
 
 ## 2. Architecture
 
-```
-Linux Mint client (192.168.1.169) --+
-                                    +-- LAN / TCP 22 --> firewalld
-Windows client --------------------+                    |
-                                                         v
-Steam Deck OLED / Laco (192.168.1.161) <------------- sshd
-                                                         |
-                                                  user: deck
-                                                         |
-                                          ~/.ssh/authorized_keys
+```text
+VERIFIED SOURCE-RESTRICTED CLIENT PATH
+
+Linux Mint client (192.168.1.169)
+          |
+          | LAN / TCP 22
+          v
+firewalld -- SSH rich rule permits 192.168.1.169/32
+          |
+          v
+sshd (Steam Deck OLED / Laco, 192.168.1.161)
+          |
+          v
+user: deck
+          |
+          v
+~/.ssh/authorized_keys
+
+WINDOWS CLIENT PATH — NOT FULLY ESTABLISHED BY THE AUDIT
+
+Windows client
+      |
+      | Intended LAN / TCP 22 access
+      v
+firewalld / sshd
+      `-- Current source address and firewall reachability not established
 ```
 
 The firewall SSH rich rule specifically permits source `192.168.1.169/32`. A Windows public key is present, but the audit did not establish the Windows PC's current source address or prove its firewall reachability.
