@@ -112,7 +112,7 @@ This is the **single source of truth** for Audit 2's current status, evidence, c
 
 The audit determines whether the target architecture can be enforced on SteamOS before any installation decision. It includes rootless Podman identity/mount/network/cgroup validation and an explicit comparison of Podman, Distrobox, LXC, LXD, Incus, Docker/Compose and virtual-machine approaches.
 
-### Current Phase 1.4 / Gate 6 status — canonical audit v3.45 (2026-11-11)
+### Current Phase 1.4 / Gate 6 status — canonical audit v3.46 (2026-11-11)
 
 **Installation remains NOT AUTHORIZED.** Functional runtime-test count is 3/5 since the unchanged v3.20 archive checkpoint.
 
@@ -122,7 +122,7 @@ The user selected ChromaDB retention as a separate internal-only service, with i
 
 The tmpfs design policy is defined: writable bounded `/tmp`, non-writable `/var/tmp`, and bounded writable `/dev/shm`. Runtime compatibility and tmpfs memory accounting remain open. Inspector remains excluded/deferred without a concrete implementation and host path.
 
-**Next:** CHROMA-RELEASE-REVIEW-01 found no fixed stable candidate; the reviewed official release page still lists 1.5.9 as latest stable, while 1.5.10 tags observed are development builds. Upstream `main` contains HNSW resource-bound validation, but no reviewed stable image is confirmed to include it. Keep 1.5.9 blocked; do not pull/run it or substitute a development tag. The targeted pinned-source temp review found PDF OCR/rendering and video-frame extraction use Python temporary files; the 256 MiB `/tmp` ceiling remains provisional and unvalidated. Continue read-only Gate 6 review, including concurrency/capacity assumptions and failure behavior, while rechecking official releases for a fixed stable Chroma candidate. The retention decision is settled; do not repeat it. See canonical audit v3.45 §§12 and 18.11–18.14. Do not begin Gate 7 until Gate 6 is formally closed.
+**Next:** CHROMA-RELEASE-REVIEW-01 found no fixed stable candidate; the reviewed official release page still lists 1.5.9 as latest stable, while 1.5.10 tags observed are development builds. Upstream `main` contains HNSW resource-bound validation, but no reviewed stable image is confirmed to include it. Keep 1.5.9 blocked; do not pull/run it or substitute a development tag. The targeted pinned-source review confirms PDF/video temporary-file use and shows the 256 MiB `/tmp` ceiling is unproven: media-tool paths allow up to 64 video observations or 12 PDF pages, and no global concurrency bound was established in the reviewed paths. Continue read-only Gate 6 review to define an enforceable concurrency/workload envelope and safe full-tmpfs behavior while rechecking official releases for a fixed stable Chroma candidate. The retention decision is settled; do not repeat it. See canonical audit v3.46 §§12 and 18.11–18.14. Do not begin Gate 7 until Gate 6 is formally closed.
 
 ### Mandatory continuity protocol
 
