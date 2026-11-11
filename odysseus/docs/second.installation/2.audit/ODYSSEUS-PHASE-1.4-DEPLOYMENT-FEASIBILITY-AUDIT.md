@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.44  
+> **Version:** 3.45  
 > **Record date:** 2026-11-11  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2822,7 +2822,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.44. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.45. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling. Actual installation still requires separate approval of the exact plan.
 
@@ -5886,12 +5886,38 @@ The 256 MiB `/tmp` cap is a design ceiling, **not** a memory reservation or evid
 **Gate status:** Gate 6 remains **OPEN**. No image candidate accepted; no image pulled; no runtime test or resource change. Functional runtime-test counter remains **3/5 since v3.20**. No five-test archive snapshot is due. Installation remains **NOT AUTHORIZED**.
 
 ---
+## 18.14 Gate 6 temporary-filesystem compatibility — targeted pinned-source review (2026-11-11)
+
+**Review type:** READ-ONLY source review at the exact Phase 1.4 pin `odysseus-dev/odysseus@1c1509094963f9eb9445928d57f2856296057cf4`. No Steam Deck commands, builds, image pulls, container execution, dependency downloads, resource creation or host changes.
+
+### Files and observed temporary-path behavior
+
+| Pinned source | Evidence | Interpretation / limit |
+|---|---|---|
+| [`src/agent_tools/media_tools.py`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/src/agent_tools/media_tools.py), blob `e5915e4f5bffb04b48b4926100d9758472182985` | Uses Python `tempfile.TemporaryDirectory` for PDF OCR page images (up to 12 pages per call) and video-frame extraction; uses `NamedTemporaryFile` for rendered PDF page images. | These paths follow Python's default temporary-directory selection unless overridden by environment/configuration. The reviewed Dockerfile does not set `TMPDIR`; `/tmp` is therefore the intended default path in the proposed container. This is source review, not runtime confirmation. |
+| [`src/media_ingress.py`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/src/media_ingress.py), blob `1761d1f261ce4225f4a86c914753d119ecdd791f` | Uses `TemporaryDirectory` to extract video frames, with active media limits controlling frame selection and aggregate encoded output. | Confirms a second application path uses temporary storage. The source limits bound selected work/output but do not establish a universal byte ceiling for all intermediate frame files. |
+| [`src/document_processor.py`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/src/document_processor.py), blob `3c8d824337d3a3ba23186f120891223ff5e9c965` | Uses `NamedTemporaryFile` for extracted PDF embedded images and removes the temporary file in a `finally` path. | Cleanup is attempted on the normal/error path; a process crash or forced termination can still leave files until the tmpfs is destroyed. No direct `/var/tmp` or `/dev/shm` reference was found in these reviewed runtime files. |
+| [`routes/document/document_routes.py`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/routes/document/document_routes.py), blob `5dbec707766255513b96e495786878a001b0ae34` | Document conversion creates a `TemporaryDirectory` and isolated LibreOffice profile. The route returns 503 if `soffice`/`libreoffice` is unavailable; the reviewed Dockerfile does not install LibreOffice. | Treat conversion as unavailable in this image unless a separately approved image/runtime change adds and validates the executable. Do not infer that the temp path is exercised in the proposed image solely because the route exists. |
+| [`Dockerfile`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/Dockerfile), blob `fe6a6792fb0d706bfe944a17e33ab8c58d0b8781` | Installs application requirements and optional extras but defines no `TMPDIR` environment setting; build-time uses of `/tmp` are unrelated to the running container's temp workload. | Supports `/tmp` as the intended default runtime temporary directory, but does not prove the actual tmpfs mount, flags, free capacity or dependency compatibility. |
+
+### Gate 6 disposition
+
+1. Keep the proposed `/tmp` policy at `rw,nosuid,nodev,noexec,mode=1777,size=256MiB` as a **provisional design ceiling**, not an accepted capacity result. PDF page rendering/OCR and video processing both write temporary image/frame files; source-level page/frame/output limits do not prove 256 MiB is sufficient for all allowed inputs or concurrency.
+2. Do not make `/var/tmp` writable merely to accommodate uncertainty. No direct use was found in the targeted runtime files; the review was not an exhaustive dependency/syscall trace.
+3. Keep `/dev/shm` bounded and `noexec` as designed, but do not claim compatibility or necessity proven: no direct use was found in the targeted application files and third-party/native dependency behavior remains unverified.
+4. Before Gate 6 closure, define the intended maximum concurrent PDF/video work and a safe failure behavior when temporary storage is exhausted. Validate mount flags and real workload capacity only after the exact approved image and runtime plan exist and a separately approved experiment is authorized.
+5. This source review does not close Gate 6 because the fixed stable Chroma image remains unidentified, the final image/runtime contract is not testable yet, and tmpfs sizing/compatibility remain unresolved. Gate 7 remains blocked until Gate 6 formally closes.
+
+**Result:** targeted source findings recorded; no runtime test, image pull, build, resource creation or host change. Functional runtime-test counter remains **3/5 since v3.20**. No archive snapshot is due. Installation remains **NOT AUTHORIZED**.
+
+---
 ## 19. Change log
 
 Entries are ordered by version, newest first. Each row records one canonical-document revision; runtime-test results are distinguished from read-only reviews and documentation-only changes in the entry text.
 
 | Version | Date | Change |
 |---|---|---|
+| 3.45 | 2026-11-11 | Added §18.14 targeted read-only temporary-filesystem compatibility review at the exact Phase 1.4 source pin. Recorded Python tempfile use for PDF OCR/rendering and video-frame extraction, source blob identities, absence of TMPDIR in the reviewed Dockerfile, and the limit of source-only evidence for the 256 MiB `/tmp` cap. Kept `/tmp` capacity provisional, `/var/tmp` non-writable, and `/dev/shm` bounded pending final image/runtime and workload validation. Gate 6 remains OPEN; Chroma 1.5.9 remains blocked and no fixed stable candidate was found in §18.13. No runtime test, image pull, build, resource creation or host change; counter remains 3/5 since v3.20; no archive snapshot due. Installation remains NOT AUTHORIZED. |
 | 3.44 | 2026-11-11 | Added §18.13 CHROMA-RELEASE-REVIEW-01 after read-only official release/registry and upstream source review. No fixed stable release candidate was identified: 1.5.9 remains the latest stable release in the reviewed release page, while observed 1.5.10 tags are development builds. Confirmed upstream `main` contains HNSW resource-bound validation at commit `fd5a216ac3cc94451f1a010725ad68454e8c2809`, but did not treat that as proof a stable image includes the fix. Kept 1.5.9 BLOCKED — DO NOT PULL OR RUN; next step is read-only Gate 6 mount/runtime review independent of the final Chroma image. No image pull, build, runtime test, resource creation or host change; functional runtime-test count remains 3/5 since v3.20; no archive snapshot due. Installation remains NOT AUTHORIZED. |
 | 3.43 | 2026-11-11 | Recovered and restored the missing historical §19 entries for v3.40 and v3.33 from their corresponding prior canonical audit revisions and verified the original descriptions against GitHub commits `778163efda22d2f73713bfac8daa01c6c48a9bd7` and `73fe9e9b74c3a1cd62785f0ada677e79dd9202ff`. Historical descriptions were preserved verbatim. No test, runtime resource, image, build or host action; functional runtime-test count remains 3/5 since v3.20. Installation remains NOT AUTHORIZED. |
 | 3.42 | 2026-11-11 | Added §18.12 read-only reconciliation of the archived first-installation ChromaDB baseline: same 1.5.9 digest, loopback-only published listener observed at 127.0.0.1:8100, historical host bind mount, telemetry setting, initial unless-stopped policy later changed to no, and broad firewall-range limitation. Explicitly distinguished historical exposure reduction from vulnerability mitigation or proof of harmlessness; recorded no documented incident as absence of evidence, not proof of safety. Marked §18.10's retain/omit request superseded, updated DR-02 DB-05 to the accepted retention decision, and updated the current handoff/version. Gate 6 remains OPEN; 1.5.9 remains BLOCKED — DO NOT PULL OR RUN; runtime counter remains 3/5; no runtime test, image pull, resource or host change. Installation remains NOT AUTHORIZED. |
