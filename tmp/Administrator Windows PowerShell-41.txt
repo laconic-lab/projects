@@ -1,0 +1,300 @@
+PS C:\> $ErrorActionPreference = "Continue"
+PS C:\>
+PS C:\> Write-Output "===== TEST-61: WUSA EXTRACTION DIAGNOSTICS ====="
+===== TEST-61: WUSA EXTRACTION DIAGNOSTICS =====
+PS C:\>
+PS C:\> $destination = "C:\KB5132061-Extract-TEST59"
+PS C:\> $startTime = [datetime]"2026-11-11 20:35:00"
+PS C:\> $endTime   = [datetime]"2026-11-11 21:15:00"
+PS C:\>
+PS C:\> Write-Output "`n===== 1. DESTINATION DIRECTORY ====="
+
+===== 1. DESTINATION DIRECTORY =====
+PS C:\>
+PS C:\> if (Test-Path -LiteralPath $destination -PathType Container) {
+>>     $files = @(
+>>         Get-ChildItem -LiteralPath $destination -Force -Recurse -File `
+>>             -ErrorAction SilentlyContinue
+>>     )
+>>
+>>     $totalBytes = ($files | Measure-Object -Property Length -Sum).Sum
+>>     if ($null -eq $totalBytes) {
+>>         $totalBytes = 0
+>>     }
+>>
+>>     Write-Output "Directory exists: YES"
+>>     Write-Output "Recursive file count: $($files.Count)"
+>>     Write-Output "Total file bytes: $totalBytes"
+>>
+>>     Get-ChildItem -LiteralPath $destination -Force -Recurse |
+>>         Select-Object FullName, Length, LastWriteTime, Attributes |
+>>         Format-Table -AutoSize
+>> }
+Directory exists: YES
+Recursive file count: 0
+Total file bytes: 0
+PS C:\> else {
+>>     Write-Output "Directory exists: NO"
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\>
+PS C:\> Write-Output "`n===== 2. WUSA PROCESS STATUS ====="
+
+===== 2. WUSA PROCESS STATUS =====
+PS C:\>
+PS C:\> Get-Process -Name wusa -ErrorAction SilentlyContinue |
+>>     Select-Object Id, ProcessName, StartTime, CPU, Responding |
+>>     Format-List
+PS C:\>
+PS C:\> if (-not (Get-Process -Name wusa -ErrorAction SilentlyContinue)) {
+>>     Write-Output "No running WUSA process found."
+>> }
+No running WUSA process found.
+PS C:\>
+PS C:\> Write-Output "`n===== 3. APPLICATION EVENT LOG ====="
+
+===== 3. APPLICATION EVENT LOG =====
+PS C:\>
+PS C:\> try {
+>>     Get-WinEvent -FilterHashtable @{
+>>         LogName   = "Application"
+>>         StartTime = $startTime
+>>         EndTime   = $endTime
+>>     } -ErrorAction Stop |
+>>         Where-Object {
+>>             $_.ProviderName -match "WUSA|WindowsUpdate|Servicing" -or
+>>             $_.Message -match "KB5132061|wusa.exe|Windows Update Standalone"
+>>         } |
+>>         Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+>>         Format-List
+>> }
+>> catch {
+>>     Write-Output "Application log query: $($_.Exception.Message)"
+>> }
+Application log query: No events were found that match the specified selection criteria.
+PS C:\>
+PS C:\> Write-Output "`n===== 4. SYSTEM EVENT LOG ====="
+
+===== 4. SYSTEM EVENT LOG =====
+PS C:\>
+PS C:\> try {
+>>     Get-WinEvent -FilterHashtable @{
+>>         LogName   = "System"
+>>         StartTime = $startTime
+>>         EndTime   = $endTime
+>>     } -ErrorAction Stop |
+>>         Where-Object {
+>>             $_.ProviderName -match "WUSA|WindowsUpdate|Servicing" -or
+>>             $_.Message -match "KB5132061|wusa.exe|Windows Update Standalone"
+>>         } |
+>>         Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+>>         Format-List
+>> }
+>> catch {
+>>     Write-Output "System log query: $($_.Exception.Message)"
+>> }
+System log query: No events were found that match the specified selection criteria.
+PS C:\>
+PS C:\> Write-Output "`n===== 5. WINDOWS UPDATE OPERATIONAL LOG ====="
+
+===== 5. WINDOWS UPDATE OPERATIONAL LOG =====
+PS C:\>
+PS C:\> $updateLog = "Microsoft-Windows-WindowsUpdateClient/Operational"
+PS C:\>
+PS C:\> try {
+>>     Get-WinEvent -FilterHashtable @{
+>>         LogName   = $updateLog
+>>         StartTime = $startTime
+>>         EndTime   = $endTime
+>>     } -ErrorAction Stop |
+>>         Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+>>         Format-List
+>> }
+>> catch {
+>>     Write-Output "Windows Update Operational log query: $($_.Exception.Message)"
+>> }
+Windows Update Operational log query: No events were found that match the specified selection criteria.
+PS C:\>
+PS C:\> Write-Output "`n===== 6. CBS LOG CORRELATION ====="
+
+===== 6. CBS LOG CORRELATION =====
+PS C:\>
+PS C:\> $cbsLog = "$env:windir\Logs\CBS\CBS.log"
+PS C:\>
+PS C:\> if (Test-Path -LiteralPath $cbsLog) {
+>>     Select-String -Path $cbsLog `
+>>         -Pattern "KB5132061|wusa.exe|WUSA|0x800f0993|ftpsvc.dll" |
+>>         Select-Object -Last 80 |
+>>         ForEach-Object { $_.Line }
+>> }
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:44, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Servicing\Packages\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:26:45, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\Microsoft-Windows-ServicingStack-Base-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.1.mum in directory local source
+2026-11-11 20:27:09, Info                  SXS    Introducing a SIL redirection for root \??\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64
+2026-11-11 20:27:09, Info                  CBS    Exec: Added modified marker file: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\payload-modified.cbs
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5043080-x64\WinSxS\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\WinSxS\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Package_for_RollupFix~~amd64~~26100.9974.1.23\WinSxS\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5043080-x64\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Exec: Not able to find \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Package_for_RollupFix~~amd64~~26100.9974.1.23\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll in directory local source
+2026-11-11 20:27:10, Info                  CBS    Source: Moved file \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Package_for_RollupFix~~amd64~~26100.9974.1.23\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\f\ftpsvc.dll to \\?\C:\WINDOWS\CbsTemp\31289874_1910092147\amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\f\ftpsvc.dll
+2026-11-11 20:27:10, Info                  SXS        C(8) Staging ftpsvc.dll (FD)
+2026-11-11 20:27:10, Info                  CSI    0000002e Reverse delta missing for file ftpsvc.dll, component Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.9974, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35} but ignoring missing file since the flag is set
+2026-11-11 20:27:10, Info                  SXS    Could not find a path to hydrate file ftpsvc.dll from Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.9818, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35} to Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.9974, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35} failed.: 800f0993 [Error,Facility=(000f),Code=2451 (0x0993)]
+2026-11-11 20:27:10, Info                  SXS    Could not find a path to hydrate file ftpsvc.dll from Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.1150, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35} to Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.9974, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35} failed.: 800f0993 [Error,Facility=(000f),Code=2451 (0x0993)]
+2026-11-11 20:27:10, Error                 SXS    Could not hydrate ftpsvc.dll for Microsoft-Windows-IIS-FTPSvc, version 10.0.26100.9974, arch amd64, nonSxS, pkt {l:8 b:31bf3856ad364e35}: 800f0993 [Error,Facility=(000f),Code=2451 (0x0993)]
+2026-11-11 20:27:10, Info                  CBS    Exec: Failed to commit stager to stage execution chain. [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:10, Info                  CBS    Failed to stage execution chain. [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:10, Error                 CBS    Failed to process single phase execution. [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:10, Info                  CBS    WER: Generating failure report for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10, status: 0x800f0993, failure source: Stage, start state: Staged, target state: Staged, client id: UpdateAgentLCU
+2026-11-11 20:27:11, Info                  CBS    Reporting package change completion for package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23, current: Resolved, original: Resolved, target: Staged, status: 0x800f0993, failure source: Stage, failure details: "(null)", client id: UpdateAgentLCU, initiated offline: False, execution sequence:576, first merged sequence: 576, pending decision: InteractiveInstallFailed, primitive execution context: Interactive
+2026-11-11 20:27:12, Info                  CBS    Exec: Processing complete.  Session: 31289874_1910092147, Package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10, Identifier: KB5043080 [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:14, Error                 CBS    Failed to perform operation.  [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:14, Info                  CBS    Session: 31289874_1910092147 finalized. Reboot required: no, RepairNeeded: no [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:14, Info                  CBS    Failed finalizing session [HRESULT = 0x800f0993 - PSFX_E_REBASE_HYDRATION_CANDIDATES_MISSING]
+2026-11-11 20:27:14, Info                  CBS    Failed to call Process on TiWorker session [HRESULT = 0x800f0993]
+PS C:\> else {
+>>     Write-Output "CBS.log not found."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\>
+PS C:\> Write-Output "`n===== 7. DISM LOG CORRELATION ====="
+
+===== 7. DISM LOG CORRELATION =====
+PS C:\>
+PS C:\> $dismLog = "$env:windir\Logs\DISM\dism.log"
+PS C:\>
+PS C:\> if (Test-Path -LiteralPath $dismLog) {
+>>     Select-String -Path $dismLog `
+>>         -Pattern "KB5132061|wusa.exe|WUSA|0x800f0993|ftpsvc.dll" |
+>>         Select-Object -Last 80 |
+>>         ForEach-Object { $_.Line }
+>> }
+2026-11-11 19:02:54, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /Get-WimInfo /WimFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd
+2026-11-11 19:06:33, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /List-Image /ImageFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd/Index:1
+2026-11-11 19:09:44, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /List-Image /ImageFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd/Index:1
+2026-11-11 19:11:07, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /List-Image /ImageFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd/Index:1
+2026-11-11 19:13:34, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /List-Image /ImageFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd/Index:1
+2026-11-11 19:15:41, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /English /List-Image /ImageFile:C:\Windows\SoftwareDistribution\Download\82828f696919ef9d\Windows11.0-KB5132061-x64.mumx.esd/Index:1
+2026-11-11 20:04:12, Info                         CDeploymentSession: Initializing SessionData = [{"ModuleID" : "LocalServicingOnline", "LocalSourceSandboxPath" : "C:\\Users\\Laco\\AppData\\Local\\Temp\\87E24461-FEBB-4405-8272-3EF2F266F4FE", "LocalSources" : ["C:\\temp\\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu"]}]
+2026-11-11 20:04:12, Info                         ReportEventInitializeEnd: SessionData    = [{"ModuleID" : "LocalServicingOnline", "LocalSourceSandboxPath" : "C:\\Users\\Laco\\AppData\\Local\\Temp\\87E24461-FEBB-4405-8272-3EF2F266F4FE", "LocalSources" : ["C:\\temp\\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu"]}]
+2026-11-11 20:04:12, Info                         Processing metadata source C:\temp\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu.
+2026-11-11 20:04:12, Info                         Verified CompDB cab: \\?\C:\Users\Laco\AppData\Local\Temp\87E24461-FEBB-4405-8272-3EF2F266F4FE\metadata\SessionCompDBs\LCUCompDB_KB5132061.xml.cab
+2026-11-11 20:04:12, Info                         Loading database: \\?\C:\Users\Laco\AppData\Local\Temp\87E24461-FEBB-4405-8272-3EF2F266F4FE\metadata\SessionCompDBs\LCUCompDB_KB5132061.xml
+2026-11-11 20:21:58, Info                  DISM   DISM.EXE: Executing command line: "C:\WINDOWS\system32\Dism.exe" /Online /Add-Package /PackagePath:C:\Temp\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu
+2026-11-11 20:21:58, Info                  DISM   DISM Package Manager: PID=10896 TID=4832 Encountered the option "packagepath" with value "C:\Temp\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu" - CPackageManagerCLIHandler::Private_GetPackagesFromCommandLine
+2026-11-11 20:21:58, Info                  DISM   DISM Package Manager: PID=10896 TID=4832 Encountered the option "packagepath" with value "C:\Temp\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu" - CPackageManagerCLIHandler::Private_GetPackagesFromCommandLine
+2026-11-11 20:21:58, Info                  DPX    ProvideRequestedDataByFile: Failed to use data range provided in response file: C:\Temp\windows11.0-kb5132061-x64_aedc878e9e078df2ec7e2cfb98dd5b21831cdbcc.msu. Range offset in container: 0,Range offset in response file: 0, Range Length: 8192. Error: 0xca00a005
+2026-11-11 20:22:40, Info                         Verified CompDB cab: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml.cab
+2026-11-11 20:22:40, Info                         Loading database: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml
+2026-11-11 20:22:41, Info                         Deleting DB file: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml
+2026-11-11 20:22:41, Info                         Verified CompDB cab: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml.cab
+2026-11-11 20:22:41, Info                         Loading database: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml
+2026-11-11 20:22:42, Info                         Processing CompDB file: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\LCUCompDB_KB5132061.xml
+2026-11-11 20:22:42, Info                         Skipping non MumX express container Windows11.0-KB5132061-x64.wim
+2026-11-11 20:23:06, Info                         Looking to see if feature should be included: CumulativeUpdate_KB5132061
+2026-11-11 20:23:06, Info                         Feature added due to conditional: Group: Microsoft, FMID: (null), Feature: CumulativeUpdate_KB5132061
+2026-11-11 20:23:06, Info                         Installing feature: Group: Microsoft, FMID: (null), Feature: CumulativeUpdate_KB5132061
+2026-11-11 20:23:09, Info                         Validating initial file [Windows11.0-KB5132061-x64.mumx.esd]
+2026-11-11 20:23:10, Info                         Copying [Windows11.0-KB5132061-x64.mumx.esd] to Metadata folder
+2026-11-11 20:23:10, Info                         Deleting directory: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64
+2026-11-11 20:23:10, Info                         Deletion of: \\?\C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64 successful; already deleted
+2026-11-11 20:23:10, Warning                      ProgressHandler: CIX does not exist yet. Ignoring [C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\metadata\Windows11.0-KB5132061-x64\express.psf.cix.xml]
+2026-11-11 20:23:10, Info                         File exists: [Windows11.0-KB5132061-x64.mumx.esd]
+2026-11-11 20:25:25, Info                  DPX    Extraction of file: amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\ftpsvc.dll failed because it is not present in the container (C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Windows11.0-KB5043080-x64.psf) or any of its peers..
+2026-11-11 20:25:25, Info                  DPX    Extraction of file: amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\n\ftpsvc.dll failed because it is not present in the container (C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Windows11.0-KB5043080-x64.psf) or any of its peers..
+2026-11-11 20:25:25, Info                  DPX    Extraction of file: amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9974_none_e5fd9c4d45ca2d87\r\ftpsvc.dll failed because it is not present in the container (C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8\Windows11.0-KB5043080-x64.psf) or any of its peers..
+2026-11-11 20:25:43, Info                         File exists: [Windows11.0-KB5132061-x64.mumx.esd]
+2026-11-11 20:27:17, Error                        CDeploymentSession::Install::<lambda_1>::operator ()(11626): Result =0x800F0993
+2026-11-11 20:27:17, Info                         OnError: [0x800F0993]
+2026-11-11 20:27:17, Info                         WatsonHelper: Setting bucket parameter [3]: [0x800F0993]
+2026-11-11 20:27:17, Info                         ReportEventInstallEnd: hr                    = [0x800F0993]
+2026-11-11 20:27:17, Error                 DISM   MsuManager: PID=10896 TID=4832 Installation failed. - CDismMsuManager::ProcessWithUpdateAgent(hr:0x800f0993)
+2026-11-11 20:27:17, Error                 DISM   MsuManager: PID=10896 TID=4832 Failed to install UUP package. - CDismMsuPackage::DoInstall(hr:0x800f0993)
+2026-11-11 20:27:17, Error                 DISM   MsuManager: PID=10896 TID=4832 Failed to execute the install in expanded MSU folder C:\Users\Laco\AppData\Local\Temp\44C3F674-200B-4809-A8FC-F1DB060084B8. - CDismMsuPackage::ProcessMsu(hr:0x800f0993)
+2026-11-11 20:27:17, Error                 DISM   MsuManager: PID=10896 TID=4832 Failed to apply the MSU unattend file to the image. - CDismMsuPackage::Install(hr:0x800f0993)
+2026-11-11 20:27:33, Error                 DISM   DISM Package Manager: PID=10896 TID=4832 Failed while processing command add-package. - CPackageManagerCLIHandler::ExecuteCmdLine(hr:0x800f0993)
+PS C:\> else {
+>>     Write-Output "DISM log not found."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\>
+PS C:\> Write-Output "`n===== TEST-61 COMPLETE ====="
+
+===== TEST-61 COMPLETE =====
+PS C:\>
