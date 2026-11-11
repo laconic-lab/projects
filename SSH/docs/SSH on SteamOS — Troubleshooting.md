@@ -3,6 +3,20 @@
 **Scope:** SteamOS host OpenSSH and LAN connectivity.  
 **Status:** Diagnostic reference based on the 2026-11-06 audit.
 
+## Contents
+
+- [1. Before troubleshooting](#1-before-troubleshooting)
+- [2. Quick status checks](#2-quick-status-checks)
+- [3. Client cannot reach the Deck](#3-client-cannot-reach-the-deck)
+- [4. Connection times out or is refused](#4-connection-times-out-or-is-refused)
+- [5. Public-key authentication fails](#5-public-key-authentication-fails)
+- [6. Host-key warning](#6-host-key-warning)
+- [7. Authentication logs](#7-authentication-logs)
+- [8. Forwarding and tunnels](#8-forwarding-and-tunnels)
+- [9. SteamOS Devkit distinction](#9-steamos-devkit-distinction)
+- [10. Firewall caution](#10-firewall-caution)
+- [11. Focused escalation snapshot](#11-focused-escalation-snapshot)
+
 ## 1. Before troubleshooting
 
 Start with read-only diagnostics. Determine whether the failure is client-side, network/firewall-side, daemon-side, authentication-side, or host-key-related. Do not change SSH settings or firewall rules merely because a connection failed. Keep an existing working session open during approved changes. Never share private keys, passwords, or unredacted sensitive logs.
