@@ -1,11 +1,31 @@
-# **Pi-hole on SteamOS — Troubleshooting**
+# Pi-hole on SteamOS — Troubleshooting
 
 **Document:** `pi-hole/docs/TROUBLESHOOTING.md`  
 **Status:** Draft — review required  
 **Scope:** Rootless Podman Pi-hole deployment on SteamOS  
 **Last reviewed:** 2026-11-03
 
-## **1\. Purpose**
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Troubleshooting rules](#2-troubleshooting-rules)
+- [3. Deployment reference](#3-deployment-reference)
+- [4. Initial diagnostic collection](#4-initial-diagnostic-collection)
+- [5. DNS troubleshooting](#5-dns-troubleshooting)
+- [6. Web administration troubleshooting](#6-web-administration-troubleshooting)
+- [7. Container troubleshooting](#7-container-troubleshooting)
+- [8. Host networking troubleshooting](#8-host-networking-troubleshooting)
+- [9. Firewall troubleshooting](#9-firewall-troubleshooting)
+- [10. Upstream DNS troubleshooting](#10-upstream-dns-troubleshooting)
+- [11. Distrobox troubleshooting](#11-distrobox-troubleshooting)
+- [12. Recovery script warning](#12-recovery-script-warning)
+- [13. Escalation and change control](#13-escalation-and-change-control)
+- [14. Quick diagnostic reference](#14-quick-diagnostic-reference)
+- [15. Outstanding diagnostic items](#15-outstanding-diagnostic-items)
+- [16. References](#16-references)
+- [Change history](#change-history)
+
+## 1. Purpose
 
 This document provides a diagnosis-first procedure for common Pi-hole failures on SteamOS.
 
@@ -13,7 +33,7 @@ The objective is to identify the failing layer before making changes.
 
 The deployment contains several independent components:
 
-```
+```text
 LAN client
     |
     v
@@ -37,7 +57,7 @@ Configured upstream DNS
 
 A failure at one layer should not automatically trigger changes to another.
 
-## **2\. Troubleshooting rules**
+## 2. Troubleshooting rules
 
 1. Start with read-only inspection.  
 2. Identify whether the issue affects one client or the entire LAN.  
@@ -50,7 +70,7 @@ A failure at one layer should not automatically trigger changes to another.
 9. Do not delete or recreate persistent data to resolve an unknown problem.  
 10. Obtain explicit approval before changes to firewall, sysctl, capabilities, container configuration, or persistent data.
 
-## **3\. Deployment reference**
+## 3. Deployment reference
 
 | Item | Documented value |
 | ----- | ----- |
@@ -72,13 +92,13 @@ A failure at one layer should not automatically trigger changes to another.
 
 These are documented reference values. Verify the live configuration before using them.
 
-## **4\. Initial diagnostic collection**
+## 4. Initial diagnostic collection
 
-### **4.1 Host network**
+### 4.1 Host network
 
 **STEAM DECK — host SSH**
 
-```
+```bash
 echo "===== HOST ADDRESS ====="
 ip -br addr
 
@@ -105,9 +125,9 @@ Check:
 
 Do not assume that a listener on loopback is a conflict with a listener bound to the LAN address.
 
-### **4.2 Container state**
+### 4.2 Container state
 
-```
+```bash
 echo "===== CONTAINER STATUS ====="
 podman ps -a --filter name=pihole
 
@@ -128,9 +148,9 @@ podman inspect pihole \
 
 These checks should not print the complete container environment or secrets.
 
-### **4.3 Firewall state**
+### 4.3 Firewall state
 
-```
+```bash
 echo "===== FIREWALL STATUS ====="
 sudo firewall-cmd --state
 
@@ -147,9 +167,9 @@ Verify that the expected Ethernet interface belongs to the intended zone and tha
 
 Do not modify rules during initial diagnosis.
 
-### **4.4 Service state**
+### 4.4 Service state
 
-```
+```bash
 echo "===== USER SERVICE ====="
 systemctl --user status pihole.service --no-pager
 
@@ -160,9 +180,9 @@ systemctl --user is-enabled pihole.service
 
 A systemd service status and a container status are related but not interchangeable.
 
-## **5\. DNS troubleshooting**
+## 5. DNS troubleshooting
 
-### **Symptom A — No DNS resolution**
+### Symptom A — No DNS resolution
 
 Possible causes:
 
@@ -174,17 +194,17 @@ Possible causes:
 * Client is using another DNS server.  
 * Upstream DNS is unavailable.
 
-#### **Step 1 — Test locally on the Deck**
+#### Step 1 — Test locally on the Deck
 
-```
+```bash
 dig @192.168.1.161 example.com
 ```
 
 If `dig` is unavailable, use an already installed DNS diagnostic tool. Do not install packages as part of initial diagnosis.
 
-#### **Step 2 — Test from the LAN admin PC**
+#### Step 2 — Test from the LAN admin PC
 
-```
+```bash
 nslookup example.com 192.168.1.161
 ```
 
@@ -199,7 +219,7 @@ Compare the results.
 
 A successful DNS response does not alone prove that Pi-hole filtering is active. Check the Pi-hole query log separately.
 
-### **Symptom B — DNS works but filtering does not**
+### Symptom B — DNS works but filtering does not
 
 Possible causes:
 
@@ -220,7 +240,7 @@ Checks:
 
 Do not update Gravity simply because one domain is not blocked.
 
-### **Symptom C — Intermittent DNS failures**
+### Symptom C — Intermittent DNS failures
 
 Possible causes:
 
@@ -241,13 +261,13 @@ Collect timestamps and compare:
 
 Do not change the ephemeral port range or networking backend without evidence.
 
-## **6\. Web administration troubleshooting**
+## 6. Web administration troubleshooting
 
-### **Symptom A — Administration page unavailable**
+### Symptom A — Administration page unavailable
 
 Expected addresses:
 
-```
+```text
 http://192.168.1.161:8080/admin/
 https://192.168.1.161:8443/admin/
 ```
@@ -263,7 +283,7 @@ Possible causes:
 
 Checks:
 
-```
+```bash
 podman ps -a --filter name=pihole
 
 podman port pihole
@@ -273,7 +293,7 @@ sudo ss -lntp | grep -E '(:8080|:8443)\b'
 
 From Windows PowerShell:
 
-```
+```powershell
 Test-NetConnection 192.168.1.161 -Port 8080
 Test-NetConnection 192.168.1.161 -Port 8443
 ```
@@ -286,7 +306,7 @@ Interpret the result:
 
 Do not expose the administration interface to the internet as a workaround.
 
-### **Symptom B — Login fails**
+### Symptom B — Login fails
 
 Possible causes:
 
@@ -299,13 +319,13 @@ Do not paste passwords into diagnostic commands or transcripts.
 
 Remember that the previously exposed API password must be treated as compromised until rotation has been verified.
 
-## **7\. Container troubleshooting**
+## 7. Container troubleshooting
 
-### **Symptom A — Container is exited**
+### Symptom A — Container is exited
 
 First inspect:
 
-```
+```bash
 podman ps -a --filter name=pihole
 
 podman inspect pihole \
@@ -314,7 +334,7 @@ podman inspect pihole \
 
 Inspect recent logs:
 
-```
+```bash
 podman logs --tail 100 pihole
 ```
 
@@ -329,11 +349,11 @@ Look for:
 
 Do not immediately remove and recreate the container.
 
-### **Symptom B — Container repeatedly restarts**
+### Symptom B — Container repeatedly restarts
 
 Inspect:
 
-```
+```bash
 podman ps -a --filter name=pihole
 
 podman logs --tail 150 pihole
@@ -346,11 +366,11 @@ Investigate the first relevant error rather than repeatedly restarting the servi
 
 Do not disable restart behaviour or modify systemd until the actual restart mechanism is identified.
 
-### **Symptom C — Persistent data permission errors**
+### Symptom C — Persistent data permission errors
 
 Inspect:
 
-```
+```bash
 stat -c '%A %U:%G %n' \
   /home/deck/pihole-box/etc-pihole \
   /home/deck/pihole-box/etc-dnsmasq.d
@@ -366,13 +386,13 @@ Check:
 
 Do not apply recursive ownership changes without understanding the existing ownership and container user mapping.
 
-## **8\. Host networking troubleshooting**
+## 8. Host networking troubleshooting
 
-### **Symptom A — Port 53 cannot be published**
+### Symptom A — Port 53 cannot be published
 
 Inspect:
 
-```
+```bash
 sysctl net.ipv4.ip_unprivileged_port_start
 
 sudo ss -lntup | grep -E '(:53)\b'
@@ -390,7 +410,7 @@ Possible causes:
 
 The documented host setting is:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
@@ -398,28 +418,28 @@ This setting is host-wide. Do not change it merely because a port-binding error 
 
 Identify the process holding the port and determine whether the conflict is real before proposing a change.
 
-### **Symptom B — DNS listener appears on loopback**
+### Symptom B — DNS listener appears on loopback
 
 The host has historically used `systemd-resolved` listeners on:
 
-```
+```text
 127.0.0.53:53
 127.0.0.54:53
 ```
 
 A loopback-only listener does not automatically conflict with Pi-hole bound to:
 
-```
+```text
 192.168.1.161:53
 ```
 
 Inspect the actual address and protocol bindings before concluding that port 53 is occupied.
 
-### **Symptom C — `pasta` UDP warning**
+### Symptom C — `pasta` UDP warning
 
 A historical warning was observed:
 
-```
+```text
 Couldn't open flow specific socket: Address already in use
 ```
 
@@ -437,13 +457,13 @@ Investigate:
 
 Do not change the ephemeral port range or replace the networking backend without reproducible evidence.
 
-## **9\. Firewall troubleshooting**
+## 9. Firewall troubleshooting
 
 The documented firewall uses `firewalld` and the `public` zone.
 
 Inspect:
 
-```
+```bash
 sudo firewall-cmd --state
 
 sudo firewall-cmd --get-active-zones
@@ -466,7 +486,7 @@ The architecture record identifies broad TCP and UDP ranges from 1024 to 65535 w
 
 Do not remove them during routine Pi-hole troubleshooting. Investigate their origin separately.
 
-## **10\. Upstream DNS troubleshooting**
+## 10. Upstream DNS troubleshooting
 
 If clients can reach Pi-hole but external names fail to resolve, investigate upstream DNS.
 
@@ -484,7 +504,7 @@ The documented historical configuration included Google, Cloudflare, and Quad9 r
 
 Important distinction:
 
-```
+```text
 2620:fe::fe
 ```
 
@@ -492,13 +512,13 @@ is a Quad9 IPv6 resolver address, not a Cloudflare address.
 
 Do not change upstreams merely because a single query fails. Establish whether the failure is repeatable and whether it affects one resolver or all configured upstreams.
 
-## **11\. Distrobox troubleshooting**
+## 11. Distrobox troubleshooting
 
 The Distrobox `pihole-box` is not the Podman container.
 
 Its state can be inspected independently:
 
-```
+```bash
 distrobox list
 
 podman ps -a --filter name=pihole
@@ -510,7 +530,7 @@ Do not enter, start, recreate, or delete the Distrobox as a generic Pi-hole trou
 
 The persistent data directories are host paths used by the container. Their availability must be checked directly.
 
-## **12\. Recovery script warning**
+## 12. Recovery script warning
 
 The repository script:
 
@@ -530,7 +550,7 @@ It does not back up application data or rebuild a deleted container.
 
 Review the script before execution. Do not use it as the first step in diagnosing an unknown failure.
 
-## **13\. Escalation and change control**
+## 13. Escalation and change control
 
 If read-only diagnosis does not identify the problem:
 
@@ -557,7 +577,7 @@ The following require explicit approval:
 * Restoring backups.  
 * Deleting or recreating containers or directories.
 
-## **14\. Quick diagnostic reference**
+## 14. Quick diagnostic reference
 
 | Symptom | First checks |
 | ----- | ----- |
@@ -572,7 +592,7 @@ The following require explicit approval:
 | Intermittent DNS | Query timestamps, network, upstreams |
 | Pi-hole works while Distrobox is stopped | Expected; inspect Podman independently |
 
-## **15\. Outstanding diagnostic items**
+## 15. Outstanding diagnostic items
 
 | Item | Status |
 | ----- | ----- |
@@ -586,7 +606,7 @@ The following require explicit approval:
 
 Do not treat historical warnings as current faults without reproducing them.
 
-## **16\. References**
+## 16. References
 
 * Pi-hole Docker documentation: [https\://docs.pi-hole.net/docker/](https://docs.pi-hole.net/docker/)  
 * Pi-hole Docker configuration: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hole.net/docker/configuration/)  
@@ -595,7 +615,7 @@ Do not treat historical warnings as current faults without reproducing them.
 * Project architecture and operations: `pi-hole/docs/Pi-hole on SteamOS — Architecture & Operations.md`  
 * Recovery helper: `pi-hole/scripts/pihole-update-recovery.sh`
 
-## **Change history**
+## Change history
 
 | Date | Change |
 | ----- | ----- |
