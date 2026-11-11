@@ -51,14 +51,26 @@ The restore process asks for explicit confirmation and creates a safety backup b
 
 ## Change workflow schema
 
-```mermaid
-flowchart TD
-    A["Significant change proposed"] --> B["Create pre-change backup"]
-    B --> C["Apply only the intended change"]
-    C --> D["Run agent check and unit tests"]
-    D --> E["Verify dashboard and archive"]
-    E --> F["Create post-validation backup"]
-    F --> G["Record change in release history"]
+```text
+Significant change proposed
+  |
+  v
+Create pre-change backup
+  |
+  v
+Apply only the intended change
+  |
+  v
+Run agent check and unit tests
+  |
+  v
+Verify dashboard and archive
+  |
+  v
+Create post-validation backup
+  |
+  v
+Record change in release history
 ```
 
 The workflow reflects the existing policy. It is not a claim that these checks were run during this documentation conversion.
