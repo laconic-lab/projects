@@ -1,0 +1,60 @@
+PS C:\Users\Laco> Write-Output "===== TEST-16: TPM HARDWARE AND SPECIFICATION INVENTORY ====="
+===== TEST-16: TPM HARDWARE AND SPECIFICATION INVENTORY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== 1. WINDOWS TPM STATUS ====="
+===== 1. WINDOWS TPM STATUS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-Tpm |
+>>     Select-Object TpmPresent,TpmReady,TpmEnabled,TpmActivated,TpmOwned,
+>>                   ManufacturerId,ManufacturerVersion,
+>>                   AutoProvisioning,LockedOut,LockoutCount,LockoutMax |
+>>     Format-List
+
+
+TpmPresent          : False
+TpmReady            : False
+TpmEnabled          : False
+TpmActivated        : False
+TpmOwned            : False
+ManufacturerId      : 0
+ManufacturerVersion :
+AutoProvisioning    : NotDefined
+LockedOut           : False
+LockoutCount        :
+LockoutMax          :
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== 2. TPM SPECIFICATION VERSION ====="
+===== 2. TPM SPECIFICATION VERSION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-CimInstance `
+>>     -Namespace 'root\CIMV2\Security\MicrosoftTpm' `
+>>     -ClassName Win32_Tpm `
+>>     -ErrorAction Continue |
+>> Select-Object SpecVersion,ManufacturerIdTxt,ManufacturerVersion,
+>>               IsEnabled_InitialValue,IsActivated_InitialValue,
+>>               IsOwned_InitialValue,PhysicalPresenceVersionInfo |
+>> Format-List
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== 3. TPM DEVICE INFORMATION ====="
+===== 3. TPM DEVICE INFORMATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> tpmtool getdeviceinformation
+Failed to get information.
+Command failed with 0x800710df - The device is not ready for use.
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== TEST-16 COMPLETE ====="
+===== TEST-16 COMPLETE =====
+PS C:\Users\Laco> Write-Output "Read-only TPM inspection. No TPM or BIOS settings modified."
+Read-only TPM inspection. No TPM or BIOS settings modified.
+PS C:\Users\Laco>
