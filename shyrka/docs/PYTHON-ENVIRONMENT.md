@@ -87,13 +87,14 @@ The previously recorded test result was 27/27 passing on 2026-10-28. That is his
 
 The recorded environments are separate execution contexts. The Shyrka virtual environment is based on the Python interpreter inside `localai-box`; it is not the SteamOS host interpreter.
 
-```mermaid
-flowchart TB
-    H["Steam Deck host · SteamOS"] --> HP["Host Python 3.14.6"]
-    H --> D["Distrobox · localai-box"]
-    D --> CP["Container Python 3.12.3"]
-    CP --> V["Shyrka .venv"]
-    V --> A["Shyrka application and dependencies"]
+```text
+Steam Deck host / SteamOS
+  |-- Host Python 3.14.6
+  |
+  `-- Distrobox: localai-box
+        `-- Container Python 3.12.3
+              `-- Shyrka .venv
+                    `-- Shyrka application and dependencies
 ```
 
 This diagram represents the documented environment relationship, not a live runtime check.
