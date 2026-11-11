@@ -31,7 +31,7 @@ Operating principles: diagnose before modifying; prefer read-only inspection; pr
 ## 2. Architecture
 
 ```text
-VERIFIED SOURCE-RESTRICTED CLIENT PATH
+AUDITED SSH RULE PATH — LINUX MINT SOURCE
 
 Linux Mint client (192.168.1.169)
           |
