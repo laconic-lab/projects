@@ -5,6 +5,25 @@
 > **Recorded baseline:** 2026-10-25  
 > **Target:** `stable-diffusion.cpp` source, `sd-server`, and `sd-cli`
 
+## Contents
+
+- [Purpose](#purpose)
+- [Safety rules](#safety-rules)
+- [Execution map](#execution-map)
+- [Step 1 — Back up first (SteamOS host)](#step-1-back-up-first-steamos-host)
+- [Step 2 — Inspect the current source (inside Stable-box)](#step-2-inspect-the-current-source-inside-stable-box)
+- [Step 3 — Review upstream changes (inside Stable-box)](#step-3-review-upstream-changes-inside-stable-box)
+- [Step 4 — Update source and submodules](#step-4-update-source-and-submodules)
+- [Step 5 — Check local build tools](#step-5-check-local-build-tools)
+- [Step 6 — Rebuild separately](#step-6-rebuild-separately)
+- [Step 7 — Test the new build before replacement](#step-7-test-the-new-build-before-replacement)
+- [Step 8 — Save old binaries and promote the new ones](#step-8-save-old-binaries-and-promote-the-new-ones)
+- [Step 9 — Verify promoted binaries and service](#step-9-verify-promoted-binaries-and-service)
+- [Step 10 — Roll back if the update fails](#step-10-roll-back-if-the-update-fails)
+- [Recorded known-working settings](#recorded-known-working-settings)
+
+---
+
 ## Purpose
 
 Update the source and rebuild `sd-server` and `sd-cli` without immediately replacing the currently working binaries. A newer upstream commit is not, by itself, a reason to update.
