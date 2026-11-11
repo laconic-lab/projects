@@ -310,7 +310,7 @@ Any change to automatic startup or restart behaviour requires explicit approval.
 
 The documented container image is:
 
-```bash
+```text
 docker.io/pihole/pihole:latest
 ```
 
