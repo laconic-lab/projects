@@ -3,7 +3,7 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.45  
+> **Version:** 3.46  
 > **Record date:** 2026-11-11  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
@@ -2822,7 +2822,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.45. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.46. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling. Actual installation still requires separate approval of the exact plan.
 
@@ -5900,6 +5900,17 @@ The 256 MiB `/tmp` cap is a design ceiling, **not** a memory reservation or evid
 | [`routes/document/document_routes.py`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/routes/document/document_routes.py), blob `5dbec707766255513b96e495786878a001b0ae34` | Document conversion creates a `TemporaryDirectory` and isolated LibreOffice profile. The route returns 503 if `soffice`/`libreoffice` is unavailable; the reviewed Dockerfile does not install LibreOffice. | Treat conversion as unavailable in this image unless a separately approved image/runtime change adds and validates the executable. Do not infer that the temp path is exercised in the proposed image solely because the route exists. |
 | [`Dockerfile`](https://github.com/odysseus-dev/odysseus/blob/1c1509094963f9eb9445928d57f2856296057cf4/Dockerfile), blob `fe6a6792fb0d706bfe944a17e33ab8c58d0b8781` | Installs application requirements and optional extras but defines no `TMPDIR` environment setting; build-time uses of `/tmp` are unrelated to the running container's temp workload. | Supports `/tmp` as the intended default runtime temporary directory, but does not prove the actual tmpfs mount, flags, free capacity or dependency compatibility. |
 
+### Input limits and concurrency do not establish tmpfs capacity
+
+Additional read-only inspection at the same pinned source found:
+
+- `src/media_ingress.py` blob `1761d1f261ce4225f4a86c914753d119ecdd791f` defines default limits of four media files, 12 MiB per image source, 128 MiB per video source, 32 MiB per document/audio source, 24 MiB aggregate encoded media, 1,600-pixel maximum dimension, 40 million image pixels and eight ingress video frames. These are application-level input/output limits, not a direct bound on every intermediate temporary-file byte.
+- `src/agent_tools/media_tools.py` blob `e5915e4f5bffb04b48b4926100d9758472182985` allows PDF inspection of up to 12 explicitly selected pages and up to 64 video observations in overview/dense-contact-sheet modes. Those paths are separate from the eight-frame media-ingress default and can produce multiple temporary images.
+- `src/config.py` blob `fa8b17ce5d25ceb0bf4b2b761bb85d8bac7f12b7` defines a default 10 MiB upload size and `max_concurrent_uploads=3` per IP. That setting concerns upload concurrency/rate limiting; the reviewed source does not establish that it globally serializes Agent media-tool PDF/video work or bounds all temporary-directory lifetimes.
+- No global semaphore or cross-tool temporary-storage budget was established by this targeted review. This is an evidence gap, not proof that the wider application has no such mechanism.
+
+**Decision:** do not claim the 256 MiB `/tmp` ceiling is adequate based on these limits. Before any runtime compatibility experiment, the deployment design must define an enforceable concurrency envelope for temporary-file-producing operations and specify fail-closed/degraded behavior when the tmpfs is full. Runtime sizing must include the memory budget because tmpfs usage counts against the container memory limit. No limit was changed and no test was run.
+
 ### Gate 6 disposition
 
 1. Keep the proposed `/tmp` policy at `rw,nosuid,nodev,noexec,mode=1777,size=256MiB` as a **provisional design ceiling**, not an accepted capacity result. PDF page rendering/OCR and video processing both write temporary image/frame files; source-level page/frame/output limits do not prove 256 MiB is sufficient for all allowed inputs or concurrency.
@@ -5917,6 +5928,7 @@ Entries are ordered by version, newest first. Each row records one canonical-doc
 
 | Version | Date | Change |
 |---|---|---|
+| 3.46 | 2026-11-11 | Extended §18.14 with pinned-source input-limit/concurrency review: media ingress defaults permit 128 MiB video inputs and eight frames, while Agent media tools can inspect up to 64 video observations or 12 PDF pages; upload concurrency configuration does not establish a global media-tool semaphore. Explicitly left 256 MiB `/tmp` capacity unproven and required an enforceable concurrency envelope plus safe full-tmpfs behavior before runtime validation. No runtime test, image pull, build, resource creation or host change; counter remains 3/5 since v3.20; no archive snapshot due. Chroma 1.5.9 remains blocked and installation remains NOT AUTHORIZED. |
 | 3.45 | 2026-11-11 | Added §18.14 targeted read-only temporary-filesystem compatibility review at the exact Phase 1.4 source pin. Recorded Python tempfile use for PDF OCR/rendering and video-frame extraction, source blob identities, absence of TMPDIR in the reviewed Dockerfile, and the limit of source-only evidence for the 256 MiB `/tmp` cap. Kept `/tmp` capacity provisional, `/var/tmp` non-writable, and `/dev/shm` bounded pending final image/runtime and workload validation. Gate 6 remains OPEN; Chroma 1.5.9 remains blocked and no fixed stable candidate was found in §18.13. No runtime test, image pull, build, resource creation or host change; counter remains 3/5 since v3.20; no archive snapshot due. Installation remains NOT AUTHORIZED. |
 | 3.44 | 2026-11-11 | Added §18.13 CHROMA-RELEASE-REVIEW-01 after read-only official release/registry and upstream source review. No fixed stable release candidate was identified: 1.5.9 remains the latest stable release in the reviewed release page, while observed 1.5.10 tags are development builds. Confirmed upstream `main` contains HNSW resource-bound validation at commit `fd5a216ac3cc94451f1a010725ad68454e8c2809`, but did not treat that as proof a stable image includes the fix. Kept 1.5.9 BLOCKED — DO NOT PULL OR RUN; next step is read-only Gate 6 mount/runtime review independent of the final Chroma image. No image pull, build, runtime test, resource creation or host change; functional runtime-test count remains 3/5 since v3.20; no archive snapshot due. Installation remains NOT AUTHORIZED. |
 | 3.43 | 2026-11-11 | Recovered and restored the missing historical §19 entries for v3.40 and v3.33 from their corresponding prior canonical audit revisions and verified the original descriptions against GitHub commits `778163efda22d2f73713bfac8daa01c6c48a9bd7` and `73fe9e9b74c3a1cd62785f0ada677e79dd9202ff`. Historical descriptions were preserved verbatim. No test, runtime resource, image, build or host action; functional runtime-test count remains 3/5 since v3.20. Installation remains NOT AUTHORIZED. |
