@@ -1,0 +1,153 @@
+PS C:\Users\Laco> Write-Output "===== TEST-12: CBS SESSION INITIATOR — RETRY ====="
+===== TEST-12: CBS SESSION INITIATOR — RETRY =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $log = "$env:windir\Logs\CBS\CBS.log"
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== CBS LOG INFORMATION ====="
+===== CBS LOG INFORMATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-Item -LiteralPath $log |
+>>     Format-List FullName,Length,LastWriteTime
+
+
+FullName      : C:\WINDOWS\Logs\CBS\CBS.log
+Length        : 1183726
+LastWriteTime : 11/11/26 15:45:46
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== FIRST CORRUPTION RECORD AND 103 LINES BEFORE IT ====="
+===== FIRST CORRUPTION RECORD AND 103 LINES BEFORE IT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Select-String `
+>>     -Path $log `
+>>     -Pattern '2026-11-11 15:43:43, Info\s+CBS\s+\(p\)\s+CSI Payload Corrupt' `
+>>     -Context 103,2 |
+>>     Select-Object -First 1 |
+>>     ForEach-Object {
+>>         Write-Output "MATCHED CBS LINE: $($_.LineNumber)"
+>>         $_.Context.PreContext
+>>         $_.Line
+>>         $_.Context.PostContext
+>>     }
+MATCHED CBS LINE: 9104
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-LanguageFeatures-Speech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-LanguageFeatures-Speech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-LanguageFeatures-TextToSpeech-en-us-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-LanguageFeatures-TextToSpeech-fr-fr-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-NetFx3-OnDemand-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:39, Info                  CBS    Repr: Adding package: Microsoft-Windows-Notepad-System-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-PowerShell-ISE-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-PMCPPC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Printing-WFS-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-ProjFS-OptionalFeature-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-ProjFS-OptionalFeature-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-ProjFS-OptionalFeature-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-SenseClient-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-SimpleTCP-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-SmbDirect-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-StepsRecorder-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Telnet-Client-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Telnet-Client-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Telnet-Client-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~wow64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~wow64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TerminalServices-AppServer-Client-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TFTP-Client-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TFTP-Client-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-TFTP-Client-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-VBSCRIPT-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wallpaper-Content-Extended-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Broadcom-Bcmpciedhd63-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63a-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Broadcom-Bcmwl63al-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwbw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwew00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwew01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwlv64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwns64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwsw00-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwtw02-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwtw04-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwtw06-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwtw08-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Intel-Netwtw10-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Marvel-Mrvlpcie8897-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Qualcomm-Athw8x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Qualcomm-Athwnx-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Qualcomm-Qcamain10x64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Ralink-Netr28x-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtl8187se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtl8192se-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtl819xp-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtl85n64-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtwlane-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtwlane01-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-Wifi-Client-Realtek-Rtwlane13-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WinOcr-FOD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WinOcr-FOD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WinOcr-FOD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WinOcr-FOD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~en-US~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~fr-FR~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:40, Info                  CBS    Repr: Adding package: Microsoft-Windows-WMIC-FoD-Package~31bf3856ad364e35~wow64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:41, Info                  CBS    Repr: Adding package: OpenSSH-Client-Package~31bf3856ad364e35~amd64~~10.0.26100.9974 to removal list
+2026-11-11 15:43:41, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:41, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:41, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:41, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:41, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:41, Info                  CBS    Package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10 is a Baseline according to custom properties
+2026-11-11 15:43:41, Info                  CBS    Repr: Not adding baseline package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10 to removal list
+2026-11-11 15:43:42, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:42, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:42, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:43, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    =================================
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== TEST-12 RETRY COMPLETE ====="
+===== TEST-12 RETRY COMPLETE =====
+PS C:\Users\Laco> Write-Output "Read-only CBS inspection. No files modified."
+Read-only CBS inspection. No files modified.
+PS C:\Users\Laco>
+PS C:\Users\Laco>

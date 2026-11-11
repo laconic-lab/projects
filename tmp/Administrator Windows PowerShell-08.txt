@@ -1,0 +1,64 @@
+PS C:\Users\Laco> Write-Output "===== TEST-14: COMPATIBILITY SCAN CONTEXT ====="
+===== TEST-14: COMPATIBILITY SCAN CONTEXT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $setupLog = "$env:SystemDrive\$WINDOWS.~BT\Sources\Panther\setupact.log"
+PS C:\Users\Laco> $diagXml = "$env:windir\Logs\SetupDiag\SetupDiagResults.xml"
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== 1. SYSTEM REQUIREMENTS SCAN CONTEXT ====="
+===== 1. SYSTEM REQUIREMENTS SCAN CONTEXT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Select-String `
+>>     -Path $setupLog `
+>>     -Pattern 'ExecuteSysReqScan|0xC1900201|0x20008|CompatScan|HardBlock|BlockMigration' `
+>>     -Context 100,20 `
+>>     -ErrorAction SilentlyContinue |
+>>     Format-List LineNumber,Line,Context
+Select-String : Cannot find path 'C:\.~BT\Sources\Panther\setupact.log' because it does not exist.
+At line:1 char:1
++ Select-String `
++ ~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\.~BT\Sources\Panther\setupact.log:String) [Select-String], ItemNotFo
+   undException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SelectStringCommand
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== 2. COMPLETE SETUPDIAG RESULT ====="
+===== 2. COMPLETE SETUPDIAG RESULT =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> if (Test-Path -LiteralPath $diagXml) {
+>>     Get-Content -LiteralPath $diagXml
+>> }
+<?xml version="1.0" encoding="utf-16"?>
+<SetupDiag xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="https://docs.microsoft.com/en-us/windows/deployment/upgrade/setupdiag">
+  <Version>1.7.0.0</Version>
+  <ProfileName>FindAbruptDownlevelFailure</ProfileName>
+  <ProfileGuid>55882B1A-DA3E-408A-9076-23B22A0472BD</ProfileGuid>
+  <LogErrorLine>2026-11-11 14:53:10, Error                 MOUPG  CDlpActionCompat::ExecuteSysReqScan(977): Result = 0xC1900201</LogErrorLine>
+  <FailureData>Error: SetupDiag reports abrupt down-level failure.Last Operation: Error: 0xC1900201 - 0x20008</FailureData>
+  <FailureData>LogEntry: 2026-11-11 14:53:10, Error                 MOUPG  CDlpActionCompat::ExecuteSysReqScan(977): Result = 0xC1900201</FailureData>
+  <FailureData>Refer to "https://docs.microsoft.com/en-us/windows/desktop/Debug/system-error-codes" for error information.</FailureData>
+  <FailureDetails>ErrorCode = 0xC1900201, ExCode = 0x20008</FailureDetails>
+</SetupDiag>
+PS C:\Users\Laco> else {
+>>     Write-Output "SetupDiagResults.xml not found."
+>> }
+else : The term 'else' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ else {
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (else:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output ""
+
+PS C:\Users\Laco> Write-Output "===== TEST-14 COMPLETE ====="
+===== TEST-14 COMPLETE =====
+PS C:\Users\Laco> Write-Output "Read-only log inspection. No system changes made."
+Read-only log inspection. No system changes made.
+PS C:\Users\Laco>

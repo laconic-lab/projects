@@ -1,0 +1,1305 @@
+PS C:\Users\Laco> echo "===== TEST-11: CBS CORRUPTION SESSION INVESTIGATION ====="
+===== TEST-11: CBS CORRUPTION SESSION INVESTIGATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $log = "$env:windir\Logs\CBS\CBS.log"
+PS C:\Users\Laco>
+PS C:\Users\Laco> echo
+
+cmdlet Write-Output at command pipeline position 1
+Supply values for the following parameters:
+InputObject[0]:
+PS C:\Users\Laco> echo "===== 1. CBS LOG FILE INFORMATION ====="
+===== 1. CBS LOG FILE INFORMATION =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Get-Item -LiteralPath $log |
+>>     Format-List FullName,Length,LastWriteTime
+
+
+FullName      : C:\WINDOWS\Logs\CBS\CBS.log
+Length        : 1183726
+LastWriteTime : 11/11/26 15:45:46
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> echo
+
+cmdlet Write-Output at command pipeline position 1
+Supply values for the following parameters:
+InputObject[0]:
+PS C:\Users\Laco> echo "===== 2. LOCATE CORRUPTION SESSION AND ALL PAYLOAD RECORDS ====="
+===== 2. LOCATE CORRUPTION SESSION AND ALL PAYLOAD RECORDS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> Select-String `
+>>     -Path $log `
+>>     -Pattern '15:43:43|CSI Payload Corrupt|Total Detected Corruption|Total Repaired Corruption|Corruption Detecting|Processing complete' `
+>>     -Context 2,2 |
+>>     ForEach-Object {
+>>
+>>         echo ""
+>>         echo "----- CBS LINE $($_.LineNumber) -----"
+>>
+>>         $_.Context.PreContext
+>>         $_.Line
+>>         $_.Context.PostContext
+>>     }
+
+----- CBS LINE 12 -----
+2026-11-11 13:50:40, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 13:50:40, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 13:50:40, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 13:50:40, Info                  CBS    Starting TiWorker initialization.
+2026-11-11 13:50:40, Info                  CBS    Lock: New lock added: TiWorkerClassFactory, level: 30, total lock:2
+
+----- CBS LINE 124 -----
+2026-11-11 14:51:15, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 14:51:15, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 14:51:15, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 14:51:15, Info                  CBS    Starting TiWorker initialization.
+2026-11-11 14:51:15, Info                  CBS    Lock: New lock added: TiWorkerClassFactory, level: 30, total lock:2
+
+----- CBS LINE 236 -----
+2026-11-11 15:06:13, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 15:06:13, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 15:06:13, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 15:06:13, Info                  CBS    WU creates the package, AppID:wusa, UpdateID:{47E49912-103C-462C-B1C5-64A0C357CC52}, revision: 501
+2026-11-11 15:06:13, Info                  CBS    Starting TiWorker initialization.
+
+----- CBS LINE 368 -----
+2026-11-11 15:08:28, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 15:08:28, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 15:08:28, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 15:08:30, Info                  CBS    Starting TiWorker initialization.
+2026-11-11 15:08:30, Info                  CBS    Lock: New lock added: TiWorkerClassFactory, level: 30, total lock:2
+
+----- CBS LINE 501 -----
+2026-11-11 15:10:47, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 15:10:47, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 15:10:47, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 15:12:48, Info                  CBS    Trusted Installer is shutting down because: SHUTDOWN_REASON_AUTOSTOP
+2026-11-11 15:12:48, Info                  CBS    Ending the TrustedInstaller main loop.
+
+----- CBS LINE 518 -----
+2026-11-11 15:37:36, Info                  CBS    No startup processing required, TrustedInstaller service was not set as autostart
+2026-11-11 15:37:36, Info                  CBS    Startup processing thread terminated normally
+2026-11-11 15:37:36, Info                  CBS    TI: Startup Processing completes, release startup processing lock.
+2026-11-11 15:37:36, Info                  CBS    Starting TiWorker initialization.
+2026-11-11 15:37:36, Info                  CBS    Lock: New lock added: TiWorkerClassFactory, level: 30, total lock:2
+
+----- CBS LINE 9095 -----
+2026-11-11 15:43:42, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:42, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:43, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+
+----- CBS LINE 9096 -----
+2026-11-11 15:43:42, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:43, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+
+----- CBS LINE 9097 -----
+2026-11-11 15:43:43, Info                  CBS    Appl:LCU package and revision compare set to explicit
+2026-11-11 15:43:43, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+
+----- CBS LINE 9098 -----
+2026-11-11 15:43:43, Info                  CBS    Package Format: PSFX
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+2026-11-11 15:43:43, Info                  CBS
+
+----- CBS LINE 9099 -----
+2026-11-11 15:43:43, Info                  CBS    Delta Format: ForwardOnly
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    =================================
+
+----- CBS LINE 9100 -----
+2026-11-11 15:43:43, Info                  CBS    Repr: Adding package: Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9974.1.23 to removal list
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    =================================
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+
+----- CBS LINE 9101 -----
+2026-11-11 15:43:43, Info                  CBS    Repr: Staged package check completes
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    =================================
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+2026-11-11 15:43:43, Info                  CBS
+
+----- CBS LINE 9102 -----
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    =================================
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+
+----- CBS LINE 9103 -----
+2026-11-11 15:43:43, Info                  CBS    =================================
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+
+----- CBS LINE 9104 -----
+2026-11-11 15:43:43, Info                  CBS    Checking System Update Readiness.
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+
+----- CBS LINE 9105 -----
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\tprtdll.dll
+
+----- CBS LINE 9106 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManager.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\tprtdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\vertdll.dll
+
+----- CBS LINE 9107 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..eapplifetimemanager_31bf3856ad364e35_10.0.26100.1591_none_02ccdf13e86dfcfe\r\RemoteAppLifetimeManagerProxyStub.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\tprtdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\vertdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\ucrtbase_enclave.dll
+
+----- CBS LINE 9108 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-codeintegrity_31bf3856ad364e35_10.0.26100.1591_none_3c37ec64b4c6bb8a\r\ci.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\tprtdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\vertdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\ucrtbase_enclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_34942f96e47af6c8\r\DolbyDecMFT.dll
+
+----- CBS LINE 9109 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\tprtdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\vertdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\ucrtbase_enclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_34942f96e47af6c8\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-msmpeg2ac3dec_31bf3856ad364e35_10.0.26100.9818_none_d1ca9a43ff2e54da\r\msmpeg2ac3dec.dll
+
+----- CBS LINE 9110 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\vertdll.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\ucrtbase_enclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_34942f96e47af6c8\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-msmpeg2ac3dec_31bf3856ad364e35_10.0.26100.9818_none_d1ca9a43ff2e54da\r\msmpeg2ac3dec.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_2a3f8544b01a34cd\r\DolbyDecMFT.dll
+
+----- CBS LINE 9111 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-onecore-i..atedusermode-common_31bf3856ad364e35_10.0.26100.1591_none_9a2eefb3f06314d3\r\ucrtbase_enclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_34942f96e47af6c8\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-msmpeg2ac3dec_31bf3856ad364e35_10.0.26100.9818_none_d1ca9a43ff2e54da\r\msmpeg2ac3dec.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_2a3f8544b01a34cd\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\r\ftpsvc.dll
+
+----- CBS LINE 9112 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_34942f96e47af6c8\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-msmpeg2ac3dec_31bf3856ad364e35_10.0.26100.9818_none_d1ca9a43ff2e54da\r\msmpeg2ac3dec.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_2a3f8544b01a34cd\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\r\ftpsvc.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\ssdm.dll
+
+----- CBS LINE 9113 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-msmpeg2ac3dec_31bf3856ad364e35_10.0.26100.9818_none_d1ca9a43ff2e54da\r\msmpeg2ac3dec.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_2a3f8544b01a34cd\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\r\ftpsvc.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\ssdm.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\HrtfApo.dll
+
+----- CBS LINE 9114 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-dolbydecmft_31bf3856ad364e35_10.0.26100.9818_none_2a3f8544b01a34cd\r\DolbyDecMFT.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\r\ftpsvc.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\ssdm.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\HrtfApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\VirtualSurroundApo.dll
+
+----- CBS LINE 9115 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-iis-ftpsvc_31bf3856ad364e35_10.0.26100.9818_none_e6020f5d45c7e010\r\ftpsvc.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\ssdm.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\HrtfApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\$(build.nttree)\ApplicationTargetedFeatureDatabase.dll
+
+----- CBS LINE 9116 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\ssdm.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\HrtfApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\$(build.nttree)\ApplicationTargetedFeatureDatabase.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\shellFeatureInbox.sdb
+
+----- CBS LINE 9117 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\HrtfApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\$(build.nttree)\ApplicationTargetedFeatureDatabase.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\shellFeatureInbox.sdb
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-voiceclarityapo_31bf3856ad364e35_10.0.26100.1150_none_8ac4e31e85c9383b\r\VoiceClarityApo.dll
+
+----- CBS LINE 9118 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.1150_none_28b4c7cdff7ad8a7\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\$(build.nttree)\ApplicationTargetedFeatureDatabase.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\shellFeatureInbox.sdb
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-voiceclarityapo_31bf3856ad364e35_10.0.26100.1150_none_8ac4e31e85c9383b\r\VoiceClarityApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.712_none_394439266cd8bea3\r\VirtualSurroundApo.dll
+
+----- CBS LINE 9119 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\$(build.nttree)\ApplicationTargetedFeatureDatabase.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\shellFeatureInbox.sdb
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-voiceclarityapo_31bf3856ad364e35_10.0.26100.1150_none_8ac4e31e85c9383b\r\VoiceClarityApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.712_none_394439266cd8bea3\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUX.dll
+
+----- CBS LINE 9120 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..etedfeaturedatabase_31bf3856ad364e35_10.0.26100.1591_none_84b083aa00c60a75\r\shellFeatureInbox.sdb
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-voiceclarityapo_31bf3856ad364e35_10.0.26100.1150_none_8ac4e31e85c9383b\r\VoiceClarityApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.712_none_394439266cd8bea3\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUX.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationMgr.exe
+
+----- CBS LINE 9121 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-voiceclarityapo_31bf3856ad364e35_10.0.26100.1150_none_8ac4e31e85c9383b\r\VoiceClarityApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.712_none_394439266cd8bea3\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUX.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationMgr.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXHost.exe
+
+----- CBS LINE 9122 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft-windows-3daudio-hrtfapo_31bf3856ad364e35_10.0.26100.712_none_394439266cd8bea3\r\VirtualSurroundApo.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUX.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationMgr.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXHost.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXLauncher.exe
+
+----- CBS LINE 9123 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUX.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationMgr.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXHost.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXLauncher.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationHelpers.dll
+
+----- CBS LINE 9124 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationMgr.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXHost.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXLauncher.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationHelpers.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_2d133e9d84bb8579\r\Microsoft.Ink.dll
+
+----- CBS LINE 9125 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXHost.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXLauncher.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationHelpers.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_2d133e9d84bb8579\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\app.js
+
+----- CBS LINE 9126 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UNPUXLauncher.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationHelpers.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_2d133e9d84bb8579\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\app.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\appManager.js
+
+----- CBS LINE 9127 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-unp_31bf3856ad364e35_10.0.26100.1591_none_48bae61d0882b74d\r\UpdateNotificationHelpers.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_2d133e9d84bb8579\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\app.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\appManager.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\helloEnrollmentPage.js
+
+----- CBS LINE 9128 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     wow64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_2d133e9d84bb8579\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\app.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\appManager.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\helloEnrollmentPage.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\bridge.js
+
+----- CBS LINE 9129 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\app.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\appManager.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\helloEnrollmentPage.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\bridge.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoftAccount.js
+
+----- CBS LINE 9130 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\appManager.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\helloEnrollmentPage.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\bridge.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoftAccount.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigator.js
+
+----- CBS LINE 9131 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\helloEnrollmentPage.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\bridge.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoftAccount.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigator.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\rewards.js
+
+----- CBS LINE 9132 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\bridge.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoftAccount.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigator.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\rewards.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigation.json
+
+----- CBS LINE 9133 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoftAccount.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigator.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\rewards.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigation.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\uriRules.json
+
+----- CBS LINE 9134 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigator.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\rewards.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigation.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\uriRules.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobehello-vm.js
+
+----- CBS LINE 9135 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\rewards.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigation.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\uriRules.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobehello-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-page.js
+
+----- CBS LINE 9136 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\navigation.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\uriRules.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobehello-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-page.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-vm.js
+
+----- CBS LINE 9137 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\uriRules.json
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobehello-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-page.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobeerror-main.html
+
+----- CBS LINE 9138 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobehello-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-page.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobeerror-main.html
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.winmd
+
+----- CBS LINE 9139 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-page.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobeerror-main.html
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.dll
+
+----- CBS LINE 9140 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobelanguage-vm.js
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobeerror-main.html
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Family.Cache.winmd
+
+----- CBS LINE 9141 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\oobeerror-main.html
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Family.Cache.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.Core.winmd
+
+----- CBS LINE 9142 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Family.Cache.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.Core.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.winmd
+
+----- CBS LINE 9143 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Microsoft.CloudExperienceHost.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Family.Cache.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.Core.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.dll
+
+----- CBS LINE 9144 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\Family.Cache.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.Core.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.Extension.winmd
+
+----- CBS LINE 9145 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.Core.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.Extension.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.UserOperations.winmd
+
+----- CBS LINE 9146 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.Extension.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.UserOperations.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\userdeviceregistration.ngc.winmd
+
+----- CBS LINE 9147 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.TokenProvider.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.Extension.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.UserOperations.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\userdeviceregistration.ngc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudDomainJoin.DataModel.winmd
+
+----- CBS LINE 9148 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.Extension.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.UserOperations.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\userdeviceregistration.ngc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudDomainJoin.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.LocalNgc.winmd
+
+----- CBS LINE 9149 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\MicrosoftAccount.UserOperations.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\userdeviceregistration.ngc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudDomainJoin.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.LocalNgc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Account.winmd
+
+----- CBS LINE 9150 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\userdeviceregistration.ngc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudDomainJoin.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.LocalNgc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Account.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Hello.winmd
+
+----- CBS LINE 9151 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudDomainJoin.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.LocalNgc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Account.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Hello.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.SyncEngine.winmd
+
+----- CBS LINE 9152 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.LocalNgc.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Account.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Hello.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.SyncEngine.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Cortana.winmd
+
+----- CBS LINE 9153 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Account.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Hello.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.SyncEngine.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Cortana.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ContentManagement.winmd
+
+----- CBS LINE 9154 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Hello.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.SyncEngine.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Cortana.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ContentManagement.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.winmd
+
+----- CBS LINE 9155 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.SyncEngine.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Cortana.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ContentManagement.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.RetailDemo.winmd
+
+----- CBS LINE 9156 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.Cortana.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ContentManagement.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.RetailDemo.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.SyncSettings.winmd
+
+----- CBS LINE 9157 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ContentManagement.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.RetailDemo.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.SyncSettings.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\SystemSettings.DataModel.winmd
+
+----- CBS LINE 9158 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.RetailDemo.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.SyncSettings.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\SystemSettings.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\RetailDemo.Internal.winmd
+
+----- CBS LINE 9159 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostBroker.RetailDemo.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.SyncSettings.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\SystemSettings.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\RetailDemo.Internal.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\resources.pri
+
+----- CBS LINE 9160 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\CloudExperienceHostAPI.SyncSettings.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\SystemSettings.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\RetailDemo.Internal.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\UnifiedEnrollment.DataModel.winmd
+
+----- CBS LINE 9161 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\SystemSettings.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\RetailDemo.Internal.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\UnifiedEnrollment.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\enterprisedevicemanagement.enrollment.winmd
+
+----- CBS LINE 9162 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\RetailDemo.Internal.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\UnifiedEnrollment.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\enterprisedevicemanagement.enrollment.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\cloudexperiencehostapi.provisioning.winmd
+
+----- CBS LINE 9163 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\UnifiedEnrollment.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\enterprisedevicemanagement.enrollment.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\cloudexperiencehostapi.provisioning.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoft.resourceaccountmanager.winmd
+
+----- CBS LINE 9164 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\UnifiedEnrollment.DataModel.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\enterprisedevicemanagement.enrollment.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\cloudexperiencehostapi.provisioning.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoft.resourceaccountmanager.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ApplicationTheme.winmd
+
+----- CBS LINE 9165 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\enterprisedevicemanagement.enrollment.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\cloudexperiencehostapi.provisioning.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoft.resourceaccountmanager.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ApplicationTheme.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\WindowsUdk.winmd
+
+----- CBS LINE 9166 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\cloudexperiencehostapi.provisioning.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoft.resourceaccountmanager.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ApplicationTheme.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\WindowsUdk.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\GuidedSetup.winmd
+
+----- CBS LINE 9167 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\microsoft.resourceaccountmanager.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ApplicationTheme.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\WindowsUdk.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\GuidedSetup.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-taskbar-dll_31bf3856ad364e35_10.0.26100.1591_none_6c66e81127be15ef\r\Taskbar.dll
+
+----- CBS LINE 9168 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\ApplicationTheme.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\WindowsUdk.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\GuidedSetup.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-taskbar-dll_31bf3856ad364e35_10.0.26100.1591_none_6c66e81127be15ef\r\Taskbar.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..settings-searchdata_31bf3856ad364e35_10.0.26100.1591_none_296b536d471b1fa3\r\AllSystemSettings_{FDB289F3-FCFC-4702-8015-18926E996EC1}.xml
+
+----- CBS LINE 9169 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\WindowsUdk.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\GuidedSetup.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-taskbar-dll_31bf3856ad364e35_10.0.26100.1591_none_6c66e81127be15ef\r\Taskbar.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..settings-searchdata_31bf3856ad364e35_10.0.26100.1591_none_296b536d471b1fa3\r\AllSystemSettings_{FDB289F3-FCFC-4702-8015-18926E996EC1}.xml
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..inventory-nonarpinv_31bf3856ad364e35_10.0.26100.1591_none_f775dcae75a2810d\r\nonarpinv.dll
+
+----- CBS LINE 9170 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..riencehost.appxmain_31bf3856ad364e35_10.0.26100.1591_none_9e7873f8fda6cd33\r\GuidedSetup.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-taskbar-dll_31bf3856ad364e35_10.0.26100.1591_none_6c66e81127be15ef\r\Taskbar.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..settings-searchdata_31bf3856ad364e35_10.0.26100.1591_none_296b536d471b1fa3\r\AllSystemSettings_{FDB289F3-FCFC-4702-8015-18926E996EC1}.xml
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..inventory-nonarpinv_31bf3856ad364e35_10.0.26100.1591_none_f775dcae75a2810d\r\nonarpinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinv.dll
+
+----- CBS LINE 9171 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-taskbar-dll_31bf3856ad364e35_10.0.26100.1591_none_6c66e81127be15ef\r\Taskbar.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..settings-searchdata_31bf3856ad364e35_10.0.26100.1591_none_296b536d471b1fa3\r\AllSystemSettings_{FDB289F3-FCFC-4702-8015-18926E996EC1}.xml
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..inventory-nonarpinv_31bf3856ad364e35_10.0.26100.1591_none_f775dcae75a2810d\r\nonarpinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinvext.dll
+
+----- CBS LINE 9172 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..settings-searchdata_31bf3856ad364e35_10.0.26100.1591_none_296b536d471b1fa3\r\AllSystemSettings_{FDB289F3-FCFC-4702-8015-18926E996EC1}.xml
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..inventory-nonarpinv_31bf3856ad364e35_10.0.26100.1591_none_f775dcae75a2810d\r\nonarpinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinvext.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\Microsoft.Management.OsConfiguration.Commands.dll
+
+----- CBS LINE 9173 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-c..inventory-nonarpinv_31bf3856ad364e35_10.0.26100.1591_none_f775dcae75a2810d\r\nonarpinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinvext.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\Microsoft.Management.OsConfiguration.Commands.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\OsConfiguration.psd1
+
+----- CBS LINE 9174 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinv.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinvext.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\Microsoft.Management.OsConfiguration.Commands.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\OsConfiguration.psd1
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockApp.exe
+
+----- CBS LINE 9175 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-a..n-experience-appinv_31bf3856ad364e35_10.0.26100.1591_none_b8a08e9482a41bbe\r\aeinvext.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\Microsoft.Management.OsConfiguration.Commands.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\OsConfiguration.psd1
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockApp.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.dll
+
+----- CBS LINE 9176 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\Microsoft.Management.OsConfiguration.Commands.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\OsConfiguration.psd1
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockApp.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.winmd
+
+----- CBS LINE 9177 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-d..onfigurationcmdlets_31bf3856ad364e35_10.0.26100.1591_none_ef56e9d706b0d426\r\OsConfiguration.psd1
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockApp.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\resources.pri
+
+----- CBS LINE 9178 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockApp.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\SearchIndexer.exe.mui
+
+----- CBS LINE 9179 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\SearchIndexer.exe.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssrch.dll.mui
+
+----- CBS LINE 9180 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\LockSearchAPI.winmd
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\SearchIndexer.exe.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssrch.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\tquery.dll.mui
+
+----- CBS LINE 9181 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-lockapp.appxmain_31bf3856ad364e35_10.0.26100.1591_none_83300daf83f8b2a6\r\resources.pri
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\SearchIndexer.exe.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssrch.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\tquery.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssvp.dll.mui
+
+----- CBS LINE 9182 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\SearchIndexer.exe.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssrch.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\tquery.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssvp.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssph.dll.mui
+
+----- CBS LINE 9183 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssrch.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\tquery.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssvp.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssph.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\Search.ProtocolHandler.MAPI2.dll.mui
+
+----- CBS LINE 9184 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\tquery.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssvp.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssph.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\Search.ProtocolHandler.MAPI2.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifinetworkmanager.dll
+
+----- CBS LINE 9185 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssvp.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssph.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\Search.ProtocolHandler.MAPI2.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifinetworkmanager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifitask.exe
+
+----- CBS LINE 9186 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\mssph.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\Search.ProtocolHandler.MAPI2.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifinetworkmanager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifitask.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_22be944b505ac37e\r\Microsoft.Ink.dll
+
+----- CBS LINE 9187 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_windowssearchengine.resources_31bf3856ad364e35_7.0.26100.1455_en-us_4bd9435d002eb378\r\Search.ProtocolHandler.MAPI2.dll.mui
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifinetworkmanager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifitask.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_22be944b505ac37e\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-m..fdshowreversebridge_31bf3856ad364e35_10.0.26100.1591_none_ecf1b31b60415605\r\MFDshowReverseBridge.dll
+
+----- CBS LINE 9188 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifinetworkmanager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifitask.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_22be944b505ac37e\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-m..fdshowreversebridge_31bf3856ad364e35_10.0.26100.1591_none_ecf1b31b60415605\r\MFDshowReverseBridge.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestManager.dll
+
+----- CBS LINE 9189 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-wifinetworkmanager_31bf3856ad364e35_10.0.26100.1591_none_087ed6682bae0fd0\r\wifitask.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_22be944b505ac37e\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-m..fdshowreversebridge_31bf3856ad364e35_10.0.26100.1591_none_ecf1b31b60415605\r\MFDshowReverseBridge.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestNormal.dll
+
+----- CBS LINE 9190 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft.ink_31bf3856ad364e35_10.0.26100.1455_none_22be944b505ac37e\r\Microsoft.Ink.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-m..fdshowreversebridge_31bf3856ad364e35_10.0.26100.1591_none_ecf1b31b60415605\r\MFDshowReverseBridge.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestNormal.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttest.dll
+
+----- CBS LINE 9191 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-m..fdshowreversebridge_31bf3856ad364e35_10.0.26100.1591_none_ecf1b31b60415605\r\MFDshowReverseBridge.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestNormal.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttest.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmBroker.exe
+
+----- CBS LINE 9192 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestNormal.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttest.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmBroker.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmLpac.exe
+
+----- CBS LINE 9193 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttestNormal.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttest.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmBroker.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmLpac.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-clientapi_31bf3856ad364e35_10.0.26100.1591_none_b076376f9c284d2d\r\Windows.Internal.Security.Attestation.DeviceAttestation.dll
+
+----- CBS LINE 9194 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-attest-client_31bf3856ad364e35_10.0.26100.1150_none_11ac37852d8a20ae\r\AzureAttest.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmBroker.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmLpac.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-clientapi_31bf3856ad364e35_10.0.26100.1591_none_b076376f9c284d2d\r\Windows.Internal.Security.Attestation.DeviceAttestation.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave.dll
+
+----- CBS LINE 9195 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmBroker.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmLpac.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-clientapi_31bf3856ad364e35_10.0.26100.1591_none_b076376f9c284d2d\r\Windows.Internal.Security.Attestation.DeviceAttestation.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave_secure.dll
+
+----- CBS LINE 9196 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-broker_31bf3856ad364e35_10.0.26100.1150_none_f5f28f643cc492d0\r\SgrmLpac.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-clientapi_31bf3856ad364e35_10.0.26100.1591_none_b076376f9c284d2d\r\Windows.Internal.Security.Attestation.DeviceAttestation.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave_secure.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\InputController.dll
+
+----- CBS LINE 9197 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-clientapi_31bf3856ad364e35_10.0.26100.1591_none_b076376f9c284d2d\r\Windows.Internal.Security.Attestation.DeviceAttestation.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave_secure.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\InputController.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\PerceptionSimulationManager.dll
+
+----- CBS LINE 9198 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave_secure.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\InputController.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\PerceptionSimulationManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\PerceptionSimulationService.exe
+
+----- CBS LINE 9199 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_security-octagon-enclave_31bf3856ad364e35_10.0.26100.1150_none_ed0d3cc51344dee7\r\SgrmEnclave_secure.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\InputController.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\PerceptionSimulationManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\PerceptionSimulationService.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\SixDofControllerManager.ProxyStubs.dll
+
+----- CBS LINE 9200 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\InputController.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\PerceptionSimulationManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\PerceptionSimulationService.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\SixDofControllerManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\VirtualDisplayManager.ProxyStubs.dll
+
+----- CBS LINE 9201 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-desktop_31bf3856ad364e35_10.0.26100.1591_none_fcc568d921e94cb3\r\PerceptionSimulationManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\PerceptionSimulationService.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\SixDofControllerManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\VirtualDisplayManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-virtualcameramanager_31bf3856ad364e35_10.0.26100.1150_none_92a09c43b2997170\r\VirtualCameraManager.dll
+
+----- CBS LINE 9202 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\PerceptionSimulationService.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\SixDofControllerManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\VirtualDisplayManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-virtualcameramanager_31bf3856ad364e35_10.0.26100.1150_none_92a09c43b2997170\r\VirtualCameraManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-browserservice_31bf3856ad364e35_10.0.26100.9818_none_14801f844e25726b\r\browser.dll
+
+----- CBS LINE 9203 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\SixDofControllerManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\VirtualDisplayManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-virtualcameramanager_31bf3856ad364e35_10.0.26100.1150_none_92a09c43b2997170\r\VirtualCameraManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-browserservice_31bf3856ad364e35_10.0.26100.9818_none_14801f844e25726b\r\browser.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..ngshandlers-copilot_31bf3856ad364e35_10.0.26100.1591_none_0a468603a4fa7586\r\SettingsHandlers_Copilot.dll
+
+----- CBS LINE 9204 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-p..nsimulation-service_31bf3856ad364e35_10.0.26100.1150_none_74a667b087b1ac17\r\VirtualDisplayManager.ProxyStubs.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-virtualcameramanager_31bf3856ad364e35_10.0.26100.1150_none_92a09c43b2997170\r\VirtualCameraManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-browserservice_31bf3856ad364e35_10.0.26100.9818_none_14801f844e25726b\r\browser.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..ngshandlers-copilot_31bf3856ad364e35_10.0.26100.1591_none_0a468603a4fa7586\r\SettingsHandlers_Copilot.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentServer.dll
+
+----- CBS LINE 9205 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-virtualcameramanager_31bf3856ad364e35_10.0.26100.1150_none_92a09c43b2997170\r\VirtualCameraManager.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-browserservice_31bf3856ad364e35_10.0.26100.9818_none_14801f844e25726b\r\browser.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..ngshandlers-copilot_31bf3856ad364e35_10.0.26100.1591_none_0a468603a4fa7586\r\SettingsHandlers_Copilot.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentServer.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.onecore.dll
+
+----- CBS LINE 9206 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-browserservice_31bf3856ad364e35_10.0.26100.9818_none_14801f844e25726b\r\browser.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..ngshandlers-copilot_31bf3856ad364e35_10.0.26100.1591_none_0a468603a4fa7586\r\SettingsHandlers_Copilot.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentServer.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.onecore.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.desktop.dll
+
+----- CBS LINE 9207 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-s..ngshandlers-copilot_31bf3856ad364e35_10.0.26100.1591_none_0a468603a4fa7586\r\SettingsHandlers_Copilot.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentServer.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.onecore.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.desktop.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXApplicabilityBlob.dll
+
+----- CBS LINE 9208 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentServer.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.onecore.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.desktop.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXApplicabilityBlob.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppxUpgradeMigrationPlugin.dll
+
+----- CBS LINE 9209 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.onecore.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.desktop.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXApplicabilityBlob.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppxUpgradeMigrationPlugin.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\ApplyTrustOffline.exe
+
+----- CBS LINE 9210 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXDeploymentExtensions.desktop.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXApplicabilityBlob.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppxUpgradeMigrationPlugin.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\ApplyTrustOffline.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\CustomInstallExec.exe
+
+----- CBS LINE 9211 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppXApplicabilityBlob.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppxUpgradeMigrationPlugin.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\ApplyTrustOffline.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\CustomInstallExec.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppInstallerBackgroundUpdate.exe
+
+----- CBS LINE 9212 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppxUpgradeMigrationPlugin.dll
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\ApplyTrustOffline.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\CustomInstallExec.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppInstallerBackgroundUpdate.exe
+2026-11-11 15:43:43, Info                  CBS
+
+----- CBS LINE 9213 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\ApplyTrustOffline.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\CustomInstallExec.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppInstallerBackgroundUpdate.exe
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Summary:
+
+----- CBS LINE 9214 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\CustomInstallExec.exe
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppInstallerBackgroundUpdate.exe
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Summary:
+2026-11-11 15:43:43, Info                  CBS    Operation: Detect only
+
+----- CBS LINE 9215 -----
+2026-11-11 15:43:43, Info                  CBS    (p)   CSI Payload Corrupt     (n)                     amd64_microsoft-windows-appx-deployment-server_31bf3856ad364e35_10.0.26100.1742_none_fcf4914266c3a69d\r\AppInstallerBackgroundUpdate.exe
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Summary:
+2026-11-11 15:43:43, Info                  CBS    Operation: Detect only
+2026-11-11 15:43:43, Info                  CBS    Operation result: 0x0
+
+----- CBS LINE 9216 -----
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Summary:
+2026-11-11 15:43:43, Info                  CBS    Operation: Detect only
+2026-11-11 15:43:43, Info                  CBS    Operation result: 0x0
+2026-11-11 15:43:43, Info                  CBS    Last Successful Step: Stage package detection completes.
+
+----- CBS LINE 9217 -----
+2026-11-11 15:43:43, Info                  CBS    Summary:
+2026-11-11 15:43:43, Info                  CBS    Operation: Detect only
+2026-11-11 15:43:43, Info                  CBS    Operation result: 0x0
+2026-11-11 15:43:43, Info                  CBS    Last Successful Step: Stage package detection completes.
+2026-11-11 15:43:43, Info                  CBS    Total Detected Corruption:    110
+
+----- CBS LINE 9218 -----
+2026-11-11 15:43:43, Info                  CBS    Operation: Detect only
+2026-11-11 15:43:43, Info                  CBS    Operation result: 0x0
+2026-11-11 15:43:43, Info                  CBS    Last Successful Step: Stage package detection completes.
+2026-11-11 15:43:43, Info                  CBS    Total Detected Corruption:    110
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Corruption:    0
+
+----- CBS LINE 9219 -----
+2026-11-11 15:43:43, Info                  CBS    Operation result: 0x0
+2026-11-11 15:43:43, Info                  CBS    Last Successful Step: Stage package detection completes.
+2026-11-11 15:43:43, Info                  CBS    Total Detected Corruption:    110
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Corruption:        0
+
+----- CBS LINE 9220 -----
+2026-11-11 15:43:43, Info                  CBS    Last Successful Step: Stage package detection completes.
+2026-11-11 15:43:43, Info                  CBS    Total Detected Corruption:    110
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CBS Metadata Corruption:        0
+
+----- CBS LINE 9221 -----
+2026-11-11 15:43:43, Info                  CBS    Total Detected Corruption:    110
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CBS Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Corruption:        0
+
+----- CBS LINE 9222 -----
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CBS Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Metadata Corruption:        0
+
+----- CBS LINE 9223 -----
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CBS Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Corruption: 110
+
+----- CBS LINE 9224 -----
+2026-11-11 15:43:43, Info                  CBS          CBS Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Corruption: 110
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Corrupt:  0
+
+----- CBS LINE 9225 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Corruption: 110
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Corrupt:  0
+2026-11-11 15:43:43, Info                  CBS    Total Repaired Corruption:    0
+
+----- CBS LINE 9226 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Metadata Corruption:        0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Corruption: 110
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Corrupt:  0
+2026-11-11 15:43:43, Info                  CBS    Total Repaired Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Repaired:      0
+
+----- CBS LINE 9227 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Corruption: 110
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Corrupt:  0
+2026-11-11 15:43:43, Info                  CBS    Total Repaired Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Repaired:      0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Repaired:  0
+
+----- CBS LINE 9228 -----
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Corrupt:  0
+2026-11-11 15:43:43, Info                  CBS    Total Repaired Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Repaired:      0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Repaired:  0
+
+----- CBS LINE 9229 -----
+2026-11-11 15:43:43, Info                  CBS    Total Repaired Corruption:    0
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Repaired:      0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Repaired:   0
+
+----- CBS LINE 9230 -----
+2026-11-11 15:43:43, Info                  CBS          CBS MumX Repaired:      0
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Repaired:   0
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Repaired: 0
+
+----- CBS LINE 9231 -----
+2026-11-11 15:43:43, Info                  CBS          CBS Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Repaired:   0
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Repaired: 0
+2026-11-11 15:43:43, Info                  CBS          CSI Registry Metadata refreshed:        False
+
+----- CBS LINE 9232 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Manifest Repaired:  0
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Repaired:   0
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Repaired: 0
+2026-11-11 15:43:43, Info                  CBS          CSI Registry Metadata refreshed:        False
+2026-11-11 15:43:43, Info                  CBS          CSI Store Metadata refreshed:   True
+
+----- CBS LINE 9233 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Payload Repaired:   0
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Repaired: 0
+2026-11-11 15:43:43, Info                  CBS          CSI Registry Metadata refreshed:        False
+2026-11-11 15:43:43, Info                  CBS          CSI Store Metadata refreshed:   True
+2026-11-11 15:43:43, Info                  CBS    Staged Packages:
+
+----- CBS LINE 9234 -----
+2026-11-11 15:43:43, Info                  CBS          CSI FileFlags Repaired: 0
+2026-11-11 15:43:43, Info                  CBS          CSI Registry Metadata refreshed:        False
+2026-11-11 15:43:43, Info                  CBS          CSI Store Metadata refreshed:   True
+2026-11-11 15:43:43, Info                  CBS    Staged Packages:
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages:    114
+
+----- CBS LINE 9235 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Registry Metadata refreshed:        False
+2026-11-11 15:43:43, Info                  CBS          CSI Store Metadata refreshed:   True
+2026-11-11 15:43:43, Info                  CBS    Staged Packages:
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages:    114
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages removed:    0
+
+----- CBS LINE 9236 -----
+2026-11-11 15:43:43, Info                  CBS          CSI Store Metadata refreshed:   True
+2026-11-11 15:43:43, Info                  CBS    Staged Packages:
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages:    114
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages removed:    0
+2026-11-11 15:43:43, Info                  CBS
+
+----- CBS LINE 9237 -----
+2026-11-11 15:43:43, Info                  CBS    Staged Packages:
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages:    114
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages removed:    0
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Total Operation Time: 249 seconds.
+
+----- CBS LINE 9238 -----
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages:    114
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages removed:    0
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Total Operation Time: 249 seconds.
+2026-11-11 15:43:43, Info                  CBS    Ensure CBS corruption flag is clear
+
+----- CBS LINE 9239 -----
+2026-11-11 15:43:43, Info                  CBS          CBS Staged packages removed:    0
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Total Operation Time: 249 seconds.
+2026-11-11 15:43:43, Info                  CBS    Ensure CBS corruption flag is clear
+2026-11-11 15:43:43, Info                  CBS    CheckSur: hrStatus: 0x0 [S_OK], download results: <none>
+
+----- CBS LINE 9240 -----
+2026-11-11 15:43:43, Info                  CBS
+2026-11-11 15:43:43, Info                  CBS    Total Operation Time: 249 seconds.
+2026-11-11 15:43:43, Info                  CBS    Ensure CBS corruption flag is clear
+2026-11-11 15:43:43, Info                  CBS    CheckSur: hrStatus: 0x0 [S_OK], download results: <none>
+2026-11-11 15:43:43, Info                  CBS    Count of times corruption detected: 2
+
+----- CBS LINE 9241 -----
+2026-11-11 15:43:43, Info                  CBS    Total Operation Time: 249 seconds.
+2026-11-11 15:43:43, Info                  CBS    Ensure CBS corruption flag is clear
+2026-11-11 15:43:43, Info                  CBS    CheckSur: hrStatus: 0x0 [S_OK], download results: <none>
+2026-11-11 15:43:43, Info                  CBS    Count of times corruption detected: 2
+2026-11-11 15:43:43, Info                  CBS    Seconds between initial corruption detections: -1
+
+----- CBS LINE 9242 -----
+2026-11-11 15:43:43, Info                  CBS    Ensure CBS corruption flag is clear
+2026-11-11 15:43:43, Info                  CBS    CheckSur: hrStatus: 0x0 [S_OK], download results: <none>
+2026-11-11 15:43:43, Info                  CBS    Count of times corruption detected: 2
+2026-11-11 15:43:43, Info                  CBS    Seconds between initial corruption detections: -1
+2026-11-11 15:43:43, Info                  CBS    Seconds between corruption and repair: -1
+
+----- CBS LINE 9243 -----
+2026-11-11 15:43:43, Info                  CBS    CheckSur: hrStatus: 0x0 [S_OK], download results: <none>
+2026-11-11 15:43:43, Info                  CBS    Count of times corruption detected: 2
+2026-11-11 15:43:43, Info                  CBS    Seconds between initial corruption detections: -1
+2026-11-11 15:43:43, Info                  CBS    Seconds between corruption and repair: -1
+2026-11-11 15:43:43, Info                  CBS    Reboot mark cleared
+
+----- CBS LINE 9244 -----
+2026-11-11 15:43:43, Info                  CBS    Count of times corruption detected: 2
+2026-11-11 15:43:43, Info                  CBS    Seconds between initial corruption detections: -1
+2026-11-11 15:43:43, Info                  CBS    Seconds between corruption and repair: -1
+2026-11-11 15:43:43, Info                  CBS    Reboot mark cleared
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Simplifying Winlogon CreateSession notifications
+
+----- CBS LINE 9245 -----
+2026-11-11 15:43:43, Info                  CBS    Seconds between initial corruption detections: -1
+2026-11-11 15:43:43, Info                  CBS    Seconds between corruption and repair: -1
+2026-11-11 15:43:43, Info                  CBS    Reboot mark cleared
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Simplifying Winlogon CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Deregistering for CreateSession notifications
+
+----- CBS LINE 9246 -----
+2026-11-11 15:43:43, Info                  CBS    Seconds between corruption and repair: -1
+2026-11-11 15:43:43, Info                  CBS    Reboot mark cleared
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Simplifying Winlogon CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Deregistering for CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Exec: Processing complete, session(Corruption Detecting): 31289834_2001965374 [HRESULT = 0x00000000 - S_OK]
+
+----- CBS LINE 9247 -----
+2026-11-11 15:43:43, Info                  CBS    Reboot mark cleared
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Simplifying Winlogon CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Deregistering for CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Exec: Processing complete, session(Corruption Detecting): 31289834_2001965374 [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CBS    =================
+
+----- CBS LINE 9248 -----
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Simplifying Winlogon CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Deregistering for CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Exec: Processing complete, session(Corruption Detecting): 31289834_2001965374 [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Operations recap:
+
+----- CBS LINE 9249 -----
+2026-11-11 15:43:43, Info                  CBS    Winlogon: Deregistering for CreateSession notifications
+2026-11-11 15:43:43, Info                  CBS    Exec: Processing complete, session(Corruption Detecting): 31289834_2001965374 [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Operations recap:
+2026-11-11 15:43:43, Info                  CBS    =================
+
+----- CBS LINE 9250 -----
+2026-11-11 15:43:43, Info                  CBS    Exec: Processing complete, session(Corruption Detecting): 31289834_2001965374 [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Operations recap:
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374
+
+----- CBS LINE 9251 -----
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Operations recap:
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374
+2026-11-11 15:43:43, Info                  CBS    Correlation Vector: ujdNGoDxNkewcvUR.1
+
+----- CBS LINE 9252 -----
+2026-11-11 15:43:43, Info                  CBS    Operations recap:
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374
+2026-11-11 15:43:43, Info                  CBS    Correlation Vector: ujdNGoDxNkewcvUR.1
+2026-11-11 15:43:43, Info                  CBS    =================
+
+----- CBS LINE 9253 -----
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374
+2026-11-11 15:43:43, Info                  CBS    Correlation Vector: ujdNGoDxNkewcvUR.1
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    =================
+
+----- CBS LINE 9254 -----
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374
+2026-11-11 15:43:43, Info                  CBS    Correlation Vector: ujdNGoDxNkewcvUR.1
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Total time: 0ms
+
+----- CBS LINE 9255 -----
+2026-11-11 15:43:43, Info                  CBS    Correlation Vector: ujdNGoDxNkewcvUR.1
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Total time: 0ms
+2026-11-11 15:43:43, Info                  CBS    =================
+
+----- CBS LINE 9256 -----
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Total time: 0ms
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374 finalized. Reboot required: no, RepairNeeded: yes [HRESULT = 0x00000000 - S_OK]
+
+----- CBS LINE 9257 -----
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Total time: 0ms
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374 finalized. Reboot required: no, RepairNeeded: yes [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CSI    0000001d Direct SIL provider: Number of files opened: 4.
+
+----- CBS LINE 9258 -----
+2026-11-11 15:43:43, Info                  CBS    Total time: 0ms
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374 finalized. Reboot required: no, RepairNeeded: yes [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CSI    0000001d Direct SIL provider: Number of files opened: 4.
+2026-11-11 15:43:43, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\
+
+----- CBS LINE 9259 -----
+2026-11-11 15:43:43, Info                  CBS    =================
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374 finalized. Reboot required: no, RepairNeeded: yes [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CSI    0000001d Direct SIL provider: Number of files opened: 4.
+2026-11-11 15:43:43, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\
+2026-11-11 15:43:43, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\ to \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263}
+
+----- CBS LINE 9260 -----
+2026-11-11 15:43:43, Info                  CBS    Session: 31289834_2001965374 finalized. Reboot required: no, RepairNeeded: yes [HRESULT = 0x00000000 - S_OK]
+2026-11-11 15:43:43, Info                  CSI    0000001d Direct SIL provider: Number of files opened: 4.
+2026-11-11 15:43:43, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\
+2026-11-11 15:43:43, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\ to \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263}
+2026-11-11 15:43:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263} successful
+
+----- CBS LINE 9261 -----
+2026-11-11 15:43:43, Info                  CSI    0000001d Direct SIL provider: Number of files opened: 4.
+2026-11-11 15:43:43, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\
+2026-11-11 15:43:43, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\ to \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263}
+2026-11-11 15:43:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263} successful
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+
+----- CBS LINE 9262 -----
+2026-11-11 15:43:43, Info                  CBS    Deleting directory: \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\
+2026-11-11 15:43:43, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\ to \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263}
+2026-11-11 15:43:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263} successful
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+
+----- CBS LINE 9263 -----
+2026-11-11 15:43:43, Info                  CBS    Moving directory from \\?\C:\WINDOWS\CbsTemp\31289834_2001965374\ to \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263}
+2026-11-11 15:43:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263} successful
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 15:43:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+
+----- CBS LINE 9264 -----
+2026-11-11 15:43:43, Info                  CBS    Deletion of: \\?\C:\WINDOWS\CbsTemp\{828B80E5-005E-4918-B4A4-5F4634797263} successful
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 15:43:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 15:43:43, Info                  CBS    Priority: Restoring default priority
+
+----- CBS LINE 9265 -----
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\Machine\COMPONENTS
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 15:43:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 15:43:43, Info                  CBS    Priority: Restoring default priority
+2026-11-11 15:43:44, Info                  CBS    Module starts contributing to an existing logging session
+
+----- CBS LINE 9266 -----
+2026-11-11 15:43:43, Info                  SXS    Removing reference on previously loaded registry hive: \Registry\User\.DEFAULT
+2026-11-11 15:43:43, Info                  SXS    Unloading registry hive: \Registry\Machine\SCHEMA
+2026-11-11 15:43:43, Info                  CBS    Priority: Restoring default priority
+2026-11-11 15:43:44, Info                  CBS    Module starts contributing to an existing logging session
+2026-11-11 15:43:44, Info                  SXS    TurboStack version 10.0.26100.9971 (WinBuild.160101.0800) loaded fromC:\WINDOWS\winsxs\amd64_microsoft-windows-servicingstack_31bf3856ad364e35_10.0.26100.9971_none_a4f22b5b777377f6
+PS C:\Users\Laco>
+PS C:\Users\Laco> echo
+
+cmdlet Write-Output at command pipeline position 1
+Supply values for the following parameters:
+InputObject[0]:
+PS C:\Users\Laco> echo "===== TEST-11 COMPLETE ====="
+===== TEST-11 COMPLETE =====
+PS C:\Users\Laco> echo "Read-only CBS log inspection."
+Read-only CBS log inspection.
+PS C:\Users\Laco> echo "No files or system configuration were modified."
+No files or system configuration were modified.
+PS C:\Users\Laco>
+PS C:\Users\Laco>
