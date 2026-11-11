@@ -16,27 +16,26 @@ Start with the conclusion for the short version; consult the canonical audit for
 
 ## Intended architecture
 
-```mermaid
-flowchart TB
-    subgraph CLIENTS["Remote clients"]
-        MINT["Linux Mint"]
-        WIN["Windows"]
-    end
-
-    subgraph DECK["Steam Deck OLED / SteamOS"]
-        HOST["SteamOS host session"]
-        POD["Rootless Podman"]
-        LXC["Inner LXC lifecycle"]
-        ANDROID["Waydroid / Android userspace"]
-        HOST --> POD --> LXC --> ANDROID
-    end
-
-    MINT -. "SSH control / remote display" .-> HOST
-    WIN -. "SSH control / remote display" .-> HOST
-
-    RESULT["Target experience was not demonstrated"]
-    ANDROID -.-> RESULT
-    style RESULT fill:#f8d7da,stroke:#842029,color:#842029
+```text
+REMOTE CLIENTS
+  |-- Linux Mint
+  `-- Windows
+        |
+        | SSH control / remote display
+        v
+STEAM DECK OLED / STEAMOS
+  |
+  v
+Rootless Podman
+  |
+  v
+Inner LXC lifecycle
+  |
+  v
+Waydroid / Android userspace
+  |
+  v
+Target experience was not demonstrated
 ```
 
 This diagram describes the intended stack, **not a working deployment**.
