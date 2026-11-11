@@ -11,6 +11,20 @@
 
 ---
 
+## Contents
+
+- [1. Executive decision](#1-executive-decision)
+- [2. Original target and non-negotiable requirements](#2-original-target-and-non-negotiable-requirements)
+- [3. Architecture: where the requirements collide](#3-architecture-where-the-requirements-collide)
+- [4. Three principal constraint groups](#4-three-principal-constraint-groups)
+- [5. Evidence classification](#5-evidence-classification)
+- [6. Why the apparent alternatives were rejected](#6-why-the-apparent-alternatives-were-rejected)
+- [7. Final decision matrix](#7-final-decision-matrix)
+- [8. What would have to change to reopen the subject](#8-what-would-have-to-change-to-reopen-the-subject)
+- [9. Closure record](#9-closure-record)
+
+---
+
 ## 1. Executive decision
 
 The Waydroid SSH project is closed because **no secure, maintainable end-to-end deployment path was established that satisfies the mandatory container-only, rootless and SteamOS-preservation requirements**.
@@ -25,16 +39,16 @@ The problem is not that the Steam Deck lacks enough CPU or GPU capability. The h
 
 <pre>
 FINAL RESULT
-┌───────────────────────────────────────────────────────────────┐
-│ WAYDROID SSH                                                   │
-│                                                               │
-│  Required: container-only + rootless + no broad host changes  │
-│  Required: SSH control + remote display/input                 │
-│                                                               │
-│  Result: no compliant end-to-end architecture demonstrated    │
-│                                                               │
-│  DECISION: CLOSED — NOT FEASIBLE UNDER CURRENT CONSTRAINTS     │
-└───────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------+
+| WAYDROID SSH                                                   |
+|                                                               |
+| Required: container-only + rootless + no broad host changes   |
+| Required: SSH control + remote display/input                  |
+|                                                               |
+| Result: no compliant end-to-end architecture demonstrated     |
+|                                                               |
+| DECISION: CLOSED - NOT FEASIBLE UNDER CURRENT CONSTRAINTS      |
++---------------------------------------------------------------+
 </pre>
 
 This is an architecture-level conclusion. It does **not** claim that every component was experimentally proven impossible or that Waydroid could never run on SteamOS with a different architecture and relaxed requirements. Several end-to-end gates were deliberately not attempted because the foundational deployment path was already incompatible or unproven under the approved boundary.
@@ -71,60 +85,55 @@ These are not optional optimizations. Relaxing them changes the project definiti
 
 ### 3.1 Intended deployment stack
 
-```mermaid
-flowchart TB
-    subgraph CLIENTS["Remote clients"]
-        MINT["Linux Mint"]
-        WIN["Windows"]
-    end
+```text
+REMOTE CLIENTS
+  |-- Linux Mint -- SSH control + ADB/scrcpy transport --+
+  `-- Windows ---- SSH control + ADB/scrcpy transport --+
+                                                         |
+                                                         v
+STEAM DECK OLED / STEAMOS
+  |
+  v
+Rootless Podman boundary
+  |
+  v
+Waydroid manager + Android userspace
+  |
+  v
+Inner LXC container lifecycle
+  |-- Binder devices / BinderFS
+  |-- AMD GPU render node
+  |-- Android networking
+  `-- Wayland / D-Bus / audio handoff
 
-    subgraph DECK["Steam Deck OLED / SteamOS"]
-        HOST["SteamOS host
-KDE Plasma / Wayland"]
-        POD["Rootless Podman boundary"]
-        WD["Waydroid manager + Android userspace"]
-        LXC["Inner LXC container lifecycle"]
-        BINDER["Binder devices / BinderFS"]
-        GPU["AMD GPU render node"]
-        NET["Android networking"]
-        SESSION["Wayland / D-Bus / audio handoff"]
-        HOST --- POD
-        POD --- WD
-        WD --- LXC
-        LXC --- BINDER
-        LXC --- GPU
-        LXC --- NET
-        WD --- SESSION
-    end
-
-    MINT -->|"SSH control + ADB/scrcpy transport"| HOST
-    WIN -->|"SSH control + ADB/scrcpy transport"| HOST
-    HOST --> POD
+This is the intended relationship, not a working deployment.
 ```
 
 The diagram shows the required relationships, not a working implementation. The audit did not reach an Android boot or remote-client demonstration.
 
 ### 3.2 The decisive boundary
 
-```mermaid
-flowchart TD
-    A["Waydroid requires an LXC-managed Android container"]
-    B["Stock Waydroid manager normally runs host-side
-through root D-Bus / systemd integration"]
-    C["LXC's non-root cgroup-v2 path expects
-its own delegated systemd user scope"]
-    D["Rootless Podman is the required outer boundary"]
-    E["Nested cgroup2 mount observed read-only"]
-    F["Direct-host delegation tests passed only
-for limited host-side primitives"]
-    G["No demonstrated compliant nested LXC lifecycle"]
+```text
+Waydroid requires an LXC-managed Android container
+  |
+  v
+Stock Waydroid manager normally runs host-side
+through root D-Bus / systemd integration
+  |
+  v
+LXC's non-root cgroup-v2 path expects its own
+delegated systemd user scope
 
-    A --> B
-    B --> C
-    D --> E
-    F -. "does not prove" .-> G
-    C --> G
-    E --> G
+Rootless Podman is the required outer boundary
+  |
+  v
+Nested cgroup2 mount observed read-only
+
+Direct-host delegation tests passed only for limited
+host-side primitives; they do not prove nested delegation.
+  |
+  v
+No demonstrated compliant nested LXC lifecycle
 ```
 
 The key distinction is that **host-side cgroup delegation and nested cgroup delegation inside rootless Podman are different capabilities**. Passing a host primitive test does not make a read-only cgroup mount inside the outer container writable.
@@ -264,28 +273,36 @@ These items remain untested. The project closes because the architecture did not
 
 ### Final architecture disposition
 
-```mermaid
-flowchart TD
-    START["Waydroid SSH project"]
-    REQ["Mandatory: SteamOS preserved
-rootless container-only
-SSH remote clients"]
-    ROOT["Rootless Podman + inner LXC"]
-    HOST["Host LXC / native integration"]
-    SPLIT["Custom split-privilege integration"]
-    PRIV["Privileged outer container"]
-    CLOSE["CLOSE PROJECT
-NOT FEASIBLE UNDER CURRENT REQUIREMENTS"]
-
-    START --> REQ
-    REQ --> ROOT
-    ROOT -->|"No demonstrated nested cgroup/runtime path"| CLOSE
-    REQ --> HOST
-    HOST -->|"Outside target; package trust/safety blocked"| CLOSE
-    REQ --> SPLIT
-    SPLIT -->|"Unvalidated complexity and host-network conflict"| CLOSE
-    REQ --> PRIV
-    PRIV -->|"Violates security boundary"| CLOSE
+```text
+Waydroid SSH project
+  |
+  v
+Mandatory requirements:
+  - Preserve SteamOS
+  - Rootless, container-only deployment
+  - SSH control from remote clients
+  |
+  +--> Rootless Podman + inner LXC
+  |      No demonstrated nested cgroup/runtime path
+  |                         |
+  +-------------------------+
+  |
+  +--> Host LXC / native integration
+  |      Outside target; package trust/safety blocked
+  |                         |
+  +-------------------------+
+  |
+  +--> Custom split-privilege integration
+  |      Unvalidated complexity and host-network conflict
+  |                         |
+  +-------------------------+
+  |
+  `--> Privileged outer container
+         Violates the approved security boundary
+                              |
+                              v
+                  CLOSE PROJECT
+       NOT FEASIBLE UNDER CURRENT REQUIREMENTS
 ```
 
 ---
