@@ -15,6 +15,36 @@
 
 ---
 
+## Contents
+
+- [1. Executive summary](#1-executive-summary)
+- [2. Repository context and applicability](#2-repository-context-and-applicability)
+- [3. Core policy](#3-core-policy)
+- [4. Execution environment boundaries](#4-execution-environment-boundaries)
+- [5. Selecting the Python version](#5-selecting-the-python-version)
+- [6. Virtual-environment layout](#6-virtual-environment-layout)
+- [7. Creating a new virtual environment](#7-creating-a-new-virtual-environment)
+- [8. Activating versus explicit interpreter paths](#8-activating-versus-explicit-interpreter-paths)
+- [9. Package installation and dependency management](#9-package-installation-and-dependency-management)
+- [10. Project root and import behavior](#10-project-root-and-import-behavior)
+- [11. Runtime verification checklist](#11-runtime-verification-checklist)
+- [12. Distrobox command pattern](#12-distrobox-command-pattern)
+- [13. Environment variables and secrets](#13-environment-variables-and-secrets)
+- [14. Persistence, backup and recovery](#14-persistence-backup-and-recovery)
+- [15. Troubleshooting decision table](#15-troubleshooting-decision-table)
+- [16. Change-management procedure](#16-change-management-procedure)
+- [17. Project-specific Python reference template](#17-project-specific-python-reference-template)
+- [Environment verification](#environment-verification)
+- [Dependencies](#dependencies)
+- [Startup and execution](#startup-and-execution)
+- [Tests](#tests)
+- [Change history](#change-history)
+- [18. Current repository references](#18-current-repository-references)
+- [19. Authoritative technical references](#19-authoritative-technical-references)
+- [20. Final rules](#20-final-rules)
+
+---
+
 ## 1. Executive summary
 
 Use a dedicated Python virtual environment for each Python application or independently maintained Python toolset. Keep the base interpreter and operating-system packages in the environment that owns them; keep application libraries inside that application's `.venv`.
@@ -108,17 +138,19 @@ Before running any Python command, identify which environment owns the process.
 
 ### 4.1 Environment ownership schema
 
-```mermaid
-flowchart TD
-    H["SteamOS host"] --> HP["Host Python (OS-managed)"]
-    H --> D["Distrobox: project userspace"]
-    H --> P["Podman: application container"]
-    D --> DB["Container base Python"]
-    P --> PB["Container base Python, if required"]
-    DB --> V1["Project A .venv"]
-    DB --> V2["Project B .venv"]
-    PB --> V3["Project C .venv"]
-    HP -. "Do not use as a substitute" .-> V1
+```text
+SteamOS host
+  |-- Host Python (OS-managed)
+  |     (not a substitute for a project .venv)
+  |
+  |-- Distrobox: project userspace
+  |     `-- Container base Python
+  |           |-- Project A .venv
+  |           `-- Project B .venv
+  |
+  `-- Podman: application container
+        `-- Container base Python, if required
+              `-- Project C .venv
 ```
 
 Projects may share a compatible base interpreter inside one container, but each application should have its own venv and dependency set. Sharing a base interpreter does not mean sharing site-packages.
@@ -517,18 +549,38 @@ If the project root or base runtime moves, recreate the venv at the intended loc
 
 ### 14.2 Recovery sequence
 
-```mermaid
-flowchart TD
-    A["Confirm project root and runtime"] --> B["Read project Python reference"]
-    B --> C["Confirm supported base Python"]
-    C --> D["Inspect dependency declarations / lock"]
-    D --> E["Check whether .venv exists"]
-    E -->|Yes| F["Inspect and diagnose; do not overwrite"]
-    E -->|No, approved creation| G["Create .venv"]
-    G --> H["Install declared dependencies"]
-    H --> I["Verify interpreter and pip paths"]
-    I --> J["Run dependency and project tests"]
-    J --> K["Record result and evidence"]
+```text
+Confirm project root and runtime
+  |
+  v
+Read project Python reference
+  |
+  v
+Confirm supported base Python
+  |
+  v
+Inspect dependency declarations / lock
+  |
+  v
+Check whether .venv exists
+  |-- Yes --> Inspect and diagnose; do not overwrite
+  |
+  `-- No, creation approved
+        |
+        v
+      Create .venv
+        |
+        v
+      Install declared dependencies
+        |
+        v
+      Verify interpreter and pip paths
+        |
+        v
+      Run dependency and project tests
+        |
+        v
+      Record result and evidence
 ```
 
 This is a controlled recovery outline, not authorization to rebuild an existing environment. A restore may also require system libraries, model files, databases, credentials or other project data documented elsewhere.
