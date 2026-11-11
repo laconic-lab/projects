@@ -1,11 +1,29 @@
-# **Pi-hole on SteamOS — Backup and Recovery**
+# Pi-hole on SteamOS — Backup and Recovery
 
 **Document:** `pi-hole/docs/BACKUP-AND-RECOVERY.md`  
 **Status:** Draft — review required  
 **Scope:** Rootless Podman Pi-hole deployment on SteamOS  
 **Last reviewed:** 2026-11-03
 
-## **1\. Purpose**
+## Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Deployment data layout](#2-deployment-data-layout)
+- [3. What must be backed up](#3-what-must-be-backed-up)
+- [4. Backup principles](#4-backup-principles)
+- [5. Backup procedure](#5-backup-procedure)
+- [6. Recovery categories](#6-recovery-categories)
+- [7. Application-data restoration](#7-application-data-restoration)
+- [8. Container recovery](#8-container-recovery)
+- [9. Host configuration recovery](#9-host-configuration-recovery)
+- [10. Existing recovery script](#10-existing-recovery-script)
+- [11. Recovery verification](#11-recovery-verification)
+- [12. Backup and recovery checklist](#12-backup-and-recovery-checklist)
+- [13. Outstanding items](#13-outstanding-items)
+- [14. References](#14-references)
+- [Change history](#change-history)
+
+## 1. Purpose
 
 This document defines how to protect Pi-hole configuration and data, verify backups, and recover the service after common failures.
 
@@ -20,11 +38,11 @@ The main objectives are:
 
 **A running container is not a backup. A recovery script is not a complete backup.**
 
-## **2\. Deployment data layout**
+## 2. Deployment data layout
 
 The documented deployment stores Pi-hole data in two host directories:
 
-```
+```text
 /home/deck/pihole-box/
 │
 ├── etc-pihole/
@@ -45,9 +63,9 @@ The Distrobox named `pihole-box` is not required to be running for the Podman co
 
 The actual live paths and mounts must be verified before performing a backup or restore.
 
-## **3\. What must be backed up**
+## 3. What must be backed up
 
-### **3.1 Application data**
+### 3.1 Application data
 
 | Item | Backup requirement |
 | ----- | ----- |
@@ -60,7 +78,7 @@ The actual live paths and mounts must be verified before performing a backup or 
 
 The precise contents vary by Pi-hole version and configuration. Do not assume that copying only one configuration file is sufficient.
 
-### **3.2 Host configuration**
+### 3.2 Host configuration
 
 The deployment also depends on host-level configuration:
 
@@ -76,7 +94,7 @@ Host configuration should be recorded separately from the Pi-hole application da
 
 Do not restore an entire host configuration directory just to recover Pi-hole.
 
-### **3.3 Credentials**
+### 3.3 Credentials
 
 Credentials require separate handling.
 
@@ -88,7 +106,7 @@ Credentials require separate handling.
 
 A restored application configuration must not silently reintroduce a compromised credential.
 
-## **4\. Backup principles**
+## 4. Backup principles
 
 1. Inspect the live container and mount paths before copying anything.  
 2. Keep backups outside the live Pi-hole data directories.  
@@ -101,15 +119,15 @@ A restored application configuration must not silently reintroduce a compromised
 9. Keep at least one backup independent of the Steam Deck's internal storage when practical.  
 10. Do not delete old backups automatically.
 
-## **5\. Backup procedure**
+## 5. Backup procedure
 
-### **5.1 Read-only preflight**
+### 5.1 Read-only preflight
 
 **STEAM DECK — host SSH**
 
 Inspect the container and its mounts:
 
-```
+```bash
 podman ps -a --filter name=pihole
 
 podman inspect pihole \
@@ -131,7 +149,7 @@ Confirm:
 
 Do not print the full container environment as part of the backup inspection.
 
-### **5.2 Consistent backup**
+### 5.2 Consistent backup
 
 For a straightforward filesystem backup, stop Pi-hole cleanly before copying its persistent data.
 
@@ -141,7 +159,7 @@ After confirming the service is stopped, copy both data directories into a new, 
 
 Example destination structure:
 
-```
+```text
 /home/deck/Pi-hole-Backups/
 └── YYYY-MM-DD_HH-MM/
     ├── etc-pihole/
@@ -164,7 +182,7 @@ The backup metadata should record:
 
 Do not include credentials or secret environment values.
 
-### **5.3 Archive verification**
+### 5.3 Archive verification
 
 After copying:
 
@@ -176,7 +194,7 @@ After copying:
 
 A successful copy command alone is not proof of a valid backup.
 
-### **5.4 Restart after backup**
+### 5.4 Restart after backup
 
 Only after the backup has been verified should the service be started again.
 
@@ -184,7 +202,7 @@ Use the existing approved lifecycle mechanism. Do not start a second container o
 
 Verify DNS and web administration after startup.
 
-## **6\. Recovery categories**
+## 6. Recovery categories
 
 Choose the narrowest recovery procedure that matches the failure.
 
@@ -202,13 +220,13 @@ Choose the narrowest recovery procedure that matches the failure.
 
 Do not rebuild the container to solve a problem that only requires restarting the existing service.
 
-## **7\. Application-data restoration**
+## 7. Application-data restoration
 
 Restoring Pi-hole data is a destructive operation because it can overwrite current configuration and database state.
 
 **Approval required before restoration.**
 
-### **7.1 Pre-restore checks**
+### 7.1 Pre-restore checks
 
 * Identify the exact failure.  
 * Confirm the selected backup date.  
@@ -222,7 +240,7 @@ Restoring Pi-hole data is a destructive operation because it can overwrite curre
 
 Do not merge an old backup into live directories without understanding the consequences.
 
-### **7.2 Restore procedure**
+### 7.2 Restore procedure
 
 1. Stop the existing Pi-hole service using the approved lifecycle method.  
 2. Preserve the current live directories as a separate recovery snapshot.  
@@ -238,7 +256,7 @@ Do not merge an old backup into live directories without understanding the conse
 
 Do not delete the pre-restore snapshot until the recovered service has been verified and a new backup has been created.
 
-## **8\. Container recovery**
+## 8. Container recovery
 
 If the container itself is damaged or removed, the persistent data directories should be treated as independent assets.
 
@@ -258,27 +276,27 @@ Do not use a generic upstream Compose example without comparing it against the d
 
 Do not remove persistent data volumes or directories during container replacement.
 
-## **9\. Host configuration recovery**
+## 9. Host configuration recovery
 
 Host configuration is separate from Pi-hole application data.
 
-### **9.1 Sysctl**
+### 9.1 Sysctl
 
 The documented setting is:
 
-```
+```text
 /etc/sysctl.d/99-pihole.conf
 ```
 
 It contains the low-port configuration:
 
-```
+```text
 net.ipv4.ip_unprivileged_port_start=53
 ```
 
 This is a host-wide setting. Restore it only after confirming that the current Podman networking method requires it.
 
-### **9.2 Firewall**
+### 9.2 Firewall
 
 The documented deployment uses firewalld with LAN-restricted DNS rules.
 
@@ -292,11 +310,11 @@ Before restoring firewall configuration:
 
 Do not replace the complete firewall configuration with a Pi-hole-only backup.
 
-### **9.3 User systemd service**
+### 9.3 User systemd service
 
 The documented service is:
 
-```
+```text
 /home/deck/.config/systemd/user/pihole.service
 ```
 
@@ -304,7 +322,7 @@ Before restoring it, verify that its commands still match the actual container n
 
 Do not create a duplicate unit.
 
-## **10\. Existing recovery script**
+## 10. Existing recovery script
 
 Repository script:
 
@@ -336,11 +354,11 @@ The script must be reviewed before execution because it performs modifications t
 
 Do not describe it as read-only.
 
-## **11\. Recovery verification**
+## 11. Recovery verification
 
 After any recovery, verify the following independently.
 
-### **Container**
+### Container
 
 * Expected container exists.  
 * Container is running.  
@@ -350,7 +368,7 @@ After any recovery, verify the following independently.
 * Expected persistent mounts are present.  
 * Expected port bindings are present.
 
-### **DNS**
+### DNS
 
 * DNS responds on TCP port 53\.  
 * DNS responds on UDP port 53\.  
@@ -358,22 +376,22 @@ After any recovery, verify the following independently.
 * Pi-hole query processing is functioning.  
 * No unintended public DNS exposure exists.
 
-### **Administration**
+### Administration
 
 * Web administration is accessible from the trusted LAN.  
 * Authentication works.  
 * No credentials are exposed in logs or diagnostic output.
 
-### **Persistence**
+### Persistence
 
 * Configuration survives a controlled container restart.  
 * Local DNS records are present.  
 * Custom lists and settings are present.  
 * A fresh verified backup can be created.
 
-## **12\. Backup and recovery checklist**
+## 12. Backup and recovery checklist
 
-### **Backup**
+### Backup
 
 * Live mount paths verified.  
 * Container identity verified.  
@@ -385,7 +403,7 @@ After any recovery, verify the following independently.
 * Backup integrity checked.  
 * Backup stored independently of live data.
 
-### **Recovery**
+### Recovery
 
 * Failure identified.  
 * Correct recovery category selected.  
@@ -398,7 +416,7 @@ After any recovery, verify the following independently.
 * Administration tested.  
 * New backup created after successful recovery.
 
-## **13\. Outstanding items**
+## 13. Outstanding items
 
 | Item | Status |
 | ----- | ----- |
@@ -413,7 +431,7 @@ After any recovery, verify the following independently.
 
 Do not mark a backup strategy as operational until a restore test has succeeded.
 
-## **14\. References**
+## 14. References
 
 * Pi-hole Docker documentation: [https\://docs.pi-hole.net/docker/](https://docs.pi-hole.net/docker/)  
 * Pi-hole Docker configuration: [https\://docs.pi-hole.net/docker/configuration/](https://docs.pi-hole.net/docker/configuration/)  
@@ -421,7 +439,7 @@ Do not mark a backup strategy as operational until a restore test has succeeded.
 * Project architecture and operations: `pi-hole/docs/Pi-hole on SteamOS — Architecture & Operations.md`  
 * Recovery helper: `pi-hole/scripts/pihole-update-recovery.sh`
 
-## **Change history**
+## Change history
 
 | Date | Change |
 | ----- | ----- |
