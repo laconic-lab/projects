@@ -13,6 +13,21 @@
 
 ---
 
+## Contents
+
+- [1. Authoritative Project References](#1-authoritative-project-references)
+- [2. Current Project Environment](#2-current-project-environment)
+- [3. Python Reference and Verified Baseline](#3-python-reference-and-verified-baseline)
+- [4. Mandatory Python and Shell Reliability Rules](#4-mandatory-python-and-shell-reliability-rules)
+- [5. Mandatory Documentation Scope](#5-mandatory-documentation-scope)
+- [6. Shyrka Operating Guardrails](#6-shyrka-operating-guardrails)
+- [7. Start-of-Session Checklist](#7-start-of-session-checklist)
+- [8. Session Handover and Resumption](#8-session-handover-and-resumption)
+- [9. Document Maintenance](#9-document-maintenance)
+- [Session workflow schema](#session-workflow-schema)
+
+---
+
 ## 1. Authoritative Project References
 
 Use these documents as the initial project map. Check their current contents when accessible and relevant to the task.
@@ -217,18 +232,37 @@ After editing:
 
 ## Session workflow schema
 
-```mermaid
-flowchart TD
-    A["Resume task"] --> B["Read relevant project references"]
-    B --> C["Identify project and execution environment"]
-    C --> D["Inspect only relevant evidence"]
-    D --> E{"Critical fact uncertain?"}
-    E -- Yes --> F["Perform targeted read-only check"]
-    F --> D
-    E -- No --> G["Define one justified next step"]
-    G --> H["Back up before significant change"]
-    H --> I["Make scoped change"]
-    I --> J["Verify and document actual results"]
+```text
+Resume task
+  |
+  v
+Read relevant project references
+  |
+  v
+Identify project and execution environment
+  |
+  v
+Inspect relevant evidence
+  |
+  v
+Is a critical fact uncertain?
+  |-- Yes --> Perform targeted read-only check --+
+  |                                               |
+  +-----------------------------------------------+
+  |
+  `-- No
+        |
+        v
+      Define one justified next step
+        |
+        v
+      Back up before significant change
+        |
+        v
+      Make scoped change
+        |
+        v
+      Verify and document actual results
 ```
 
 This is a visual summary of the existing protocol, not an additional authorization to execute operations.
