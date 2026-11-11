@@ -19,31 +19,38 @@
 
 ## Project relationship
 
-```mermaid
-flowchart TB
-    H["Steam Deck · SteamOS"] --> D["Distrobox · localai-box"]
-    D --> S["Shyrka agent"]
-    S --> M["Local Ollama / Granite"]
-    S --> T["Approved diagnostic tools"]
-    S --> UI["LAN dashboard"]
-    S --> DB["SQLite conversation archive"]
-    UI --> U["User"]
+```text
+Steam Deck / SteamOS host
+  |
+  `-- Distrobox: localai-box
+        |
+        `-- Shyrka agent
+              |-- Local Ollama / Granite
+              |-- Approved diagnostic tools
+              |-- LAN dashboard
+              |     `-- User
+              `-- SQLite conversation archive
 ```
 
 This is a documentation-level view based on the existing records. It is not a live architecture audit.
 
 ## Documentation authority
 
-```mermaid
-flowchart TD
-    R["README · entry point"] --> A["Agent Manifest"]
-    R --> P["Python Environment"]
-    R --> S["Startup Protocol"]
-    R --> U["Maintenance Policy"]
-    R --> N["Release Notes"]
-    R --> V["Project Versions"]
-    O["Archived originals"] -. "historical reference only" .-> R
-    G["Deck shared Python standard"] --> P
+```text
+README (entry point)
+  |-- Agent Manifest
+  |-- Python Environment
+  |-- Startup and Reliability Protocol
+  |-- Maintenance and Update Policy
+  |-- Release Notes
+  `-- Project Versions
+
+Deck shared Python standard
+  `-- Governs shared Python practices; Shyrka reference owns
+      Shyrka-specific paths, versions and dependencies.
+
+Archived originals
+  `-- Historical reference only; not current operational authority
 ```
 
 ## Content and evidence conventions
