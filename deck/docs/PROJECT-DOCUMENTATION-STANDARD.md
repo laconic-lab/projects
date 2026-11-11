@@ -14,6 +14,22 @@ Repository-wide guidance for creating, maintaining and reviewing project documen
 
 ---
 
+## Contents
+
+- [1. Documentation principles](#1-documentation-principles)
+- [2. Documentation roles](#2-documentation-roles)
+- [3. README requirements](#3-readme-requirements)
+- [4. Content expectations by role](#4-content-expectations-by-role)
+- [5. Security and publication rules — mandatory](#5-security-and-publication-rules-mandatory)
+- [6. Evidence, accuracy and status language](#6-evidence-accuracy-and-status-language)
+- [7. Naming, structure and formatting](#7-naming-structure-and-formatting)
+- [8. Documentation hierarchy and authority](#8-documentation-hierarchy-and-authority)
+- [9. Updating documentation](#9-updating-documentation)
+- [10. AI-assisted documentation work](#10-ai-assisted-documentation-work)
+- [11. Exceptions and maintenance](#11-exceptions-and-maintenance)
+
+---
+
 ## 1. Documentation principles
 
 1. **Document the project, not the conversation.** Convert useful decisions and verified outcomes into durable documentation. Chat transcripts, raw terminal dumps and step-by-step conversation exports are not substitutes for maintained project documentation.
