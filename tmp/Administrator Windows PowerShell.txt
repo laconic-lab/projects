@@ -1,0 +1,126 @@
+Windows PowerShell 5.1
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PS C:\Users\Laco> # M4800 UPDATE AUDIT — BASELINE 01
+PS C:\Users\Laco> # Read-only diagnostic collection
+PS C:\Users\Laco> # PowerShell 7.6.10
+PS C:\Users\Laco> # No system modifications intended
+PS C:\Users\Laco>
+PS C:\Users\Laco> $ErrorActionPreference = "Continue"
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 1. WINDOWS IDENTITY ====="
+
+===== 1. WINDOWS IDENTITY =====
+PS C:\Users\Laco> Get-ComputerInfo |
+>>     Select-Object WindowsProductName, WindowsEditionId,
+>>                   WindowsVersion, OsBuildNumber, OsArchitecture |
+>>     Format-List
+
+
+WindowsProductName : Windows 10 Pro
+WindowsEditionId   : Professional
+WindowsVersion     : 2009
+OsBuildNumber      : 26200
+OsArchitecture     : 64-bit
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 2. CURRENT BUILD ====="
+
+===== 2. CURRENT BUILD =====
+PS C:\Users\Laco> Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" |
+>>     Select-Object ProductName, EditionID, DisplayVersion,
+>>                   CurrentBuild, UBR, InstallationType |
+>>     Format-List
+
+
+ProductName      : Windows 10 Pro
+EditionID        : Professional
+DisplayVersion   : 25H2
+CurrentBuild     : 26200
+UBR              : 9818
+InstallationType : Client
+
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 3. PENDING REBOOT INDICATORS ====="
+
+===== 3. PENDING REBOOT INDICATORS =====
+PS C:\Users\Laco>
+PS C:\Users\Laco> $pendingPaths = @(
+>>     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+>>     "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+>> )
+PS C:\Users\Laco>
+PS C:\Users\Laco> foreach ($path in $pendingPaths) {
+>>     [PSCustomObject]@{
+>>         RegistryPath = $path
+>>         Exists       = Test-Path $path
+>>     }
+>> } | Format-Table -AutoSize
+At line:6 char:3
++ } | Format-Table -AutoSize
++   ~
+An empty pipe element is not allowed.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : EmptyPipeElement
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 4. RECENT WINDOWS UPDATE HISTORY ====="
+
+===== 4. RECENT WINDOWS UPDATE HISTORY =====
+PS C:\Users\Laco> Get-HotFix |
+>>     Sort-Object InstalledOn -Descending |
+>>     Select-Object -First 15 HotFixID, Description, InstalledOn |
+>>     Format-Table -AutoSize
+
+HotFixID  Description     InstalledOn
+--------  -----------     -----------
+KB5132688 Security Update 11/11/26 00:00:00
+KB5132402 Update          30/10/26 00:00:00
+KB5127936 Update          30/10/26 00:00:00
+KB5127690 Update          14/10/26 00:00:00
+KB5054156 Update          01/07/26 00:00:00
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 5. RELEVANT SERVICING PACKAGES ====="
+
+===== 5. RELEVANT SERVICING PACKAGES =====
+PS C:\Users\Laco> DISM.exe /Online /Get-Packages /Format:Table |
+>>     Select-String -Pattern "Package Identity|Package_for_RollupFix|ServicingStack|KB5043080|KB5132061|State :"
+
+Package Identity                                                                                        | State      |
+Release Type    | Install Time
+Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.1742.1.10                                           | Staged     |
+Security Update | 06/09/24 04:10
+Package_for_RollupFix~31bf3856ad364e35~amd64~~26100.9818.1.42                                           | Installed  |
+Update          | 30/10/26 03:31
+Package_for_ServicingStack_9815~31bf3856ad364e35~amd64~~26100.9815.1.3                                  | Installed  |
+Update          | 30/10/26 03:18
+Package_for_ServicingStack_9971~31bf3856ad364e35~amd64~~26100.9971.1.11                                 | Installed  |
+Security Update | 11/11/26 11:02
+
+
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== 6. COMPONENT STORE HEALTH ====="
+
+===== 6. COMPONENT STORE HEALTH =====
+PS C:\Users\Laco> DISM.exe /Online /Cleanup-Image /CheckHealth
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Image Version: 10.0.26200.9818
+
+The component store is repairable.
+The operation completed successfully.
+PS C:\Users\Laco>
+PS C:\Users\Laco> Write-Output "`n===== BASELINE 01 COMPLETE ====="
+
+===== BASELINE 01 COMPLETE =====
+PS C:\Users\Laco>
+PS C:\Users\Laco>
+PS C:\Users\Laco>

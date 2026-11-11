@@ -1,0 +1,41 @@
+PS C:\Users\Laco> Get-CimInstance Win32_OperatingSystem | Format-List Caption,Version,BuildNumber,OSArchitecture
+
+
+Caption        : Microsoft Windows 11 Pro
+Version        : 10.0.26200
+BuildNumber    : 26200
+OSArchitecture : 64-bit
+
+
+
+PS C:\Users\Laco> DISM.exe /Online /Get-CurrentEdition
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Image Version: 10.0.26200.9818
+
+Current edition is:
+
+Current Edition : Professional
+
+The operation completed successfully.
+PS C:\Users\Laco> $paths = @(
+>> "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending",
+>> "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired"
+>> )
+PS C:\Users\Laco> foreach ($p in $paths) {
+>>     Write-Output "$p : $(Test-Path $p)"
+>> }
+HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending : False
+HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired : False
+PS C:\Users\Laco> DISM.exe /Online /Cleanup-Image /ScanHealth
+
+Deployment Image Servicing and Management tool
+Version: 10.0.26100.9549
+
+Image Version: 10.0.26200.9818
+
+[==========================100.0%==========================] The component store is repairable.
+The operation completed successfully.
+PS C:\Users\Laco>
