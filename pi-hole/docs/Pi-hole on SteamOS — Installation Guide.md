@@ -340,7 +340,7 @@ Keep runtime and permanent configurations consistent.
 
 The existing installation used:
 
-```bash
+```text
 docker.io/pihole/pihole:latest
 ```
 
