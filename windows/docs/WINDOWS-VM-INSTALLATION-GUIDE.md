@@ -431,3 +431,18 @@ Windows installation is user-confirmed complete. The selected LAN noVNC endpoint
 The user selected Steam Deck address 192.168.1.161, TCP port 8006, and PC client 192.168.1.169 for noVNC, and explicitly accepts LAN reachability. The current container and start script are still loopback-bound. The intended publication is 192.168.1.161:8006:8006; the container must be recreated for that setting to take effect while preserving the host-backed storage directory. No firewall change has been made; the active public zone already has broad high-port TCP/UDP allowances.
 
 A new Console and Second-VM Deployment Guide documents viewer operation, host-side resource settings, unattended setup variables, and an isolated second-VM example. The example is documentation only; no second VM has been created. No backup has been run or scheduled.
+
+
+### 2026-11-12 — Disposable guest and storage-tuning lab policy
+
+The user clarified that this Windows VM is a disposable sandbox for learning QEMU/KVM, rootless Podman and Dockur. Do not create Windows guest backups, snapshots or copies of `data.img`. The user prefers diagnosing a damaged guest and creating a fresh VM over repairing a “wounded” experimental guest. Configuration parameters, deployment settings and verified technical findings must be preserved in documentation; this is not authorization to back up guest state or routinely copy scripts.
+
+A dedicated [Disposable I/O, RAM-Backed Temporary Storage and SSD Lab](./WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md) records the proposed RAM-disk, TEMP/TMP, pagefile, TRIM, Optimize Drives and NVMe-health investigations. No Windows storage tuning has been applied. The PowerShell baseline was mistakenly entered in SteamOS Bash and therefore did not run; it must be executed inside the Windows guest.
+
+**Host baseline supplied while the VM was running:** `data.img` reported 8.5 GiB allocated by `du` and 128 GiB apparent size; `/home` had 498 GiB available (939 GiB total, 441 GiB used, 47%); host RAM was 14 GiB total with 3.0 GiB available; zram was 7.2 GiB total with 1.1 GiB used; the 1 GiB host swapfile had 3.6 MiB used. Both `nvme` and `smartctl` executables are installed, but no NVMe health query has been run. These are point-in-time readings, not wear-rate evidence.
+
+**Resource safety:** do not increase guest RAM or allocate a RAM disk based on assumptions. The 3.0 GiB host available-memory reading is a caution requiring further baseline measurements. Do not alter SteamOS swap/zram, host filesystem, NVMe settings or host services for guest optimization.
+
+**LAN console remains first priority:** the current start script contains `192.168.1.161:8006:8006`, but the running `windows-box` still publishes `127.0.0.1:8006`. The container must be recreated and PC-client browser access verified before starting the Windows-side PowerShell and storage audit.
+
+**PowerShell command-context correction:** the first guest inspection block was entered into SteamOS Bash over SSH. Bash returned command-not-found/syntax errors; no PowerShell command ran and no guest configuration was changed.
