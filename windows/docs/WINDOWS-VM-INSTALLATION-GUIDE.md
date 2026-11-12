@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: Windows 11 Pro 24H2 installation reported complete; local noVNC access verified by user; manual lifecycle and LAN-client console access being finalized. No backup is in scope.**
+> **Current phase: Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC target selected (192.168.1.161:8006), but the running container remains loopback-bound pending reconfiguration. No backup is in scope.**
 
 ## 1. Objective
 
@@ -218,7 +218,7 @@ This layout was created successfully. The deployment configuration files have pa
 
 **Lifecycle intent:** retain manual start/stop/status operation using the existing project scripts. No SteamOS boot autostart or always-on service is intended. The three script contents and stop/start behaviour are to be reviewed before declaring lifecycle documentation final.
 
-**LAN console intent:** the user wants to access noVNC from a PC client. Current Podman publication remains loopback-only (`127.0.0.1:8006`). The next network change must be limited to the Deck's LAN interface and trusted client source, after confirming the PC client's current IPv4 and reviewing the active firewall. Do not publish guest RDP or other guest ports as part of this requirement.
+**LAN console decision (2026-11-12):** the user selected http://192.168.1.161:8006/ for PC client 192.168.1.169 and accepts LAN reachability. The current host listener is still 127.0.0.1:8006. The start script must be changed to publish 192.168.1.161:8006:8006, then the existing container must be stopped and recreated (without deleting /home/deck/WindowsVM/storage) for the new binding to take effect. The active public firewalld zone already has broad TCP/UDP allowances for ports 1024-65535; no firewall change has been made. Do not publish guest RDP or other guest ports.
 
 **Backup boundary:** the user explicitly instructed that no VM backup be performed until the VM is fully configured. No backup was run, created or scheduled. Backup/restore documentation may describe a future procedure, but the current work must not execute it or imply that it has been validated.
 
@@ -383,7 +383,7 @@ The start script is designed to use the existing local image without pulling (`-
 
 The ISO path and checksum are now verified, and its bootable ISO structure and key setup files are confirmed. The expected Linux-conversion version difference is understood: this ISO contains the base `26100.1` image, not the selected `26200.9974` update level. Do not spend further time trying to make the Linux conversion output contain integrated updates. The purpose of the Windows VM is to run the Windows UUP conversion workflow that can integrate those update packages. The next media check, if needed for selecting the guest edition, is to inspect the `install.wim` image indexes and edition metadata; it is not to investigate the already-explained base/update version difference.
 
-The container is deployed and QEMU has started using KVM. Inspect Windows Setup through the loopback web console, complete installation, then verify guest networking and the shared-folder workflow. Do not add TUN or capabilities unless a concrete requirement emerges.
+Windows installation is user-confirmed complete. The selected LAN noVNC endpoint is http://192.168.1.161:8006/ from 192.168.1.169; apply the documented publication change and recreate only the container, preserving /storage. Verify from the PC after the change. Do not add TUN or capabilities unless a concrete requirement emerges.
 
 1. (Completed) Verify the selected ISO path, SHA-256, bootable ISO structure and key setup files. Inspect WIM indexes/edition metadata only if needed to confirm the Pro install index.
 2. Confirm the image's current supported configuration and persistent data directory.
@@ -417,9 +417,16 @@ The container is deployed and QEMU has started using KVM. Inspect Windows Setup 
 | 2026-11-12 | Windows 11 Pro installation | USER-CONFIRMED | Windows 11 Pro 24H2 build 26100; local account `DeckVM`; hostname `windows-vm` |
 | 2026-11-12 | Local noVNC console | USER-CONFIRMED | Opened successfully on Deck at `127.0.0.1:8006`; browser title `Windows - noVNC` |
 | 2026-11-12 | Guest network configuration | USER-REPORTED | Guest reports IPv4 `192.168.1.161` and DNS `192.168.1.1`; same IPv4 as Deck host, requires interpretation under user-mode `passt` networking |
-| 2026-11-12 | PC-client noVNC access | PENDING | Requires client IPv4 confirmation and review of host firewall before LAN binding change |
+| 2026-11-12 | PC-client noVNC endpoint | USER-SELECTED / HOST CHANGE PENDING | 192.168.1.161:8006 for client 192.168.1.169; runtime still loopback-only; container recreation required |
 | 2026-11-12 | Backup/restore | DEFERRED BY USER | No backup or restore operation until VM is declared fully configured |
 
 ---
 
 *Living project document. Update after each completed inspection, decision, installation or verification. Record only evidence actually supplied or observed; do not promote proposals to verified state.*
+
+
+### 2026-11-12 — LAN console target and second-VM procedure documented
+
+The user selected Steam Deck address 192.168.1.161, TCP port 8006, and PC client 192.168.1.169 for noVNC, and explicitly accepts LAN reachability. The current container and start script are still loopback-bound. The intended publication is 192.168.1.161:8006:8006; the container must be recreated for that setting to take effect while preserving the host-backed storage directory. No firewall change has been made; the active public zone already has broad high-port TCP/UDP allowances.
+
+A new Console and Second-VM Deployment Guide documents viewer operation, host-side resource settings, unattended setup variables, and an isolated second-VM example. The example is documentation only; no second VM has been created. No backup has been run or scheduled.
