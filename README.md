@@ -105,6 +105,7 @@ The repository contains projects at different maturity levels. A project may be 
 | [Stable Diffusion](./stable.diffusion/) | Local image generation using stable-diffusion.cpp and the Deck AMD GPU through Vulkan | Dedicated Distrobox; WebUI binds to loopback; remote access uses an SSH tunnel, not direct LAN publication |
 | [Odysseus](./odysseus/) | AI application and multi-provider integration work | Dedicated project environment; consult the architecture and implementation-status documents before assuming a feature is implemented or a service is running |
 | [Waydroid](./waydroid/) | Feasibility research for Android workloads on the Deck with remote Linux/Windows clients | Investigation/audit; not a completed or approved native SteamOS installation |
+| [Windows](./windows/) | Manually managed Windows VM feasibility and installation journey on the Steam Deck | Planning/preflight; no VM created |
 
 ### Direct documentation
 
@@ -202,6 +203,7 @@ This repository is also intended to be a **technical handoff and context source*
 ├── shyrka/            # Shyrka agent documentation and supporting material
 ├── stable.diffusion/  # Stable Diffusion documentation and project material
 ├── waydroid/          # Android-in-container feasibility research and scripts
+├── windows/           # Windows VM feasibility, installation and journey documentation
 └── tmp/               # Temporary diagnostic and working material
 ```
 
