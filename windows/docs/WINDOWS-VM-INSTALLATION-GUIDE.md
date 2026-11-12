@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: host/container KVM validation passed; persistent project directory and deployment scripts created and syntax-checked; container deployment pending. No Windows guest disk or guest OS has been created.**
+> **Current phase: container deployed; QEMU/KVM guest boot started successfully; Windows installation not yet confirmed complete.**
 
 ## 1. Objective
 
@@ -37,7 +37,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 | Name | Role | Current state |
 |---|---|---|
 | `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Image downloaded; runtime test passed; VM deployment pending |
-| `windows-vm` | Proposed Windows guest VM | PENDING creation |
+| `windows-vm` | Windows guest VM | QEMU process running; Windows setup/installation completion not yet verified |
 | QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | QEMU 11.1.1 available inside the downloaded `dockurr/windows` image; KVM probe passed |
 | KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Host and rootless-container access verified; QEMU KVM launch passed |
 | OVMF | UEFI firmware implementation commonly used by QEMU guests | Not installed in the earlier inventory |
@@ -46,7 +46,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 
 QEMU is the virtual-machine engine. KVM is the Linux kernel facility that can accelerate virtualisation. A Windows guest is a separate operating system running inside a virtual hardware definition; it does not replace SteamOS.
 
-The prepared deployment configuration specifies 4 vCPUs, 6 GiB RAM and a 128 GiB virtual disk. The environment file has been created and validated, but these values are not yet active: the container has not been created or started.
+The deployed configuration specifies 4 vCPUs, 6 GiB RAM and a 128 GiB growable raw virtual disk. Runtime inspection confirmed these values in the QEMU command line and the created disk image.
 
 ## 4. Repository and platform rules
 
@@ -129,7 +129,7 @@ No packages were installed during this inventory.
 
 ## 6. Architecture decision
 
-**Status: SELECTED — KVM EXECUTION VALIDATED; WINDOWS GUEST NOT YET CREATED**
+**Status: SELECTED AND DEPLOYED — INITIAL QEMU/KVM GUEST BOOT VERIFIED; WINDOWS SETUP IN PROGRESS/UNCONFIRMED**
 
 The current candidate is:
 
@@ -143,7 +143,7 @@ Steam Deck OLED / SteamOS host
         |-- dockurr/windows image (`windows-box`)
               |-- QEMU 11.1.1 + KVM acceleration
               |-- persistent Windows VM data (planned)
-              |-- Windows guest (`windows-vm`, not yet created)
+              |-- Windows guest (`windows-vm`, QEMU running; setup not yet confirmed complete)
               |
               |-- virtual CPU / RAM / disk
               |-- UEFI firmware
@@ -151,7 +151,7 @@ Steam Deck OLED / SteamOS host
               |-- NAT networking
 ```
 
-The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. The selected approach was validated by a successful QEMU/KVM probe inside the image. The container still requires deliberate device, network, mount and lifecycle configuration; rootless operation does not by itself prove every aspect is isolated or safe.
+The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. Both a minimal QEMU/KVM probe and the deployed guest's QEMU startup have succeeded. Runtime inspection confirms the intended mounts, loopback-only web port, manual lifecycle and `/dev/kvm` device mapping. Rootless operation does not by itself prove every aspect is isolated or safe.
 
 ### Candidate guest configuration
 
@@ -199,7 +199,7 @@ The ISO remains at its existing path under `/home/deck/uup-box`; it is not dupli
 - Back up the guest while stopped or using a documented application/VM-consistent method; test restore before treating backups as reliable.
 - After SteamOS updates, verify Podman, KVM device access, project mount ownership, container recreation and guest boot. SteamOS update survival is a design goal, not a guarantee until recovery has been tested.
 
-This layout was created successfully. The deployment configuration files now exist and have passed syntax/permission checks. Container creation, guest storage creation, backup validation and a full SteamOS-update recovery test remain pending.
+This layout was created successfully. The deployment configuration files have passed syntax/permission checks. The container and guest storage have now been created; backup validation and a full SteamOS-update recovery test remain pending.
 
 ## 8. Journey log
 
@@ -271,6 +271,27 @@ This also explains why the base ISO is not a matching repair source for the Dell
 **Assessment:** no unexpected host-level changes, broad privilege grant, or mismatch with the selected persistence/network/lifecycle design was found in the supplied script. The script is approved for the initial container creation attempt, subject to runtime verification immediately afterward. This is a static review only; Podman argument acceptance, actual mounts, port binding, QEMU startup and guest storage writes remain to be verified at runtime.
 
 **Next:** run the manual start script once. Then inspect container state, configuration/mounts, published port and startup logs before interacting with the guest installer.
+### 2026-11-12 — Initial container deployment and QEMU/KVM guest startup
+
+**User-supplied runtime evidence:** the manual start script created container `windows-box` (ID prefix `c1e364fcda07`) and returned successfully. Subsequent read-only inspection confirmed:
+
+- Container state `running`; image reference is the pinned `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`; restart policy `no`.
+- Persistent mount `/home/deck/WindowsVM/storage:/storage` is read/write.
+- Installation ISO is mounted at `/custom.iso` read-only.
+- Shared directory `/home/deck/WindowsVM/shared:/shared` is read/write.
+- Host port publication is exactly `127.0.0.1:8006:8006`; `ss` independently confirmed a listener on `127.0.0.1:8006`.
+- QEMU command line includes `-machine ... accel=kvm`, `-enable-kvm`, `-smp 4` and `-m 6G`. This is direct runtime evidence of KVM-backed QEMU startup using the configured four vCPUs and 6 GiB RAM.
+- QEMU opened `/custom.iso` read-only as the boot DVD and `/storage/data.img` as the guest disk.
+- Container logs detected Windows 11 Pro, created the growable 128 GiB raw disk and reported: `Windows started successfully`.
+- `podman top` showed QEMU, nginx/web console, passt user-mode networking, dnsmasq and Samba processes.
+- `storage/` reported 898 MiB by `du`; `data.img` has a logical size of 137,438,953,472 bytes (128 GiB). This is consistent with a growable, non-preallocated raw disk; logical capacity is not the same as physical blocks consumed.
+- Storage files observed: `setup.img` (64 MiB), `windows.rom`, `windows.vars`, `windows.base`, `windows.ver`, `windows.mac`, and `data.img`.
+
+**Interpretation and boundary:** container creation, persistent storage mount, QEMU/KVM startup, initial UEFI boot from the ISO and web-console service startup are VERIFIED from the supplied output. Windows Setup interaction, completion of OS installation, guest network connectivity, shared-folder functionality, Windows activation/build, and backup/restore remain UNVERIFIED. The guest process is running; this is not yet proof that Windows installation is complete.
+
+**Network note:** `NETWORK=user` is implemented by the image using `passt`; the logs show guest user-mode networking. The container's web console is bound to host loopback only. The image's internal QEMU guest network information should not be confused with direct LAN publication of the web console.
+
+**Next:** open the web console locally at `http://127.0.0.1:8006/` and report what Windows Setup displays. Do not change the VM configuration unless the installer reveals a concrete issue.
 ### 2026-11-12 — Deployment configuration files created and validated
 
 **User-supplied verification output:**
@@ -341,15 +362,17 @@ The start script is designed to use the existing local image without pulling (`-
 
 The ISO path and checksum are now verified, and its bootable ISO structure and key setup files are confirmed. The expected Linux-conversion version difference is understood: this ISO contains the base `26100.1` image, not the selected `26200.9974` update level. Do not spend further time trying to make the Linux conversion output contain integrated updates. The purpose of the Windows VM is to run the Windows UUP conversion workflow that can integrate those update packages. The next media check, if needed for selecting the guest edition, is to inspect the `install.wim` image indexes and edition metadata; it is not to investigate the already-explained base/update version difference.
 
-Then inspect the selected image's documented environment variables, volume layout, device requirements and startup behaviour. Design the `windows-box` Podman command with persistent storage under `/home/deck`, local ISO mounted read-only as `/custom.iso`, KVM and TUN access, manual lifecycle and a conservative resource allocation. Confirm the exact configuration before creating persistent VM storage or starting installation.
+The container is deployed and QEMU has started using KVM. Inspect Windows Setup through the loopback web console, complete installation, then verify guest networking and the shared-folder workflow. Do not add TUN or capabilities unless a concrete requirement emerges.
 
 1. (Completed) Verify the selected ISO path, SHA-256, bootable ISO structure and key setup files. Inspect WIM indexes/edition metadata only if needed to confirm the Pro install index.
 2. Confirm the image's current supported configuration and persistent data directory.
 3. Choose and document the VM storage path and disk capacity.
 4. Prepare the exact Podman create/run configuration, including network and console access.
-5. Create the persistent VM storage and start installation after reviewing the final plan.
-6. Verify Windows setup, guest boot, networking, activation status and installed build.
-7. Tune memory, CPU and display/remote access based on observed performance.
+5. (Completed) Create the persistent VM storage and start QEMU/KVM using the reviewed deployment.
+6. Inspect and complete Windows Setup through the local web console.
+7. Verify Windows guest networking, shared-folder workflow, activation status and installed build.
+8. Validate backup/restore and document shutdown/restart operations.
+9. Tune resources or display/remote access only in response to observed needs.
 
 ## 10. Change and evidence register
 
@@ -366,8 +389,11 @@ Then inspect the selected image's documented environment variables, volume layou
 | 2026-11-12 | ISO readability at deployment path | VERIFIED | Existing ISO readable; left in original `uup-box` location |
 | 2026-11-12 | Home filesystem capacity | REPORTED | 507 GiB available at time of check |
 | 2026-11-12 | Deployment configuration files | VERIFIED | Environment file and three lifecycle scripts created; ownership/modes verified; all scripts passed `bash -n`; secret value not displayed |
-| 2026-11-12 | `windows-box` container deployment | PENDING | Configuration is ready for review; container not created |
-| 2026-11-12 | Windows guest creation | PENDING | No VM disk or guest created |
+| 2026-11-12 | `windows-box` container deployment | VERIFIED | Container created and running with pinned image; restart policy `no` |
+| 2026-11-12 | Persistent guest disk creation | VERIFIED | Growable raw `data.img`, logical size 128 GiB, stored under host-backed `/storage` |
+| 2026-11-12 | QEMU/KVM guest startup | VERIFIED | QEMU running with `accel=kvm`, `-enable-kvm`, 4 vCPU and 6 GiB RAM; booted from read-only ISO |
+| 2026-11-12 | Web console publication | VERIFIED | Listener and Podman mapping restricted to `127.0.0.1:8006` |
+| 2026-11-12 | Windows installation completion | PENDING | Initial boot reached Windows startup; installer state/completion not yet inspected |
 
 ---
 
