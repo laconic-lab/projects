@@ -66,7 +66,7 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
 - [Windows VM Console and Second-VM Deployment Guide](./docs/WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md)
 
-The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains noVNC operation, host-side resource settings, unattended installation variables and how to deploy an independent second VM.
+The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, how to inventory multiple Windows VM containers, noVNC operation, host-side resource settings, unattended installation variables, second-VM deployment and clean removal.
 
 ---
 
