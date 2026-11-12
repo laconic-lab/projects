@@ -37,7 +37,67 @@ The selected viewer URL is **http://192.168.1.161:8006/**.
 
 **Current-state warning:** the supplied runtime inspection still showed 127.0.0.1:8006 as the listener and Podman publication. The LAN URL becomes reachable only after the host start script is changed to publish 192.168.1.161:8006:8006 and the existing container is recreated. That host-side change has not yet been applied or tested.
 
-## 2. Using the noVNC web console
+## 2. Apply the selected LAN address to the existing VM
+
+This changes only the container's host-side web-console publication. It does not change the Windows guest disk or its installation.
+
+**Expected result:** Deck host 192.168.1.161 listens on TCP 8006; the PC opens http://192.168.1.161:8006/.
+
+First inspect the current script line and persistent mounts:
+
+~~~bash
+SCRIPT="/home/deck/WindowsVM/config/windows-box-start.sh"
+grep -n -- '--publish' "$SCRIPT"
+podman inspect windows-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+~~~
+
+The expected existing publication is 127.0.0.1:8006:8006. Confirm the persistent host storage mount is /home/deck/WindowsVM/storage -> /storage. If either differs, stop and inspect rather than applying the example blindly.
+
+After confirming those facts, back up and edit the start script:
+
+~~~bash
+set -euo pipefail
+SCRIPT="/home/deck/WindowsVM/config/windows-box-start.sh"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP="$SCRIPT.before-lan-$STAMP"
+
+cp -a "$SCRIPT" "$BACKUP"
+grep -qF -- '--publish 127.0.0.1:8006:8006' "$SCRIPT"
+sed -i 's/--publish 127\.0\.0\.1:8006:8006/--publish 192.168.1.161:8006:8006/' "$SCRIPT"
+sed -i 's#http://127\.0\.0\.1:8006#http://192.168.1.161:8006#' "$SCRIPT"
+
+bash -n "$SCRIPT"
+diff -u "$BACKUP" "$SCRIPT"
+~~~
+
+Review the diff. It should change only the host publication and printed console URL.
+
+Then recreate the container wrapper while retaining the persistent host mounts:
+
+~~~bash
+set -euo pipefail
+podman stop --time 120 windows-box
+podman rm windows-box
+/home/deck/WindowsVM/config/windows-box-start.sh
+~~~
+
+The rm command removes the stopped container object, not /home/deck/WindowsVM/storage. Do not run rm -rf on the project directory or storage. The start script creates a new container using the same pinned image, environment file, ISO and persistent bind mounts.
+
+Verify on the Steam Deck:
+
+~~~bash
+podman port windows-box
+ss -ltn '( sport = :8006 )'
+podman inspect windows-box --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
+~~~
+
+Expected publication/listener: 192.168.1.161:8006. Then open http://192.168.1.161:8006/ from PC 192.168.1.169. A host listener check does not replace the browser test.
+
+Rollback: stop and remove the recreated container, restore the saved script backup over windows-box-start.sh, then run the start script. Preserve /home/deck/WindowsVM/storage throughout. Record the exact backup filename locally.
+
+No firewall change is included. The inspected public zone already has broad TCP/UDP port allowances from 1024 through 65535. Do not add another broad rule or publish guest RDP as part of this change.
+
+## 3. Using the noVNC web console
 
 1. Start the VM on the Steam Deck:
 
@@ -67,7 +127,7 @@ The noVNC page does not provide authoritative controls for vCPU count, RAM, disk
 
 The web viewer is a convenient screen/keyboard/mouse console, particularly during installation and recovery. It is not a hypervisor settings panel or a Windows RDP service.
 
-## 3. Where CPU, RAM, disk and Windows setup parameters live
+## 4. Where CPU, RAM, disk and Windows setup parameters live
 
 Edit the protected Steam Deck environment file:
 
@@ -132,7 +192,7 @@ CPU_CORES and RAM_SIZE changes require a new container configuration so the entr
 
 Do not reduce DISK_SIZE to shrink an existing guest. Increasing virtual disk capacity and extending the Windows partition are separate operations; validate the exact resize procedure before changing an existing disk.
 
-## 4. How the current unattended Windows installation worked
+## 5. How the current unattended Windows installation worked
 
 The deployment uses the image pinned to:
 
@@ -164,7 +224,7 @@ The official Dockur environment reference documents variables including USERNAME
 
 https://github.com/dockur/windows/blob/master/docs/environment.md
 
-## 5. Second Windows VM: isolation rules
+## 6. Second Windows VM: isolation rules
 
 A second guest needs its own:
 
@@ -311,7 +371,7 @@ podman top windows-box-2
 
 Verify the unique container, restart policy no, host port 8007 mapped to container port 8006, second storage mounted at /storage, ISO mounted read-only, and QEMU using KVM. After setup, verify Windows edition, build, account, computer name, activation and guest networking.
 
-## 6. Lifecycle commands
+## 7. Lifecycle commands
 
 Existing VM:
 
@@ -331,7 +391,7 @@ podman ps -a --filter name='^windows-box-2$'
 
 Neither container is configured for boot autostart.
 
-## 7. Security and operational notes
+## 8. Security and operational notes
 
 - noVNC is an administrative console. Anyone able to reach an unprotected viewer may be able to interact with the Windows desktop.
 - The user accepts LAN reachability. The current public firewalld zone already has broad TCP/UDP allowances for ports 1024-65535; this guide does not claim access is restricted to the single PC.
@@ -343,7 +403,7 @@ Neither container is configured for boot autostart.
 - Never remove a storage directory as part of routine container recreation.
 - No backup or snapshot is included. Backup/restore remains deferred until the user declares the VM fully configured.
 
-## 8. References
+## 9. References
 
 - Dockur environment variables: https://github.com/dockur/windows/blob/master/docs/environment.md
 - Dockur project: https://github.com/dockur/windows
