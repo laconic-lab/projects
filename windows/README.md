@@ -4,6 +4,8 @@ A project to evaluate and, if feasible, operate a manually managed Windows virtu
 
 The immediate goal is to provide a Windows environment capable of running the **Windows-based UUP conversion process** required to produce a correctly updated Windows 11 ISO. That ISO is needed as a repair source for the Dell Precision M4800 currently running Windows 11 Pro build `26200.9818`, before proceeding with the KB5132061 servicing work.
 
+The existing Linux-generated ISO selected for VM installation is intentionally a base `26100.1` image, despite originating from the `26200.9974_pro` UUP selection. Linux/macOS UUP conversion does not integrate the selected update packages; `AddUpdates=1` does not change that limitation. The VM is being created so the Windows-based conversion workflow can perform that integration. The base ISO is not being treated as a matching repair source for build `26200.9818`.
+
 This project is an experiment and installation journey. It is **not yet an installed or working VM**.
 
 ## Current status
@@ -17,7 +19,7 @@ This project is an experiment and installation journey. It is **not yet an insta
 - The `dockurr/windows` image is downloaded; no Windows guest or persistent VM disk has been created.
 - No host packages, services, permissions or configuration have been changed for this project.
 
-See the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md) for evidence, decisions, pending checks and the next approved step.
+The selected ISO's SHA-256 and contents have now been verified; its base-build status and the Linux UUP conversion limitation are documented in the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md). See that guide for the evidence, decisions and next steps.
 
 ## Proposed naming
 
