@@ -3,7 +3,7 @@
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU/KVM  
 **Container:** `windows-box`  
 **Guest:** `windows-vm`  
-**Status:** Lifecycle philosophy documented; line-by-line review of local Windows scripts pending  
+**Status:** Manual lifecycle policy documented; local Windows script source is on the Deck and has not yet been committed for line-by-line repository review  
 **Policy:** Manual start and stop only. No boot autostart, unattended startup or automatic restart.
 
 ## 1. Purpose
@@ -47,14 +47,14 @@ A container is not the Windows guest itself. Removing a container object is diff
 
 ## 3. Windows lifecycle scripts
 
-The scripts are local Steam Deck files:
+The scripts are local Steam Deck files (not committed under `windows/` in this repository):
 
 - `/home/deck/WindowsVM/config/windows-box-start.sh`
 - `/home/deck/WindowsVM/config/windows-box-stop.sh`
 - `/home/deck/WindowsVM/config/windows-box-status.sh`
 - Configuration: `/home/deck/WindowsVM/config/windows-box.env`
 
-The executable scripts are not currently present in the GitHub `windows/` directory. The observations below describe the known configuration and runtime behavior; a full source-level audit requires inspecting the current local script contents. Never print the complete environment file because it contains a secret.
+The executable scripts are not currently present in the GitHub `windows/` directory. The observations below describe known configuration and runtime behavior, not a verified line-by-line source audit. The user's identity labels are documented in [Connections and Credentials](./WINDOWS-VM-CONNECTIONS-AND-CREDENTIALS.md). Never print the complete environment file because it contains a secret.
 
 ### Start
 
