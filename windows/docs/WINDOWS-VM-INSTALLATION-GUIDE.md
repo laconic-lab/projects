@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: host/container KVM validation passed; persistent project directory created; container deployment configuration is being prepared. No Windows guest disk or guest OS has been created.**
+> **Current phase: host/container KVM validation passed; persistent project directory and deployment scripts created and syntax-checked; container deployment pending. No Windows guest disk or guest OS has been created.**
 
 ## 1. Objective
 
@@ -46,7 +46,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 
 QEMU is the virtual-machine engine. KVM is the Linux kernel facility that can accelerate virtualisation. A Windows guest is a separate operating system running inside a virtual hardware definition; it does not replace SteamOS.
 
-The initial deployment proposal is 4 vCPUs, 6 GiB RAM and a 128 GiB virtual disk, subject to the image's supported disk allocation behaviour and final configuration review. These values are not yet an active VM configuration.
+The prepared deployment configuration specifies 4 vCPUs, 6 GiB RAM and a 128 GiB virtual disk. The environment file has been created and validated, but these values are not yet active: the container has not been created or started.
 
 ## 4. Repository and platform rules
 
@@ -199,7 +199,7 @@ The ISO remains at its existing path under `/home/deck/uup-box`; it is not dupli
 - Back up the guest while stopped or using a documented application/VM-consistent method; test restore before treating backups as reliable.
 - After SteamOS updates, verify Podman, KVM device access, project mount ownership, container recreation and guest boot. SteamOS update survival is a design goal, not a guarantee until recovery has been tested.
 
-This layout was created successfully. Deployment configuration, guest storage creation, backup validation and a full SteamOS-update recovery test remain pending.
+This layout was created successfully. The deployment configuration files now exist and have passed syntax/permission checks. Container creation, guest storage creation, backup validation and a full SteamOS-update recovery test remain pending.
 
 ## 8. Journey log
 
@@ -253,6 +253,45 @@ This layout was created successfully. Deployment configuration, guest storage cr
 
 This also explains why the base ISO is not a matching repair source for the Dell M4800's installed Windows 11 Pro `26200.9818` and why the previous DISM repair attempt returned `0x800f0915`. The ISO is retained as Windows VM installation media, not represented as an updated ISO or a suitable matching repair source.
 
+### 2026-11-12 — Deployment configuration files created and validated
+
+**User-supplied verification output:**
+
+- `windows-box.env` exists, owner `deck:deck`, mode `0600`.
+- `windows-box-start.sh`, `windows-box-stop.sh` and `windows-box-status.sh` exist, owner `deck:deck`, mode `0700`.
+- All three shell scripts passed `bash -n` syntax validation.
+- Environment settings were printed with the password redacted. The secret was not included in the output.
+- `df -h` reported 507 GiB available on `/home` at the time of this check.
+
+**Prepared environment (configuration only; not yet applied to a running container):**
+
+| Setting | Prepared value |
+|---|---|
+| Windows version selector | `11` (custom ISO is mounted and takes precedence) |
+| Locale | `en-US` for language, region and keyboard |
+| vCPU | 4 |
+| RAM | 6 GiB; `RAM_CHECK=Y` |
+| KVM | Enabled |
+| Virtual disk target | 128 GiB |
+| Disk format | `raw` |
+| Preallocation | Disabled (`ALLOCATE=N`) |
+| Network | `user` (user-mode networking) |
+| Display | Web viewer enabled on container port 8006 |
+| Host publication | `127.0.0.1:8006:8006` only |
+| Guest account name | `DeckVM` |
+| Guest password | Random value generated locally and stored in the protected env file; value deliberately not recorded here |
+| Guest hostname | `windows-vm` |
+| Shared folder | `/home/deck/WindowsVM/shared:/shared` |
+| Persistent guest storage | `/home/deck/WindowsVM/storage:/storage` |
+| Installation ISO | Existing verified ISO mounted read-only at `/custom.iso` |
+| Image | Pinned to `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc` |
+| Lifecycle | Manual; `--restart=no`; 120-second stop timeout |
+
+The start script is designed to use the existing local image without pulling (`--pull=never`), pass only `/dev/kvm`, and avoid `--privileged`. User-mode networking was selected because the immediate workflow needs outbound guest connectivity for UUP downloads, not unsolicited inbound guest access. No TUN device or `NET_ADMIN` capability is included in this initial configuration. RDP is not published; the web viewer is bound to host loopback.
+
+**Boundary:** this step created configuration files only. It did not create or start `windows-box`, allocate the virtual disk, or create/install a Windows guest. The password remains local and must never be committed to Git or pasted into chat. If environment settings change after container creation, the existing container must be deliberately recreated for those changes to take effect; a simple `podman start` reuses its original container configuration.
+
+**Next:** review the prepared start script and its exact mount/device/network arguments, then launch the container. After launch, inspect container state/logs, actual storage writes and allocated disk size before proceeding with Windows installation.
 ### 2026-11-12 — Project initiated
 
 **Purpose:** establish a Windows VM project to support Windows-only UUP update integration without repeating the failed conversion attempt on the Dell M4800.
@@ -308,7 +347,8 @@ Then inspect the selected image's documented environment variables, volume layou
 | 2026-11-12 | Persistent project directory | VERIFIED | `/home/deck/WindowsVM` and five subdirectories created; all mode 0700, owner deck:deck |
 | 2026-11-12 | ISO readability at deployment path | VERIFIED | Existing ISO readable; left in original `uup-box` location |
 | 2026-11-12 | Home filesystem capacity | REPORTED | 507 GiB available at time of check |
-| 2026-11-12 | `windows-box` container deployment | PENDING | Directory exists; container not created |
+| 2026-11-12 | Deployment configuration files | VERIFIED | Environment file and three lifecycle scripts created; ownership/modes verified; all scripts passed `bash -n`; secret value not displayed |
+| 2026-11-12 | `windows-box` container deployment | PENDING | Configuration is ready for review; container not created |
 | 2026-11-12 | Windows guest creation | PENDING | No VM disk or guest created |
 
 ---
