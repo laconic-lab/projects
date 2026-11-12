@@ -29,7 +29,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 - Changing Pi-hole, SSH, Shyrka, Odysseus or other existing projects.
 - Host boot autostart, persistent background services or unattended VM startup.
 - GPU passthrough; it is not required for UUP conversion.
-- Publishing Windows guest services or RDP to the LAN. The noVNC administration console may be published to a trusted LAN client after its source address and firewall policy are established.
+- Publishing Windows guest services or RDP to the LAN. The user selected LAN publication of noVNC at 192.168.1.161:8006 for PC client 192.168.1.169; the host-side change is documented but not yet applied.
 - Installing host packages, changing host configuration, or modifying permissions without a reviewed proposal and explicit approval.
 
 ## 3. Naming and component roles
