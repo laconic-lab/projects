@@ -457,3 +457,124 @@ The new container ID began `781b320a14d0`. `podman ps` reported `192.168.1.161:8
 **USER-CONFIRMED:** From PC client `192.168.1.169`, the user opened `http://192.168.1.161:8006/` successfully in Brave and Chrome at the same time. Both browsers display the same Windows guest console; they are multiple viewers of one guest session, not separate Windows sessions.
 
 **Next phase:** Run the Windows PowerShell baseline from inside the guest using the working noVNC console. The earlier attempt to run PowerShell commands in SteamOS Bash did not execute any guest commands or change guest settings.
+
+
+## 14. Next guest preparation — 2026-11-13
+
+**Status: GROUNDWORK IN PROGRESS.** The existing Windows 11 Pro 24H2 guest remains available for read-only inspection and experiments. The user intends to remove it and create a replacement only after the planned ISO, installation-customization and disposable-I/O groundwork is complete. RDP publication is deliberately deferred.
+
+### 14.1 Proposed next-guest configuration
+
+These are proposed settings, not yet deployed:
+
+| Setting | Proposed value | Notes |
+|---|---:|---|
+| Windows edition | Windows 11 Pro | Verify edition in selected ISO |
+| Display language | en-US | Windows UI language |
+| Regional format | fr-FR | French regional formats |
+| Keyboard | fr-FR | French AZERTY |
+| Windows computer name | windeck | Replaces windows-vm |
+| vCPU | 4 | QEMU launch-time configuration |
+| RAM | 8 GiB | Recheck host available memory and pressure before launch |
+| Virtual disk | 72 GiB | Raw, growable, not preallocated |
+| Network | NETWORK=user | Keep user-mode networking |
+| Display | Web, 1920×1080 | LAN noVNC retained |
+| GPU acceleration | Pending | Do not set GPU=Y until host render-node access and start-script device mapping are verified |
+| File share | Samba enabled | Keep the existing narrowly scoped shared directory |
+| RDP | Deferred | Do not add USER_PORTS or publish 3389 in this preparation phase |
+
+The reusable template is updated at ../templates/windows-vm.env.example. The real per-guest environment file remains local, mode 0600, and must never be committed.
+
+### 14.2 UUP ISO work
+
+**USER-REPORTED / IN PROGRESS (2026-11-13):** The user downloaded a Windows 11 25H2 UUP package and is running the Windows conversion script to create installation media.
+
+The UUP conversion option to include updates is supported by the Windows conversion workflow. The conversion must be run on Windows for UUP Dump integration options that require Windows; the Linux/macOS conversion route used for the earlier base ISO did not integrate the selected updates. Do not mark the resulting ISO as updated until the conversion completes and its build/package state is verified.
+
+After conversion, record:
+- Exact UUP selection, architecture, edition and language.
+- Build number and revision represented by the resulting image.
+- Whether the Windows converter's Include updates option was selected.
+- Conversion log and final ISO SHA-256.
+- DISM image metadata and package inventory from install.wim or install.esd.
+
+Do not assume that a downloaded UUP package or an in-progress conversion has already produced a bootable ISO.
+
+### 14.3 25H2 ISO versus 26H2
+
+Do not confuse the released Windows 11 26H2 servicing version with UUP Dump's separate 26H2 Experimental selection or the Future Platforms channel.
+
+As of 2026-11-13, Microsoft's release information lists Windows 11 26H2 as a general-availability release, while Insider/Future Platforms builds are separate preview tracks. Record the exact build and channel, not just the text "26H2".
+
+For the next practical VM, prefer a current released 26H2 Pro image if the objective is a current everyday Windows lab. Use 26H2 Experimental/Future Platforms only if the explicit objective is to test preview builds and accept instability. The already-running 25H2 conversion can still serve as a known comparison point; do not discard it until its result is inspected.
+
+### 14.4 An updated ISO is not an MSU update package
+
+Keep these operations distinct:
+
+1. **Create refreshed installation media:** UUP conversion integrates updates into the Windows image in the ISO. This is the preferred route for installing a new VM already at the selected build/revision.
+2. **Service an offline Windows image:** DISM applies matching MSU/CAB packages to a mounted offline Windows image (for example, a mounted install.wim or an offline Windows installation). An ISO is a container of setup media and WIM/ESD images; it is not itself a cumulative-update package.
+3. **Update an already running guest:** use Windows Update or an applicable standalone update package. Running setup.exe from newer installation media is an in-place upgrade/repair-install path, not the same operation as applying an MSU.
+
+For the disposable next VM, a refreshed ISO is preferable to installing an old base image and then applying a long sequence of updates. If the existing guest needs an offline servicing test, first identify the exact target image and matching package; do not apply an ISO as if it were an MSU.
+
+### 14.5 Dockur ISO source and installation parameters
+
+The deployed start configuration mounted a local ISO read-only at /custom.iso. Dockur documents that a local /custom.iso overrides VERSION; therefore the previous guest was installed from the mounted local ISO, not from a Dockur-initiated online ISO download.
+
+In that deployment, VERSION=11 was effectively a fallback/ignored selector while /custom.iso was present. Download-related variables such as CONNECTIONS, MIDO and ESD apply to Dockur's own ISO-download path and were not the mechanism used to install the custom local ISO.
+
+### 14.6 Environment variables: provisioning versus runtime
+
+A populated .env is not a universal live Windows configuration interface. It is read by the container at startup, but Dockur variables have different lifetimes:
+
+- **QEMU launch/runtime configuration:** CPU_CORES, RAM_SIZE, KVM, network/display parameters and device options are used when QEMU is launched. Changing the local file does not hot-resize a running VM; a controlled VM/container restart is normally needed. CPU hotplug is not part of Dockur's documented simple configuration.
+- **Disk creation parameters:** DISK_SIZE, DISK_FMT and ALLOCATE describe creation of the virtual disk. Editing them after data.img exists does not automatically resize, convert or reformat that existing disk.
+- **Initial Windows provisioning:** LANGUAGE, REGION, KEYBOARD, USERNAME, PASSWORD, AUTOLOGIN and HOST are installation/setup inputs. Do not expect edits to these values to rewrite an existing Windows profile, change an existing password, or rename an installed guest automatically.
+- **Container services and exposure:** web console, file sharing and port-forwarding settings may be consumed on each container start, but the actual host publication is separately configured by the Podman start script.
+- **Optional dynamic memory:** Dockur documents BALLOONING and related controls. This is a separate memory-pressure feature, not a general guarantee that Windows RAM can be arbitrarily resized. It requires a compatible guest balloon driver and careful testing.
+
+The current official Dockur environment reference is the authority for the variable list; the repository template deliberately omits experimental options until justified.
+
+### 14.7 Credentials and automatic sign-in
+
+USERNAME is the actual Windows local account name. The project's win-user term is a role label, not necessarily the literal account name. PASSWORD provisions the Windows local account; it is not the noVNC console password. A unique password must be generated locally and stored only in the protected local environment file during initial installation.
+
+Changing the Windows account password inside Windows later does not require changing the .env for normal use of that already-installed account. However, the stored Dockur environment value would then be stale for future reinstall/reprovisioning, and automatic sign-in may need to be reconfigured if its stored credentials no longer match. Never print or paste the password.
+
+### 14.8 Dynamic CPU/RAM distinction
+
+The number of vCPUs and the initial/max RAM allocation are QEMU machine parameters. The normal Dockur configuration sets them when QEMU starts; it does not provide a simple live slider for CPU count.
+
+Dockur documents memory ballooning as an optional way for the host to reclaim guest memory under host pressure. Ballooning is not free extra RAM, can create guest memory pressure, and may fail to reclaim quickly enough. It must not be enabled until host/guest memory baselines, driver availability and a conservative minimum are established. No ballooning experiment has been run.
+
+### 14.9 Setup customization and debloating — pending analysis
+
+The user wants a clean Windows Pro setup with:
+- no Microsoft account requirement during OOBE if a supported local-account route remains available;
+- OneDrive not installed;
+- no unnecessary Remote Desktop client application;
+- Copilot/AI features and related optional components removed or disabled where supported;
+- privacy/diagnostic/feedback settings minimized without breaking Windows Update, Defender, servicing or core functionality;
+- Windows power behavior set to best performance for the guest workload.
+
+Do not equate "no visible Start-menu tile" with an application being absent. Verify installed packages, provisioned packages, optional capabilities, services and actual executables before claiming Edge, OneDrive or another component is removed.
+
+Winhance is a candidate GUI configuration tool, not yet approved/applied. Review its exact toggles and exportable configuration before use. Avoid opaque AI-generated removal scripts and broad "remove everything" scripts. Prefer a small, explicit, reviewable set of supported Windows settings and package removals.
+
+Dockur already performs automated Windows setup using its own generated configuration. A separate answer file is not automatically required for this single-VM lab. If further customization is needed, investigate Dockur's supported setup hooks (including its /oem post-install folder and install.bat) before introducing a manually maintained unattend XML. Do not assume arbitrary XML placed under /storage is consumed by Setup; inspect the actual generated files and Dockur implementation first.
+
+The guest power plan is not a documented Dockur .env variable. Treat it as a Windows post-install setting, preferably a small explicit command/script whose effect can be verified inside Windows.
+
+### 14.10 Pre-recreation gate
+
+Do not remove the current guest until:
+- the 25H2 UUP conversion has completed and its ISO has been verified;
+- the 26H2 stable versus Experimental choice is explicit;
+- offline servicing versus ISO-based installation has been decided;
+- the current guest's useful setup and storage baselines have been collected;
+- the Dockur setup/unattend mechanism and customization scope have been reviewed;
+- the proposed .env values and actual Windows account name have been agreed;
+- the disposable I/O/SSD lab has a read-only baseline and a safe experiment plan.
+
+No VM deletion, disk recreation, backup, snapshot or disk copy is authorized by this preparation note.
