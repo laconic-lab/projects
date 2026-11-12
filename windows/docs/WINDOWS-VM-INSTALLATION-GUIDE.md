@@ -529,7 +529,7 @@ In that deployment, VERSION=11 was effectively a fallback/ignored selector while
 A populated .env is not a universal live Windows configuration interface. It is read by the container at startup, but Dockur variables have different lifetimes:
 
 - **QEMU launch/runtime configuration:** CPU_CORES, RAM_SIZE, KVM, network/display parameters and device options are used when QEMU is launched. Changing the local file does not hot-resize a running VM; a controlled VM/container restart is normally needed. CPU hotplug is not part of Dockur's documented simple configuration.
-- **Disk creation parameters:** DISK_SIZE, DISK_FMT and ALLOCATE describe creation of the virtual disk. Editing them after data.img exists does not automatically resize, convert or reformat that existing disk.
+- **Disk parameters:** DISK_FMT and ALLOCATE govern how the virtual disk is created. Dockur documents increasing DISK_SIZE as a supported way to expand an existing virtual disk; Windows may then need its partition extended. Setting a smaller DISK_SIZE does not shrink an existing disk. A fresh guest is the straightforward way to start with a smaller 72 GiB disk.
 - **Initial Windows provisioning:** LANGUAGE, REGION, KEYBOARD, USERNAME, PASSWORD, AUTOLOGIN and HOST are installation/setup inputs. Do not expect edits to these values to rewrite an existing Windows profile, change an existing password, or rename an installed guest automatically.
 - **Container services and exposure:** web console, file sharing and port-forwarding settings may be consumed on each container start, but the actual host publication is separately configured by the Podman start script.
 - **Optional dynamic memory:** Dockur documents BALLOONING and related controls. This is a separate memory-pressure feature, not a general guarantee that Windows RAM can be arbitrarily resized. It requires a compatible guest balloon driver and careful testing.
@@ -578,3 +578,25 @@ Do not remove the current guest until:
 - the disposable I/O/SSD lab has a read-only baseline and a safe experiment plan.
 
 No VM deletion, disk recreation, backup, snapshot or disk copy is authorized by this preparation note.
+
+
+### 14.11 Local account and OOBE — why the current install did not need a Microsoft account
+
+The absence of a Microsoft-account sign-in during the existing Dockur installation is consistent with Dockur's automated installation path. The configured USERNAME and PASSWORD are used to provision a local Windows account, and AUTOLOGIN controls automatic sign-in. This is not evidence that Windows 24H2 alone permits local accounts or that the ISO was a specially debloated image.
+
+Windows Setup supports answer-file configuration for OOBE and local-account creation. Microsoft's deployment documentation defines OOBE settings such as HideOnlineAccountScreens and the UserAccounts/LocalAccounts component. Dockur automates setup rather than requiring the user to manually build an answer file for the standard account flow. The same deployment mechanism is not inherently tied to 24H2, but the next selected ISO must still be tested because Windows setup behavior and Dockur's generated answer file can change between builds.
+
+The old interactive shortcuts for bypassing online-account prompts have changed across releases. Do not base the new VM on an undocumented OOBE command or assume a workaround from an older build remains valid. Prefer Dockur's maintained automatic setup and verify local-account creation during the next installation.
+
+The user does not want to maintain a manually authored XML file. That remains the default: use Dockur's documented environment variables for standard account/locale/hostname inputs, then a small reviewed OEM post-install script only for settings that Dockur does not expose. An answer file is a Windows deployment mechanism, not a requirement to operate a fleet of PCs.
+
+### 14.12 Distinguish Windows components from shortcuts
+
+- OneDrive: can be excluded or removed as a separate application/package decision; verify that it is actually absent after setup.
+- Remote Desktop client: not required inside the guest for incoming RDP. The guest needs its Remote Desktop host service; the RDP client runs on the connecting PC.
+- Copilot and other AI features: removing the Copilot app does not necessarily remove every Windows AI component or related OS capability. Review each component separately; avoid deleting shared frameworks or system packages indiscriminately.
+- Edge: verify the executable, package and WebView2 dependencies before claiming it is absent or attempting removal. Do not remove Edge/WebView components blindly because other Windows features may depend on them.
+- Diagnostics/privacy: minimize optional diagnostic data, tailored experiences, advertising ID and feedback prompts using supported Windows settings/policies. Do not claim that all diagnostics can be disabled; required security, reliability and servicing diagnostics may remain.
+- Power: "Best performance" is a Windows guest power-mode/plan setting, not a Dockur environment variable. Verify the actual selected plan/mode inside the installed guest. If automated later, use a narrowly scoped post-install command and verify its result.
+
+No debloating, package removal, privacy-policy change or power-plan change has been applied as part of this groundwork.
