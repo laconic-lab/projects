@@ -10,13 +10,17 @@ This project is an experiment and installation journey. It is **not yet an insta
 
 ## Current status
 
-**Status: KVM VALIDATED / DEPLOYMENT PLANNING**
+**Status: KVM VALIDATED / PERSISTENT PROJECT DIRECTORY CREATED / CONTAINER DEPLOYMENT PENDING**
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
 - `/dev/kvm` is readable and writable by `deck` on the host.
 - Rootless Podman successfully passed `/dev/kvm` into a temporary container.
 - QEMU inside `dockurr/windows` successfully started a minimal KVM-accelerated VM.
-- The `dockurr/windows` image is downloaded; no Windows guest or persistent VM disk has been created.
+- The `dockurr/windows` image is downloaded and its entrypoint, defaults, `/storage` volume and exposed ports have been inspected.
+- `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/`, `backups/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
+- The selected ISO remains readable at its original `uup-box` path; it has not been copied or modified.
+- `/home` had 507 GiB available at the time of the latest check.
+- No Windows guest disk or guest OS has been created.
 - No host packages, services, permissions or configuration have been changed for this project.
 
 The selected ISO's SHA-256 and contents have now been verified; its base-build status and the Linux UUP conversion limitation are documented in the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md). See that guide for the evidence, decisions and next steps.
@@ -37,7 +41,10 @@ The names are deliberately distinct: `windows-box` is the Podman container hosti
 - Use the selected Podman/QEMU/KVM architecture because its KVM execution path has been tested; do not create an unnecessary Distrobox.
 - Inspect actual device access, mounts, identity mappings, capabilities, networking and GUI requirements before approving an architecture.
 - Manual startup and shutdown by default; no boot autostart or background service without a separate decision.
-- Keep VM disks and project data in a dedicated, documented location.
+- Keep VM disks and project data in `/home/deck/WindowsVM`, outside the container writable layer and SteamOS-managed system directories.
+- Treat the container as replaceable; preserve the guest under the host-backed `/storage` mount and keep deployment configuration independently reproducible.
+- Pin the tested image digest for recreation and update it deliberately; do not silently follow a moving `latest` tag.
+- Test backup/restore and post-SteamOS-update recovery before claiming resilience is proven.
 - Back up and verify before significant changes.
 - Obtain explicit approval before package installation, host configuration changes, service changes, or creation/deletion of persistent VM data.
 - Record evidence and distinguish VERIFIED, REPORTED, PROPOSED and PENDING states.
@@ -48,7 +55,7 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
 
-The guide records the verified host/container/KVM tests, selected image digest, architecture decision and corrected ISO filename.
+The guide records the verified host/container/KVM tests, selected image identity, image configuration, ISO evidence, persistent directory creation and the resilience design.
 
 ---
 
