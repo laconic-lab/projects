@@ -45,7 +45,7 @@ Repository-wide guidance for creating, maintaining and reviewing project documen
 
 ## 2. Documentation roles
 
-The roles below are a flexible reference, not a mandatory checklist. Select only the documents justified by the project's complexity, risk, maturity and intended audience.
+The roles below are a flexible reference, not a mandatory checklist. Select only the documents justified by the project's complexity, risk, maturity and intended audience. Do not create files or procedures solely to match this template.
 
 | Role | Recommended file | What it should answer |
 |---|---|---|
@@ -406,13 +406,13 @@ Prefer targeted improvements over wholesale reformatting. When a document alread
 Use this practical order when documents disagree:
 
 1. **Current verified implementation and runtime evidence** establish what is actually present now.
-2. **Project-specific security and operational documentation** define approved project boundaries and procedures, provided they do not contradict the shared baseline.
+2. **Project-specific security and operational documentation** define the chosen architecture, boundaries and procedures. They should follow shared safety requirements while adapting general engineering defaults to the project's actual needs.
 3. **Project README** is the entry point and index; detailed role documents own their specialist explanations.
 4. **Audit reports and dated handovers** record scoped observations at a point in time.
 5. **Release notes and changelogs** preserve historical change records; they do not override current state.
 6. **Archived, aborted or superseded material** is reference-only unless explicitly revalidated.
 
-The [Engineering & Security Baseline](./ENGINEERING-AND-SECURITY-BASELINE.md) provides cross-project defaults. Project-specific documentation may define a justified exception, but it must identify the reason, scope, risk and approval. It must not silently weaken a mandatory security rule.
+The [Engineering & Security Baseline](./ENGINEERING-AND-SECURITY-BASELINE.md) provides cross-project safeguards and engineering defaults. Project-specific documentation may choose a different architecture or procedure when technically justified; explain the reason, scope, relevant trade-offs and any residual risks. Obtain approval where the choice involves a protected change or action. Do not silently weaken firm security requirements.
 
 If a conflict affects safety, data integrity, security or a destructive action, stop and resolve it before proceeding.
 
