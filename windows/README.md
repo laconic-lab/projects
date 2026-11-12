@@ -6,7 +6,7 @@ The immediate goal is to provide a Windows environment capable of running the **
 
 The existing Linux-generated ISO selected for VM installation is intentionally a base `26100.1` image, despite originating from the `26200.9974_pro` UUP selection. Linux/macOS UUP conversion does not integrate the selected update packages; `AddUpdates=1` does not change that limitation. The VM is being created so the Windows-based conversion workflow can perform that integration. The base ISO is not being treated as a matching repair source for build `26200.9818`.
 
-The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC works. The selected LAN endpoint is http://192.168.1.161:8006/ for PC client 192.168.1.169; the current container remains loopback-bound until its publication is changed and the container is recreated.
+The Windows 11 Pro guest installation is user-confirmed complete. LAN noVNC access is verified at http://192.168.1.161:8006/ from PC client 192.168.1.169. The host loopback endpoint 127.0.0.1:8006 is intentionally not bound; the user accepts the LAN endpoint.
 
 ## Current status
 
@@ -19,7 +19,7 @@ The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC wo
 - The `dockurr/windows` image is downloaded and its entrypoint, defaults, `/storage` volume and exposed ports have been inspected.
 - `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/`, `backups/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
 - The protected environment file and three manual lifecycle scripts have been created; the environment file is mode `0600`, scripts are mode `0700`, and all scripts pass `bash -n`.
-- Prepared settings: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, loopback-only web viewer on port 8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
+- Prepared settings: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, LAN-bound web viewer at 192.168.1.161:8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
 - The selected ISO remains readable at its original `uup-box` path and is mounted read-only by the running VM.
 - `windows-box` is running with the pinned image digest and `--restart=no`.
 - Runtime inspection confirms `/dev/kvm`, persistent `/storage`, read-only `/custom.iso`, and `/shared` mounts.
@@ -28,9 +28,9 @@ The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC wo
 - Local noVNC console access at `http://127.0.0.1:8006/` was confirmed by the user on the Steam Deck.
 - User reports Windows 11 Pro 24H2, build `26100`, local account `DeckVM`, hostname `windows-vm`, IPv4 `192.168.1.161`, DNS `192.168.1.1`, and Windows Update paused until 2026-12-28.
 - The reported guest IPv4 matches the Deck host IPv4; this is recorded as guest-reported network information, not proof that the guest has an independent LAN address. The configured `NETWORK=user`/`passt` mode remains in effect.
-- LAN noVNC publication is now verified at `192.168.1.161:8006`; the user successfully opened the same guest desktop from Brave and Chrome on PC client `192.168.1.169` simultaneously.
+- LAN noVNC publication is verified at `192.168.1.161:8006`; the user successfully opened the same guest desktop from Brave and Chrome on PC client `192.168.1.169` simultaneously. Loopback `127.0.0.1:8006` is intentionally not bound.
 - `/home` had 507 GiB available at the time of the latest check.
-- Windows installation completion and PC-client noVNC console access are user-confirmed. Windows activation, guest network reachability and shared-folder workflow remain unverified.
+- Windows installation completion and PC-client noVNC console access are user-confirmed. Windows activation is not a project requirement for this sandbox; guest network reachability and the exact shared-folder authentication behavior remain unverified. RDP is not yet published.
 - No host packages, services, permissions or configuration have been changed for this project.
 
 The selected ISO's SHA-256 and contents have now been verified; its base-build status and the Linux UUP conversion limitation are documented in the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md). See that guide for the evidence, decisions and next steps.
