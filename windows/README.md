@@ -21,7 +21,7 @@ The existing guest is not to be removed yet. Preparation work includes Windows-b
 - The `dockurr/windows` image is downloaded and its entrypoint, defaults, `/storage` volume and exposed ports have been inspected.
 - `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/`, `backups/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
 - The protected environment file and three manual lifecycle scripts have been created; the environment file is mode `0600`, scripts are mode `0700`, and all scripts pass `bash -n`.
-- Prepared settings: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, LAN-bound web viewer at 192.168.1.161:8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
+- Existing guest configuration: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, LAN-bound web viewer at 192.168.1.161:8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
 - The selected ISO remains readable at its original `uup-box` path and is mounted read-only by the running VM.
 - `windows-box` is running with the pinned image digest and `--restart=no`.
 - Runtime inspection confirms `/dev/kvm`, persistent `/storage`, read-only `/custom.iso`, and `/shared` mounts.
