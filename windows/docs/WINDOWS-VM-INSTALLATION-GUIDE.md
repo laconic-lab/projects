@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase (2026-11-12): Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC access verified from the PC client at `http://192.168.1.161:8006/`. No VM backup or snapshot is in scope.**
+> **Current phase (2026-11-12): Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC access verified from the PC client at `http://192.168.1.161:8006/`; RDP diagnosis pending. No VM backup or snapshot is in scope.**
 
 ## 1. Objective
 
@@ -129,7 +129,7 @@ No packages were installed during this inventory.
 
 ## 6. Architecture decision
 
-**Status: DEPLOYED — WINDOWS 11 PRO 24H2 INSTALLATION USER-CONFIRMED; LOCAL CONSOLE VERIFIED; LAN ACCESS PENDING**
+**Status: DEPLOYED — WINDOWS 11 PRO 24H2 INSTALLATION USER-CONFIRMED; LAN NOVNC VERIFIED; RDP PENDING**
 
 The current candidate is:
 
@@ -151,7 +151,7 @@ Steam Deck OLED / SteamOS host
               |-- NAT networking
 ```
 
-The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. Both a minimal QEMU/KVM probe and the deployed guest's QEMU startup have succeeded. Runtime inspection confirms the intended mounts, loopback-only web port, manual lifecycle and `/dev/kvm` device mapping. The user subsequently confirmed successful local noVNC access and completion of Windows 11 Pro 24H2 installation. Rootless operation does not by itself prove every aspect is isolated or safe.
+The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. Both a minimal QEMU/KVM probe and the deployed guest's QEMU startup have succeeded. Runtime inspection confirms the intended mounts, LAN-bound web port, manual lifecycle and `/dev/kvm` device mapping. The user subsequently confirmed successful LAN noVNC access from the PC client in Brave and Chrome and completion of Windows 11 Pro 24H2 installation. Rootless operation does not by itself prove every aspect is isolated or safe.
 
 ### Deployed guest configuration
 
