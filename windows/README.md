@@ -10,7 +10,9 @@ The Windows 11 Pro guest installation is user-confirmed complete. LAN noVNC acce
 
 ## Current status
 
-**Status: WINDOWS 11 PRO 24H2 INSTALLED / MANUAL LIFECYCLE CONFIGURED / LAN NOVNC CONSOLE VERIFIED FROM PC CLIENT**
+**Status: EXISTING WINDOWS 11 PRO 24H2 GUEST AVAILABLE / LAN NOVNC VERIFIED / NEXT-GUEST GROUNDWORK IN PROGRESS (2026-11-13)**
+
+The existing guest is not to be removed yet. Preparation work includes Windows-based UUP conversion of a current Windows 11 25H2 image, comparison with released 26H2 versus 26H2 Experimental, review of offline servicing and setup customization, and analysis of the disposable I/O/SSD lab. RDP publication is deliberately deferred.
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
 - `/dev/kvm` is readable and writable by `deck` on the host.
@@ -70,8 +72,15 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 - [Connections and Credential Naming Convention](./docs/WINDOWS-VM-CONNECTIONS-AND-CREDENTIALS.md)
 - [Generic per-VM environment template](./templates/windows-vm.env.example)
 
-The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The lifecycle guide explains manual, on-demand VM operation and the start/stop/status responsibilities. The single disposable I/O lab records RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
+The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration, plus next-guest UUP, servicing, setup-customization and environment-variable groundwork. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The lifecycle guide explains manual, on-demand VM operation and the start/stop/status responsibilities. The single disposable I/O lab records RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
 
 ---
 
 *Project: laconic-lab / projects / windows*
+
+
+## Next guest — proposed, not deployed
+
+The current replacement-guest draft is 4 vCPU, 8 GiB RAM (subject to a fresh host-memory safety check), 72 GiB growable raw disk, Windows computer name windeck, en-US display language, fr-FR regional format and French AZERTY keyboard, user-mode networking, and 1920×1080 web display. GPU acceleration is pending host render-node/device-mapping review. The actual Windows account name and generated password must be finalized locally; win-user remains a role label in project documentation.
+
+See the installation guide and environment template. The current guest and its disk remain intact until the pre-recreation gate in the installation guide is satisfied.
