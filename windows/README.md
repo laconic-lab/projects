@@ -10,7 +10,7 @@ This project is an experiment and installation journey. It is **not yet an insta
 
 ## Current status
 
-**Status: KVM VALIDATED / PERSISTENT PROJECT DIRECTORY CREATED / CONTAINER DEPLOYMENT PENDING**
+**Status: KVM VALIDATED / PERSISTENT PROJECT DIRECTORY AND CONFIGURATION VERIFIED / CONTAINER DEPLOYMENT PENDING**
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
 - `/dev/kvm` is readable and writable by `deck` on the host.
@@ -18,6 +18,8 @@ This project is an experiment and installation journey. It is **not yet an insta
 - QEMU inside `dockurr/windows` successfully started a minimal KVM-accelerated VM.
 - The `dockurr/windows` image is downloaded and its entrypoint, defaults, `/storage` volume and exposed ports have been inspected.
 - `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/`, `backups/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
+- The protected environment file and three manual lifecycle scripts have been created; the environment file is mode `0600`, scripts are mode `0700`, and all scripts pass `bash -n`.
+- Prepared settings: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, loopback-only web viewer on port 8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
 - The selected ISO remains readable at its original `uup-box` path; it has not been copied or modified.
 - `/home` had 507 GiB available at the time of the latest check.
 - No Windows guest disk or guest OS has been created.
@@ -55,7 +57,7 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
 
-The guide records the verified host/container/KVM tests, selected image identity, image configuration, ISO evidence, persistent directory creation and the resilience design.
+The guide records the verified host/container/KVM tests, selected image identity, image configuration, ISO evidence, persistent directory and deployment configuration, and the resilience design.
 
 ---
 
