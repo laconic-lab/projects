@@ -6,11 +6,11 @@ The immediate goal is to provide a Windows environment capable of running the **
 
 The existing Linux-generated ISO selected for VM installation is intentionally a base `26100.1` image, despite originating from the `26200.9974_pro` UUP selection. Linux/macOS UUP conversion does not integrate the selected update packages; `AddUpdates=1` does not change that limitation. The VM is being created so the Windows-based conversion workflow can perform that integration. The base ISO is not being treated as a matching repair source for build `26200.9818`.
 
-The Windows 11 Pro guest installation has been reported complete by the user. The guest is running and accessible locally through the noVNC web console. Manual lifecycle and LAN-client console access are being finalized.
+The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC works. The selected LAN endpoint is http://192.168.1.161:8006/ for PC client 192.168.1.169; the current container remains loopback-bound until its publication is changed and the container is recreated.
 
 ## Current status
 
-**Status: WINDOWS 11 PRO 24H2 INSTALLED / LOCAL CONSOLE VERIFIED / MANUAL LIFECYCLE AND LAN CONSOLE ACCESS BEING FINALIZED**
+**Status: WINDOWS 11 PRO 24H2 INSTALLED / LOCAL CONSOLE VERIFIED / MANUAL LIFECYCLE CONFIGURED / LAN CONSOLE TARGET SELECTED (APPLICATION PENDING)**
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
 - `/dev/kvm` is readable and writable by `deck` on the host.
@@ -28,7 +28,7 @@ The Windows 11 Pro guest installation has been reported complete by the user. Th
 - Local noVNC console access at `http://127.0.0.1:8006/` was confirmed by the user on the Steam Deck.
 - User reports Windows 11 Pro 24H2, build `26100`, local account `DeckVM`, hostname `windows-vm`, IPv4 `192.168.1.161`, DNS `192.168.1.1`, and Windows Update paused until 2026-12-28.
 - The reported guest IPv4 matches the Deck host IPv4; this is recorded as guest-reported network information, not proof that the guest has an independent LAN address. The configured `NETWORK=user`/`passt` mode remains in effect.
-- PC-client access to noVNC is not yet configured; current host publication remains loopback-only.
+- Selected PC-client endpoint: http://192.168.1.161:8006/ from 192.168.1.169. Runtime is still loopback-bound pending the start-script update and container recreation.
 - `/home` had 507 GiB available at the time of the latest check.
 - Windows installation completion and local console access are user-confirmed. Windows activation, guest network reachability, shared-folder workflow and PC-client console access remain unverified.
 - No host packages, services, permissions or configuration have been changed for this project.
@@ -64,11 +64,9 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 ## Project documents
 
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
-- [Windows VM Architecture and Operations](./docs/WINDOWS-VM-ARCHITECTURE-AND-OPERATIONS.md) — being prepared
-- [Windows VM Security](./docs/WINDOWS-VM-SECURITY.md) — being prepared
-- [Windows VM Troubleshooting](./docs/WINDOWS-VM-TROUBLESHOOTING.md) — being prepared
+- [Windows VM Console and Second-VM Deployment Guide](./docs/WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md)
 
-The guide records the verified host/container/KVM tests, selected image identity, image configuration, ISO evidence, persistent directory and deployment configuration, and the resilience design.
+The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains noVNC operation, host-side resource settings, unattended installation variables and how to deploy an independent second VM.
 
 ---
 
