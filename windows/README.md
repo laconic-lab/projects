@@ -26,7 +26,7 @@ See the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-
 | `windows-box` | Dedicated rootless Podman container running `dockurr/windows` | Selected; image downloaded; no persistent VM deployed |
 | `windows-vm` | Windows guest virtual machine | PROPOSED; not created |
 
-The names are deliberately distinct: `windows-box` is the Linux tool environment; `windows-vm` is the virtual Windows computer. We will not repurpose the existing `uup-box` or modify other project environments.
+The names are deliberately distinct: `windows-box` is the Podman container hosting QEMU; `windows-vm` is the virtual Windows computer. We will not repurpose the existing `uup-box` or modify other project environments.
 
 ## Operating principles
 
