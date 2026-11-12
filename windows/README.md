@@ -8,14 +8,14 @@ This project is an experiment and installation journey. It is **not yet an insta
 
 ## Current status
 
-**Status: PLANNING / READ-ONLY PREFLIGHT**
+**Status: KVM VALIDATED / DEPLOYMENT PLANNING**
 
-- Hardware virtualisation support is present: AMD-V was reported by the host inventory.
-- `/dev/kvm` exists and was reported accessible to user `deck`.
-- QEMU, libvirt, virt-manager, OVMF and swtpm were not installed in the earlier package inventory.
-- A dedicated `windows-box` Distrobox does not yet exist.
-- No Windows VM disk or guest has been created.
-- No host packages, services or configuration have been changed for this project.
+- AMD-V is present; `kvm_amd` and `kvm` are loaded.
+- `/dev/kvm` is readable and writable by `deck` on the host.
+- Rootless Podman successfully passed `/dev/kvm` into a temporary container.
+- QEMU inside `dockurr/windows` successfully started a minimal KVM-accelerated VM.
+- The `dockurr/windows` image is downloaded; no Windows guest or persistent VM disk has been created.
+- No host packages, services, permissions or configuration have been changed for this project.
 
 See the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md) for evidence, decisions, pending checks and the next approved step.
 
@@ -23,7 +23,7 @@ See the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-
 
 | Name | Intended role | Status |
 |---|---|---|
-| `windows-box` | Dedicated Distrobox userspace for evaluating/running the VM tooling | PROPOSED; not created |
+| `windows-box` | Dedicated rootless Podman container running `dockurr/windows` | Selected; image downloaded; no persistent VM deployed |
 | `windows-vm` | Windows guest virtual machine | PROPOSED; not created |
 
 The names are deliberately distinct: `windows-box` is the Linux tool environment; `windows-vm` is the virtual Windows computer. We will not repurpose the existing `uup-box` or modify other project environments.
@@ -32,7 +32,7 @@ The names are deliberately distinct: `windows-box` is the Linux tool environment
 
 - Keep SteamOS host changes to the minimum justified.
 - Diagnose first; read-only checks before changes.
-- Prefer a project-specific environment, but do not assume Distrobox provides a strong security boundary.
+- Use the selected Podman/QEMU/KVM architecture because its KVM execution path has been tested; do not create an unnecessary Distrobox.
 - Inspect actual device access, mounts, identity mappings, capabilities, networking and GUI requirements before approving an architecture.
 - Manual startup and shutdown by default; no boot autostart or background service without a separate decision.
 - Keep VM disks and project data in a dedicated, documented location.
@@ -45,6 +45,8 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 ## Project documents
 
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
+
+The guide records the verified host/container/KVM tests, selected image digest, architecture decision and corrected ISO filename.
 
 ---
 
