@@ -36,7 +36,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 
 | Name | Role | Current state |
 |---|---|---|
-| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Image downloaded; runtime test passed; VM deployment pending |
+| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Running; QEMU/KVM guest startup and loopback web console verified |
 | `windows-vm` | Windows guest VM | QEMU process running; Windows setup/installation completion not yet verified |
 | QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | QEMU 11.1.1 available inside the downloaded `dockurr/windows` image; KVM probe passed |
 | KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Host and rootless-container access verified; QEMU KVM launch passed |
@@ -105,7 +105,7 @@ The pre-existing Distrobox inventory (separate from this VM's selected Podman de
 
 No existing environment is to be reused for this project. In particular, the currently running `uup-box` must remain untouched.
 
-The `windows-box` name now refers to the planned Podman container, not a Distrobox directory. No persistent VM storage directory or guest disk has been created.
+The `windows-box` name now refers to the planned Podman container, not a Distrobox directory. The persistent VM storage directory and 128 GiB growable guest disk have been created.
 
 ### 5.3 Virtualisation software inventory
 
