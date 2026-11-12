@@ -3,7 +3,7 @@
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU/KVM  
 **Guest:** Windows 11 Pro 24H2, build 26100 (user-confirmed)  
 **Document type:** Experimental lab plan and evidence register  
-**Status:** Planning and baseline collection; no Windows storage tuning has been applied  
+**Status:** LAN noVNC access verified; Windows storage baseline and tuning experiments pending  
 **Priority:** Protect SteamOS and the Steam Deck NVMe first; finish LAN noVNC access before tuning experiments.
 
 ## 1. Purpose
@@ -96,6 +96,8 @@ The initial PowerShell inspection block was mistakenly entered into the SteamOS 
 Current guest findings for pagefile configuration, TEMP/TMP locations, virtual disk media type, TRIM status and scheduled optimization are all **UNKNOWN / NOT TESTED**.
 
 ## 5. Technical questions and candidate experiments
+
+The user specifically wants to investigate volatile system/user temporary storage (including RAM-disk options such as the toolkit they referred to as “AIM Toolkit”) and whether `pagefile.sys` can be reduced or eliminated in this disposable guest. The exact RAM-disk product name is not yet confirmed. No tool has been selected or installed.
 
 ### 5.1 RAM-backed temporary storage
 
@@ -282,7 +284,7 @@ No numerical host memory or free-space thresholds have been approved yet. Establ
 9. Verify Optimize Drives, guest TRIM and end-to-end discard behavior without changing host storage configuration.
 10. Update this document after each completed experiment with exact settings, evidence, results and limitations.
 
-The LAN console is the immediate task. Do not start storage-tuning experiments until it works.
+The LAN console milestone is complete. The PC client at 192.168.1.169 successfully opened the guest console at http://192.168.1.161:8006/ in both Brave and Chrome simultaneously. Both viewers display the same Windows guest desktop; they are not separate guest sessions. Windows-side inspection and all storage-tuning experiments remain pending until performed through this working console.
 
 ## 10. Evidence and change register
 
@@ -301,8 +303,18 @@ The LAN console is the immediate task. Do not start storage-tuning experiments u
 | 2026-11-12 | RAM-disk implementation | PROPOSED | Research and resource review required |
 | 2026-11-12 | Pagefile reduction/disable | PROPOSED EXPERIMENT | Not applied; requires commit and workload baseline |
 | 2026-11-12 | Host NVMe health | PENDING | Tools available; read-only health baseline not yet collected |
-| 2026-11-12 | LAN noVNC access | PENDING / FIRST PRIORITY | Script changed; running container still loopback-bound; container recreation and PC browser test remain |
+| 2026-11-12 | RAM-disk product reference | UNRESOLVED | User mentioned “AIM Toolkit”; confirm exact product name before evaluating/installing a RAM-disk implementation |
+| 2026-11-12 | LAN noVNC access | VERIFIED / COMPLETE | Container recreated with publication 192.168.1.161:8006; Podman and ss confirmed listener; user successfully opened the same guest console in Brave and Chrome on the PC client |
 
 ---
 
 *Living lab document. Record tested behavior, not assumptions. Any optimization that threatens SteamOS stability is rejected, regardless of Windows performance benefit.*
+
+
+## 11. LAN console milestone — 2026-11-12
+
+**VERIFIED:** The start script publishes TCP 8006 on `192.168.1.161`. The previous container was stopped and only its container object was removed; the replacement was created from the updated script. The existing `/home/deck/WindowsVM/storage` bind mount and `data.img` were retained. No guest backup or snapshot was created.
+
+Host-side verification reported `8006/tcp -> 192.168.1.161:8006` from `podman port`, and `ss` showed a listener on `192.168.1.161:8006` owned by `passt.avx2`. The user then confirmed successful access from PC client `192.168.1.169` in both Brave and Chrome at the same time. Both browser windows mirror the same Windows guest display/input session.
+
+The earlier PowerShell command block was mistakenly entered into SteamOS Bash over SSH. It did not execute in Windows and made no guest changes. Re-run the guest-side baseline in Section 6 through noVNC PowerShell.
