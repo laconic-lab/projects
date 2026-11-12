@@ -8,7 +8,7 @@ This project is an experiment and installation journey. It is **not yet an insta
 
 ## Current status
 
-<badge>PLANNING / READ-ONLY PREFLIGHT</badge>
+**Status: PLANNING / READ-ONLY PREFLIGHT**
 
 - Hardware virtualisation support is present: AMD-V was reported by the host inventory.
 - `/dev/kvm` exists and was reported accessible to user `deck`.
