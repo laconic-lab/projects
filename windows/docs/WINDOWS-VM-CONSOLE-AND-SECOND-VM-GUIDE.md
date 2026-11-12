@@ -2,7 +2,7 @@
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / dockur/windows  
 **Current guest:** windows-vm in container windows-box  
-**Status:** Operating guide and reproducible deployment reference; second-VM example is not executed.
+**Status:** Operating guide; LAN noVNC access verified from the PC client; second-VM example is not executed.
 
 ## 1. Purpose and architecture
 
@@ -35,7 +35,7 @@ Windows guest: windows-vm
 
 The selected viewer URL is **http://192.168.1.161:8006/**.
 
-**Current-state warning:** the supplied runtime inspection still showed 127.0.0.1:8006 as the listener and Podman publication. The LAN URL becomes reachable only after the host start script is changed to publish 192.168.1.161:8006:8006 and the existing container is recreated. That host-side change has not yet been applied or tested.
+**Current verified state (2026-11-12):** the start script publishes `192.168.1.161:8006:8006`; the container was recreated; `podman port` and `ss` confirmed the LAN listener; and the user successfully opened the console from PC client `192.168.1.169` in Brave and Chrome simultaneously. Both viewers show the same guest desktop.
 
 ## 1.1 How Podman, Dockur, QEMU/KVM and each Windows VM relate
 
@@ -104,7 +104,7 @@ grep -n -- '--publish' "$SCRIPT"
 podman inspect windows-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
 ~~~
 
-The expected existing publication is 127.0.0.1:8006:8006. Confirm the persistent host storage mount is /home/deck/WindowsVM/storage -> /storage. If either differs, stop and inspect rather than applying the example blindly.
+The original publication was `127.0.0.1:8006:8006`; it has now been changed and verified as `192.168.1.161:8006:8006`. Confirm the persistent host storage mount is `/home/deck/WindowsVM/storage -> /storage` before any future container recreation. If either differs from the documented current state, stop and inspect rather than applying the example blindly.
 
 After confirming those facts, edit the start script directly. This is a disposable lab and the user has explicitly rejected configuration-script backups as well as Windows guest backups. Preserve the known original setting in project documentation instead:
 
@@ -140,7 +140,7 @@ ss -ltn '( sport = :8006 )'
 podman inspect windows-box --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
 ~~~
 
-Expected publication/listener: 192.168.1.161:8006. Then open http://192.168.1.161:8006/ from PC 192.168.1.169. A host listener check does not replace the browser test.
+Expected publication/listener: `192.168.1.161:8006`. This procedure has been executed and the browser test passed from PC `192.168.1.169`. The user also confirmed that Brave and Chrome can view the same guest desktop simultaneously. A host listener check does not replace the browser test for future changes.
 
 If the LAN binding must be reverted, edit the two documented lines directly back to 127.0.0.1:8006 and validate with bash -n. No script backup is created. Preserve /home/deck/WindowsVM/storage throughout.
 
@@ -617,3 +617,8 @@ podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
 ---
 
 *Living operations guide. Distinguish documented templates from commands actually executed on the Steam Deck.*
+
+
+### 3.1 Verified PC-client access — 2026-11-12
+
+The user confirmed that `http://192.168.1.161:8006/` opens successfully from PC client `192.168.1.169` in both Brave and Chrome at the same time. This is a mirrored view of one Windows guest console, not independent guest sessions. No guest RDP port was published as part of this change.
