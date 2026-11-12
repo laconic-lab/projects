@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: read-only preflight and architecture selection. No VM has been installed or created.**
+> **Current phase: host/container KVM validation passed; deployment design and ISO verification are next. No Windows guest or persistent VM disk has been created.**
 
 ## 1. Objective
 
@@ -18,8 +18,8 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 
 - Assessing whether the Deck can host a hardware-accelerated VM.
 - Selecting and documenting the QEMU/KVM execution architecture.
-- Evaluating a dedicated Distrobox named `windows-box` for VM tooling.
-- Creating a Windows guest named `windows-vm`, only after architecture, storage, installation media and rollback are reviewed and approved.
+- Running QEMU inside the dedicated rootless Podman container `windows-box` using the `dockurr/windows` image.
+- Creating a Windows guest named `windows-vm`, with persistent storage and a local installation ISO.
 - Manual VM start/stop and a documented storage/recovery approach.
 
 ### Out of scope unless separately approved
@@ -36,17 +36,17 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 
 | Name | Role | Current state |
 |---|---|---|
-| `windows-box` | Proposed Distrobox userspace for QEMU/KVM tools and supporting utilities | PENDING creation |
+| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Image downloaded; runtime test passed; VM deployment pending |
 | `windows-vm` | Proposed Windows guest VM | PENDING creation |
-| QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | Not installed in the earlier inventory |
-| KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Device present and accessible in reported host check |
+| QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | QEMU 11.1.1 available inside the downloaded `dockurr/windows` image; KVM probe passed |
+| KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Host and rootless-container access verified; QEMU KVM launch passed |
 | OVMF | UEFI firmware implementation commonly used by QEMU guests | Not installed in the earlier inventory |
 | swtpm | Software TPM emulator, potentially needed for a Windows 11 virtual TPM device | Not installed in the earlier inventory |
 | libvirt / virt-manager | Optional VM management service and graphical management application | Not installed in the earlier inventory |
 
 QEMU is the virtual-machine engine. KVM is the Linux kernel facility that can accelerate virtualisation. A Windows guest is a separate operating system running inside a virtual hardware definition; it does not replace SteamOS.
 
-The proposed initial guest sizing, subject to later review, is 4 vCPUs, 6 GiB RAM and a 100 GiB dynamically allocated virtual disk. These are planning values, not an approved or created VM configuration.
+The initial deployment proposal is 4 vCPUs, 6 GiB RAM and a 128 GiB virtual disk, subject to the image's supported disk allocation behaviour and final configuration review. These values are not yet an active VM configuration.
 
 ## 4. Repository and platform rules
 
@@ -80,16 +80,17 @@ The user supplied the following read-only host inventory:
 | CPU architecture | x86_64 |
 | CPU model | AMD Custom APU 0932 |
 | Logical CPUs | 8 |
-| Hardware virtualisation | AMD-V |
-| KVM device | `/dev/kvm` present |
+| Hardware virtualisation | AMD-V (`svm` flag) |
+| KVM modules | `kvm_amd` and `kvm` loaded |
+| KVM device | `/dev/kvm`, character device major 10/minor 232 |
 | KVM device permissions | `crw-rw-rw-`, mode `666`, owner `root:kvm` |
-| User | `deck`, UID 1000 |
-| Podman | 6.0.2 |
-| Distrobox environments | `pihole-box`, `Stable-box`, `localai-box`, `uup-box` |
+| User | `deck`, UID 1000; not a member of the `kvm` group |
+| Podman | 6.0.2, rootless |
+| Podman inventory | Existing containers observed; `uup-box` remains separate and untouched |
 
-Earlier hardware inventory also reported 14 GiB total memory and approximately 507 GiB free on `/home`. These figures are historical observations from the preflight and must be rechecked before allocating VM resources or creating a disk.
+Current supplied inventory reports 14 GiB RAM, 9.8 GiB available at the time of the check, and 507 GiB free on `/home`. These are point-in-time observations; recheck before starting a memory-intensive guest or allocating storage.
 
-**Interpretation:** the host exposes the KVM device and the reported device mode permits access by the current user. This is a strong feasibility indicator, but it does not yet prove that a process inside a new Distrobox can use KVM successfully.
+**Interpretation:** AMD-V is enabled, the KVM modules are loaded, and `/dev/kvm` is readable and writable by `deck`. Rootless Podman successfully passed the device into a temporary Ubuntu 24.04 container. Inside that container the device appeared as `nobody:nogroup` with mode `0666`, and read/write checks passed. A separate QEMU test inside `dockurr/windows` then successfully started a minimal VM using `-machine q35,accel=kvm -cpu host`. This verifies actual QEMU/KVM initialisation inside the selected image.
 
 ### 5.2 Existing environments
 
@@ -128,20 +129,21 @@ No packages were installed during this inventory.
 
 ## 6. Architecture decision
 
-**Status: PROPOSED — NOT VALIDATED**
+**Status: SELECTED — KVM EXECUTION VALIDATED; WINDOWS GUEST NOT YET CREATED**
 
 The current candidate is:
 
 ```text
 Steam Deck OLED / SteamOS host
   |
-  |-- existing KVM device: /dev/kvm
+  |-- AMD-V + KVM modules + /dev/kvm
   |
-  |-- Distrobox: windows-box (proposed)
+  |-- rootless Podman
         |
-        |-- QEMU tooling (candidate)
-        |
-        |-- Windows guest: windows-vm (proposed)
+        |-- dockurr/windows image (`windows-box`)
+              |-- QEMU 11.1.1 + KVM acceleration
+              |-- persistent Windows VM data (planned)
+              |-- Windows guest (`windows-vm`, not yet created)
               |
               |-- virtual CPU / RAM / disk
               |-- UEFI firmware
@@ -149,9 +151,7 @@ Steam Deck OLED / SteamOS host
               |-- NAT networking
 ```
 
-This arrangement may keep most userspace dependencies in a dedicated environment, but Distrobox is integrated with the host and is not a security boundary. QEMU's access to `/dev/kvm`, firmware files, virtual TPM, graphical display, networking and persistent disk paths must all be tested and documented.
-
-We have not yet decided whether QEMU should run inside `windows-box` or directly on the SteamOS host. The container approach is a candidate, not a commitment. The decision must be based on the least invasive reliable setup and the repository's host-stability rules.
+The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. The selected approach was validated by a successful QEMU/KVM probe inside the image. The container still requires deliberate device, network, mount and lifecycle configuration; rootless operation does not by itself prove every aspect is isolated or safe.
 
 ### Candidate guest configuration
 
@@ -159,7 +159,7 @@ We have not yet decided whether QEMU should run inside `windows-box` or directly
 |---|---:|---|
 | vCPU | 4 | Proposed |
 | RAM | 6 GiB | Proposed |
-| Disk | 100 GiB, dynamically allocated | Proposed |
+| Disk | 128 GiB target capacity; allocation mode to be confirmed from image configuration | Proposed |
 | Firmware | UEFI / OVMF | Proposed |
 | TPM | TPM 2.0 virtual device | Proposed |
 | Network | NAT | Proposed |
@@ -169,6 +169,20 @@ We have not yet decided whether QEMU should run inside `windows-box` or directly
 These values must be checked against current host memory, disk capacity, Windows requirements and the selected VM implementation before creation.
 
 ## 7. Journey log
+
+### 2026-11-12 — KVM and selected container validated
+
+**Host preflight:** AMD-V reported; `svm` CPU flag present; `kvm_amd` and `kvm` modules loaded; `/dev/kvm` present as `10:232`, mode `0666`, readable and writable by `deck`. `/dev/net/tun` also present with mode `0666`. Rootless Podman 6.0.2 confirmed. `free -h` reported 14 GiB total and 9.8 GiB available; `/home` reported 507 GiB free.
+
+**Rootless device test:** a temporary Ubuntu 24.04 container was launched with `--device=/dev/kvm`. The device appeared inside the container as `nobody:nogroup`, character device major 10/minor 232, and both read and write checks passed. Container exit status was 0. No host permission changes were made.
+
+**Selected image:** `docker.io/dockurr/windows:latest` downloaded successfully. Reported image ID/config digest: `cbfaef1f04b4cb08137512116a64ed2005b58852bf04067b3f896342d5b3cb02`; image manifest digest: `sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`.
+
+**QEMU/KVM test:** image contains `/usr/bin/qemu-system-x86_64`, QEMU emulator version `11.1.1 (qemu-windows 11.2.23)`. `qemu-system-x86_64 -accel help` listed KVM. A minimal Q35 VM with `accel=kvm`, `-cpu host`, 256 MiB RAM, no devices/display and paused execution started successfully. Output: `KVM acceleration: SUCCESS`; the temporary QEMU process was terminated by the test cleanup. This confirms QEMU can initialise KVM inside the selected rootless Podman container.
+
+**Architecture decision:** proceed with `dockurr/windows` in rootless Podman, named `windows-box`. Do not create a Distrobox for this VM. Keep manual lifecycle and persistent guest data separate from the container layer. This decision is based on the successful KVM test, not a blanket preference for containers.
+
+**Installation ISO discovery:** three ISO files were reported by the initial `find` output. The intended Pro source directory is `/home/deck/uup-box/26200.9974_pro/`. A subsequent inspection command used the wrong filename (`26100.1_PROFESSIONAL_X64_EN-US.ISO`) and failed with `No such file or directory`. The directory listing showed the actual file as `26100.1.1_PROFESSIONAL_X64_EN-US.ISO` (about 4.1 GiB). The ISO itself has not yet been inspected or checksummed. Do not claim its installed build is 26200.9974: the UUP conversion history indicates Linux conversion did not integrate updates, and the ISO filename/metadata needs verification.
 
 ### 2026-11-12 — Project initiated
 
@@ -193,33 +207,34 @@ These values must be checked against current host memory, disk capacity, Windows
 
 **Decision:** use `windows-box` as the proposed dedicated Distrobox name and `windows-vm` as the proposed Windows guest name. Keep the VM manually managed.
 
-**Status:** initial preflight evidence recorded; architecture remains pending validation.
+**Status:** host, rootless Podman device access and QEMU/KVM acceleration validated. Windows VM deployment and installation-media verification remain pending.
 
 ## 8. Next steps
 
-The next action is a focused, read-only inspection of the existing Distrobox/Podman configuration and the host display/session environment. It should establish whether a new Distrobox can access KVM and whether QEMU can display a guest window in the existing Deck desktop session without privileged mode or broad new host exposure.
+The next action is to inspect the actual ISO using its corrected filename, calculate its SHA-256 checksum and inspect the Windows image metadata with the available `7z` tooling. Confirm the exact Windows edition and build contained in the ISO; do not infer the integrated update level from the UUP directory name.
 
-Do not create `windows-box`, install QEMU, install host packages, create VM storage or change permissions until the inspection results have been reviewed and a specific implementation plan is approved.
+Then inspect the selected image's documented environment variables, volume layout, device requirements and startup behaviour. Design the `windows-box` Podman command with persistent storage under `/home/deck`, local ISO mounted read-only as `/custom.iso`, KVM and TUN access, manual lifecycle and a conservative resource allocation. Confirm the exact configuration before creating persistent VM storage or starting installation.
 
-After that inspection:
-
-1. Decide whether QEMU belongs inside `windows-box` or on the host.
-2. Identify the minimum packages and exact installation transaction.
-3. Review the container's effective mounts, user mappings, capabilities, device access, network and GUI path.
-4. Define the VM storage path, capacity, backup and rollback plan.
-5. Obtain approval before creating the environment or installing anything.
-6. Create and verify the VM in small, documented stages.
+1. Verify the ISO path, checksum, contents, edition and actual build.
+2. Confirm the image's current supported configuration and persistent data directory.
+3. Choose and document the VM storage path and disk capacity.
+4. Prepare the exact Podman create/run configuration, including network and console access.
+5. Create the persistent VM storage and start installation after reviewing the final plan.
+6. Verify Windows setup, guest boot, networking, activation status and installed build.
+7. Tune memory, CPU and display/remote access based on observed performance.
 
 ## 9. Change and evidence register
 
 | Date | Item | Status | Notes |
 |---|---|---|---|
-| 2026-11-12 | AMD-V and KVM host availability | REPORTED | User supplied read-only inventory |
-| 2026-11-12 | Existing Distrobox inventory | REPORTED | `uup-box` remains separate and untouched |
-| 2026-11-12 | QEMU/libvirt package inventory | REPORTED | Components absent in earlier inventory |
-| 2026-11-12 | `windows-box` creation | PENDING | No environment created |
+| 2026-11-12 | AMD-V and KVM host availability | VERIFIED | AMD-V, KVM modules, `/dev/kvm` and device permissions confirmed from supplied output |
+| 2026-11-12 | Rootless Podman KVM device passthrough | VERIFIED | Temporary Ubuntu container accessed `/dev/kvm` read/write; exit 0 |
+| 2026-11-12 | `dockurr/windows` image download | VERIFIED | Manifest digest recorded in journey log |
+| 2026-11-12 | QEMU/KVM acceleration inside selected image | VERIFIED | Minimal Q35 test VM started with `accel=kvm` |
+| 2026-11-12 | Architecture | SELECTED | Rootless Podman + `dockurr/windows`; no Distrobox required |
+| 2026-11-12 | Windows ISO path | CORRECTED / PENDING VERIFICATION | Actual filename is `26100.1.1_PROFESSIONAL_X64_EN-US.ISO`; checksum and image metadata not yet checked |
+| 2026-11-12 | `windows-box` persistent deployment | PENDING | No persistent VM data directory/container created |
 | 2026-11-12 | Windows guest creation | PENDING | No VM disk or guest created |
-| 2026-11-12 | Architecture validation | PENDING | Container vs host execution not decided |
 
 ---
 
