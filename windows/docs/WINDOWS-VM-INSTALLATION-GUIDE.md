@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC target selected (192.168.1.161:8006), but the running container remains loopback-bound pending reconfiguration. No backup is in scope.**
+> **Current phase (2026-11-12): Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC access verified from the PC client at `http://192.168.1.161:8006/`. No VM backup or snapshot is in scope.**
 
 ## 1. Objective
 
@@ -446,3 +446,14 @@ A dedicated [Disposable I/O, RAM-Backed Temporary Storage and SSD Lab](./WINDOWS
 **LAN console remains first priority:** the current start script contains `192.168.1.161:8006:8006`, but the running `windows-box` still publishes `127.0.0.1:8006`. The container must be recreated and PC-client browser access verified before starting the Windows-side PowerShell and storage audit.
 
 **PowerShell command-context correction:** the first guest inspection block was entered into SteamOS Bash over SSH. Bash returned command-not-found/syntax errors; no PowerShell command ran and no guest configuration was changed.
+
+
+## 9.4 2026-11-12 — LAN noVNC access completed
+
+**VERIFIED:** The start script was changed to publish `192.168.1.161:8006:8006`. The running container was stopped and its Podman container object removed; the container was recreated from the updated script. The existing persistent host-backed storage mount was retained, and no VM disk backup or snapshot was created.
+
+The new container ID began `781b320a14d0`. `podman ps` reported `192.168.1.161:8006->8006/tcp`; `podman port windows-box` reported `8006/tcp -> 192.168.1.161:8006`; `ss` confirmed a listener on `192.168.1.161:8006` owned by `passt.avx2`.
+
+**USER-CONFIRMED:** From PC client `192.168.1.169`, the user opened `http://192.168.1.161:8006/` successfully in Brave and Chrome at the same time. Both browsers display the same Windows guest console; they are multiple viewers of one guest session, not separate Windows sessions.
+
+**Next phase:** Run the Windows PowerShell baseline from inside the guest using the working noVNC console. The earlier attempt to run PowerShell commands in SteamOS Bash did not execute any guest commands or change guest settings.
