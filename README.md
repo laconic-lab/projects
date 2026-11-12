@@ -105,7 +105,7 @@ The repository contains projects at different maturity levels. A project may be 
 | [Stable Diffusion](./stable.diffusion/) | Local image generation using stable-diffusion.cpp and the Deck AMD GPU through Vulkan | Dedicated Distrobox; WebUI binds to loopback; remote access uses an SSH tunnel, not direct LAN publication |
 | [Odysseus](./odysseus/) | AI application and multi-provider integration work | Dedicated project environment; consult the architecture and implementation-status documents before assuming a feature is implemented or a service is running |
 | [Waydroid](./waydroid/) | Feasibility research for Android workloads on the Deck with remote Linux/Windows clients | Investigation/audit; not a completed or approved native SteamOS installation |
-| [Windows](./windows/) | Manually managed Windows VM feasibility and installation journey on the Steam Deck | Planning/preflight; no VM created |
+| [Windows](./windows/) | Manually managed Windows 11 VM on the Steam Deck | Rootless Podman + `dockurr/windows` selected; host and QEMU/KVM acceleration validated; guest deployment pending |
 
 ### Direct documentation
 
