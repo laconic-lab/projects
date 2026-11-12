@@ -8,7 +8,7 @@ A living installation guide and evidence log for evaluating a Windows virtual ma
 
 Create a manually managed Windows virtual machine on the Steam Deck OLED, primarily to run Windows-only UUP conversion tooling.
 
-The immediate downstream task is to produce a Windows 11 ISO with the selected updates integrated. The UUP Dump documentation supplied during the KB5132061 investigation states that Linux/macOS conversion scripts do not support installing updates during conversion; Windows conversion is required for that workflow.
+The immediate downstream task is to produce a Windows 11 ISO with the selected updates integrated. The UUP Dump documentation supplied during the KB5132061 investigation explicitly states that Linux/macOS conversion scripts do not support installing updates during conversion; Windows conversion is required for that workflow. This is an established limitation, not an unresolved possibility. `AddUpdates=1` in `ConvertConfig.ini` does not override the Linux converter limitation.
 
 The Windows VM is intended as a temporary/controlled tool environment for this conversion task unless a broader purpose is explicitly agreed later.
 
@@ -182,7 +182,23 @@ These values must be checked against current host memory, disk capacity, Windows
 
 **Architecture decision:** proceed with `dockurr/windows` in rootless Podman, named `windows-box`. Do not create a Distrobox for this VM. Keep manual lifecycle and persistent guest data separate from the container layer. This decision is based on the successful KVM test, not a blanket preference for containers.
 
-**Installation ISO discovery:** three ISO files were reported by the initial `find` output. The intended Pro source directory is `/home/deck/uup-box/26200.9974_pro/`. A subsequent inspection command used the wrong filename (`26100.1_PROFESSIONAL_X64_EN-US.ISO`) and failed with `No such file or directory`. The directory listing showed the actual file as `26100.1.1_PROFESSIONAL_X64_EN-US.ISO` (about 4.1 GiB). The ISO itself has not yet been inspected or checksummed. Do not claim its installed build is 26200.9974: the UUP conversion history indicates Linux conversion did not integrate updates, and the ISO filename/metadata needs verification.
+**Installation ISO discovery and verification:** the selected ISO is `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO` (4,335,187,968 bytes; approximately 4.1 GiB). Its SHA-256 is `3a65289ef20c85e6ea64778e360ef50acc88451cc864778b1df1eb55270545f9`. `file` identifies it as a bootable ISO 9660 filesystem labelled `26100.1_X64_EN-US`. `7z l` confirms `setup.exe`, `sources/boot.wim` and `sources/install.wim` are present. The filename mismatch in the first inspection command was only a typo in the command: it omitted `.1` from `26100.1.1`; the actual file was present. Do not conflate that command typo with the separate, expected UUP build-version difference.
+
+**UUP conversion conclusion:** the source selection directory is named `26200.9974_pro`, but the Linux-generated ISO contains the base Windows image build `26100.1`, not the selected updated build `26200.9974`. This is expected because the Linux/macOS UUP conversion scripts do not support integrating the selected update packages. The UUP set contains the base image and separate update packages; `AddUpdates=1` in `ConvertConfig.ini` does not override this platform limitation. Windows-based conversion is required to integrate the updates. The same limitation explains why the Linux-generated base ISO is unsuitable as a matching repair source for the Dell M4800's installed Windows 11 Pro build `26200.9818`, and why the earlier DISM repair attempt returned `0x800f0915`. This ISO remains useful as installation media for the Windows VM, but must not be described as an updated `26200.9974` ISO or as a matching repair source.
+
+### 2026-11-12 — Selected ISO verified; UUP version difference explained
+
+**Selected ISO:** `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO`.
+
+- Size: 4,335,187,968 bytes (approximately 4.1 GiB).
+- SHA-256: `3a65289ef20c85e6ea64778e360ef50acc88451cc864778b1df1eb55270545f9`.
+- `file` output: bootable ISO 9660 filesystem, volume label `26100.1_X64_EN-US`.
+- `7z l` confirms `setup.exe`, `sources/boot.wim` and `sources/install.wim`.
+- The initial inspection command failed only because it omitted `.1` from the actual filename; the correct file existed and was subsequently inspected successfully.
+
+**Important UUP finding (settled, not an open question):** the directory/source selection `26200.9974_pro` does not mean the Linux-generated ISO contains build `26200.9974`. The Linux UUP conversion script does not integrate the selected update packages. The ISO therefore contains the base `26100.1` image. `AddUpdates=1` in `ConvertConfig.ini` does not override this Linux converter limitation. The UUP set has the base image and separate update packages; integrating them requires the Windows conversion workflow.
+
+This also explains why the base ISO is not a matching repair source for the Dell M4800's installed Windows 11 Pro `26200.9818` and why the previous DISM repair attempt returned `0x800f0915`. The ISO is retained as Windows VM installation media, not represented as an updated ISO or a suitable matching repair source.
 
 ### 2026-11-12 — Project initiated
 
@@ -213,11 +229,11 @@ These values must be checked against current host memory, disk capacity, Windows
 
 ## 8. Next steps
 
-The next action is to inspect the actual ISO using its corrected filename, calculate its SHA-256 checksum and inspect the Windows image metadata with the available `7z` tooling. Confirm the exact Windows edition and build contained in the ISO; do not infer the integrated update level from the UUP directory name.
+The ISO path and checksum are now verified, and its bootable ISO structure and key setup files are confirmed. The expected Linux-conversion version difference is understood: this ISO contains the base `26100.1` image, not the selected `26200.9974` update level. Do not spend further time trying to make the Linux conversion output contain integrated updates. The purpose of the Windows VM is to run the Windows UUP conversion workflow that can integrate those update packages. The next media check, if needed for selecting the guest edition, is to inspect the `install.wim` image indexes and edition metadata; it is not to investigate the already-explained base/update version difference.
 
 Then inspect the selected image's documented environment variables, volume layout, device requirements and startup behaviour. Design the `windows-box` Podman command with persistent storage under `/home/deck`, local ISO mounted read-only as `/custom.iso`, KVM and TUN access, manual lifecycle and a conservative resource allocation. Confirm the exact configuration before creating persistent VM storage or starting installation.
 
-1. Verify the ISO path, checksum, contents, edition and actual build.
+1. (Completed) Verify the selected ISO path, SHA-256, bootable ISO structure and key setup files. Inspect WIM indexes/edition metadata only if needed to confirm the Pro install index.
 2. Confirm the image's current supported configuration and persistent data directory.
 3. Choose and document the VM storage path and disk capacity.
 4. Prepare the exact Podman create/run configuration, including network and console access.
@@ -234,7 +250,7 @@ Then inspect the selected image's documented environment variables, volume layou
 | 2026-11-12 | `dockurr/windows` image download | VERIFIED | Manifest digest recorded in journey log |
 | 2026-11-12 | QEMU/KVM acceleration inside selected image | VERIFIED | Minimal Q35 test VM started with `accel=kvm` |
 | 2026-11-12 | Architecture | SELECTED | Rootless Podman + `dockurr/windows`; no Distrobox required |
-| 2026-11-12 | Windows ISO path | CORRECTED / PENDING VERIFICATION | Actual filename is `26100.1.1_PROFESSIONAL_X64_EN-US.ISO`; checksum and image metadata not yet checked |
+| 2026-11-12 | Selected Windows ISO | VERIFIED | Actual path, 4,335,187,968-byte size, SHA-256, bootable ISO9660 label and setup/boot.wim/install.wim files verified. Base image is `26100.1`, not updated `26200.9974`; expected Linux UUP converter limitation is documented. |
 | 2026-11-12 | `windows-box` persistent deployment | PENDING | No persistent VM data directory/container created |
 | 2026-11-12 | Windows guest creation | PENDING | No VM disk or guest created |
 
