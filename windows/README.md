@@ -10,7 +10,7 @@ The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC wo
 
 ## Current status
 
-**Status: WINDOWS 11 PRO 24H2 INSTALLED / LOCAL CONSOLE VERIFIED / MANUAL LIFECYCLE CONFIGURED / LAN CONSOLE TARGET SELECTED (APPLICATION PENDING)**
+**Status: WINDOWS 11 PRO 24H2 INSTALLED / MANUAL LIFECYCLE CONFIGURED / LAN NOVNC CONSOLE VERIFIED FROM PC CLIENT**
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
 - `/dev/kvm` is readable and writable by `deck` on the host.
@@ -28,9 +28,9 @@ The Windows 11 Pro guest installation is user-confirmed complete. Local noVNC wo
 - Local noVNC console access at `http://127.0.0.1:8006/` was confirmed by the user on the Steam Deck.
 - User reports Windows 11 Pro 24H2, build `26100`, local account `DeckVM`, hostname `windows-vm`, IPv4 `192.168.1.161`, DNS `192.168.1.1`, and Windows Update paused until 2026-12-28.
 - The reported guest IPv4 matches the Deck host IPv4; this is recorded as guest-reported network information, not proof that the guest has an independent LAN address. The configured `NETWORK=user`/`passt` mode remains in effect.
-- Selected PC-client endpoint: http://192.168.1.161:8006/ from 192.168.1.169. Runtime is still loopback-bound pending the start-script update and container recreation.
+- LAN noVNC publication is now verified at `192.168.1.161:8006`; the user successfully opened the same guest desktop from Brave and Chrome on PC client `192.168.1.169` simultaneously.
 - `/home` had 507 GiB available at the time of the latest check.
-- Windows installation completion and local console access are user-confirmed. Windows activation, guest network reachability, shared-folder workflow and PC-client console access remain unverified.
+- Windows installation completion and PC-client noVNC console access are user-confirmed. Windows activation, guest network reachability and shared-folder workflow remain unverified.
 - No host packages, services, permissions or configuration have been changed for this project.
 
 The selected ISO's SHA-256 and contents have now been verified; its base-build status and the Linux UUP conversion limitation are documented in the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md). See that guide for the evidence, decisions and next steps.
@@ -66,8 +66,9 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
 - [Windows VM Console and Second-VM Deployment Guide](./docs/WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md)
 - [Disposable VM I/O, RAM-Backed Temporary Storage and SSD Lab](./docs/WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md)
+- [VM Lifecycle and Manual Start/Stop Script Philosophy](./docs/WINDOWS-VM-LIFECYCLE-AND-SCRIPT-PHILOSOPHY.md)
 
-The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The disposable I/O lab records the RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
+The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The lifecycle guide explains manual, on-demand VM operation and the start/stop/status responsibilities. The single disposable I/O lab records RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
 
 ---
 
