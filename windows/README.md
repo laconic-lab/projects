@@ -54,8 +54,8 @@ The names are deliberately distinct: `windows-box` is the Podman container hosti
 - Keep VM disks and project data in `/home/deck/WindowsVM`, outside the container writable layer and SteamOS-managed system directories.
 - Treat the container as replaceable; preserve the guest under the host-backed `/storage` mount and keep deployment configuration independently reproducible.
 - Pin the tested image digest for recreation and update it deliberately; do not silently follow a moving `latest` tag.
-- Backup/restore and post-SteamOS-update recovery are future work. No backup is authorized or planned in the current installation-finalization phase.
-- Back up and verify before significant changes.
+- This is a disposable Windows laboratory. Do not create Windows guest backups, snapshots or virtual-disk copies; if the guest becomes damaged, inspect the failure and prefer a fresh VM when appropriate. Preserve configuration parameters, deployment scripts and verified technical findings in documentation.
+- Avoid creating backup copies of experimental guest state or configuration scripts unless the user explicitly requests a specific configuration backup.
 - Obtain explicit approval before package installation, host configuration changes, service changes, or creation/deletion of persistent VM data.
 - Record evidence and distinguish VERIFIED, REPORTED, PROPOSED and PENDING states.
 
@@ -65,8 +65,9 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 
 - [Windows VM Installation Guide and journey log](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
 - [Windows VM Console and Second-VM Deployment Guide](./docs/WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md)
+- [Disposable VM I/O, RAM-Backed Temporary Storage and SSD Lab](./docs/WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md)
 
-The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, how to inventory multiple Windows VM containers, noVNC operation, host-side resource settings, unattended installation variables, second-VM deployment and clean removal.
+The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The disposable I/O lab records the RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
 
 ---
 
