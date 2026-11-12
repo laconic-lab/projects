@@ -356,7 +356,7 @@ The start script is designed to use the existing local image without pulling (`-
 
 **Decision:** `windows-box` is the rootless Podman container running `dockurr/windows`; `windows-vm` is the Windows guest. Do not create a Distrobox for this VM. Keep the VM manually managed.
 
-**Status:** host, rootless Podman device access and QEMU/KVM acceleration validated. Windows VM deployment and installation-media verification remain pending.
+**Status at project initiation:** host, rootless Podman device access and QEMU/KVM acceleration validated. The subsequent deployment and ISO checks are recorded in the later journey entries above.
 
 ## 9. Next steps
 
