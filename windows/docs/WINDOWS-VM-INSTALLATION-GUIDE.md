@@ -385,15 +385,16 @@ The ISO path and checksum are now verified, and its bootable ISO structure and k
 
 Windows installation is user-confirmed complete. The selected LAN noVNC endpoint is http://192.168.1.161:8006/ from 192.168.1.169; apply the documented publication change and recreate only the container, preserving /storage. Verify from the PC after the change. Do not add TUN or capabilities unless a concrete requirement emerges.
 
-1. (Completed) Verify the selected ISO path, SHA-256, bootable ISO structure and key setup files. Inspect WIM indexes/edition metadata only if needed to confirm the Pro install index.
-2. Confirm the image's current supported configuration and persistent data directory.
-3. Choose and document the VM storage path and disk capacity.
-4. Prepare the exact Podman create/run configuration, including network and console access.
-5. (Completed) Create the persistent VM storage and start QEMU/KVM using the reviewed deployment.
+1. (Completed) Verify the selected ISO path, SHA-256, bootable ISO structure and key setup files.
+2. (Completed) Confirm the selected image configuration and persistent data directory.
+3. (Completed) Create and document the VM storage path and disk capacity.
+4. (Completed) Prepare and deploy the reviewed Podman configuration, including KVM, persistent mounts and local console.
+5. (Completed) Create persistent VM storage and start QEMU/KVM.
 6. (Completed; user-confirmed) Install Windows 11 Pro 24H2 and access the noVNC console locally.
-7. Verify Windows guest networking, shared-folder workflow, activation status and installed build.
-8. Validate backup/restore and document shutdown/restart operations.
-9. Tune resources or display/remote access only in response to observed needs.
+7. (Pending) Verify guest networking, shared-folder workflow and activation status; installed edition/build are user-confirmed.
+8. (Pending) Apply the selected LAN console publication at 192.168.1.161:8006 and test from PC client 192.168.1.169.
+9. (Deferred by user) Backup/restore validation. Do not run or schedule a backup until the user declares the VM fully configured.
+10. Tune resources or display only in response to observed needs.
 
 ## 10. Change and evidence register
 
