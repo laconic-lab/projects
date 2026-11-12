@@ -21,7 +21,7 @@ The `deck/` directory groups resources that apply across multiple Steam Deck pro
 - [Project Documentation Standard](./docs/PROJECT-DOCUMENTATION-STANDARD.md) — documentation roles, Markdown conventions, evidence, publication safety and AI-assisted documentation workflow.
 - [Python Runtime & Virtual Environment Standard](./docs/PYTHON-VIRTUAL-ENVIRONMENT-STANDARD.md) — reusable Python interpreter, per-project `.venv`, dependency-management, verification and recovery guidance for current and future Deck projects.
 
-Read these standards when starting work that affects the Steam Deck platform or more than one project. They establish shared defaults; they do not replace project-specific instructions. A project's own Python reference remains authoritative for its verified interpreter, runtime path and dependencies.
+Read these standards when starting work that affects the Steam Deck platform or more than one project. They are shared reference points and starting defaults, not universal implementation requirements. Apply them in context; project-specific architecture, verified constraints and documented decisions take precedence where appropriate. A project's own Python reference remains authoritative for its verified interpreter, runtime path and dependencies.
 
 ## Maintenance resources
 
@@ -31,8 +31,10 @@ Inspect a script and its assumptions before running it. Confirm whether it targe
 
 ## Platform operating principles
 
+These are decision-making principles, not a requirement to use one deployment pattern. Choose the simplest architecture that meets the project's functional, security, performance, maintenance and recovery needs. A host-native implementation is not automatically inferior to a container, and a container is not automatically safer or more reliable. Record material trade-offs and verify the chosen design.
+
 1. **Diagnose first.** Begin with targeted, read-only inspection and establish the current state.
-2. **Keep the host lean.** Prefer project-specific environments for application dependencies; make host-level changes only when justified.
+2. **Choose the right execution environment.** Prefer project-specific environments when they provide a practical benefit, but use the SteamOS host or another architecture when that is technically better justified. Keep host-level changes deliberate and minimal.
 3. **Respect execution boundaries.** Distinguish SteamOS host operations from Distrobox, Podman and remote-client operations.
 4. **Use least privilege.** Avoid unnecessary privileges, capabilities, mounts, devices, sockets and network exposure.
 5. **Protect persistent data.** Identify what must survive container or environment replacement and preserve it before approved changes.
