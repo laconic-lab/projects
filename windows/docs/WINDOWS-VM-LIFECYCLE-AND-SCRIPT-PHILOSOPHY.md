@@ -164,6 +164,7 @@ The key principle is: **stop only what this lifecycle controller started and sti
 - Odysseus Uvicorn is launched with `--host 0.0.0.0 --port 7011`, listening on all IPv4 interfaces. Actual exposure depends on host firewall/network policy; this deserves a separate exposure review.
 - The ChromaDB ownership marker is a persistent file. After an interrupted start/stop sequence or manual container operation, it could become stale and no longer accurately describe current ownership. Review marker recovery behavior if that project changes.
 - The start script starts the existing ChromaDB container; it does not recreate or redefine the container's restart policy.
+- The repository directory also currently contains `odysseus/decktools/runtime/odysseus.pid` with the value `1107511`. A PID is specific to a running host instance and is not portable source configuration; do not trust a committed PID file after reboot or on another machine. Runtime PID/marker files are generally better treated as generated state and excluded from version control. This was observed, not changed.
 - These scripts do not themselves configure boot autostart. They run when explicitly invoked unless some external mechanism calls them.
 
 These are design caveats, not a claim that Odysseus is currently malfunctioning.
