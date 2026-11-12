@@ -3,8 +3,8 @@
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU/KVM  
 **Guest:** Windows 11 Pro 24H2, build 26100 (user-confirmed)  
 **Document type:** Experimental lab plan and evidence register  
-**Status:** LAN noVNC access verified; Windows storage baseline and tuning experiments pending  
-**Priority:** Protect SteamOS and the Steam Deck NVMe first; finish LAN noVNC access before tuning experiments.
+**Status:** LAN noVNC access verified; replacement-guest groundwork and read-only storage analysis in progress; no tuning experiments applied  
+**Priority:** Understand the I/O and memory model and collect baselines before removing the current guest or creating its replacement. Protect SteamOS and the Steam Deck NVMe first.
 
 ## 1. Purpose
 
@@ -96,6 +96,16 @@ The initial PowerShell inspection block was mistakenly entered into the SteamOS 
 Current guest findings for pagefile configuration, TEMP/TMP locations, virtual disk media type, TRIM status and scheduled optimization are all **UNKNOWN / NOT TESTED**.
 
 ## 5. Technical questions and candidate experiments
+
+### 5.0 Proposed replacement-guest resource envelope
+
+The next guest is currently proposed at 4 vCPUs, 8 GiB RAM and a 72 GiB growable raw disk. These are draft values, not a deployment approval.
+
+The previous guest used 6 GiB RAM and a 128 GiB logical disk. Its earlier host-memory reading showed only 3.0 GiB available while running; that is a historical point-in-time reading, not a current measurement. Before assigning 8 GiB, collect fresh host idle and guest-running memory/PSI/swap readings. Keep RAM_CHECK=Y. Do not add a RAM disk or enable ballooning at the same time as the initial 8 GiB change.
+
+Dockur documents optional BALLOONING controls. Ballooning can return guest memory to the host under pressure, but it can also impose memory pressure inside Windows and is not guaranteed to reclaim memory instantly. It is a separate, later experiment requiring guest balloon-driver verification. No ballooning experiment is run or approved by this plan.
+
+The 72 GiB disk setting describes the guest disk's logical capacity. With ALLOCATE=N, the raw image remains growable/sparse; it does not reserve all 72 GiB immediately. Actual host allocation still depends on guest writes, filesystem allocation and discard behavior.
 
 The user specifically wants to investigate volatile system/user temporary storage (including RAM-disk options such as the toolkit they referred to as “AIM Toolkit”) and whether `pagefile.sys` can be reduced or eliminated in this disposable guest. The exact RAM-disk product name is not yet confirmed. No tool has been selected or installed.
 
@@ -273,16 +283,19 @@ No numerical host memory or free-space thresholds have been approved yet. Establ
 
 ## 9. Test order and current priority
 
-1. **FIRST — finish LAN noVNC access.** The start script has been edited to publish `192.168.1.161:8006:8006`, but the running container still has the old `127.0.0.1:8006` publication. Recreate only the Podman container object, retain the existing host-backed storage, and verify access from PC `192.168.1.169`.
-2. Run the Windows PowerShell baseline in Section 6.
-3. Collect a read-only host NVMe health baseline.
-4. Establish Windows idle and representative-workload memory/commit/pagefile measurements.
-5. Research and evaluate RAM-disk implementations and their lifecycle; do not install one before reviewing requirements and resource cost.
-6. Test user TEMP on a small RAM disk in a disposable guest.
-7. Evaluate system TEMP separately.
-8. Test pagefile reduction, then optionally no-pagefile, only if measurements and workload justify it.
-9. Verify Optimize Drives, guest TRIM and end-to-end discard behavior without changing host storage configuration.
-10. Update this document after each completed experiment with exact settings, evidence, results and limitations.
+LAN noVNC access is already verified from the PC in Brave and Chrome. RDP work is deliberately deferred. The user wants the current guest retained until the following groundwork is complete.
+
+1. Collect the Windows PowerShell baseline in Section 6 inside the existing guest. This is read-only.
+2. Collect a fresh SteamOS host memory/swap/PSI and filesystem baseline while idle and while the guest is running.
+3. Collect a read-only NVMe health/counter baseline; do not run destructive tests or change host storage settings.
+4. Establish guest idle and representative-workload memory/commit/pagefile measurements.
+5. Inspect the current QEMU disk arguments and guest TRIM/media reporting; distinguish guest TRIM enablement from end-to-end discard propagation.
+6. Research RAM-disk implementations and their lifecycle; do not install one before reviewing requirements and memory cost.
+7. Model user TEMP, system TEMP and pagefile options separately. No redirection or pagefile change yet.
+8. Only after the analysis is complete, design one-variable-at-a-time experiments for the replacement disposable guest.
+9. Update this document after each completed test with exact settings, evidence, results and limitations.
+
+Do not delete/recreate the current guest merely to begin these tests. Do not create guest backups, snapshots or virtual-disk copies.
 
 The LAN console milestone is complete. The PC client at 192.168.1.169 successfully opened the guest console at http://192.168.1.161:8006/ in both Brave and Chrome simultaneously. Both viewers display the same Windows guest desktop; they are not separate guest sessions. Windows-side inspection and all storage-tuning experiments remain pending until performed through this working console.
 
@@ -318,3 +331,12 @@ The LAN console milestone is complete. The PC client at 192.168.1.169 successful
 Host-side verification reported `8006/tcp -> 192.168.1.161:8006` from `podman port`, and `ss` showed a listener on `192.168.1.161:8006` owned by `passt.avx2`. The user then confirmed successful access from PC client `192.168.1.169` in both Brave and Chrome at the same time. Both browser windows mirror the same Windows guest display/input session.
 
 The earlier PowerShell command block was mistakenly entered into SteamOS Bash over SSH. It did not execute in Windows and made no guest changes. Re-run the guest-side baseline in Section 6 through noVNC PowerShell.
+
+
+## 12. Replacement-guest preparation note — 2026-11-13
+
+The planned replacement guest is 8 GiB RAM and a 72 GiB growable raw disk, but neither value has been empirically tested yet. The earlier 6 GiB guest's historical host reading showed only 3.0 GiB available. Before starting an 8 GiB guest, remeasure host memory availability and memory pressure. A RAM disk would consume guest memory backed by the same finite host RAM budget; it must not be treated as a free way to reduce SSD writes.
+
+The user's preferred order is to finish UUP/ISO and Windows setup groundwork first, then complete the read-only storage analysis, and only then run disposable I/O experiments. RDP publication is not a prerequisite for this work and is deferred.
+
+The current official Dockur environment reference documents BALLOONING, BALLOONING_MIN_MEM and host-pressure thresholds. Ballooning is not equivalent to freely changing the guest's configured maximum RAM at runtime. Its behavior and guest driver support must be verified before enabling it. Do not enable it in the initial replacement configuration by assumption.
