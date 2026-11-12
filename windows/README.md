@@ -67,6 +67,8 @@ These rules follow the repository's [Engineering & Security Baseline](../deck/do
 - [Windows VM Console and Second-VM Deployment Guide](./docs/WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md)
 - [Disposable VM I/O, RAM-Backed Temporary Storage and SSD Lab](./docs/WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md)
 - [VM Lifecycle and Manual Start/Stop Script Philosophy](./docs/WINDOWS-VM-LIFECYCLE-AND-SCRIPT-PHILOSOPHY.md)
+- [Connections and Credential Naming Convention](./docs/WINDOWS-VM-CONNECTIONS-AND-CREDENTIALS.md)
+- [Generic per-VM environment template](./templates/windows-vm.env.example)
 
 The installation guide records the verified host/container/KVM tests, selected image identity, ISO evidence, persistent directory and deployment configuration. The console guide explains the Podman/Dockur/QEMU/KVM relationship, noVNC operation, host-side resource settings, second-VM deployment and clean removal. The lifecycle guide explains manual, on-demand VM operation and the start/stop/status responsibilities. The single disposable I/O lab records RAM-disk, pagefile, temporary-folder, TRIM and SSD-wear experiments; proposed tuning remains unimplemented until tested.
 
