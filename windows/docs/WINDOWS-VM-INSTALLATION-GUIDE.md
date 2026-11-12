@@ -253,6 +253,24 @@ This layout was created successfully. The deployment configuration files now exi
 
 This also explains why the base ISO is not a matching repair source for the Dell M4800's installed Windows 11 Pro `26200.9818` and why the previous DISM repair attempt returned `0x800f0915`. The ISO is retained as Windows VM installation media, not represented as an updated ISO or a suitable matching repair source.
 
+### 2026-11-12 — Start-script configuration review
+
+**Inspection:** the user supplied the complete contents of `config/windows-box-start.sh`. The script was reviewed read-only; it was not executed during this review.
+
+**Review findings:**
+- The image reference is pinned to the previously tested local manifest digest, and `--pull=never` prevents an implicit pull.
+- The script checks the selected ISO and protected environment file are readable, and checks that the pinned image exists locally before deployment.
+- It passes `/dev/kvm` only; it does not use `--privileged`, add capabilities, or pass `/dev/net/tun`.
+- It binds `/home/deck/WindowsVM/storage` to `/storage` and the dedicated shared directory to `/shared`; the ISO is mounted read-only at `/custom.iso`.
+- It publishes the web console on host loopback only (`127.0.0.1:8006:8006`). It does not publish RDP.
+- The environment's `NETWORK=user` configures QEMU user-mode guest networking. This is distinct from Podman's container network mode; the script does not request host networking.
+- The container uses `--restart=no` and a 120-second stop timeout, consistent with manual lifecycle.
+- If a container named `windows-box` already exists and is stopped, the script starts that existing container rather than recreating it. Environment-file edits do not change an existing container's stored environment or mount/device configuration; deliberate recreation would be required to apply such changes.
+- With `set -euo pipefail`, a failing Podman create/start command stops the script. The final message confirms the Podman command returned successfully, not that Windows setup or the guest web console is ready.
+
+**Assessment:** no unexpected host-level changes, broad privilege grant, or mismatch with the selected persistence/network/lifecycle design was found in the supplied script. The script is approved for the initial container creation attempt, subject to runtime verification immediately afterward. This is a static review only; Podman argument acceptance, actual mounts, port binding, QEMU startup and guest storage writes remain to be verified at runtime.
+
+**Next:** run the manual start script once. Then inspect container state, configuration/mounts, published port and startup logs before interacting with the guest installer.
 ### 2026-11-12 — Deployment configuration files created and validated
 
 **User-supplied verification output:**
