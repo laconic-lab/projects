@@ -2,7 +2,7 @@
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / dockur/windows  
 **Current guest:** windows-vm in container windows-box  
-**Status:** Operating guide; LAN noVNC access verified from the PC client; second-VM example is not executed.
+**Status:** LAN noVNC access verified from the PC client; RDP path documented and diagnosis pending; second-VM example is not executed.
 
 ## 1. Purpose and architecture
 
@@ -33,7 +33,7 @@ Windows guest: windows-vm
         +-- persistent host storage
 ~~~
 
-The selected viewer URL is **http://192.168.1.161:8006/**.
+The selected viewer URL is **http://192.168.1.161:8006/**. The Deck's loopback address `127.0.0.1:8006` is no longer bound; this is intentional and no restoration is requested.
 
 **Current verified state (2026-11-12):** the start script publishes `192.168.1.161:8006:8006`; the container was recreated; `podman port` and `ss` confirmed the LAN listener; and the user successfully opened the console from PC client `192.168.1.169` in Brave and Chrome simultaneously. Both viewers show the same guest desktop.
 
@@ -605,7 +605,13 @@ podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
 - Never remove a storage directory as part of routine container recreation.
 - Disposable-lab policy: do not create Windows guest backups, snapshots or virtual-disk copies. Preserve useful configuration parameters and verified findings in documentation; rebuild a damaged guest rather than restoring a wounded one.
 
-## 10. References
+## 10. Connections, identities and RDP
+
+See [Windows VM Connections and Credential Naming Convention](./WINDOWS-VM-CONNECTIONS-AND-CREDENTIALS.md) for the `container-user`, `console-user` and `win-user` roles, the PC/Deck connection matrix, `host.lan\Data` mapping, and the planned RDP port-forwarding design.
+
+**RDP is not yet configured.** The current guest uses `NETWORK=user`/`passt`; Dockur requires custom guest ports to be listed in `USER_PORTS` in user-mode networking. The intended RDP target from the PC is `192.168.1.161:3389`, but it will not work until Windows guest readiness and host/container port forwarding are verified and configured. Do not infer that the guest's reported `192.168.1.161` is a directly reachable independent LAN address.
+
+## 11. References
 
 - Dockur environment variables: https://github.com/dockur/windows/blob/master/docs/environment.md
 - Dockur project: https://github.com/dockur/windows
