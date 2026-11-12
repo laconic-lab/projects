@@ -44,7 +44,7 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 | swtpm | Software TPM emulator, potentially needed for a Windows 11 virtual TPM device | Not installed in the earlier inventory |
 | libvirt / virt-manager | Optional VM management service and graphical management application | Not installed in the earlier inventory |
 
-QEMU is the virtual-machine engine. KVM is the Linux kernel facility that can accelerate virtualisation. A Windows guest is a separate operating system running inside a virtual hardware definition; it does not replace SteamOS.
+QEMU is the virtual-machine engine. KVM is the Linux kernel facility that can accelerate virtualisation. A Windows guest is a separate operating system running inside a virtual hardware definition; it does not replace SteamOS. The intended multi-guest model is one independent rootless Podman container created from the Dockur image per Windows guest. Each container runs its own QEMU process and must have its own persistent storage, environment file, container name and host console port. The Dockur image is shared as a reusable image; the running containers and guest disks are separate. See the [Console and Second-VM Deployment Guide](./WINDOWS-VM-CONSOLE-AND-SECOND-VM-GUIDE.md) for the architecture diagram, inventory commands and clean-removal procedures.
 
 The deployed configuration specifies 4 vCPUs, 6 GiB RAM and a 128 GiB growable raw virtual disk. Runtime inspection confirmed these values in the QEMU command line and the created disk image.
 
