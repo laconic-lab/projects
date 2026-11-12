@@ -71,7 +71,7 @@ Key requirements:
 
 ### 5.1 Hardware virtualisation
 
-<badge color="success">REPORTED — PASS</badge>
+**Status: REPORTED — PASS**
 
 The user supplied the following read-only host inventory:
 
@@ -128,7 +128,7 @@ No packages were installed during this inventory.
 
 ## 6. Architecture decision
 
-<badge color="warning">PROPOSED — NOT VALIDATED</badge>
+**Status: PROPOSED — NOT VALIDATED**
 
 The current candidate is:
 
