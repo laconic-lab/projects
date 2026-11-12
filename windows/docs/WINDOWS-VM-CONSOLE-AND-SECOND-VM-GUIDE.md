@@ -106,21 +106,17 @@ podman inspect windows-box --format '{{range .Mounts}}{{println .Source "->" .De
 
 The expected existing publication is 127.0.0.1:8006:8006. Confirm the persistent host storage mount is /home/deck/WindowsVM/storage -> /storage. If either differs, stop and inspect rather than applying the example blindly.
 
-After confirming those facts, back up and edit the start script:
+After confirming those facts, edit the start script directly. This is a disposable lab and the user has explicitly rejected configuration-script backups as well as Windows guest backups. Preserve the known original setting in project documentation instead:
 
 ~~~bash
 set -euo pipefail
 SCRIPT="/home/deck/WindowsVM/config/windows-box-start.sh"
-STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP="$SCRIPT.before-lan-$STAMP"
-
-cp -a "$SCRIPT" "$BACKUP"
 grep -qF -- '--publish 127.0.0.1:8006:8006' "$SCRIPT"
 sed -i 's/--publish 127\.0\.0\.1:8006:8006/--publish 192.168.1.161:8006:8006/' "$SCRIPT"
 sed -i 's#http://127\.0\.0\.1:8006#http://192.168.1.161:8006#' "$SCRIPT"
 
 bash -n "$SCRIPT"
-diff -u "$BACKUP" "$SCRIPT"
+grep -nE -- '--publish|Web console:' "$SCRIPT"
 ~~~
 
 Review the diff. It should change only the host publication and printed console URL.
@@ -146,7 +142,7 @@ podman inspect windows-box --format 'State={{.State.Status}} Restart={{.HostConf
 
 Expected publication/listener: 192.168.1.161:8006. Then open http://192.168.1.161:8006/ from PC 192.168.1.169. A host listener check does not replace the browser test.
 
-Rollback: stop and remove the recreated container, restore the saved script backup over windows-box-start.sh, then run the start script. Preserve /home/deck/WindowsVM/storage throughout. Record the exact backup filename locally.
+If the LAN binding must be reverted, edit the two documented lines directly back to 127.0.0.1:8006 and validate with bash -n. No script backup is created. Preserve /home/deck/WindowsVM/storage throughout.
 
 No firewall change is included. The inspected public zone already has broad TCP/UDP port allowances from 1024 through 65535. Do not add another broad rule or publish guest RDP as part of this change.
 
@@ -490,7 +486,7 @@ Neither container is configured for boot autostart.
 There are two different operations. Choose deliberately:
 
 1. **Remove the Podman container but keep the Windows guest data.** This is useful for replacing a container wrapper while retaining the installed Windows system.
-2. **Permanently remove the VM and its project data.** This deletes the Windows installation, virtual disk, firmware state, environment file and shared-folder contents. It is irreversible unless a separate backup exists.
+2. **Permanently remove the VM and its project data.** This deletes the Windows installation, virtual disk, firmware state, environment file and shared-folder contents. This is intentionally irreversible under the disposable-lab policy; no guest backup or snapshot is maintained.
 
 Do not confuse container removal with guest removal. In this project, /storage is a host bind mount. Removing the container does not remove the host directory or its contents. Podman's documentation distinguishes containers from bind-mounted host data:
 https://docs.podman.io/en/stable/markdown/podman-run.1.html
@@ -543,7 +539,7 @@ For another guest, change both the container name and the verified project path.
 
 ### 8.3 Permanently erase the VM and its project directory
 
-**DESTRUCTIVE:** this removes the Windows guest and its persistent files. The current project has no verified backup; do not use this procedure unless you intentionally accept losing the complete guest installation and its data.
+**DESTRUCTIVE:** this removes the Windows guest and its persistent files. The project intentionally maintains no Windows guest backup or snapshot. Use this procedure only when you intend to discard the complete guest installation and its data.
 
 First remove the container using Section 8.2. Then verify the exact project directory. The example below is intentionally tied to the current VM path and asks for an explicit confirmation phrase:
 
@@ -607,7 +603,7 @@ podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
 - Use unique host ports and persistent directories for every guest.
 - Stop a guest before changing its deployment configuration.
 - Never remove a storage directory as part of routine container recreation.
-- No backup or snapshot is included. Backup/restore remains deferred until the user declares the VM fully configured.
+- Disposable-lab policy: do not create Windows guest backups, snapshots or virtual-disk copies. Preserve useful configuration parameters and verified findings in documentation; rebuild a damaged guest rather than restoring a wounded one.
 
 ## 10. References
 
