@@ -61,7 +61,7 @@ Key requirements:
 1. Identify the execution context for every command: SteamOS host, `windows-box`, Windows guest, or a client workstation.
 2. Start with targeted read-only inspection.
 3. Do not repeat completed checks without a reason.
-4. Do not treat Distrobox as a strong security sandbox. Inspect its actual mounts, identity mappings, capabilities, devices and network configuration.
+4. Do not assume a container is automatically a strong security boundary. Inspect the actual Podman mounts, user mappings, capabilities, devices and network configuration.
 5. Preserve existing environments and persistent data.
 6. Manual lifecycle by default.
 7. Obtain explicit approval before installing packages, changing host configuration, enabling services, creating persistent VM storage or taking destructive action.
@@ -94,7 +94,7 @@ Current supplied inventory reports 14 GiB RAM, 9.8 GiB available at the time of 
 
 ### 5.2 Existing environments
 
-The reported Distrobox inventory:
+The pre-existing Distrobox inventory (separate from this VM's selected Podman deployment):
 
 | Environment | Image | Reported state |
 |---|---|---|
@@ -105,11 +105,11 @@ The reported Distrobox inventory:
 
 No existing environment is to be reused for this project. In particular, the currently running `uup-box` must remain untouched.
 
-The supplied directory check showed `/home/deck/OdysseusRecovery` and `/home/deck/pihole-box`; it did not show a `windows-box` directory. This does not establish the absence of every possible VM storage location, which will be checked before any creation step.
+The `windows-box` name now refers to the planned Podman container, not a Distrobox directory. No persistent VM storage directory or guest disk has been created.
 
 ### 5.3 Virtualisation software inventory
 
-The earlier read-only inventory reported:
+The earlier host package inventory reported the following host-side tools as absent. This does not describe the QEMU tooling bundled inside the downloaded `dockurr/windows` image:
 
 | Component | Result |
 |---|---|
@@ -193,19 +193,21 @@ These values must be checked against current host memory, disk capacity, Windows
 - Repository root README.
 - Shared Engineering & Security Baseline.
 - Project Documentation Standard.
-- User-supplied Steam Deck hardware, Distrobox, Podman and KVM inventory.
+- User-supplied Steam Deck host, Podman, KVM and memory/storage inventory.
+- Successful rootless Podman `/dev/kvm` passthrough test.
+- Successful QEMU/KVM acceleration probe inside `dockurr/windows`.
 
 **Findings:**
 
-- AMD-V was reported available.
-- `/dev/kvm` was reported present with mode `666`.
-- Podman 6.0.2 is installed.
-- Existing Distroboxes are present; `uup-box` is currently running and is explicitly excluded from reuse.
-- QEMU/libvirt/OVMF/swtpm tools were absent in the earlier package inventory.
-- No `windows-box` has been created.
-- No VM has been created and no project-related host changes have been made.
+- SteamOS reports AMD-V; `svm` is present and `kvm_amd`/`kvm` are loaded.
+- `/dev/kvm` is accessible read/write by `deck`.
+- Rootless Podman passes `/dev/kvm` into a temporary container successfully.
+- QEMU 11.1.1 inside `dockurr/windows` starts a minimal Q35 guest using KVM acceleration.
+- The `dockurr/windows` image is downloaded; no persistent VM storage or Windows guest exists yet.
+- The existing `uup-box` remains separate and untouched.
+- No host packages, services, permissions or configuration were changed for this project.
 
-**Decision:** use `windows-box` as the proposed dedicated Distrobox name and `windows-vm` as the proposed Windows guest name. Keep the VM manually managed.
+**Decision:** `windows-box` is the rootless Podman container running `dockurr/windows`; `windows-vm` is the Windows guest. Do not create a Distrobox for this VM. Keep the VM manually managed.
 
 **Status:** host, rootless Podman device access and QEMU/KVM acceleration validated. Windows VM deployment and installation-media verification remain pending.
 
