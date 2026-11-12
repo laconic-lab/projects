@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: container deployed; QEMU/KVM guest boot started successfully; Windows installation not yet confirmed complete.**
+> **Current phase: Windows 11 Pro 24H2 installation reported complete; local noVNC access verified by user; manual lifecycle and LAN-client console access being finalized. No backup is in scope.**
 
 ## 1. Objective
 
@@ -29,15 +29,15 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 - Changing Pi-hole, SSH, Shyrka, Odysseus or other existing projects.
 - Host boot autostart, persistent background services or unattended VM startup.
 - GPU passthrough; it is not required for UUP conversion.
-- Publishing VM services or ports to the LAN.
+- Publishing Windows guest services or RDP to the LAN. The noVNC administration console may be published to a trusted LAN client after its source address and firewall policy are established.
 - Installing host packages, changing host configuration, or modifying permissions without a reviewed proposal and explicit approval.
 
 ## 3. Naming and component roles
 
 | Name | Role | Current state |
 |---|---|---|
-| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Running; QEMU/KVM guest startup and loopback web console verified |
-| `windows-vm` | Windows guest VM | QEMU process running; Windows setup/installation completion not yet verified |
+| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Running; QEMU/KVM and local noVNC console verified |
+| `windows-vm` | Windows guest VM | User reports Windows 11 Pro 24H2 build 26100 installed and running |
 | QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | QEMU 11.1.1 available inside the downloaded `dockurr/windows` image; KVM probe passed |
 | KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Host and rootless-container access verified; QEMU KVM launch passed |
 | OVMF | UEFI firmware implementation commonly used by QEMU guests | Not installed in the earlier inventory |
@@ -129,7 +129,7 @@ No packages were installed during this inventory.
 
 ## 6. Architecture decision
 
-**Status: SELECTED AND DEPLOYED — INITIAL QEMU/KVM GUEST BOOT VERIFIED; WINDOWS SETUP IN PROGRESS/UNCONFIRMED**
+**Status: DEPLOYED — WINDOWS 11 PRO 24H2 INSTALLATION USER-CONFIRMED; LOCAL CONSOLE VERIFIED; LAN ACCESS PENDING**
 
 The current candidate is:
 
@@ -142,8 +142,8 @@ Steam Deck OLED / SteamOS host
         |
         |-- dockurr/windows image (`windows-box`)
               |-- QEMU 11.1.1 + KVM acceleration
-              |-- persistent Windows VM data (planned)
-              |-- Windows guest (`windows-vm`, QEMU running; setup not yet confirmed complete)
+              |-- persistent Windows VM data (`/home/deck/WindowsVM/storage`)
+              |-- Windows guest (`windows-vm`, Windows 11 Pro 24H2 build 26100; user-confirmed)
               |
               |-- virtual CPU / RAM / disk
               |-- UEFI firmware
@@ -151,20 +151,20 @@ Steam Deck OLED / SteamOS host
               |-- NAT networking
 ```
 
-The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. Both a minimal QEMU/KVM probe and the deployed guest's QEMU startup have succeeded. Runtime inspection confirms the intended mounts, loopback-only web port, manual lifecycle and `/dev/kvm` device mapping. Rootless operation does not by itself prove every aspect is isolated or safe.
+The selected arrangement is rootless Podman running the purpose-built `dockurr/windows` image. The image contains QEMU; KVM is provided by the SteamOS kernel through `/dev/kvm`. This is a real Windows virtual machine, not a Windows userspace container. Both a minimal QEMU/KVM probe and the deployed guest's QEMU startup have succeeded. Runtime inspection confirms the intended mounts, loopback-only web port, manual lifecycle and `/dev/kvm` device mapping. The user subsequently confirmed successful local noVNC access and completion of Windows 11 Pro 24H2 installation. Rootless operation does not by itself prove every aspect is isolated or safe.
 
-### Candidate guest configuration
+### Deployed guest configuration
 
 | Setting | Initial planning value | Status |
 |---|---:|---|
-| vCPU | 4 | Proposed |
-| RAM | 6 GiB | Proposed |
-| Disk | 128 GiB target capacity; allocation mode to be confirmed from image configuration | Proposed |
+| vCPU | 4 | Runtime verified |
+| RAM | 6 GiB | Runtime verified |
+| Disk | 128 GiB growable raw image | Created; logical capacity verified |
 | Firmware | UEFI / OVMF | Proposed |
 | TPM | TPM 2.0 virtual device | Proposed |
-| Network | NAT | Proposed |
+| Network | `NETWORK=user` / `passt` | Runtime observed; guest-reported IPv4 requires interpretation |
 | GPU passthrough | Not planned | Not required for UUP conversion |
-| Lifecycle | Manual start/stop | Required default |
+| Lifecycle | Manual start/stop via project scripts | Configured; script contents/runtime to be re-reviewed before final operations docs |
 
 These values must be checked against current host memory, disk capacity, Windows requirements and the selected VM implementation before creation.
 
@@ -185,23 +185,44 @@ Created and verified on 2026-11-12:
 └── storage/                mode 0700
 ```
 
-The ISO remains at its existing path under `/home/deck/uup-box`; it is not duplicated into the project at this stage. The planned container mount is read-only at `/custom.iso`. The planned persistent guest-data mount is `/home/deck/WindowsVM/storage:/storage`. The exact contents written by the image and backup/restore procedure still need to be verified.
+The ISO remains at its existing path under `/home/deck/uup-box`; it was not duplicated into the project. The container mounts it read-only at `/custom.iso`. Persistent guest data is mounted from `/home/deck/WindowsVM/storage:/storage`. Runtime inspection confirmed the disk and firmware files. Backup/restore has not been performed and is explicitly deferred until the user declares the VM complete.
 
-**Storage evidence:** `df -h /home` reported a 939 GiB filesystem, 433 GiB used and 507 GiB available (47% used) at the time of the check. The selected ISO was readable. No VM disk has yet been allocated.
+**Storage evidence:** `df -h /home` reported a 939 GiB filesystem, 433 GiB used and 507 GiB available (47% used) at the time of the check. The selected ISO was readable. A 128 GiB logical-capacity growable raw disk has been created; the initial storage directory usage was 898 MiB.
 
 **Image identity:** local image ID `cbfaef1f04b4cb08137512116a64ed2005b58852bf04067b3f896342d5b3cb02`; reported repo digests include `docker.io/dockurr/windows@sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea` and `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`. The latter is the manifest digest previously used for the KVM validation. The local image configuration reports the same image ID as the validated image.
 
-**Resilience approach (planned):**
+**Resilience approach (design; backup intentionally deferred):**
 - Keep the VM disk and all guest state in the host-backed `storage/` directory.
 - Keep the deployment definition and lifecycle commands in `config/`, independent of the container instance.
 - Pin the tested image digest for reproducible recreation; perform image upgrades deliberately, not by silently tracking `latest`.
 - Keep manual start/stop; do not add boot autostart or a host service.
-- Back up the guest while stopped or using a documented application/VM-consistent method; test restore before treating backups as reliable.
+- Backup/restore is deferred by explicit user request until the VM is declared fully configured. Do not run or schedule backups during installation finalization.
 - After SteamOS updates, verify Podman, KVM device access, project mount ownership, container recreation and guest boot. SteamOS update survival is a design goal, not a guarantee until recovery has been tested.
 
-This layout was created successfully. The deployment configuration files have passed syntax/permission checks. The container and guest storage have now been created; backup validation and a full SteamOS-update recovery test remain pending.
+This layout was created successfully. The deployment configuration files have passed syntax/permission checks. The container, guest storage and Windows installation are in place. Backup/restore and post-SteamOS-update recovery remain deferred/pending.
 
 ## 8. Journey log
+
+### 2026-11-12 — Windows installation completed; local noVNC access confirmed
+
+**User-reported guest state (installation completion):**
+
+- Windows 11 Pro, version 24H2, build 26100.
+- Local Windows account: `DeckVM`; user reports no password prompt at login. The generated local environment-file secret remains private and is not reproduced here.
+- Windows hostname: `windows-vm`.
+- User reports Windows Update paused until 2026-12-28.
+- Guest-reported IPv4: `192.168.1.161`; DNS: `192.168.1.1`. The IPv4 matches the Steam Deck host address recorded in the deployment. Because QEMU is configured with `NETWORK=user`/`passt`, do not assume this represents a separately assigned, independently reachable LAN address. The guest networking model and any required inbound access must be verified before documenting it as a distinct endpoint.
+- The user opened `http://127.0.0.1:8006/` locally on the Steam Deck and confirmed successful noVNC access. Browser tab title: `Windows - noVNC`.
+
+**Status:** Windows installation and local console access are USER-CONFIRMED. The previously observed QEMU/KVM process, pinned container, persistent mounts, read-only ISO and loopback port remain the runtime baseline. Windows activation, guest outbound network, shared-folder operation and PC-client access are not yet verified.
+
+**Lifecycle intent:** retain manual start/stop/status operation using the existing project scripts. No SteamOS boot autostart or always-on service is intended. The three script contents and stop/start behaviour are to be reviewed before declaring lifecycle documentation final.
+
+**LAN console intent:** the user wants to access noVNC from a PC client. Current Podman publication remains loopback-only (`127.0.0.1:8006`). The next network change must be limited to the Deck's LAN interface and trusted client source, after confirming the PC client's current IPv4 and reviewing the active firewall. Do not publish guest RDP or other guest ports as part of this requirement.
+
+**Backup boundary:** the user explicitly instructed that no VM backup be performed until the VM is fully configured. No backup was run, created or scheduled. Backup/restore documentation may describe a future procedure, but the current work must not execute it or imply that it has been validated.
+
+
 
 ### 2026-11-12 — KVM and selected container validated
 
@@ -369,7 +390,7 @@ The container is deployed and QEMU has started using KVM. Inspect Windows Setup 
 3. Choose and document the VM storage path and disk capacity.
 4. Prepare the exact Podman create/run configuration, including network and console access.
 5. (Completed) Create the persistent VM storage and start QEMU/KVM using the reviewed deployment.
-6. Inspect and complete Windows Setup through the local web console.
+6. (Completed; user-confirmed) Install Windows 11 Pro 24H2 and access the noVNC console locally.
 7. Verify Windows guest networking, shared-folder workflow, activation status and installed build.
 8. Validate backup/restore and document shutdown/restart operations.
 9. Tune resources or display/remote access only in response to observed needs.
@@ -393,7 +414,11 @@ The container is deployed and QEMU has started using KVM. Inspect Windows Setup 
 | 2026-11-12 | Persistent guest disk creation | VERIFIED | Growable raw `data.img`, logical size 128 GiB, stored under host-backed `/storage` |
 | 2026-11-12 | QEMU/KVM guest startup | VERIFIED | QEMU running with `accel=kvm`, `-enable-kvm`, 4 vCPU and 6 GiB RAM; booted from read-only ISO |
 | 2026-11-12 | Web console publication | VERIFIED | Listener and Podman mapping restricted to `127.0.0.1:8006` |
-| 2026-11-12 | Windows installation completion | PENDING | Initial boot reached Windows startup; installer state/completion not yet inspected |
+| 2026-11-12 | Windows 11 Pro installation | USER-CONFIRMED | Windows 11 Pro 24H2 build 26100; local account `DeckVM`; hostname `windows-vm` |
+| 2026-11-12 | Local noVNC console | USER-CONFIRMED | Opened successfully on Deck at `127.0.0.1:8006`; browser title `Windows - noVNC` |
+| 2026-11-12 | Guest network configuration | USER-REPORTED | Guest reports IPv4 `192.168.1.161` and DNS `192.168.1.1`; same IPv4 as Deck host, requires interpretation under user-mode `passt` networking |
+| 2026-11-12 | PC-client noVNC access | PENDING | Requires client IPv4 confirmation and review of host firewall before LAN binding change |
+| 2026-11-12 | Backup/restore | DEFERRED BY USER | No backup or restore operation until VM is declared fully configured |
 
 ---
 
