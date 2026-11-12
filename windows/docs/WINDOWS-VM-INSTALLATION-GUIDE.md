@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase: host/container KVM validation passed; deployment design and ISO verification are next. No Windows guest or persistent VM disk has been created.**
+> **Current phase: host/container KVM validation passed; persistent project directory created; container deployment configuration is being prepared. No Windows guest disk or guest OS has been created.**
 
 ## 1. Objective
 
@@ -168,7 +168,40 @@ The selected arrangement is rootless Podman running the purpose-built `dockurr/w
 
 These values must be checked against current host memory, disk capacity, Windows requirements and the selected VM implementation before creation.
 
-## 7. Journey log
+## 7. Resilience and persistent project layout
+
+**Design objective:** the Windows guest and its recoverable state must survive SteamOS system updates. The Podman container is a replaceable runtime wrapper; the guest's durable data must live in a dedicated location under the user's persistent home filesystem, not in the container writable layer or SteamOS-managed system directories.
+
+Selected project root: `/home/deck/WindowsVM`.
+
+Created and verified on 2026-11-12:
+
+```text
+/home/deck/WindowsVM/       mode 0700, owner deck:deck
+├── backups/                mode 0700
+├── config/                 mode 0700
+├── docs/                   mode 0700
+├── shared/                 mode 0700
+└── storage/                mode 0700
+```
+
+The ISO remains at its existing path under `/home/deck/uup-box`; it is not duplicated into the project at this stage. The planned container mount is read-only at `/custom.iso`. The planned persistent guest-data mount is `/home/deck/WindowsVM/storage:/storage`. The exact contents written by the image and backup/restore procedure still need to be verified.
+
+**Storage evidence:** `df -h /home` reported a 939 GiB filesystem, 433 GiB used and 507 GiB available (47% used) at the time of the check. The selected ISO was readable. No VM disk has yet been allocated.
+
+**Image identity:** local image ID `cbfaef1f04b4cb08137512116a64ed2005b58852bf04067b3f896342d5b3cb02`; reported repo digests include `docker.io/dockurr/windows@sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea` and `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`. The latter is the manifest digest previously used for the KVM validation. The local image configuration reports the same image ID as the validated image.
+
+**Resilience approach (planned):**
+- Keep the VM disk and all guest state in the host-backed `storage/` directory.
+- Keep the deployment definition and lifecycle commands in `config/`, independent of the container instance.
+- Pin the tested image digest for reproducible recreation; perform image upgrades deliberately, not by silently tracking `latest`.
+- Keep manual start/stop; do not add boot autostart or a host service.
+- Back up the guest while stopped or using a documented application/VM-consistent method; test restore before treating backups as reliable.
+- After SteamOS updates, verify Podman, KVM device access, project mount ownership, container recreation and guest boot. SteamOS update survival is a design goal, not a guarantee until recovery has been tested.
+
+This layout was created successfully. Deployment configuration, guest storage creation, backup validation and a full SteamOS-update recovery test remain pending.
+
+## 8. Journey log
 
 ### 2026-11-12 — KVM and selected container validated
 
@@ -185,6 +218,26 @@ These values must be checked against current host memory, disk capacity, Windows
 **Installation ISO discovery and verification:** the selected ISO is `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO` (4,335,187,968 bytes; approximately 4.1 GiB). Its SHA-256 is `3a65289ef20c85e6ea64778e360ef50acc88451cc864778b1df1eb55270545f9`. `file` identifies it as a bootable ISO 9660 filesystem labelled `26100.1_X64_EN-US`. `7z l` confirms `setup.exe`, `sources/boot.wim` and `sources/install.wim` are present. The filename mismatch in the first inspection command was only a typo in the command: it omitted `.1` from `26100.1.1`; the actual file was present. Do not conflate that command typo with the separate, expected UUP build-version difference.
 
 **UUP conversion conclusion:** the source selection directory is named `26200.9974_pro`, but the Linux-generated ISO contains the base Windows image build `26100.1`, not the selected updated build `26200.9974`. This is expected because the Linux/macOS UUP conversion scripts do not support integrating the selected update packages. The UUP set contains the base image and separate update packages; `AddUpdates=1` in `ConvertConfig.ini` does not override this platform limitation. Windows-based conversion is required to integrate the updates. The same limitation explains why the Linux-generated base ISO is unsuitable as a matching repair source for the Dell M4800's installed Windows 11 Pro build `26200.9818`, and why the earlier DISM repair attempt returned `0x800f0915`. This ISO remains useful as installation media for the Windows VM, but must not be described as an updated `26200.9974` ISO or as a matching repair source.
+
+### 2026-11-12 — Persistent project directory created and image configuration inspected
+
+**Image configuration (read-only):**
+- Image ID: `cbfaef1f04b4cb08137512116a64ed2005b58852bf04067b3f896342d5b3cb02`.
+- Repo digests reported: `docker.io/dockurr/windows@sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea` and `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`.
+- Entrypoint: `/usr/bin/tini -s /run/entry.sh`; working directory `/`; no configured image user.
+- Image defaults: `VERSION=11`, `CPU_CORES=2`, `RAM_SIZE=4G`, `DISK_SIZE=64G`.
+- Declared persistent volume: `/storage`.
+- Exposed container ports: `3389/tcp` and `8006/tcp`.
+- Image size: 707,889,576 bytes.
+- The inspected ID matches the image used in the earlier successful QEMU/KVM validation.
+
+**Persistent directory creation:** created `/home/deck/WindowsVM` and subdirectories `config/`, `storage/`, `shared/`, `backups/`, and `docs/`. All were verified as owned by `deck:deck` with mode `0700`. This is the first persistent filesystem change for the VM project. No container or guest was created by this step.
+
+**ISO check:** the existing installation ISO at `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO` is readable. It remains in place and was not copied or modified.
+
+**Storage:** `df -h /home` reported 939 GiB total, 433 GiB used, 507 GiB available, 47% used. This is point-in-time capacity evidence.
+
+**Resilience decision:** durable guest state will reside under `/home/deck/WindowsVM/storage`, outside the container writable layer and away from SteamOS-managed system paths. Deployment configuration will be stored separately under `config/`. The container will be treated as replaceable; image upgrades will be deliberate and digest-pinned. Manual lifecycle remains the default. Backup/restore and post-SteamOS-update recovery must be documented and tested before claiming resilience is proven.
 
 ### 2026-11-12 — Selected ISO verified; UUP version difference explained
 
@@ -227,7 +280,7 @@ This also explains why the base ISO is not a matching repair source for the Dell
 
 **Status:** host, rootless Podman device access and QEMU/KVM acceleration validated. Windows VM deployment and installation-media verification remain pending.
 
-## 8. Next steps
+## 9. Next steps
 
 The ISO path and checksum are now verified, and its bootable ISO structure and key setup files are confirmed. The expected Linux-conversion version difference is understood: this ISO contains the base `26100.1` image, not the selected `26200.9974` update level. Do not spend further time trying to make the Linux conversion output contain integrated updates. The purpose of the Windows VM is to run the Windows UUP conversion workflow that can integrate those update packages. The next media check, if needed for selecting the guest edition, is to inspect the `install.wim` image indexes and edition metadata; it is not to investigate the already-explained base/update version difference.
 
@@ -241,7 +294,7 @@ Then inspect the selected image's documented environment variables, volume layou
 6. Verify Windows setup, guest boot, networking, activation status and installed build.
 7. Tune memory, CPU and display/remote access based on observed performance.
 
-## 9. Change and evidence register
+## 10. Change and evidence register
 
 | Date | Item | Status | Notes |
 |---|---|---|---|
@@ -251,7 +304,11 @@ Then inspect the selected image's documented environment variables, volume layou
 | 2026-11-12 | QEMU/KVM acceleration inside selected image | VERIFIED | Minimal Q35 test VM started with `accel=kvm` |
 | 2026-11-12 | Architecture | SELECTED | Rootless Podman + `dockurr/windows`; no Distrobox required |
 | 2026-11-12 | Selected Windows ISO | VERIFIED | Actual path, 4,335,187,968-byte size, SHA-256, bootable ISO9660 label and setup/boot.wim/install.wim files verified. Base image is `26100.1`, not updated `26200.9974`; expected Linux UUP converter limitation is documented. |
-| 2026-11-12 | `windows-box` persistent deployment | PENDING | No persistent VM data directory/container created |
+| 2026-11-12 | Image configuration inspection | VERIFIED | Entrypoint, defaults, `/storage` volume, exposed ports, image ID and repo digests recorded |
+| 2026-11-12 | Persistent project directory | VERIFIED | `/home/deck/WindowsVM` and five subdirectories created; all mode 0700, owner deck:deck |
+| 2026-11-12 | ISO readability at deployment path | VERIFIED | Existing ISO readable; left in original `uup-box` location |
+| 2026-11-12 | Home filesystem capacity | REPORTED | 507 GiB available at time of check |
+| 2026-11-12 | `windows-box` container deployment | PENDING | Directory exists; container not created |
 | 2026-11-12 | Windows guest creation | PENDING | No VM disk or guest created |
 
 ---
