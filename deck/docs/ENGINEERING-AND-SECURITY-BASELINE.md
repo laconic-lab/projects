@@ -9,14 +9,14 @@ Shared engineering principles for the `laconic-lab/projects` repository.
 | Maintainer | [laconic-lab](https://github.com/laconic-lab) |
 | Last updated | 2026-11-06 |
 
-> **Purpose:** define the small set of rules that should remain consistent across the lab. Each project owns its architecture, implementation, operational procedures and evidence.
+> **Purpose:** provide shared safety requirements and practical engineering defaults for the lab. This is guidance for making sound decisions, not a universal architecture or a command to use a particular tool. Each project owns its architecture, implementation, operational procedures and evidence.
 
 ---
 
 ## Contents
 
 - [1. How this repository works](#1-how-this-repository-works)
-- [2. Non-negotiable working rules](#2-non-negotiable-working-rules)
+- [2. Shared safety requirements and engineering defaults](#2-shared-safety-requirements-and-engineering-defaults)
 - [3. Execution environments and trust boundaries](#3-execution-environments-and-trust-boundaries)
 - [4. Network and remote access](#4-network-and-remote-access)
 - [5. Credentials and sensitive information](#5-credentials-and-sensitive-information)
@@ -34,7 +34,7 @@ Shared engineering principles for the `laconic-lab/projects` repository.
 
 This repository is a collection of projects with different purposes and maturity levels: infrastructure services, local applications, development environments, security work and feasibility investigations.
 
-There is no single deployment pattern that fits all of them. A project may use the SteamOS host, Distrobox, rootless Podman, a combination of these, or another justified arrangement.
+There is no single deployment pattern that fits all projects. A project may use the SteamOS host directly, Distrobox, rootless Podman, a virtual machine, a remote system, a combination of these, or another justified arrangement. Select based on actual requirements—not on a preference being treated as a rule.
 
 ### Shared platform model
 
@@ -62,16 +62,19 @@ This is a conceptual overview, not a mandatory architecture. Project documentati
 
 ### Core principles
 
-- Keep the SteamOS host stable and minimally modified.
-- Prefer project-specific environments for application dependencies where practical.
+- Keep the SteamOS host stable; make host changes only when their benefits justify the maintenance and recovery cost.
+- Use project-specific environments when they provide a real benefit, not merely to satisfy a convention.
+- Consider host-native, containerized, virtualized and hybrid designs on equal technical terms.
 - Treat client workstations as clients unless a project explicitly assigns them another role.
 - Use the narrowest practical access path.
 - Keep project data, runtime, lifecycle and recovery requirements explicit.
 - Prefer simple, understandable controls over unnecessary complexity.
 
-## 2. Non-negotiable working rules
+## 2. Shared safety requirements and engineering defaults
 
-| Principle | Required behaviour |
+The safeguards around secrets, authorization, destructive actions and sensitive system changes are firm requirements. The broader engineering principles below are defaults to guide decisions; adapt them when the project's technical requirements justify another approach.
+
+| Principle | Expected approach |
 |---|---|
 | Diagnose first | Establish the actual state before recommending or applying a change. |
 | Least privilege | Use the minimum identity, permissions and capabilities required. |
@@ -84,7 +87,7 @@ This is a conceptual overview, not a mandatory architecture. Project documentati
 | Be evidence-based | Separate verified facts from documentation, reports, assumptions and proposals. |
 | Document reality | Describe what exists, not what an example or proposed design says should exist. |
 
-These principles describe the intended approach. They are not a declaration that every historical project is fully compliant or currently operational.
+These principles describe the normal approach, not a compliance checklist or proof that every historical project is fully compliant or currently operational. A justified alternative is acceptable when its trade-offs, boundaries and operational consequences are understood and documented.
 
 ## 3. Execution environments and trust boundaries
 
@@ -293,7 +296,7 @@ An assistant working in this repository should:
 
 ## 12. Exceptions and review
 
-Project-specific requirements take precedence over generic examples in this baseline when they are documented, justified and understood.
+Project-specific requirements and verified constraints take precedence over generic examples and defaults in this baseline. A project may choose a different architecture or procedure when the choice is technically justified, its security and operational trade-offs are understood, and the relevant documentation explains the decision. This does not waive the firm safeguards for secrets, authorization or destructive and sensitive changes.
 
 - Record exceptions in the relevant project's documentation, including scope and reason.
 - Do not silently weaken a security control.
