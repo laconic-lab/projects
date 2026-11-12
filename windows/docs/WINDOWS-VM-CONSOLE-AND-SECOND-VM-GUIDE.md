@@ -8,7 +8,7 @@
 
 This guide explains how to operate the browser console, where VM resources are configured, and how to create another independent Windows guest without reusing the first guest's disk or identity.
 
-The console is a display/input channel, not a complete VM management dashboard:
+The console is a display/input channel, not a complete VM management dashboard. The current architecture does not include a central web manager comparable to VMware Horizon. Podman CLI provides the inventory and lifecycle view, while each Windows guest has a separate noVNC endpoint:
 
 - noVNC displays the Windows guest screen and forwards keyboard/mouse input.
 - SteamOS and Podman own the container lifecycle and resource configuration.
@@ -36,6 +36,59 @@ Windows guest: windows-vm
 The selected viewer URL is **http://192.168.1.161:8006/**.
 
 **Current-state warning:** the supplied runtime inspection still showed 127.0.0.1:8006 as the listener and Podman publication. The LAN URL becomes reachable only after the host start script is changed to publish 192.168.1.161:8006:8006 and the existing container is recreated. That host-side change has not yet been applied or tested.
+
+## 1.1 How Podman, Dockur, QEMU/KVM and each Windows VM relate
+
+The important distinction is that **Dockur is the container image used as a VM runtime package; it is not a single shared hypervisor instance that hosts all guests inside one container**.
+
+For this deployment model, create one rootless Podman container from the Dockur image for each Windows guest. Each such container launches its own QEMU process and owns one Windows guest. All containers share the host's Podman engine and KVM device, and may use the same locally cached Dockur image, but each guest must have independent storage, configuration, container name and host console port.
+
+~~~text
+Steam Deck OLED / SteamOS host
+|
++-- AMD-V / SVM CPU virtualisation support
+|   |
+|   +-- Linux KVM kernel modules (kvm, kvm_amd)
+|       |
+|       +-- /dev/kvm
+|
++-- Rootless Podman (one user-level container engine)
+    |
+    +-- Dockur Windows image (shared image/template, pinned digest)
+    |   |
+    |   +-- Container: windows-box
+    |   |   |
+    |   |   +-- Dockur entrypoint / helper services
+    |   |   +-- QEMU process using KVM acceleration
+    |   |   +-- Virtual hardware: vCPU, RAM, disk, UEFI
+    |   |   +-- Windows guest: windows-vm
+    |   |   +-- Host bind mount:
+    |   |       /home/deck/WindowsVM/storage -> /storage
+    |   |   +-- noVNC viewer -> host TCP 8006
+    |   |
+    |   +-- Container: windows-box-2 (example, not created)
+    |       |
+    |       +-- Separate QEMU process using KVM acceleration
+    |       +-- Separate virtual hardware and Windows guest
+    |       +-- Separate host bind mount:
+    |       |   /home/deck/WindowsVM-2/storage -> /storage
+    |       +-- Separate noVNC viewer -> host TCP 8007
+    |
+    +-- Other unrelated Podman containers (Pi-hole, etc.)
+~~~
+
+The Dockur image is a reusable image artifact. A container is an instance created from that image. The QEMU process inside each container is the actual VM execution process. The Windows operating system is the guest. KVM is the host kernel's hardware-virtualisation acceleration interface; it is not another Windows VM and is not a management console.
+
+The diagram is a conceptual relationship diagram. The first container and its QEMU guest are the deployed instance. The second container is only an example documented for a future independent guest.
+
+### Virtual hardware notes
+
+- **vCPU and RAM:** assigned to each QEMU guest through its own container environment/configuration.
+- **Virtual disk:** stored in that guest's independent host-backed storage directory.
+- **UEFI:** provided by the guest firmware files and QEMU configuration in the Dockur storage/runtime model.
+- **TPM 2.0:** Windows 11 may require a virtual TPM. Do not assume a separate host TPM device or software TPM installation from this diagram; the precise virtual TPM implementation is image-version/configuration-specific and was not independently audited in the current guest.
+- **Networking:** the current guest uses Dockur's user-mode networking (passt observed in the container process list), rather than an independently bridged LAN adapter. The guest-reported address must not be mistaken for proof that each guest has a distinct LAN IP.
+- **noVNC:** each guest has its own viewer endpoint. Different containers must publish different host ports.
 
 ## 2. Apply the selected LAN address to the existing VM
 
@@ -373,6 +426,47 @@ Verify the unique container, restart policy no, host port 8007 mapped to contain
 
 ## 7. Lifecycle commands
 
+### Listing and checking all Windows VM containers
+
+There is no VMware Horizon-style central console in the current deployment. Podman is the host-side inventory and lifecycle manager; each Dockur container exposes its own noVNC viewer on its own published port.
+
+Use podman ps to see only running containers, or podman ps -a to include stopped/exited containers. The naming convention used in this project is windows-box, windows-box-2, and so on.
+
+~~~bash
+echo "===== ALL WINDOWS VM CONTAINERS ====="
+podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' \
+  | { head -n 1; grep -E '^windows-box(-[0-9]+)?[[:space:]]' || true; }
+
+echo
+echo "===== RUNNING WINDOWS VM CONTAINERS ====="
+podman ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
+  | { head -n 1; grep -E '^windows-box(-[0-9]+)?[[:space:]]' || true; }
+~~~
+
+For a specific VM:
+
+~~~bash
+podman inspect windows-box --format 'Name={{.Name}} State={{.State.Status}}'
+podman port windows-box
+~~~
+
+Interpretation:
+
+- running: the container is running; verify QEMU is active if diagnosing the guest.
+- exited: the container exists but is stopped.
+- created: the container exists but has not started successfully yet.
+- No matching container: it has not been created or has been removed.
+
+To check QEMU inside a running instance:
+
+~~~bash
+podman top windows-box
+~~~
+
+Replace the name with the desired instance. The per-VM noVNC URL is the host IP and port assigned to that container (currently intended to be 192.168.1.161:8006 for the first VM and 192.168.1.161:8007 for the second example).
+
+
+
 Existing VM:
 
 ~~~bash
@@ -391,7 +485,119 @@ podman ps -a --filter name='^windows-box-2$'
 
 Neither container is configured for boot autostart.
 
-## 8. Security and operational notes
+## 8. Cleanly remove a Windows VM
+
+There are two different operations. Choose deliberately:
+
+1. **Remove the Podman container but keep the Windows guest data.** This is useful for replacing a container wrapper while retaining the installed Windows system.
+2. **Permanently remove the VM and its project data.** This deletes the Windows installation, virtual disk, firmware state, environment file and shared-folder contents. It is irreversible unless a separate backup exists.
+
+Do not confuse container removal with guest removal. In this project, /storage is a host bind mount. Removing the container does not remove the host directory or its contents. Podman's documentation distinguishes containers from bind-mounted host data:
+https://docs.podman.io/en/stable/markdown/podman-run.1.html
+https://docs.podman.io/en/latest/markdown/podman-rm.1.html
+
+### 8.1 Inventory and confirm the exact VM
+
+Run as deck, without sudo:
+
+~~~bash
+podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+podman inspect windows-box --format '{{.Name}} state={{.State.Status}}'
+podman inspect windows-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+~~~
+
+For a second guest, substitute its exact container name, such as windows-box-2. Confirm the host project directory from the /storage mount before proceeding. Do not infer the data path from a container name alone.
+
+### 8.2 Remove only the container; preserve Windows data
+
+This leaves the project directory and guest disk intact. It removes the container object, not the Dockur image and not the host bind-mounted files.
+
+For the current VM:
+
+~~~bash
+set -euo pipefail
+NAME="windows-box"
+
+podman container exists "$NAME" || {
+    echo "Container $NAME does not exist."
+    exit 1
+}
+
+STATE="$(podman inspect --format '{{.State.Status}}' "$NAME")"
+if [[ "$STATE" == "running" ]]; then
+    podman stop --time 120 "$NAME"
+fi
+
+podman rm "$NAME"
+
+if podman container exists "$NAME"; then
+    echo "ERROR: container still exists; inspect before continuing." >&2
+    exit 1
+fi
+
+test -d /home/deck/WindowsVM/storage
+echo "Container removed; persistent Windows storage retained."
+~~~
+
+For another guest, change both the container name and the verified project path. Do not use podman rm -f as the routine path; if graceful stop or removal fails, inspect the state and logs before deciding how to proceed.
+
+### 8.3 Permanently erase the VM and its project directory
+
+**DESTRUCTIVE:** this removes the Windows guest and its persistent files. The current project has no verified backup; do not use this procedure unless you intentionally accept losing the complete guest installation and its data.
+
+First remove the container using Section 8.2. Then verify the exact project directory. The example below is intentionally tied to the current VM path and asks for an explicit confirmation phrase:
+
+~~~bash
+set -euo pipefail
+
+NAME="windows-box"
+PROJECT="/home/deck/WindowsVM"
+EXPECTED="/home/deck/WindowsVM"
+
+# Refuse to proceed if the container still exists.
+if podman container exists "$NAME"; then
+    echo "ERROR: remove container $NAME first." >&2
+    exit 1
+fi
+
+# Refuse unexpected paths and require the expected storage directory.
+[[ "$PROJECT" == "$EXPECTED" ]] || {
+    echo "ERROR: project path mismatch." >&2
+    exit 1
+}
+[[ -d "$PROJECT/storage" ]] || {
+    echo "ERROR: expected storage directory not found." >&2
+    exit 1
+}
+
+echo "This will permanently delete:"
+printf '  %s\n' "$PROJECT"
+read -r -p 'Type DELETE-WINDOWS-VM to continue: ' CONFIRM
+[[ "$CONFIRM" == "DELETE-WINDOWS-VM" ]] || {
+    echo "Cancelled."
+    exit 1
+}
+
+rm -r --one-file-system -- "$PROJECT"
+echo "Project directory removed."
+~~~
+
+For a second VM, update NAME, PROJECT and EXPECTED to that VM's independently verified values before running. Never copy this command unchanged for an arbitrary path.
+
+### 8.4 What is not removed automatically
+
+- The shared Dockur image remains available for other Windows VM containers. Do not remove it while another guest uses it.
+- The installation ISO is stored outside the project at /home/deck/uup-box/...; this procedure does not delete it.
+- Other Podman containers and projects are unaffected.
+- No global prune command is required. Avoid podman system prune, podman volume prune, or broad podman rm -a for removing one guest.
+
+After removal, list remaining containers:
+
+~~~bash
+podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+~~~
+
+## 9. Security and operational notes
 
 - noVNC is an administrative console. Anyone able to reach an unprotected viewer may be able to interact with the Windows desktop.
 - The user accepts LAN reachability. The current public firewalld zone already has broad TCP/UDP allowances for ports 1024-65535; this guide does not claim access is restricted to the single PC.
@@ -403,10 +609,12 @@ Neither container is configured for boot autostart.
 - Never remove a storage directory as part of routine container recreation.
 - No backup or snapshot is included. Backup/restore remains deferred until the user declares the VM fully configured.
 
-## 9. References
+## 10. References
 
 - Dockur environment variables: https://github.com/dockur/windows/blob/master/docs/environment.md
 - Dockur project: https://github.com/dockur/windows
+- Podman run and bind mounts: https://docs.podman.io/en/stable/markdown/podman-run.1.html
+- Podman container removal: https://docs.podman.io/en/latest/markdown/podman-rm.1.html
 - [Project installation and evidence log](./WINDOWS-VM-INSTALLATION-GUIDE.md)
 - [Project README](../README.md)
 
