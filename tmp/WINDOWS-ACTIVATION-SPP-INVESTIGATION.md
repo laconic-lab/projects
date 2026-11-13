@@ -1816,3 +1816,13 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - The updated 9971 WCP component is present and signed; this is a candidate source for the DCM decoder's basis/resource material, not proof that a suitable decoder API is available or that the manifest can be decoded directly from this DLL.
 - No binary was loaded or executed; no manifest decoding, downloads, installation, servicing/component changes, activation attempts, or licensing-store changes.
 - Next: inspect the PE resource directory of the 9971 WCP copy, especially resource ID 614 cited by community DCM decoder research, using a bounded read-only PE parser or verified tooling. Extract only to R: if the resource exists; do not modify WinSxS or load undocumented DLL APIs.
+
+
+## TEST-80 — Initial WCP PE resource traversal (inconclusive)
+
+- Read-only parser run performed 2026-11-13 19:06:58–19:07:01 +01 against the WinSxS WCP 10.0.26100.9971 file.
+- PE header validation succeeded: signature `0x00004550`, machine `0x8664` (AMD64), 9 sections, PE32+ optional header magic `0x020B`.
+- Resource data directory reported RVA `0x00457000`, size 10,192 bytes; parser mapped its base to file offset 4,526,080.
+- The custom traversal reported zero entries visited and no resource ID 614 match. This result is inconclusive: the parser did not report/validate the root directory's named/ID counts or raw directory bytes, so zero traversal cannot establish that resource 614 is absent. The recursive scriptblock/variable-scope implementation also needs validation.
+- No DLL was loaded or executed; no resource extracted; no file or component changed; no external utility downloaded; no manifest decoded; no activation or licensing-store operation.
+- Next: perform a simpler independent bounds-checked read of the resource root header and first-level entries, validate the RVA-to-file-offset mapping against section headers, then traverse only if those structures are coherent. Do not infer absence from this test.
