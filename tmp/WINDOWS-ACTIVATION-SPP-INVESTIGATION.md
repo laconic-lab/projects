@@ -1406,3 +1406,12 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - New opportunity: the local ETL summary confirms kernel FileIO and Registry operation families, including FileIO OperationEnd events and process/thread context, with zero reported lost events. The next diagnostic objective is to extract only the relevant interval/process activity and identify any failed file or registry operation associated with the SPP broker/activation process. The summary is not itself proof of an access-denied operation.
 - The next phase may include controlled state-changing experiments, but each must be tied to a specific finding, narrowly scoped, reversible where possible, and followed by verification and canonical documentation. Do not repeat `/ato` merely to generate another failure; the single approved TEST-36 attempt has already been consumed. Prefer a naturally occurring activation event for correlation unless a new activation attempt is separately justified and authorized.
 - Candidate sequence: (1) offline ETL event-level extraction and correlation; (2) select one specific suspected resource/API only if the trace identifies it; (3) apply one minimal reversible intervention with a saved before-state; (4) observe service/broker behavior and natural activation result; (5) verify whether the notification state and Event 8198 outcome changed. If ETL cannot be parsed adequately with built-in tools, reassess the least invasive local analysis option before installing additional tooling.
+
+
+## TEST-67 — Initial direct ETL read attempt (incomplete)
+
+- User attempted a bounded PowerShell read of `R:\activation-spp-066S.etl` using `Get-WinEvent -Path ... -MaxEvents 8`.
+- Windows PowerShell rejected the request because ETL/EVT files require forward chronological reading and the `-Oldest` parameter.
+- No event records were read; no ETL modification, export, or Windows configuration change occurred.
+- This is a command-parameter correction, not evidence of ETL corruption or unreadability.
+- Retry as TEST-67R with `-Oldest -MaxEvents 8`.
