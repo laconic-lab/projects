@@ -437,3 +437,37 @@ Preserve the user's central concern: Windows was legitimately activated before t
 - Continue read-only inspection of the specific licensing/Software Protection registry and file objects referenced by SPP, and correct the TEST-40 formatting capture in a narrowly scoped follow-up if those details are needed.
 - Keep the unresolved question: were TEST-36 and TEST-37 run in the same PowerShell window?
 - No further `/ato` attempt is authorized.
+
+
+### TEST-41 — SPP licensing store and registry ACL inventory
+
+**Timestamp:** 2026-11-13 14:44:54 +01:00  
+**Raw log:** `R:\results.activation-spp-041.txt`  
+**Scope:** Read-only ACL inventory. No file contents or licensing values were read; no changes were made.
+
+**Filesystem ACL findings**
+- `C:\Windows\System32\spp`: Network Service has explicit Full Control with container/object inheritance.
+- `C:\Windows\System32\spp\store`: Network Service has explicit Full Control and an inherited Full Control ACE.
+- `C:\Windows\System32\spp\store\2.0`: Network Service has explicit Full Control; SYSTEM and Administrators also have Full Control. The active `NT SERVICE\sppsvc` service SID has explicit Full Control with inheritance to children.
+- `tokens.dat` (15,874,066 bytes): inherited Full Control for Network Service, SYSTEM, Administrators, and the sppsvc service SID; BUILTIN Users have Read/Synchronize.
+- `data.dat` (29,920 bytes): owner is Network Service; inherited Full Control for Network Service, SYSTEM, Administrators, and sppsvc; BUILTIN Users have Read/Synchronize.
+- Network Service profile root and its `AppData\Roaming\Microsoft` ancestors each grant Network Service explicit Full Control.
+- `C:\Windows\ServiceProfiles\NetworkService\AppData\Roaming\Microsoft\SoftwareProtectionPlatform` was not present. This alone is not evidence of a fault; the primary SPP store was found under System32.
+
+**Registry ACL findings**
+- `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform` was opened for read-permissions and its security descriptor was retrieved.
+- Owner is TrustedInstaller. Descriptor includes SYSTEM and Administrators Full Control, BUILTIN Users read access, and an ACE for the active sppsvc service SID with mask `DC`. Do not infer broader rights from the abbreviated mask; no changes were made.
+- The attempted `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SL` read returned `KEY NOT PRESENT OR NOT OPENABLE`. The script deliberately collapsed null-open and inaccessible conditions, so it does not establish that the key is absent. A later test would need to distinguish those outcomes using a separate read-only existence/open diagnostic.
+
+**Interpretation**
+- The primary SPP filesystem store and both inspected licensing data files grant Network Service Full Control. The sppsvc service SID is also explicitly granted Full Control on the 2.0 directory and the two data files.
+- TEST-41 therefore does not support a simple missing-Network-Service-ACL explanation for the activation failure.
+- No ACL repairs, ownership changes, registry edits, or licensing-store resets are justified by these results.
+- The missing per-profile SoftwareProtectionPlatform directory is not treated as an error without evidence that this build/configuration requires it.
+- The SL key result remains inconclusive because the test did not distinguish absence from access failure.
+
+**Next diagnostic direction**
+- Move away from speculative ACL repair. If continuing the authorization investigation, identify the exact SPP activation caller and correlate its security context with the recorded 8198 failures; use read-only event/process/service evidence.
+- The TEST-40 CIM/signature formatting capture issue remains a data-quality limitation, not evidence of a failure.
+- Keep unresolved whether TEST-36 and TEST-37 were run in the same PowerShell window.
+- No further `/ato` attempt is authorized.
