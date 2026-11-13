@@ -1377,3 +1377,12 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Built-in `C:\\Windows\\System32\\tracerpt.exe` is present (471,040 bytes; last-write 2026-10-30 04:13:03).
 - No ETL parsing or export was performed in this test; the 710,934,528-byte ETL remains unchanged on R:.
 - Next step: inspect tracerpt command-line help, then use its summary-only mode to inventory the trace before considering any event export. No additional software installation is currently justified.
+
+
+## TEST-66V — TraceRpt command-line capability inspection
+
+- Built-in TraceRpt version: 10.0.26100.9818.
+- Help confirms ETL input syntax and supports `-summary [filename]` for a text summary report; event dump (`-o`) and workload report (`-report`) are separate options.
+- Help also supports XML/HTML reports and XML/CSV/EVTX dumps, but none were generated in this test.
+- No ETL processing was performed; source ETL remains unchanged.
+- Next step: generate only a summary text report on R:, without `-o` or `-report`, to avoid exporting the full event stream.
