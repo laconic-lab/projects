@@ -1,7 +1,7 @@
 # Windows Activation / Software Protection Platform (SPP) Investigation — Dell Precision M4800
 
 **Status:** Open — diagnosis in progress; no successful reactivation  
-**Last updated:** 2026-11-13 (TEST-41 added; diagnostic sequence authorization clarified)  
+**Last updated:** 2026-11-13 (TEST-81 added; DCM/PE decoder branch paused pending relevance review)  
 **System:** Dell Precision M4800, Windows 11 Pro 25H2, build 26200.9974  
 **Repository location:** `tmp/WINDOWS-ACTIVATION-SPP-INVESTIGATION.md`
 
@@ -1826,3 +1826,21 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - The custom traversal reported zero entries visited and no resource ID 614 match. This result is inconclusive: the parser did not report/validate the root directory's named/ID counts or raw directory bytes, so zero traversal cannot establish that resource 614 is absent. The recursive scriptblock/variable-scope implementation also needs validation.
 - No DLL was loaded or executed; no resource extracted; no file or component changed; no external utility downloaded; no manifest decoded; no activation or licensing-store operation.
 - Next: perform a simpler independent bounds-checked read of the resource root header and first-level entries, validate the RVA-to-file-offset mapping against section headers, then traverse only if those structures are coherent. Do not infer absence from this test.
+
+
+## TEST-81 — WCP PE resource-root validation
+
+- Read-only parser run performed 2026-11-13 19:07:47–19:07:51 +01 against the WinSxS WCP 10.0.26100.9971 component.
+- The resource data directory mapping was independently re-read and bounds-checked:
+  - Resource RVA: `0x00457000`.
+  - Resource directory size: 10,192 bytes.
+  - Mapped file offset: 4,526,080 in a 4,582,752-byte file.
+  - The full declared resource range fits within the file.
+- Root directory header is structurally readable: characteristics/timestamp zero, version 0.0, zero named entries and two numeric ID entries.
+- First-level resource entries:
+  - ID 16 → subdirectory offset `0x20`.
+  - ID 614 → subdirectory offset `0x38`.
+- This confirms resource ID 614 exists at the WCP resource-root level and corrects TEST-80's inconclusive zero-entry traversal. Its nested structure, payload, and suitability as DCM/PA30 decoder basis data have not yet been established.
+- No resource was extracted; no DLL was loaded or executed; no source file, component, registry, service, task, ACL, activation state, or licensing-store content was changed.
+- **Investigation decision:** pause the custom PE/resource-decoding branch here. Although the presence of resource 614 is a concrete technical finding, decoding it is not yet shown to advance the actual activation diagnosis or validate the proposed tokens.dat repair. Do not automatically continue with more parser tests. Revisit only if a specific decision depends on the resource's contents and a trusted decoder path is established.
+- Return focus to the canonical staged plan: operation-level evidence from a naturally occurring SPP activation attempt, and a deliberate decision on the conditional tokens.dat-only repair. Do not repeat `/ato`; do not modify or rebuild the licensing store without separate explicit authorization and a documented recovery plan.
