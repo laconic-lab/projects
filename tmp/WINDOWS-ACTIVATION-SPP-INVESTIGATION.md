@@ -1415,3 +1415,12 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - No event records were read; no ETL modification, export, or Windows configuration change occurred.
 - This is a command-parameter correction, not evidence of ETL corruption or unreadability.
 - Retry as TEST-67R with `-Oldest -MaxEvents 8`.
+
+
+## TEST-67R — Direct ETL read in chronological order
+
+- `Get-WinEvent -Path R:\activation-spp-066S.etl -Oldest -MaxEvents 8` succeeded and returned eight records.
+- All eight records were timestamped 2026-11-13 16:20:51 local. `ProviderName` was blank, `Id` was 0, `LevelDisplayName` was Information, and `Message` was blank for all eight.
+- Three records exposed `ProcessId=10016`, `ThreadId=3268`; five exposed process/thread ID zero.
+- The ETL is readable by this cmdlet, but these initial records are not usefully decoded by the displayed fields. This does not establish that the kernel FileIO/Registry payloads are inaccessible or absent.
+- Next inspect the full metadata and XML of one record before choosing an extraction route. No Windows state or ETL content was changed.
