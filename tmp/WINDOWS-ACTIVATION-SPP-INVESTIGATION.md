@@ -1221,3 +1221,19 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - A separately entered `else` block produced a PowerShell command-not-found error after the preceding `if` block had already completed. The drive-capacity and path checks themselves returned the values above; the error does not invalidate them.
 - WPR profile availability is now established, but profile event detail, capture size, process attribution, and the exact stop/analysis workflow remain to be validated. No trace has been recorded.
 - No ETW session, service, DCOM permission, ACL, audit policy, Defender setting, licensing data or activation state changed.
+
+
+## TEST-63 — Exported WPR FileIO + Registry profile inspection
+
+- Timestamp: 2026-11-13 16:13:25–16:13:27 +01:00.
+- Raw local log: `R:\\results.activation-spp-063.txt`.
+- Exported WPR profile file: `R:\\activation-spp-063-profiles.wprp` (11,386 bytes; XML parsed successfully). WPR command exit code 0.
+- Export command: `wpr -exportprofile FileIO+Registry R:\\activation-spp-063-profiles.wprp -filemode`.
+- Exported profile ID: `FileIORegistry.Verbose.File`; profile name `FileIORegistry`; LoggingMode File; DetailLevel Verbose.
+- Profile defines one system collector and one event collector, each with BufferSize 1024 and Buffers 40.
+- SystemProvider explicitly enables keywords `FileIO`, `FileIOInit`, `Registry`, and `ProcessThread`, among other system keywords. This is direct evidence that the combined profile requests the kernel file, registry and process/thread event families needed for process attribution.
+- SystemProvider requests stack capture for file create, cleanup, close, read, write, set-information, delete, rename, directory enumeration, flush, query-information, FSCTL, operation-end and directory-notify events; it also requests registry create/open/delete/query/set/enumerate/flush/security and related events.
+- The exported profile includes additional EventProvider definitions, some with explicit keywords and levels and some without. The initial PowerShell display extracted the provider attributes in a confusing order (the XML's Name attributes are GUIDs and Id attributes are WPR aliases); no provider identity should be inferred from that display alone. The underlying XML was successfully parsed and the SystemProvider keywords/stacks above are explicit in the raw exported XML.
+- The profile is verbose and system-wide, not restricted to sppsvc, SppExtComObj or slui. It can collect unrelated file/registry activity and potentially sensitive paths/data. A future recording must therefore be short, monitored, saved only to the user's R: diagnostic RAM drive, and stopped immediately after a relevant SPP automatic-activation event or at a strict time/size boundary.
+- The displayed Get-FileHash section contained no hash output; no hash value is recorded for this profile artifact.
+- No ETW recording was started. No activation attempt, service or system configuration change, audit policy change, DCOM permission change, ACL change, Defender change or licensing-store change occurred.
