@@ -1758,3 +1758,19 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - `dism /Online /Get-Packages /Format:Table | findstr /i "spp security clientext"` returned no matching lines. This filtered output alone is inconclusive (e.g. package display names/locale/output formatting may not contain those tokens); no package-state conclusion can be drawn.
 - No files, manifests, packages, registry, services, tasks, ACLs, activation state or licensing-store contents were modified. No activation attempt or servicing repair.
 - Next: inspect exact full paths and XML content of the amd64 and WOW64 `10.0.26100.9818` manifests, including assembly identity, file declarations, and any package/component metadata. Separately obtain unfiltered DISM package inventory and targeted exact package identities/status; do not infer ownership from truncated filename lists.
+
+
+## TEST-76 — DCM-compressed manifest read and Professional SPP package metadata
+
+- Read-only test performed 2026-11-13 19:02:50–19:02:53 +01.
+- Exact 9818 manifest files were found:
+  - amd64 manifest SHA-256 `2A408AD968F5D72939199BE1EEC018529B6F4B74668A54EDCADC8E42F312FA44`, 761 bytes.
+  - WOW64 manifest SHA-256 `E34A5B8A2A6939105791AE3F47330378B975884AF909581DC90661C070D9FD95`, 653 bytes.
+- Attempting `Get-Content -Raw` followed by XML cast failed because the manifest starts with binary header bytes `DCM\\x01`, not plain XML. This is expected for DCM v1 delta-compressed CBS manifests, not evidence of a malformed/corrupt manifest. Assembly identity and file declaration were not extracted; loop was interrupted at the first manifest parse error.
+- Research identifies DCM v1 manifests as PA30 delta-compressed data requiring a source/basis manifest and Windows component-servicing decompression support. SXSEXP is a community utility specifically supporting DCM v1 and documents usage as `SXSEXP SourceFile DestinationFile`; its README also notes updated Windows 11 UpdateCompression.dll may be needed in place of older MsDelta.dll. See https://github.com/hfiref0x/SXSEXP and https://github.com/martinosani/Win-CBS-Manifest-Decoder. These are third-party tools/references, not Microsoft-supported repair utilities; no tool was downloaded or executed.
+- Professional SPP Components package files present:
+  - `Microsoft-Windows-Professional-SPP-Components-Package~31bf3856ad364e35~amd64~~10.0.26100.1591.mum/.cat`
+  - `Microsoft-Windows-Professional-SPP-Components-Package~31bf3856ad364e35~amd64~~10.0.26100.8972.mum/.cat`
+- The two .mum files are readable XML and identify the package as a Feature Pack integrating multiple SPP SKU/license packages (including Professional License). Their displayed first 50 lines do not declare `security-spp-clientext` or `sppcext.dll`; they are not established as owners of the client-extension component. Package installation state was not established.
+- No file, package, manifest, component, registry, task, service, ACL, activation or licensing-store modification; no activation attempt or servicing repair.
+- Next: check whether a trusted/local `SXSEXP` or compatible decoder already exists and inspect available Windows servicing decompression libraries without downloading or modifying anything. If absent, assess source/provenance and least-invasive acquisition separately before use. Decode copies to `R:\\`, never overwrite WinSxS files. Then parse manifest XML and follow explicit component/file ownership relationships.
