@@ -1803,3 +1803,16 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - No third-party decoder found or installed. No DLL loaded or executed, no manifest decoded, no servicing or component changes, no activation attempt.
 - Evidence establishes that both Microsoft-signed Windows delta/compression libraries are present; it does not establish that either exposes a usable DCM/PA30 manifest decoder API. FileVersion 5.00 is product metadata, not a Windows build number.
 - Next: inspect the installed Windows Kits bin tree for PE inspection tools and locate `wcp.dll` / its servicing component copies without broad filesystem crawling. Then determine whether a documented Windows servicing interface supports DCM v1 before considering an external decoder.
+
+
+## TEST-79 — Servicing-stack WCP and PE inspection-tool location
+
+- Read-only inventory performed 2026-11-13 19:05:58–19:05:59 +01.
+- Seven amd64 servicing-stack component directories were enumerated. `wcp.dll` exists in two:
+  - Base component `10.0.26100.1`: 4,461,984 bytes, FileVersion 10.0.26100.1, SHA-256 `11B5F61471B82AB8BD7B25EF638E560BD315C41C781343FDD132CCE54C08AD39`, Authenticode Valid, Microsoft Windows signer.
+  - Updated component `10.0.26100.9971`: 4,582,752 bytes, FileVersion 10.0.26100.9971, SHA-256 `AFAEB01EF2EC16A85438BEA7CD2A25F8B355B9D6F07BF9B9DDD58FE9A388BAEB`, Authenticode Valid, Microsoft Windows signer.
+- No `wcp.dll` found at System32 or SysWOW64 paths; WinSxS copies are the located candidates.
+- No Windows Kits bin subdirectories or PE inspection executables (`dumpbin.exe`, `llvm-readobj.exe`, `llvm-objdump.exe`, `link.exe`) were returned by the bounded search. SDK/ADK tool availability remains limited.
+- The updated 9971 WCP component is present and signed; this is a candidate source for the DCM decoder's basis/resource material, not proof that a suitable decoder API is available or that the manifest can be decoded directly from this DLL.
+- No binary was loaded or executed; no manifest decoding, downloads, installation, servicing/component changes, activation attempts, or licensing-store changes.
+- Next: inspect the PE resource directory of the 9971 WCP copy, especially resource ID 614 cited by community DCM decoder research, using a bounded read-only PE parser or verified tooling. Extract only to R: if the resource exists; do not modify WinSxS or load undocumented DLL APIs.
