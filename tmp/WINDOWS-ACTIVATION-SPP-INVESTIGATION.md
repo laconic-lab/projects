@@ -1,7 +1,7 @@
 # Windows Activation / Software Protection Platform (SPP) Investigation — Dell Precision M4800
 
 **Status:** Open — diagnosis in progress; no successful reactivation  
-**Last updated:** 2026-11-13  
+**Last updated:** 2026-11-13 (TEST-40 added)  
 **System:** Dell Precision M4800, Windows 11 Pro 25H2, build 26200.9974  
 **Repository location:** `tmp/WINDOWS-ACTIVATION-SPP-INVESTIGATION.md`
 
@@ -380,3 +380,60 @@ Do not restart completed branches, repeat the original key retry, repeat TEST-35
 First obtain the pending answer about whether TEST-36 and TEST-37 used the same PowerShell window. Then continue with targeted read-only SPP authorization diagnostics.
 
 Preserve the user's central concern: Windows was legitimately activated before the update, and the evidence so far does not prove that the digital entitlement has disappeared.
+
+
+### TEST-40 — SPP service identity, configuration, descriptor, and executable ACL
+
+**Timestamp:** 2026-11-13 14:43:45 +01:00  
+**Raw log:** `R:\results.activation-spp-040.txt`  
+**Scope:** Read-only inventory. No service, registry, ACL, executable, licensing, or activation changes were made.
+
+**Current shell token**
+- `whoami /all` showed the user in the local Administrators group and High Mandatory Level SID `S-1-16-12288`.
+- This establishes that the TEST-40 shell was high-integrity/elevated. It does not establish whether TEST-36 used the same PowerShell window.
+
+**SPP service configuration**
+- `sppsvc`: `WIN32_OWN_PROCESS`, Automatic (Delayed Start), normal error control.
+- Binary: `C:\Windows\System32\sppsvc.exe`.
+- Dependency: `RpcSs`.
+- Service account: `NT AUTHORITY\NetworkService`.
+- Service was STOPPED at the time of inspection; Win32 exit code 0, service exit code 0, PID 0. This single observation does not establish a fault; SPP may be trigger/on-demand activated.
+
+**Service security and identity**
+- `sc.exe sdshow sppsvc` returned:
+  `D:(A;;CCDCLCSWRPWPDTLOCRRC;;;SY)(A;;CCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPLOCRRC;;;IU)(A;;LCRPLO;;;AC)(A;;CCLCSWRPLOCRRC;;;SU)(A;;LCRP;;;AU)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)`
+- `sc.exe qsidtype sppsvc`: SERVICE_SID_TYPE UNRESTRICTED.
+- `sc.exe showsid sppsvc`: service SID active, `S-1-5-80-123231216-2592883651-3715271367-3753151631-4175906628`.
+- Required privileges: `SeAuditPrivilege`, `SeChangeNotifyPrivilege`, `SeCreateGlobalPrivilege`, `SeImpersonatePrivilege`.
+- No service descriptor or privilege changes were made.
+
+**Executable**
+- `C:\Windows\System32\sppsvc.exe` exists.
+- ACL:
+  - `NT SERVICE\TrustedInstaller:(F)`
+  - `BUILTIN\Administrateurs:(RX)`
+  - `AUTORITE NT\Système:(RX)`
+  - `BUILTIN\Utilisateurs:(RX)`
+  - All Application Packages and All Restricted Application Packages: `(RX)`
+- `icacls` reported one file successfully processed and zero failures.
+- The signature and CIM formatting sections were piped through `Format-List` inside a captured script block; the output was emitted as PowerShell formatting records, so their detailed property values did not survive in the saved/pasted report. Do not infer signature status or CIM details from this output. Correct the capture method in a later focused test if needed.
+
+**Service registry configuration**
+- `HKLM\SYSTEM\CurrentControlSet\Services\sppsvc` query succeeded.
+- `ObjectName=NT AUTHORITY\NetworkService`, `Start=2`, `DelayedAutoStart=1`, `ServiceSidType=1`, `LaunchProtected=1`.
+- `RequiredPrivileges` matches the four privileges reported by `sc.exe qprivs`.
+- `FailureActions` and two TriggerInfo entries are present.
+- The service Security binary value was read but not decoded or modified.
+
+**Interpretation**
+- TEST-40 confirms SPP is configured to run as Network Service, with an active unrestricted service SID and the listed required privileges.
+- The service descriptor was readable and no obvious missing Network Service service-control ACE was identified from this inspection. The descriptor alone does not establish whether the service can access every licensing object it needs.
+- The executable ACL grants read/execute to Administrators, SYSTEM, Users, and application package groups; no obvious executable ACL denial is demonstrated.
+- The stopped service state at one instant is not evidence of failure on its own.
+- `LaunchProtected=1` is recorded as an important configuration value; preserve it. Do not attempt to disable service protection or alter service configuration.
+- No evidence from TEST-40 justifies changing the service descriptor, service account, startup type, registry ACLs, executable ACLs, or Defender.
+
+**Next diagnostic direction**
+- Continue read-only inspection of the specific licensing/Software Protection registry and file objects referenced by SPP, and correct the TEST-40 formatting capture in a narrowly scoped follow-up if those details are needed.
+- Keep the unresolved question: were TEST-36 and TEST-37 run in the same PowerShell window?
+- No further `/ato` attempt is authorized.
