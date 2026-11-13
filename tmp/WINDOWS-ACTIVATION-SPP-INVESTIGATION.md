@@ -878,3 +878,26 @@ The user explicitly requested that the investigation proceed without asking for 
 **Next diagnostic direction**
 - Before further inspection, establish the documented meaning of these Sysmon version 10.0.26100.8457 Parameters values and determine whether the active configuration can be obtained through a supported read-only interface.
 - No registry edits, Sysmon reconfiguration/restart, driver changes or /ato retry.
+
+
+### TEST-51R — Microsoft documentation interpretation of Sysmon Parameters and missing Event 3
+
+**Research date:** 2026-11-13  
+**Sources:** Microsoft Learn Sysmon usage/configuration documentation.
+
+- Microsoft documents `CheckRevocation` and `DnsLookup` as Boolean global configuration entries. Their documented defaults are True. `DnsLookup` controls reverse-DNS enrichment for network events; it does not enable NetworkConnect event generation.
+- The one-byte registry values for both entries have SHA-256 `4BF5122F344554C53BDE2EBB8CD2B7E3D1600AD631C385A5D7CCE23C7785459A`, which is consistent with a single byte `0x01`; the original TEST-51 deliberately did not decode it. Do not use these values as evidence that NetworkConnect is enabled.
+- Microsoft documents the default Sysmon installation command `sysmon -accepteula -i` as installing with default settings and explicitly describes that default as having no network monitoring. The Parameters `ConfigFile` string (`"C:\\WINDOWS\\system32\\sysmon.exe" -i`) and empty `ConfigHash` are consistent with a default/no-XML-config installation, but the exact internal meaning of these registry values is not independently documented by the sources consulted.
+- This provides a strong explanation for TEST-49's absence of Event 3 NetworkConnect records: network monitoring may simply not have been configured. It is not evidence that the activation processes made no network connections.
+- The configuration dump command's zero exit code with no captured text remains unexplained; the documented command should dump the active configuration. Do not treat it as a successful configuration capture.
+- No Sysmon configuration change is justified for this historical investigation: enabling Event 3 now cannot recover past network connections, and modifying Sysmon would add unrelated system state changes.
+
+**Sources**
+- Microsoft Learn, Sysmon command reference: `-c` dumps current configuration when no configuration file is supplied; default install and command examples. https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/sysmon
+- Microsoft Learn, Sysmon usage: default install example and note that default installation has no network monitoring; global `CheckRevocation` and `DnsLookup` configuration entries. https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon
+- Microsoft Learn, Sysmon configuration files: global entries do not select event types; event types must be enabled/filtered under EventFiltering. https://learn.microsoft.com/en-us/windows/security/operating-system-security/sysmon/sysmon-configuration-files
+
+**Disposition**
+- Sysmon process-creation telemetry remains valid for the TEST-48/49 process attribution.
+- Missing Event 3 is not a gap that should be filled by changing Sysmon during this incident review.
+- Return focus to the SPP activation operation and existing Windows telemetry. No /ato retry.
