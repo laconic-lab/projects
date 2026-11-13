@@ -782,3 +782,38 @@ The user explicitly requested that the investigation proceed without asking for 
 - Inspect the existing Sysmon configuration to determine whether Event 3 network-connection logging is enabled and whether exclusions apply to `slui.exe` or `SppExtComObj.Exe`. This is read-only; do not alter the Sysmon configuration merely to obtain network events.
 - Then prioritize targeted evidence for the actual Access Denied operation in the SPP activation path (for example, existing relevant SPP/COM/RPC/operational diagnostics). Avoid broad tracing or enabling new audit categories until the likely resource or API is narrowed.
 - Do not repeat `/ato`; no new activation attempt is authorized.
+
+
+### TEST-50 — Sysmon configuration inspection (incomplete; executable-path indexing defect)
+
+**Timestamp:** 2026-11-13 15:04:02 +01:00  
+**Raw log:** R:\\results.activation-spp-050.txt  
+**Scope:** Read-only inspection of the Sysmon service, executable, active configuration and recent Event 16 / Event 4 history.
+
+**Successful findings**
+- Sysmon service is present and Running:
+  - Service name: Sysmon
+  - StartMode: Automatic
+  - Account: LocalSystem
+  - PID: 4848
+  - Image path: C:\\WINDOWS\\system32\\sysmon.exe
+- The executable exists at that path, file/product version 10.0.26100.8457, Authenticode signature Valid, signer Microsoft Windows.
+
+**Execution defect / incomplete sections**
+- Executable discovery produced the path string, but subsequent indexing treated the scalar string as a character array: $candidates[0] yielded only C, not the full path.
+- The attempted command therefore invoked C and failed with “The term 'C' is not recognized”.
+- The outer catch ran, so the script stopped before querying Sysmon Event 16 and Event 4.
+- The script's finally block was pasted separately after the try/catch block had already completed, producing “finally is not recognized”. Transcript closure was therefore not confirmed by this output.
+- No Sysmon configuration dump was obtained. No Event 16 or Event 4 query was executed.
+
+**Interpretation**
+- Service identity, executable path, version and Microsoft signature are established.
+- The active Sysmon configuration, including whether Event 3 NetworkConnect is enabled or filtered, remains unknown.
+- TEST-50 is incomplete, not a negative finding about Sysmon network telemetry.
+- No Sysmon configuration, service state, audit policy, ACL, registry, Defender, licensing store or activation state was changed. No activation attempt occurred.
+
+**Corrective next step**
+- Close any still-active transcript in the current PowerShell session with Stop-Transcript if PowerShell reports one is running.
+- Re-run only the missing read-only configuration and event-history queries using the exact path already established: C:\\WINDOWS\\system32\\sysmon.exe. Do not use array indexing or executable discovery again.
+- Execute the entire corrected script as one block so try/catch/finally remains structurally intact.
+- No /ato retry is authorized.
