@@ -234,3 +234,46 @@ A new session must read this assessment first, then read the relevant detailed b
 - Do not infer a common root cause without direct evidence.
 - Keep all recovery operations behind the pre-recovery gates and explicit user approval.
 - Update this assessment whenever a branch materially changes or a recovery decision is made.
+
+
+---
+
+## 11. Recovery action log — KB5132061 rollback and post-reboot observations
+
+**Record date:** 2026-11-14  
+**Operation:** User-initiated uninstall of the November 2026 Security Update KB5132061 through Windows Settings, followed by a reboot.  
+**Evidence level:** User-reported post-operation observations; no post-rollback package/build/event-log inspection has yet been performed.
+
+### Action sequence and results
+
+| Sequence | Action / observation | Result | Evidence status |
+|---|---|---|---|
+| 1 | User opened Settings → Windows Update → Update history → Uninstall updates. | UI listed KB5054156 (25H2 Enablement Package, installed 2026-07-01), KB5127690 (Microsoft Windows update, installed 2026-10-14), and KB5132061 (Security Update, installed 2026-11-13). | Screenshot supplied by user in conversation. |
+| 2 | User initiated uninstall of KB5132061. | The uninstall progress dialog was visible. At that point completion had not yet been established. | Screenshot supplied by user. |
+| 3 | User allowed the reboot process to complete. | User subsequently reported: **“reboot done.”** | User report, 2026-11-14. |
+| 4 | Post-reboot activation check. | User reports the activation licence/state is **still in error**. No new activation code, event details or entitlement check were supplied in this update. | User-reported result; exact current licensing state not independently re-collected. |
+| 5 | Post-reboot Windows Search check. | User reports Windows Search **still cannot start**. No new service output, error code or directory inspection was supplied in this update. | User-reported result; exact current service error not independently re-collected. |
+
+### Interpretation
+
+1. The attempted KB5132061 uninstall and subsequent reboot did **not**, according to the user's immediate post-reboot checks, restore either activation or Windows Search to working condition.
+2. This weakens the simple hypothesis that the currently installed KB5132061 binaries alone are the complete cause of both failures, and that removing that update would automatically reverse them.
+3. The user's proposed interpretation is plausible: uninstalling an update may revert or remove package binaries and registrations without repairing an independently damaged authorization state, licensing store, permissions, service configuration, or Search data-path state.
+4. However, the current evidence does **not** establish that the uninstall removed only binaries, that activation's underlying authorization state is the specific damaged object, or that the two failures share one cause. The actual post-uninstall package state and detailed subsystem errors have not yet been inspected.
+5. The prior activation evidence remains relevant but is not a fresh post-rollback measurement: Notification mode, earlier SPP Event 8198 failures, 0x80070005, and the SppExtComObj.exe → slui.exe Network Service execution path were previously observed. The exact denied resource remained unknown.
+6. The prior Search evidence also remains historical: WSearch start previously failed with Win32 exit code 3, and NTFS USN records showed deletion of the Search Data and parent Search directories without identifying the deleting process. The current report that Search still cannot start is consistent with persistence of that problem, but its present error and filesystem state are not yet confirmed.
+7. No evidence currently demonstrates that KB5127690 caused either remaining failure. It is a separate .NET Framework 3.5 / 4.8.1 security update, not the November Windows cumulative security update. It was **not** reported as uninstalled and should remain untouched unless separate evidence implicates it.
+8. KB5054156 is the earlier Windows 11 25H2 Enablement Package and was not reported as uninstalled.
+
+### Action boundary / current hold
+
+- Record KB5132061 as **user-initiated uninstall followed by completed reboot; activation and Search remain reported as failing**. Do not mark the rollback as a successful system repair.
+- Do not uninstall KB5127690 or KB5054156 as an experiment.
+- Do not repeat activation attempts, change product keys, reset the licensing store, or modify SPP / DCOM / ACL settings.
+- Do not start WSearch again, recreate its data directory, or reset Search ACLs without a separate reviewed plan.
+- Do not rerun DISM/SFC, retry KB5132061, reset Windows Update caches, or initiate another repair/reinstall operation as part of this rollback.
+- The next evidence collection, if approved, should be read-only and should first establish the actual post-rollback OS build and KB/package state, then capture the exact current activation status/error and Search service start error/path state. Collect one bounded set of evidence before proposing any repair.
+
+### Current verdict after KB5132061 rollback
+
+**ROLLBACK / REBOOT: USER REPORTS REBOOT COMPLETED. ACTIVATION: STILL IN ERROR. WINDOWS SEARCH: STILL UNABLE TO START. THE ROLLBACK DID NOT RESTORE THESE TWO SUBSYSTEMS TO WORKING CONDITION. THE UNDERLYING CAUSE AND EXACT POST-ROLLBACK PACKAGE STATE REMAIN UNVERIFIED. NO FURTHER REPAIR OR UPDATE REMOVAL AUTHORIZED.**
