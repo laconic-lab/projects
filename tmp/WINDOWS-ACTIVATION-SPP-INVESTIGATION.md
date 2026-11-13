@@ -1336,3 +1336,14 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - The script's `finally` block was pasted as a separate command and was not executed. This is a PowerShell paste-boundary error; it does not establish a WPR problem. Transcript output ended without a normal Stop-Transcript footer.
 - No activation attempt or Windows configuration change was made. No WPR trace was confirmed active. The WPR error code has not yet been conclusively decoded.
 - Microsoft WPR command-line documentation specifies custom profile selector syntax as `[filename.wprp!]<profile name>[.{light|verbose}]`; the `.File` suffix is not part of the documented selector syntax, while file logging is selected separately with `-filemode`. Therefore the attempted selector is likely malformed. Confirm the exact profile name using `wpr -profiles <path>` before retrying. Do not infer a deeper WPR or ETW subsystem failure from this attempt.
+
+
+## TEST-66R — WPR profile identifier and idle-state inspection
+
+- Timestamp: 2026-11-13 16:20:09–16:20:11 +01:00.
+- Raw transcript: `R:\\results.activation-spp-066R.txt`.
+- Parsed the exported XML successfully. It contains one profile node with `Id="FileIORegistry.Verbose.File"`, `Name="FileIORegistry"`, `DetailLevel="Verbose"`, and `LoggingMode="File"`.
+- WPR `-profiles <path>` and `-help start` returned exit code 0 / no captured output in this transcript. These outputs did not validate the start selector.
+- `wpr -status` returned exit code 0 with no output. No ETL file was present at `R:\\results.activation-spp-066.etl`.
+- Correction to TEST-66 interpretation: Microsoft WPR documentation defines custom profile start selector as `<path>.wprp!<ProfileName>[.light|.verbose]`; the LoggingMode component in XML profile Id is selected separately with `-filemode`. Thus the correct selector for this exported profile is expected to be `R:\\activation-spp-063-profiles.wprp!FileIORegistry.Verbose` together with `-filemode`, not the full XML Id ending in `.File`. The prior claim that `.File` was necessarily part of the CLI selector was incorrect.
+- No trace was started or confirmed active, no ETL was created, and no Windows configuration or activation state was changed.
