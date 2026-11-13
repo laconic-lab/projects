@@ -1443,3 +1443,14 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Therefore the 84-second ETL capture began approximately 2 hours 30 minutes after the latest known activation failure. It cannot contain the previously observed failed activation sequence, so decoding its millions of unrelated file/registry operations is not a productive next step for this incident.
 - Preserve the ETL locally as a tooling/profile artifact; do not treat it as evidence of the cause of the activation failure.
 - Next evidence-gathering step: inspect the existing Security-SPP Event 16384 details for the scheduled restart time, then plan a short, bounded trace around the next naturally occurring automatic activation attempt. Do not invoke `/ato`; the one approved attempt in TEST-36 remains consumed. Any new trace must have a clear time/disk bound and be stopped immediately after the relevant Event 8198 or at its limit.
+
+
+## TEST-68 — SPP RulesEngine scheduled-restart time
+
+- Read the five newest Application / Microsoft-Windows-Security-SPP / Event 16384 records.
+- Latest record: 2026-11-13 16:22:45.064 local, RecordId 111765, ProcessId 1604. Message: Software Protection service successfully scheduled for restart at `2026-11-14T12:50:45Z`, Reason `RulesEngine`.
+- Other recent records scheduled 2026-11-14 at 12:50:16Z, 12:49:53Z, 12:50:47Z and 12:50:29Z. These are schedule updates with slightly varying seconds, not proof of multiple independent restart events.
+- France local time on these November dates is UTC+1; latest target is 2026-11-14 13:50:45 local.
+- Historical correlation: the 2026-11-13 13:50:47 local Event 16384 scheduled the following day's restart at 12:50:47Z; the same minute contained a new SppExtComObj broker instance, `slui.exe` AutoActivate child processes, and Security-SPP Event 8198 at 13:50:50 local. This suggests the RulesEngine scheduling event can occur in the same short window as an activation attempt, but does not prove the scheduled restart caused that attempt.
+- Next observation target: 2026-11-14 around 13:50 local. A short bounded trace should begin shortly before the target and be stopped after the next relevant SPP 8198/broker activity or at a strict time/disk limit. Do not issue `/ato`.
+- Read-only test; no service, schedule, activation, or configuration change.
