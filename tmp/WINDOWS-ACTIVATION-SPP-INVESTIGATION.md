@@ -1727,3 +1727,19 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - `fsutil hardlink list` produced no visible output in the supplied excerpt. Exit code and stderr were not captured; hardlink status is therefore unknown.
 - The WinSxS recursive enumeration had started but no results were supplied. No conclusion can yet be drawn about component-store copies, file hashes, hardlinks, or manifests.
 - No modification or repair command was issued. Await remaining output from the same TEST-74 run before considering a narrower follow-up; do not launch a duplicate recursive search merely because this excerpt is truncated.
+
+
+## TEST-74 — SPP component-store COM handler comparison
+
+- Read-only comparison performed 2026-11-13 18:52:35–18:55:13 +01.
+- Active file: `C:\\Windows\\System32\\sppcext.dll`, 659,456 bytes, last write 2026-10-30 03:13:07 UTC, embedded FileVersion `10.0.26100.8457`, SHA-256 `4CAE59336E7991573E1B0DB82FFF8287E48A860C221850EF10053C727F39F896`.
+- Four WinSxS filename matches:
+  - amd64 component `amd64_microsoft-windows-security-spp-clientext_31bf3856ad364e35_10.0.26100.9818_none_685dee9f6145f23b\\sppcext.dll`: 659,456 bytes, embedded FileVersion `10.0.26100.9818`, same SHA-256 as active System32 file.
+  - amd64 resource file under `r\\sppcext.dll`: 69,039 bytes, no file version, SHA-256 `A51758A33153BDA1B0FDACA31D9A6BD73A7B081F78033C71B8B663590B3EAB2E`.
+  - WOW64 component `wow64_microsoft-windows-security-spp-clientext_31bf3856ad364e35_10.0.26100.9818_none_72b298f195a6b436\\sppcext.dll`: 620,544 bytes, embedded FileVersion `10.0.26100.9818`, SHA-256 `25004C6C98388FD7E6DAB3AAEE6C8C7D6125F5EA7B3E429BB1C89252AA48017D`.
+  - WOW64 resource file under `r\\sppcext.dll`: 132,117 bytes, no file version, SHA-256 `4D79BF88BC469DA34191698B018EFBA5A65A89A30ABBCF7F0B8DFEFDCE86DC7E`.
+- The active System32 file and amd64 WinSxS component file have identical size, last-write timestamp and SHA-256, although their embedded FileVersion resources differ (`8457` vs `9818`). This proves byte-for-byte identity of those two files and rules out a differing-content copy between these locations. It does not explain the version-resource discrepancy or independently prove component servicing health.
+- `fsutil hardlink list` printed no paths for the active file or component files; the transcript does not capture exit codes, so no hardlink conclusion can be drawn.
+- Recursive search for `microsoft-windows-security-spp-clientext*.manifest` under WinSxS returned zero results. Manifest declaration and component ownership therefore remain unverified; search scope/name may not locate the authoritative manifest.
+- No DLL replacement, component repair, SFC/DISM repair, COM registration change, service/task change, ACL change, activation attempt or licensing-store modification.
+- Next: locate the exact component manifest via WinSxS manifest naming/identity and inspect relevant CBS package/servicing metadata. Compare manifest file declaration and component catalog/ownership rather than inferring corruption from the embedded FileVersion. Do not replace the file: the active and amd64 WinSxS copies are already byte-identical.
