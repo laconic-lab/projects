@@ -817,3 +817,32 @@ The user explicitly requested that the investigation proceed without asking for 
 - Re-run only the missing read-only configuration and event-history queries using the exact path already established: C:\\WINDOWS\\system32\\sysmon.exe. Do not use array indexing or executable discovery again.
 - Execute the entire corrected script as one block so try/catch/finally remains structurally intact.
 - No /ato retry is authorized.
+
+
+### TEST-50R — Corrected Sysmon configuration command and event-history queries
+
+**Timestamp:** 2026-11-13 15:05:19–15:05:20 +01:00  
+**Raw log:** R:\\results.activation-spp-050R.txt  
+**Scope:** Read-only invocation of Sysmon's configuration-display command and retrieval of recent Event 16 / Event 4 records.
+
+**Results**
+- Executed the exact verified binary: `C:\\WINDOWS\\system32\\sysmon.exe` with argument `-c`.
+- Process exit code: 0. No configuration text was emitted into the PowerShell transcript despite `2>&1`; therefore the active configuration contents were not captured and must not be inferred from the exit code.
+- Sysmon Event 16 (ServiceConfigurationChange): 0 records returned by the query (latest 30 requested).
+- Sysmon Event 4 (service state): 5 records returned:
+  - 2026-11-13 13:44:21 local — State Started; version 10.0.26100.8457; schema 4.91.
+  - 2026-11-13 05:07:23 local — State Started; same version/schema.
+  - 2026-11-13 05:05:30 local — State Started; same version/schema.
+  - 2026-11-12 01:57:06 local — State Started; same version/schema.
+  - 2026-11-11 17:56:24 local — State Started; same version/schema.
+- Transcript closed normally.
+
+**Interpretation**
+- The Event 16 query found no retained configuration-change records in the requested latest-30 query. This does not establish that Sysmon's configuration never changed; older records may be outside retention, or no such event may have been logged.
+- Event 4 records show Sysmon service start events at 05:05:30, 05:07:23 and 13:44:21, shortly before the corresponding activation-client bursts seen in TEST-48/49. These timestamps are temporal correlation only; they do not establish that Sysmon restarts caused activation failures or altered its event filters.
+- TEST-49's lack of Event 3 matches remains unexplained because the active configuration contents were not captured. A zero exit code with no emitted configuration text is not sufficient to conclude whether Event 3 NetworkConnect is enabled.
+- No service, configuration, audit policy, ACL, registry, Defender, licensing store or activation state was changed. No activation attempt occurred.
+
+**Next diagnostic direction**
+- Inspect the Sysmon configuration source read-only (the service's active configuration is represented by Sysmon's configuration state/registry data) and establish the exact Sysmon command-line behavior/version before drawing conclusions from the silent `-c` invocation.
+- Avoid installing, updating, reconfiguring or restarting Sysmon. No /ato retry.
