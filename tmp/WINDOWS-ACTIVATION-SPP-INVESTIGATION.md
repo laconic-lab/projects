@@ -1,7 +1,7 @@
 # Windows Activation / Software Protection Platform (SPP) Investigation — Dell Precision M4800
 
 **Status:** Open — diagnosis in progress; no successful reactivation  
-**Last updated:** 2026-11-13 (TEST-81 added; DCM/PE decoder branch paused pending relevance review)  
+**Last updated:** 2026-11-13 (evening follow-up added: latest Sysmon activation correlation, DCOM permission review, and local account context)  
 **System:** Dell Precision M4800, Windows 11 Pro 25H2, build 26200.9974  
 **Repository location:** `tmp/WINDOWS-ACTIVATION-SPP-INVESTIGATION.md`
 
