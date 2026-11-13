@@ -687,3 +687,51 @@ The user explicitly requested that the investigation proceed without asking for 
   4. Keep output compact: report event counts and only matching records, not every event XML in the time windows.
 - If the relevant historical telemetry was not enabled or has rolled out of the circular log, those old PIDs cannot be reconstructed retroactively. A forward-looking trace may then be considered, but it should be tightly scoped and separately explained before enabling any audit setting.
 - No `/ato` retry is authorized.
+
+
+
+### TEST-48 — Corrected historical process correlation (Sysmon confirms automatic activation client)
+
+**Timestamp:** 2026-11-13 15:00:05–15:00:24 +01:00  
+**Raw log:** `R:\\results.activation-spp-048.txt`  
+**Scope:** Read-only inspection of Process Creation audit policy, Security Event 4688, and Sysmon Event 1 in the five timestamp windows associated with the 13 Security-SPP Event 8198 records from TEST-46.
+
+**Execution findings**
+- Process Creation auditing queried successfully using subcategory GUID `{0CCE922B-69AE-11D9-BED3-505054503030}`; `auditpol.exe` exit code 0. The current setting is **No Auditing** (French display: “Création du processus — No Auditing”).
+- Security log remains enabled, with 21,034 records, 20 MiB maximum size, Circular mode.
+- Security Event 4688 queries:
+  - 2026-11-12 20:30–20:32: no events.
+  - 2026-11-13 05:04:30–05:09: 26 events queried; no target PID match was printed.
+  - 2026-11-13 13:12:30–13:14: no events.
+  - 2026-11-13 13:43:30–13:45:30: 13 events queried; no target PID match was printed.
+  - 2026-11-13 13:49:50–13:52: no events.
+- Sysmon Operational channel exists and is enabled, with 38,905 records, Circular mode.
+- Sysmon Event 1 records correlate **all 13 Event 8198 ProcessIDs** with newly created `slui.exe` processes at or immediately before the corresponding activation error times. The matching activation-client processes show:
+  - Image: `C:\\Windows\\System32\\slui.exe`.
+  - Parent image: `C:\\Windows\\System32\\SppExtComObj.Exe`.
+  - User: `NT AUTHORITY\\NETWORK SERVICE` (localized in the transcript as `AUTORITE NT\\SERVICE RÉSEAU`).
+  - Command line: `SLUI.exe` with the same RuleId, `Action=AutoActivate`, AppId and SkuId recorded in TEST-46.
+- Representative exact correlation:
+  - First failure: Event 8198 at 2026-11-12 20:31:08.742, PID 12200; Sysmon Event 1 created `slui.exe` PID 12200 at 20:31:07, parent `SppExtComObj.Exe`, Network Service.
+  - 2026-11-13 05:05–05:08: PIDs 5976, 5128, 1764, 4324, 4344 and 7664 map to `slui.exe` creations immediately preceding the corresponding Event 8198 records.
+  - 2026-11-13 13:13: PIDs 14012, 13488 and 13696 map to `slui.exe` creations at 13:13:25–13:13:29.
+  - 2026-11-13 13:44: PIDs 7116 and 7592 map to `slui.exe` creations at 13:44:31 and 13:44:38.
+  - 2026-11-13 13:50: PID 7140 maps to `slui.exe` created at 13:50:48.
+- Some PIDs also appear in unrelated Sysmon process-creation records at other times in the queried windows (for example, Google Updater, Broadcom Host Control, taskhostw, mscorsvw, and svchost). Process IDs are reusable; these unrelated entries are not the activation process for the corresponding Event 8198. The time-aligned `slui.exe` Event 1 records are the relevant matches.
+- The script's final standalone `else` was pasted after its matching `if` block had already completed, producing a harmless “else is not recognized” error. Sysmon channel detection and all five Sysmon query windows had already completed. The transcript was closed normally with `Stop-Transcript`.
+
+**Interpretation**
+- This is the first reliable historical process-level attribution of the automatic activation failures. Security-SPP Event 8198's ProcessID is, in these cases, the PID of the `slui.exe` automatic activation client.
+- The activation client is launched by `SppExtComObj.Exe` and runs as Network Service. This is consistent across the first failure and all later Event 8198 records correlated by Sysmon.
+- The repeated `0x80070005` failures therefore occur during an automatic activation operation executed by `slui.exe` in the Network Service security context. This makes the effective Network Service / process execution path more relevant than the interactive administrator token tested in TEST-37.
+- This does **not** identify the object, API, RPC endpoint, registry value, file, service operation, or network operation that returns Access Denied. It also does not prove that the ProfileList ACL discrepancy corrected in TEST-35R caused the failure; the later activation attempt still failed.
+- The current Process Creation audit policy is No Auditing. The absence of 4688 records in three windows is consistent with that current policy, but does not establish what the policy was at earlier timestamps. The 4688 records in two windows were not matches for the target activation PIDs.
+- Sysmon provided the necessary historical process creation evidence. Its Operational log is circular, so retention remains finite.
+- No audit policy, Sysmon configuration, service, ACL, registry, licensing store, or activation state was changed. No activation attempt occurred.
+
+**Next diagnostic direction**
+- Do not enable broad Security process auditing merely to repeat what Sysmon has already established.
+- Next inspect the existing Sysmon configuration and targeted Event 3 network-connection / Event 5 process-termination records for the exact activation `slui.exe` processes, using their Sysmon ProcessGuid rather than PID alone. This can establish whether the client made network connections and its lifetime, without changing configuration.
+- If Event 3 was not enabled, report that limitation rather than enabling it speculatively. Network connection telemetry may clarify connectivity but will not, by itself, identify a file or registry access denial.
+- The priority remains identifying the exact operation behind `0x80070005`; no ACL repair, Defender disablement, licensing-store reset, or service security change is justified by TEST-48.
+- No `/ato` retry is authorized.
