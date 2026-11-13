@@ -1,7 +1,7 @@
 # Windows Activation / Software Protection Platform (SPP) Investigation — Dell Precision M4800
 
 **Status:** Open — diagnosis in progress; no successful reactivation  
-**Last updated:** 2026-11-13 (TEST-40 added)  
+**Last updated:** 2026-11-13 (TEST-41 added; diagnostic sequence authorization clarified)  
 **System:** Dell Precision M4800, Windows 11 Pro 25H2, build 26200.9974  
 **Repository location:** `tmp/WINDOWS-ACTIVATION-SPP-INVESTIGATION.md`
 
@@ -59,7 +59,7 @@ These rules apply to all future work on the physical M4800:
 9. Do not change service security descriptors, DCOM permissions, registry ACLs, or licensing files without evidence and explicit user approval.
 10. No VM snapshots, backups, or disk-copy suggestions: this is the physical M4800.
 11. The user approved the specific TEST-35R ProfileList ACL correction and one TEST-36 `/ato` attempt. Those approvals do not authorize unrelated changes or another activation attempt.
-12. The user said to proceed beyond read-only if needed. This is permission to propose justified targeted actions, not blanket approval to weaken security or make arbitrary changes.
+12. The user has now explicitly approved continuing the planned diagnostic test sequence without asking for separate approval before each test. Proceed with justified, bounded diagnostic tests and update this document after every completed test. This standing approval covers diagnostics; it does **not** authorize speculative or unrelated system changes, security weakening, licensing-store modification, or another activation attempt. Any proposed state-changing operation must still be evidence-based, narrowly scoped, explained with rollback, and separately approved.
 
 ### Known approved change
 
@@ -377,7 +377,7 @@ Start by reading this document in full. Treat it as the canonical state of the a
 
 Do not restart completed branches, repeat the original key retry, repeat TEST-35R, repeat the one approved TEST-36 activation attempt, or disable Defender speculatively.
 
-First obtain the pending answer about whether TEST-36 and TEST-37 used the same PowerShell window. Then continue with targeted read-only SPP authorization diagnostics.
+Continue the diagnostic sequence without requesting one-test-at-a-time approval. The same-window question remains useful but is not a blocker; treat TEST-36 token elevation as unconfirmed unless the user later clarifies. Continue with targeted read-only SPP authorization diagnostics. Update this canonical document after every completed test.
 
 Preserve the user's central concern: Windows was legitimately activated before the update, and the evidence so far does not prove that the digital entitlement has disappeared.
 
@@ -471,3 +471,8 @@ Preserve the user's central concern: Windows was legitimately activated before t
 - The TEST-40 CIM/signature formatting capture issue remains a data-quality limitation, not evidence of a failure.
 - Keep unresolved whether TEST-36 and TEST-37 were run in the same PowerShell window.
 - No further `/ato` attempt is authorized.
+
+
+### Investigation workflow clarification — 2026-11-13
+
+The user explicitly requested that the investigation proceed without asking for separate approval before each diagnostic test. This standing authorization applies to the planned, justified diagnostic sequence, including read-only tests. It does not grant blanket permission for system changes. Any permission, service, registry, Defender, licensing-store, or activation-state modification remains subject to a specific evidence-based proposal and separate approval. The canonical document must be updated and verified after every completed test.
