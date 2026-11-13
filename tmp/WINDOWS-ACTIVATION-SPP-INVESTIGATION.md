@@ -901,3 +901,41 @@ The user explicitly requested that the investigation proceed without asking for 
 - Sysmon process-creation telemetry remains valid for the TEST-48/49 process attribution.
 - Missing Event 3 is not a gap that should be filled by changing Sysmon during this incident review.
 - Return focus to the SPP activation operation and existing Windows telemetry. No /ato retry.
+
+
+### TEST-52 — Windows Security, DCOM and service-event correlation
+
+**Timestamp:** 2026-11-13 15:08:05–15:08:07 +01:00  
+**Raw log:** R:\\results.activation-spp-052.txt  
+**Scope:** Read-only event queries around six activation windows, plus an attempted current audit-policy inventory.
+
+**Results**
+- The transcript showed no visible output from `auditpol.exe /get /category:*`; no exit code was captured. Therefore the current audit policy was not successfully documented by this test.
+- No matching events were returned in these windows:
+  - First failure: 2026-11-12 20:31:00–20:31:20.
+  - Nov 13 05:05:25–05:05:55.
+  - For each, the query returned “No events were found that match the specified selection criteria” for the selected System, Application and Security event IDs.
+- Nov 13 05:07:20–05:08:05:
+  - System Event 10016 at 05:07:47: DistributedCOM reports Local Activation permission not granted to `NT AUTHORITY\\NETWORK SERVICE` (S-1-5-20), CLSID `{9EA82395-E31B-41CA-8DF7-EC1CEE7194DF}`, APPID `{2ED83BAA-B2FD-43B1-99BF-E6149C622692}`, LocalHost/LRPC.
+  - Two additional Event 10016 records at 05:07:55 refer to Local Service (S-1-5-19), CLSID `{6B3B8D23-FA8D-40B9-8DBD-B950333E2C52}`, APPID `{4839DDB7-58C2-48F5-8283-E1D1807D0D7D}`.
+- Nov 13 13:13:15–13:13:45:
+  - Service Control Manager Event 7023 at 13:13:27 and 13:13:32: Windows Search terminated with “Access is denied”.
+  - Event 7034 at the same timestamps reports unexpected termination; cumulative counts 22 and 23.
+- Nov 13 13:44:20–13:44:55:
+  - DistributedCOM Event 10016 at 13:44:20 again reports Local Activation denied for Network Service (S-1-5-20), CLSID `{9EA82395-E31B-41CA-8DF7-EC1CEE7194DF}`, APPID `{2ED83BAA-B2FD-43B1-99BF-E6149C622692}`.
+- Nov 13 13:50:40–13:51:05:
+  - DistributedCOM Event 10016 at 13:50:47 twice reports Local Service (S-1-5-19), CLSID `{6B3B8D23-FA8D-40B9-8DBD-B950333E2C52}`, APPID `{4839DDB7-58C2-48F5-8283-E1D1807D0D7D}`.
+  - Windows Search Event 7023 at 13:50:54 reports “Access is denied”; Event 7031 reports unexpected termination and a scheduled restart in 30 seconds.
+
+**Correlation and interpretation**
+- The Network Service DCOM 10016 events at 05:07:47 and 13:44:20 occur inside/adjacent to the automatic activation bursts previously attributed to `slui.exe` under Network Service in TEST-48/49. This is a significant lead, but it is not yet proof that the denied COM activation belongs to the SPP activation path or caused Event 8198. The CLSID/APPID must be resolved to its registered COM server and correlated with the exact event XML and process context before any conclusion.
+- The Local Service DCOM events use a different identity and different CLSID/APPID; do not conflate them with the Network Service events.
+- Windows Search access-denied crashes occur during the 13:13 and 13:50 windows, but no evidence links Windows Search to the activation process. Treat them as a separate service issue unless later evidence connects them.
+- No matching Security 4656/4663/4658 or WFP 5152/5156/5157 records were returned. Because current audit policy was not captured and historical policy is unknown, absence of these records does not prove no object-access or network filtering denial occurred.
+- The first failure and 05:05 burst had no matching events for the selected IDs in the queried windows.
+- No DCOM permissions, registry values, audit policy, services, ACLs, Defender, licensing store or activation state were changed. No activation attempt occurred.
+
+**Next diagnostic direction**
+- Resolve the Network Service CLSID/APPID `{9EA82395-E31B-41CA-8DF7-EC1CEE7194DF}` / `{2ED83BAA-B2FD-43B1-99BF-E6149C622692}` and the separate Local Service CLSID/APPID from registry metadata, including AppID LocalService/RunAs and registered server paths.
+- Read the exact XML/data fields for the two Network Service Event 10016 records and compare with Sysmon process creation/termination timestamps.
+- Do not modify DCOM launch/access permissions or attempt a permission repair based solely on Event 10016.
