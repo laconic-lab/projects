@@ -476,3 +476,69 @@ Preserve the user's central concern: Windows was legitimately activated before t
 ### Investigation workflow clarification — 2026-11-13
 
 The user explicitly requested that the investigation proceed without asking for separate approval before each diagnostic test. This standing authorization applies to the planned, justified diagnostic sequence, including read-only tests. It does not grant blanket permission for system changes. Any permission, service, registry, Defender, licensing-store, or activation-state modification remains subject to a specific evidence-based proposal and separate approval. The canonical document must be updated and verified after every completed test.
+
+
+### TEST-42 — SPP registry subtree ACL inventory
+
+**Timestamp:** 2026-11-13 14:47:20 +01:00  
+**Raw log:** `R:\results.activation-spp-042.txt`  
+**Scope:** Read-only recursive registry ACL inventory in Registry64 and Registry32. No registry values were modified.
+
+**Findings**
+- `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform` opened successfully in both registry views.
+- The root key owner is TrustedInstaller. Its ACL includes SYSTEM and Administrators Full Control, BUILTIN Users read access, and service-specific ACEs.
+- Registry64 recursive inventory processed 45 keys; Registry32 processed 5 keys.
+- The `Activation`, `GenuineApps`, `Plugins`, `ReferralData`, `Setup`, and related subkeys show consistent ACL patterns. Several are owned by SYSTEM; others by TrustedInstaller.
+- The active sppsvc service SID observed in TEST-40 is present in the SPP root and in relevant subkey ACLs. The root ACE uses mask `DC`; do not interpret this abbreviated mask as Full Control.
+- `HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SL` returned “KEY NOT FOUND OR NOT OPENABLE” in both views. As with TEST-41, the test does not distinguish a missing key from an open/access failure.
+
+**Interpretation**
+- TEST-42 does not reveal an obvious blanket SPP registry ACL failure. The service-specific SID is represented in the tree, and the inspected child ACLs are broadly consistent.
+- This is not proof that every operation has the required access: the exact activation operation, access mask, and caller identity have not yet been correlated with an access denial.
+- The differing subkey counts between Registry64 and Registry32 are not by themselves evidence of damage.
+- No registry ACL repair or other change is justified by this inventory.
+
+**Next diagnostic direction**
+- Correlate SPP service identity, service SID configuration, and actual service/runtime behavior. Do not infer that an ACE is defective solely because its abbreviated rights mask looks narrower than Full Control.
+- Continue to distinguish absent registry keys from keys that exist but cannot be opened.
+- No further `/ato` attempt is authorized.
+
+### TEST-43 — SPP service identity and executable security
+
+**Timestamp:** 2026-11-13 14:48:41 +01:00  
+**Raw log:** `R:\results.activation-spp-043.txt`  
+**Scope:** Read-only service configuration, descriptor/SID queries, process state, executable metadata, ACL, and signature. No service, registry, ACL, executable, or activation changes were made.
+
+**Findings**
+- CIM reports service `sppsvc` (Software Protection) as:
+  - State: STOPPED
+  - StartMode: Auto
+  - StartName: `NT AUTHORITY\NetworkService`
+  - Path: `C:\WINDOWS\system32\sppsvc.exe`
+  - Service type: Own Process
+  - PID: 0
+  - Status: OK
+- `sc.exe qc` output in the captured transcript was incomplete: only DisplayName, Dependencies, and ServiceStartName appeared. The output does not preserve the full start-type/binary details.
+- `sc.exe qsidtype`, `sc.exe showsid`, and `sc.exe sdshow` produced no visible output in this transcript. Therefore TEST-43 did **not** establish the service SID type, service SID value, or service security descriptor. Their blank output must not be interpreted as absent configuration.
+- No SPP service process was running at the instant of inspection, so no live process token or runtime identity could be collected.
+- `C:\Windows\System32\sppsvc.exe` exists; size 4,871,608 bytes; creation and last-write times 2026-11-11 05:06:56–05:06:57 UTC.
+- File version: `10.0.26100.8457`; description: Microsoft Software Protection Platform Service.
+- File owner: TrustedInstaller.
+- File ACL SDDL:
+  `O:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464G:S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464D:P(A;;0x1200a9;;;SY)(A;;0x1200a9;;;BA)(A;;0x1200a9;;;BU)(A;;FA;;;S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464)(A;;0x1200a9;;;AC)(A;;0x1200a9;;;S-1-15-2-2)`
+- The file grants Full Access to its own service SID; SYSTEM, Administrators, Users, and the listed application package groups have the displayed `0x1200a9` access mask.
+- Authenticode signature: Valid; signer CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US.
+
+**Interpretation**
+- TEST-43 confirms SPP is configured to run as Network Service, matching the identity involved in the earlier ProfileList investigation.
+- The STOPPED state with Automatic start is noteworthy but not conclusive. A stopped service at one observation time does not prove failure; service triggers and idle behavior must be considered.
+- The executable is Microsoft-signed and its ACL explicitly grants Full Access to the SPP service SID. This does not support a simple executable ACL denial.
+- The file version `10.0.26100.8457` differs from the previously reported SPP service version `10.0.26100.9974`. Record this as a version discrepancy for targeted component/version provenance checking, not as proof of corruption. TEST-38R also reported this executable version.
+- The service descriptor and SID-type queries are missing from the captured evidence. TEST-40 had previously captured these successfully; its findings remain the stronger evidence for service SID configuration and descriptor.
+- No evidence justifies changing the service startup type, service account, service descriptor, executable ACL, or file.
+
+**Next diagnostic direction**
+- Re-run only the failed descriptor/SID capture using explicit output capture and exit-code reporting, rather than repeating the whole inventory.
+- Investigate why the SPP service is stopped and whether a controlled service start produces relevant events or access failures. A start-only experiment may change service runtime state and should be logged with before/after state and event correlation; it must not be combined with an activation retry.
+- Investigate the executable version/build provenance against the installed component servicing state before considering file repair.
+- No further `/ato` attempt is authorized.
