@@ -1743,3 +1743,18 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - Recursive search for `microsoft-windows-security-spp-clientext*.manifest` under WinSxS returned zero results. Manifest declaration and component ownership therefore remain unverified; search scope/name may not locate the authoritative manifest.
 - No DLL replacement, component repair, SFC/DISM repair, COM registration change, service/task change, ACL change, activation attempt or licensing-store modification.
 - Next: locate the exact component manifest via WinSxS manifest naming/identity and inspect relevant CBS package/servicing metadata. Compare manifest file declaration and component catalog/ownership rather than inferring corruption from the embedded FileVersion. Do not replace the file: the active and amd64 WinSxS copies are already byte-identical.
+
+
+## TEST-75 — SPP client-extension manifest and servicing inventory
+
+- Read-only inventory performed 2026-11-13 19:00:33–19:01:39 +01.
+- Dedicated WinSxS `Manifests` directory contains exact component manifest filename matches:
+  - amd64 `microsoft-windows-security-spp-clientext` versions `10.0.26100.1591` and `10.0.26100.9818`.
+  - WOW64 `microsoft-windows-security-spp-clientext` versions `10.0.26100.1742` and `10.0.26100.9818`.
+- This demonstrates multiple retained component manifest versions in WinSxS. Their presence alone is not evidence of corruption; the exact 9818 manifest content and package ownership remain to be inspected.
+- Broad SPP manifest inventory also showed several other SPP component families at different versions, including extcom 9549, WMI 9818/9974, and base SPP 9818/9974. This reinforces that different SPP subcomponents can have different component versions; do not assume every binary must match OS build 9974.
+- Servicing Packages filename inventory showed multiple Microsoft-Windows-Security-SPP-Component-SKU packages, including Professional license packages, and Microsoft-Windows-Professional-SPP-Components-Package entries. Output was truncated by PowerShell table formatting; exact package identities/versions/status were not established.
+- Searching `.mum` file contents for literal `security-spp-clientext` or `sppcext.dll` returned no matches. CBS log search for the same strings returned no matches. These searches do not prove absence of package ownership; component manifests may be referenced indirectly or package metadata may not contain those literal strings.
+- `dism /Online /Get-Packages /Format:Table | findstr /i "spp security clientext"` returned no matching lines. This filtered output alone is inconclusive (e.g. package display names/locale/output formatting may not contain those tokens); no package-state conclusion can be drawn.
+- No files, manifests, packages, registry, services, tasks, ACLs, activation state or licensing-store contents were modified. No activation attempt or servicing repair.
+- Next: inspect exact full paths and XML content of the amd64 and WOW64 `10.0.26100.9818` manifests, including assembly identity, file declarations, and any package/component metadata. Separately obtain unfiltered DISM package inventory and targeted exact package identities/status; do not infer ownership from truncated filename lists.
