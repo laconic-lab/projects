@@ -1368,3 +1368,12 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Subsequent `wpr -status` reported "WPR is not recording".
 - The prior status showed an active File-mode recording, but no profile identity. The stop operation preserves that session; it does not establish that it was the intended custom FileIORegistry profile.
 - No activation attempt, service/configuration change, or new WPR start occurred. ETL retained locally on R: pending offline metadata/provider inspection; do not upload raw trace because it may contain sensitive system activity and paths.
+
+
+## TEST-66U — ETL analysis utility inventory
+
+- `wpa.exe` and `xperf.exe` not found in PATH or at the standard Windows Performance Toolkit installation paths under Program Files.
+- `tracefmt.exe` not found in PATH.
+- Built-in `C:\\Windows\\System32\\tracerpt.exe` is present (471,040 bytes; last-write 2026-10-30 04:13:03).
+- No ETL parsing or export was performed in this test; the 710,934,528-byte ETL remains unchanged on R:.
+- Next step: inspect tracerpt command-line help, then use its summary-only mode to inventory the trace before considering any event export. No additional software installation is currently justified.
