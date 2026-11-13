@@ -1092,3 +1092,24 @@ The DCOM events identify Network Service (S-1-5-20) as the requesting identity, 
 ### Instrumentation note
 
 The attempted transcript start used `Start-Transcript -Encoding UTF8`, which is not a supported parameter in Windows PowerShell 5.1; therefore no transcript was created. A separately entered `else` block was not syntactically attached to its preceding `if`, and `Stop-Transcript` consequently reported that transcription was not active. These are logging/script-entry issues and do not invalidate the six returned Event 5 matches. No system configuration, service, DCOM permission, ACL, Defender setting, licensing data, or activation state was changed. No activation attempt was made.
+
+## TEST-57 — SppExtComObj broker lifetime and parent/child correlation
+
+- Timestamp: 2026-11-13 15:22:03–16:04:56 +01:00 (transcript start/end).
+- Raw local log: `R:\results.activation-spp-057.txt`.
+- Read-only Sysmon Event 1/5 query covering 2026-11-12 20:25 through 2026-11-13 14:05 local; 9,583 records parsed.
+- 19 `slui.exe` process-creation records found. The Network Service/System-integrity instances have parent image `C:\Windows\System32\SppExtComObj.Exe`, command line `SppExtComObj.exe -Embedding`, and parent ProcessGuid values that identify the exact broker process instance. Other `slui.exe` records in the output ran as the interactive user at Medium integrity and were parented by `svchost.exe -k DcomLaunch -p`; these are distinct from the Network Service automatic-activation children.
+- Six distinct `SppExtComObj.exe` broker instances were identified, all running as `NT AUTHORITY\NETWORK SERVICE` at System integrity. Each had a matching Sysmon Event 5 termination record with the same ProcessGuid:
+  - PID 6644: start 2026-11-12 20:31:07.297 UTC / 20:31:07 local; exit 20:31:38.784 local; one `slui.exe` child.
+  - PID 5904: start 2026-11-13 04:05:36.080 UTC / 05:05:36 local; exit 05:06:09.552 local; three `slui.exe` children.
+  - PID 1544: start 04:07:32.323 UTC / 05:07:32 local; exit 05:09:12.760 local; three `slui.exe` children.
+  - PID 13924: start 12:13:25.391 UTC / 13:13:25 local; exit 13:14:01.090 local; four `slui.exe` children.
+  - PID 2888: start 12:44:31.128 UTC / 13:44:31 local; exit 13:45:09.410 local; two `slui.exe` children.
+  - PID 1612: start 12:50:48.371 UTC / 13:50:48 local; exit 13:51:24.932 local; two `slui.exe` children.
+- Parent ProcessGuid correlation establishes that the Network Service `slui.exe` children were launched by these exact broker instances, rather than merely by a process with the same PID or image name. This is strong process attribution for the SPP automatic-activation execution chain.
+- DCOM timing: the Network Service/WaaSProtectedSettingsProvider Event 10016 at 05:07:47.085 occurred during the PID 1544 broker lifetime (broker started 05:07:32 and exited 05:09:12). The Event 10016 at 13:44:20.381 preceded the PID 2888 broker start at 13:44:31 by about 11 seconds. The Event 10016 at 13:50:47 preceded the PID 1612 broker start at 13:50:48 by about one second. These temporal relationships are noteworthy but do not establish causation.
+- This test confirms a short-lived, repeatedly activated `SppExtComObj.exe` broker pattern, with each observed broker instance launching one or more `slui.exe` children and then terminating within roughly 31–100 seconds. Event 5 confirms process termination only; it does not provide exit status or reason.
+- The two PowerShell `System.IO.Path.GetFileName` exceptions occurred while filtering records with malformed/non-path Image values. Despite those exceptions, the output contains the six matching broker lifecycle pairs and the unique broker ProcessGuids. Treat the displayed matches as valid, but do not claim the faulty filter was exhaustive for every possible record.
+- This narrows the process chain but does not identify the specific API, COM method, RPC, file, registry, or other resource operation returning `0x80070005`. The DCOM 10016 events still identify Network Service as the requesting security identity but do not identify the client PID or prove that the WaaS DCOM denial caused the SPP activation failure.
+- No services, DCOM permissions, ACLs, Defender settings, licensing data, or activation state were changed. No activation attempt was made.
+
