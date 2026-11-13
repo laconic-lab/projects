@@ -1324,3 +1324,15 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - The profile's EventProvider definitions include several providers with explicit keyword masks and levels, and several with no explicit keyword/level attributes. The SystemProvider explicitly enables FileIO, FileIOInit, Registry, and ProcessThread plus the stack set documented in TEST-63.
 - Interpretation: the profile contains the required kernel FileIO and Registry instrumentation and useful process/thread context. The two unresolved event-provider GUIDs and the broad ancillary providers should be noted, but do not invalidate the kernel SystemProvider configuration. This inspection does not prove that every event template/version will be emitted or that every denied operation will be captured.
 - No WPR recording was started; no activation attempt, audit-policy change, service change, DCOM permission change, ACL change, Defender change, licensing-store change, or other system configuration change was made.
+
+
+## TEST-66 — WPR custom profile start attempt (failed before recording)
+
+- Timestamp: 2026-11-13 16:19:27 +01:00.
+- Raw transcript: `R:\\results.activation-spp-066.txt`.
+- Preflight showed approximately 3,957.2 MiB free on R:. `wpr -status` returned exit code 0 but no captured text.
+- Start command attempted: `wpr -start "R:\\activation-spp-063-profiles.wprp!FileIORegistry.Verbose.File" -filemode`.
+- WPR returned signed exit code `-983562735`, equivalent to `0xC5600611`. The command wrapper treated the nonzero result as a start failure; the capture loop was not entered. No ETL was created or confirmed, and no five-minute recording ran.
+- The script's `finally` block was pasted as a separate command and was not executed. This is a PowerShell paste-boundary error; it does not establish a WPR problem. Transcript output ended without a normal Stop-Transcript footer.
+- No activation attempt or Windows configuration change was made. No WPR trace was confirmed active. The WPR error code has not yet been conclusively decoded.
+- Microsoft WPR command-line documentation specifies custom profile selector syntax as `[filename.wprp!]<profile name>[.{light|verbose}]`; the `.File` suffix is not part of the documented selector syntax, while file logging is selected separately with `-filemode`. Therefore the attempted selector is likely malformed. Confirm the exact profile name using `wpr -profiles <path>` before retrying. Do not infer a deeper WPR or ETW subsystem failure from this attempt.
