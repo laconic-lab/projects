@@ -1790,3 +1790,16 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - A PowerShell pipeline was interrupted during Format-Hex output (`The pipeline has been stopped`); header bytes were nevertheless captured. No servicing libraries or decoders were executed.
 - No tool download/install, DLL load, manifest decode, component modification, activation attempt, service/task/ACL change or licensing-store change.
 - Next: establish whether Windows' own UpdateCompression API can decode DCM v1 manifests safely, or whether an independently sourced decoder is required. Inspect signatures, exports, file versions and installed SDK/ADK tooling read-only first. Do not call undocumented APIs or load arbitrary DLLs into PowerShell as an experiment; decode only copies on R: after a verified method and source/basis requirements are known.
+
+
+## TEST-78 — Servicing decoder library provenance and installed tooling
+
+- Read-only inventory performed 2026-11-13 19:05:08–19:05:11 +01.
+- `C:\\Windows\\System32\\UpdateCompression.dll` exists (630,104 bytes; last write 2026-11-11 05:06:45 UTC), FileVersion 5.00, SHA-256 `C08DCC34FA3756CFC015CF615F515E61B1CA2A6404D3CC83F28A2F50EEB8EDEC`; Authenticode Valid, Microsoft Windows signer, certificate issued by Microsoft Windows Production PCA 2026.
+- `C:\\Windows\\System32\\msdelta.dll` exists (642,392 bytes; same last-write timestamp), FileVersion 5.00, SHA-256 `71EAC2CE2E40C01A0E700F005BD3B6493535B7342F509F436F73C36E85F723E5`; Authenticode Valid, Microsoft Windows signer, same certificate.
+- `C:\\Windows\\System32\\wcp.dll` was not present at the tested path (the loop emitted no record). Its location/resource availability remains unsearched.
+- Available commands from PATH: DISM, expand, makecab, sxstrace. No `dumpbin.exe`, `sigcheck.exe`, `sxsexp.exe`, or `wimlib-imagex.exe` found through Get-Command.
+- Windows Kits directory exists at `C:\\Program Files (x86)\\Windows Kits\\10`, with versioned bin directory `10.0.26100.0`. The uninstall inventory returned only ARM64 Desktop Tools, ARM64 headers/libs/metadata, and OnecoreUAP deployment tools; it did not establish that x64 PE inspection utilities are installed.
+- No third-party decoder found or installed. No DLL loaded or executed, no manifest decoded, no servicing or component changes, no activation attempt.
+- Evidence establishes that both Microsoft-signed Windows delta/compression libraries are present; it does not establish that either exposes a usable DCM/PA30 manifest decoder API. FileVersion 5.00 is product metadata, not a Windows build number.
+- Next: inspect the installed Windows Kits bin tree for PE inspection tools and locate `wcp.dll` / its servicing component copies without broad filesystem crawling. Then determine whether a documented Windows servicing interface supports DCM v1 before considering an external decoder.
