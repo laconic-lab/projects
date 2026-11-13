@@ -1347,3 +1347,14 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - `wpr -status` returned exit code 0 with no output. No ETL file was present at `R:\\results.activation-spp-066.etl`.
 - Correction to TEST-66 interpretation: Microsoft WPR documentation defines custom profile start selector as `<path>.wprp!<ProfileName>[.light|.verbose]`; the LoggingMode component in XML profile Id is selected separately with `-filemode`. Thus the correct selector for this exported profile is expected to be `R:\\activation-spp-063-profiles.wprp!FileIORegistry.Verbose` together with `-filemode`, not the full XML Id ending in `.File`. The prior claim that `.File` was necessarily part of the CLI selector was incorrect.
 - No trace was started or confirmed active, no ETL was created, and no Windows configuration or activation state was changed.
+
+
+## TEST-66S — WPR start collision and active recording discovery
+
+- Corrected custom-profile start selector was issued:
+  `wpr -start "R:\\activation-spp-063-profiles.wprp!FileIORegistry.Verbose" -filemode`.
+- WPR returned: "The profiles are already running", Error code `0xC5583001`; PowerShell exit code `-984076287`.
+- Immediately following `wpr -status` confirmed an active recording: elapsed 00:00:27, 0 dropped events, Logging mode File; status command exit 0.
+- This is not evidence that the requested custom FileIORegistry profile was successfully started by this command. It establishes that a WPR file-mode recording was already active when the start request was processed. Its active profile identity/configuration is not shown by the captured status output.
+- No new start should be attempted while this session is active. Do not assume the current ETL will contain the intended FileIO/Registry events until the active session is identified or the trace is stopped and inspected.
+- No activation attempt was made; no system configuration change was made. Recording remains active pending immediate safe disposition.
