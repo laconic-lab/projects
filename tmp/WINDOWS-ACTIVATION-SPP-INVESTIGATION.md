@@ -1602,3 +1602,23 @@ Do not infer entitlement loss merely from local store reconstruction or a contin
 Pursue both hypotheses in parallel at the planning level: investigate B enough to identify the failing operation, while preparing A as a conditional, narrowly scoped repair experiment. Do not spend an open-ended sequence of tests adjusting unrelated permissions. Equally, do not rebuild the store blindly and discard useful evidence.
 
 **Decision status:** tokens.dat-only rebuild is promoted to a serious candidate for the first controlled licensing-store repair, but remains conditional. The user has not yet authorized execution of that rebuild. The next immediate diagnostics remain the SPP task inspection and a properly synchronized capture of a natural activation attempt; the scheduled RulesEngine restart target from TEST-68 is 2026-11-14 13:50:45 local (latest schedule record), with the understanding that the exact execution/activation timing may vary.
+
+
+## TEST-69 — SPP scheduled-task inventory
+
+- Timestamp: 2026-11-13 18:37:58–18:38:00 +01.
+- Read-only PowerShell inventory; no task was started, enabled, disabled, modified, or deleted.
+- Three tasks found under `\\Microsoft\\Windows\\SoftwareProtectionPlatform\\`, all State `Ready`, Author Microsoft Corporation:
+  - `SvcRestartTask`: daily trigger, COM handler action, LastRunTime 30/11/99 00:00:00 (never run), LastTaskResult 267011 (Task Scheduler status `0x41303`, task has not yet run), NextRunTime 2026-11-14 13:49:58 local, zero missed runs.
+  - `SvcRestartTaskLogon`: logon trigger, COM handler action, LastRunTime 2026-11-13 13:50:47 local, LastTaskResult 0, no next run reported.
+  - `SvcRestartTaskNetwork`: event trigger, COM handler action, LastRunTime 2026-11-13 13:44:38 local, LastTaskResult 0, no next run reported.
+- The two event-triggered tasks report successful Task Scheduler result 0. This confirms task execution result, not that the SPP service restart or licensing/activation operation completed successfully.
+- Daily task file: `C:\\Windows\\System32\\Tasks\\Microsoft\\Windows\\SoftwareProtectionPlatform\\SvcRestartTask`, 4,676 bytes, LastWriteTime 2026-11-13 18:29:58 local. Its next scheduled run is 2026-11-14 13:49:58 local.
+- Logon task file: 3,312 bytes, LastWriteTime 2026-11-12 20:31:07 local.
+- Network task file: 3,984 bytes, LastWriteTime 2026-11-12 20:31:07 local.
+- All three task files have owner BUILTIN\\Administrators. Their SDDL/ACE sets differ; no conclusion of defective permissions can be drawn from this inventory alone. Daily task grants Network Service read; logon/network tasks contain service-specific SIDs and different access masks. No ACL changes justified.
+- `wevtutil gl Microsoft-Windows-TaskScheduler/Operational` produced no visible output in the captured transcript; channel enabled state remains undetermined.
+- Key observation: the daily task's file modification timestamp is later than the other two task files and falls on the investigation date. This is an observation only; it does not establish who/what modified the task or whether the change is abnormal. Its XML definition and registration metadata must be inspected before interpreting it.
+- Correlation with TEST-68: Security-SPP Event 16384 scheduled a RulesEngine restart for 2026-11-14 13:50:45 local, while Task Scheduler currently reports the daily task's next run at 13:49:58 local (47 seconds earlier). The close timing is suggestive of a relationship between the task schedule and SPP restart scheduling, but does not prove causality or a task failure.
+- No service, task, activation, registry, ACL, Defender, or licensing-store state was changed.
+- Next: read-only export/inspection of the three task XML definitions and Task Scheduler Operational channel metadata; compare action CLSIDs, principals, triggers, settings and registration dates. Do not import or modify task definitions.
