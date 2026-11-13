@@ -846,3 +846,35 @@ The user explicitly requested that the investigation proceed without asking for 
 **Next diagnostic direction**
 - Inspect the Sysmon configuration source read-only (the service's active configuration is represented by Sysmon's configuration state/registry data) and establish the exact Sysmon command-line behavior/version before drawing conclusions from the silent `-c` invocation.
 - Avoid installing, updating, reconfiguring or restarting Sysmon. No /ato retry.
+
+
+### TEST-51 — Sysmon driver registry configuration inventory
+
+**Timestamp:** 2026-11-13 15:06:13 +01:00  
+**Raw log:** R:\\results.activation-spp-051.txt  
+**Scope:** Read-only inventory of Sysmon service/driver registry configuration. Binary values were not modified or decoded.
+
+**Results**
+- Sysmon user-mode service remains Running, Automatic, LocalSystem, image `C:\\WINDOWS\\system32\\sysmon.exe`.
+- Driver service key `HKLM\\SYSTEM\\CurrentControlSet\\Services\\SysmonDrv` exists:
+  - ImagePath: `system32\\drivers\\sysmondrv.sys`
+  - Start: 0
+  - Type: 1
+  - DisplayName: `@%systemroot%\\system32\\drivers\\sysmondrv.sys,-1001`
+- Driver Parameters key exists and contains:
+  - `CheckRevocation`: Binary, length 1, SHA-256 `4BF5122F344554C53BDE2EBB8CD2B7E3D1600AD631C385A5D7CCE23C7785459A`
+  - `DnsLookup`: Binary, length 1, same SHA-256.
+  - `ConfigFile`: String, literal data `"C:\\WINDOWS\\system32\\sysmon.exe" -i`
+  - `ConfigHash`: String, empty.
+- Only Sysmon and SysmonDrv service keys were listed under Services.
+- Transcript output shows the script's `finally` block was again pasted separately after the try/catch had already completed, so PowerShell reported “finally is not recognized”. The transcript end marker was not captured in the posted output; this is a logging/script-pasting issue, not a registry query failure.
+
+**Interpretation / limitations**
+- The registry confirms the Sysmon driver and Parameters key are present. The one-byte binary settings were intentionally not decoded; their SHA-256 alone does not establish their semantic values.
+- `ConfigFile` contains a command-like string referencing `sysmon.exe -i`, while `ConfigHash` is empty. This is not sufficient to conclude that this is the currently active XML configuration, that no XML configuration exists, or that Event 3 is disabled. It may represent install/configuration provenance or another internal value; interpretation requires version-specific authoritative documentation or corroborating evidence.
+- The active configuration and Event 3 NetworkConnect filtering therefore remain unresolved. Do not infer a default configuration or assume all events are enabled.
+- No registry, service, driver, Sysmon configuration, audit policy, ACL, Defender, licensing store or activation state was changed. No activation attempt occurred.
+
+**Next diagnostic direction**
+- Before further inspection, establish the documented meaning of these Sysmon version 10.0.26100.8457 Parameters values and determine whether the active configuration can be obtained through a supported read-only interface.
+- No registry edits, Sysmon reconfiguration/restart, driver changes or /ato retry.
