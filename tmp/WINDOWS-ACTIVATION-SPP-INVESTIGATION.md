@@ -1125,3 +1125,17 @@ The attempted transcript start used `Start-Transcript -Encoding UTF8`, which is 
 - Several `else` blocks were entered separately after their corresponding `if` blocks, producing command-not-found errors. The primary inventory results remain: no Process Monitor found in checked locations, no matching uninstall registration, WPR present with a silent `-profiles` result and exit code 0, and the listed ETW providers registered.
 - This test establishes that built-in ETW/WPR components are present, but does not yet establish a safe, sufficiently detailed capture recipe for identifying the exact failed SPP operation. No audit policy, ETW session, service, DCOM permission, ACL, Defender setting, licensing data, or activation state was changed.
 
+
+## TEST-59 — WPR profile and ETW provider metadata
+
+- Timestamp: 2026-11-13 16:08:25–16:08:28 +01:00.
+- Raw local log: `R:\results.activation-spp-059.txt`.
+- `wpr.exe -help` succeeded (exit code 0) and identified dedicated help topics for start, stop, status, profiles, providers, tracing, and advanced commands.
+- `wpr.exe -profiles` succeeded (exit code 0) and listed built-in profiles including `GeneralProfile`, `FileIO`, `Registry`, `Network`, `DiskIO`, and `Minifilter`, among others. This confirms usable profile names are exposed by this Windows Performance Recorder build.
+- The inspected conventional WPR profile directories and Windows Performance Toolkit install directories were absent. `C:\Windows\System32\WPRProfiles` was not present, so no `.wprp` files were enumerated there. This does not invalidate the profiles enumerated by WPR itself; profile definitions may be embedded or stored elsewhere.
+- The transcript did not establish whether `xperf.exe` is installed: the separate `else` block was entered after the `if` block and produced a command-not-found error. Treat xperf availability as unknown.
+- `wevtutil gp Microsoft-Windows-Kernel-File /ge:true /gm:true` returned 575 lines of provider metadata. The displayed first 100 lines included file operation tasks such as Create, Cleanup, Close, Read, Write, SetInformation, Rename, QueryInformation, FSCTL, and OperationEnd.
+- `wevtutil gp Microsoft-Windows-Kernel-Registry /ge:true /gm:true` returned 724 lines of provider metadata. The displayed first 100 lines confirmed Analytic and Performance channels and multiple registry operation opcodes. The transcript only displayed the first 100 lines of each metadata result, so status/result fields and relevant event templates were not yet inspected.
+- The WPR profile listing makes built-in FileIO and Registry profiles available as plausible tracing components. However, this test did not establish whether their captured events include the operation result/status needed to identify `ACCESS DENIED`, nor whether their combined trace can be narrowly filtered to the SPP process chain.
+- No trace was started, no audit policy or ETW provider configuration was changed, and no services, DCOM permissions, ACLs, Defender settings, licensing data, or activation state were changed. No activation attempt was made.
+
