@@ -542,3 +542,29 @@ The user explicitly requested that the investigation proceed without asking for 
 - Investigate why the SPP service is stopped and whether a controlled service start produces relevant events or access failures. A start-only experiment may change service runtime state and should be logged with before/after state and event correlation; it must not be combined with an activation retry.
 - Investigate the executable version/build provenance against the installed component servicing state before considering file repair.
 - No further `/ato` attempt is authorized.
+
+
+### TEST-44 — Controlled SPP service start
+
+**Timestamp:** 2026-11-13 14:50:00 +01:00  
+**Raw log:** `R:\results.activation-spp-044.txt`  
+**Scope:** Attempted to start `sppsvc`, observe its state and collect event records. No activation attempt, service configuration change, permission change, registry edit, or licensing-store modification was performed.
+
+**Findings**
+- Before test: `sppsvc` was STOPPED; StartMode Auto; account `NT AUTHORITY\NetworkService`; PID 0; exit codes 0.
+- `Start-Service -Name sppsvc` returned SUCCESS.
+- After test: service was RUNNING; StartMode remained Auto; account remained Network Service; PID 9368; exit codes 0.
+- CIM process query returned PID 9368 and parent PID 1076, but did not return an executable path or command line. The service process was nevertheless associated with the running service PID.
+- The Security-SPP event query failed with `Get-WinEvent : The parameter is incorrect` (EventLogException). The transcript then stopped in the finally block; the subsequent Service Control Manager event query was not executed. Therefore TEST-44 contains no valid event-correlation result.
+
+**Interpretation**
+- The service can be started successfully through the Service Control Manager and reaches RUNNING state under its configured Network Service account. This argues against a simple inability to launch the service or a general service-control denial.
+- It does not establish that the service can complete activation, access every licensing object, or successfully process an activation request.
+- The earlier STOPPED observation was not, by itself, evidence of a persistent service failure.
+- No further service changes are justified by this test. Leave the service in its observed running state unless Windows stops it naturally; do not change its startup type or account.
+- The event-query error is a test instrumentation failure, not evidence of an SPP failure.
+
+**Next diagnostic direction**
+- First capture the current service state and recent SPP/System events using a corrected event query. Avoid repeating the service start because it has already succeeded.
+- Since the service is now running, use the active service process/PID to inspect its process identity and relevant runtime state. If pursuing access-denied attribution, collect targeted audit/ETW evidence rather than broad ACL inventories.
+- Do not combine event collection with an activation retry. No further `/ato` attempt is authorized.
