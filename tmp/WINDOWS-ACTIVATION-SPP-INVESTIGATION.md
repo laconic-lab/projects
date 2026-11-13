@@ -1718,3 +1718,12 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - Recursive WinSxS filename search returned four entries (two duplicate-looking amd64 paths and two wow64 paths), all under component directory identities containing version `10.0.26100.9818`. The command's table formatting truncated the full paths, and it did not inspect file versions, hashes, manifests, hardlinks, or servicing ownership. This is a significant lead: the active System32 handler reports file version 10.0.26100.8457 while the matching WinSxS component directory name reports 10.0.26100.9818. It is not yet proof of a mismatched or damaged component; Windows component directories can contain files whose individual file version differs from the package identity, and the exact manifest must be checked.
 - No DLL, COM registration, service, task, ACL, or licensing-store changes.
 - Next: enumerate the exact four WinSxS paths without truncation; compare file size, version, SHA-256 and hardlink targets against System32; inspect the component manifest and CBS package/servicing metadata for `microsoft-windows-security-spp-clientext` at `10.0.26100.9818`. Do not replace the DLL or run SFC/DISM repair until the component ownership and manifest evidence are understood.
+
+
+## TEST-74 — SPP component-store comparison (incomplete capture)
+
+- TEST-74 began at 2026-11-13 18:52:35 +01. The supplied transcript ends immediately after the `WIN SXS MATCHING FILES` heading; it does not include a PowerShell prompt, the result of the recursive enumeration, the per-file comparisons, manifest inspection, or `Stop-Transcript`. Treat this as an incomplete transcript/capture, not a completed negative search.
+- Confirmed active System32 file remains `C:\\Windows\\System32\\sppcext.dll`, size 659,456 bytes, version `10.0.26100.8457`, last write 2026-10-30 03:13:07 UTC, SHA-256 `4CAE59336E7991573E1B0DB82FFF8287E48A860C221850EF10053C727F39F896`.
+- `fsutil hardlink list` produced no visible output in the supplied excerpt. Exit code and stderr were not captured; hardlink status is therefore unknown.
+- The WinSxS recursive enumeration had started but no results were supplied. No conclusion can yet be drawn about component-store copies, file hashes, hardlinks, or manifests.
+- No modification or repair command was issued. Await remaining output from the same TEST-74 run before considering a narrower follow-up; do not launch a duplicate recursive search merely because this excerpt is truncated.
