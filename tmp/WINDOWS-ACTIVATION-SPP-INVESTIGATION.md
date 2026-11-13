@@ -1424,3 +1424,13 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Three records exposed `ProcessId=10016`, `ThreadId=3268`; five exposed process/thread ID zero.
 - The ETL is readable by this cmdlet, but these initial records are not usefully decoded by the displayed fields. This does not establish that the kernel FileIO/Registry payloads are inaccessible or absent.
 - Next inspect the full metadata and XML of one record before choosing an extraction route. No Windows state or ETL content was changed.
+
+
+## TEST-67S — Raw ETL event metadata and XML inspection
+
+- `Get-WinEvent -Path R:\activation-spp-066S.etl -Oldest -MaxEvents 1` returned one record.
+- Record metadata: ProviderId `68fdd900-4a3e-11d1-84f4-0000f80464e3`, blank ProviderName, Event ID 0, Version 2, Level 0, Opcode 80, ProcessId 10016, ThreadId 3268, timestamp 2026-11-13 16:20:51.2912701Z.
+- XML contained a `ProcessingErrorData` element with ErrorCode 15003 and a zero-filled EventPayload; no useful decoded event data was exposed.
+- Interpretation: this Get-WinEvent path is not decoding the raw ETW record into its event schema/payload. This is not evidence that the ETL is corrupt; TEST-66W TraceRpt summary successfully parsed the trace and identified the expected FileIO, Registry and process/thread event families.
+- Stop using Get-WinEvent as the primary ETL payload extraction method. Next choose a trace-aware decoder with bounded output. Avoid a full 4.1-million-event XML/CSV export until filtering and storage requirements are understood.
+- No ETL content or Windows configuration was changed.
