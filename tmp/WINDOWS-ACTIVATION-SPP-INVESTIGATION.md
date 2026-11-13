@@ -1434,3 +1434,12 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Interpretation: this Get-WinEvent path is not decoding the raw ETW record into its event schema/payload. This is not evidence that the ETL is corrupt; TEST-66W TraceRpt summary successfully parsed the trace and identified the expected FileIO, Registry and process/thread event families.
 - Stop using Get-WinEvent as the primary ETL payload extraction method. Next choose a trace-aware decoder with bounded output. Avoid a full 4.1-million-event XML/CSV export until filtering and storage requirements are understood.
 - No ETL content or Windows configuration was changed.
+
+
+## Investigation checkpoint — TEST-67 series and ETL timing
+
+- TEST-67S established that Get-WinEvent exposes raw ETL records with a processing error (15003), blank provider name, and zero-filled payload rather than decoding the needed kernel event data. This extraction route is not suitable for operation-level analysis.
+- More importantly, the saved ETL's first record is timestamped 2026-11-13 16:20:51.291Z (16:20:51 local, UTC+1); the saved trace ended around 16:22:33 local. The latest known Security-SPP Event 8198 occurred at 13:50:50 local on the same date.
+- Therefore the 84-second ETL capture began approximately 2 hours 30 minutes after the latest known activation failure. It cannot contain the previously observed failed activation sequence, so decoding its millions of unrelated file/registry operations is not a productive next step for this incident.
+- Preserve the ETL locally as a tooling/profile artifact; do not treat it as evidence of the cause of the activation failure.
+- Next evidence-gathering step: inspect the existing Security-SPP Event 16384 details for the scheduled restart time, then plan a short, bounded trace around the next naturally occurring automatic activation attempt. Do not invoke `/ato`; the one approved attempt in TEST-36 remains consumed. Any new trace must have a clear time/disk bound and be stopped immediately after the relevant Event 8198 or at its limit.
