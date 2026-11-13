@@ -1139,3 +1139,33 @@ The attempted transcript start used `Start-Transcript -Encoding UTF8`, which is 
 - The WPR profile listing makes built-in FileIO and Registry profiles available as plausible tracing components. However, this test did not establish whether their captured events include the operation result/status needed to identify `ACCESS DENIED`, nor whether their combined trace can be narrowly filtered to the SPP process chain.
 - No trace was started, no audit policy or ETW provider configuration was changed, and no services, DCOM permissions, ACLs, Defender settings, licensing data, or activation state were changed. No activation attempt was made.
 
+
+
+## TEST-58 — operation-level trace capability inventory
+
+- Read-only inventory at 2026-11-13 16:07:17 +01:00; raw transcript: `R:\\results.activation-spp-058.txt`.
+- Process Monitor was not found through PATH or the checked common installation/download/desktop/tool locations. No matching Process Monitor/Sysinternals application registration was found in the checked uninstall registry locations. This is a bounded search, not proof that no copy exists elsewhere.
+- `wpr.exe` exists at `C:\\Windows\\System32\\wpr.exe`; initial `wpr -profiles` invocation returned exit code 0 but no profile text was captured in this test. TEST-59 subsequently confirmed the profile list.
+- `logman query providers` confirmed registration of Microsoft-Windows-CodeIntegrity, Microsoft-Windows-DistributedCOM, Microsoft-Windows-Kernel-File, Microsoft-Windows-Kernel-Process, Microsoft-Windows-Kernel-Registry and Microsoft-Windows-Security-Auditing.
+- The pasted script was entered in separate chunks: standalone `else` blocks produced command-not-found errors after their corresponding `if` blocks had already completed. These errors affect only optional display branches; positive/negative findings above are from the executed checks. No configuration or system state was changed.
+
+## TEST-59 — WPR profile and ETW trace-definition inventory
+
+- Read-only inventory at 2026-11-13 16:08:25 +01:00; raw transcript: `R:\\results.activation-spp-059.txt`.
+- WPR version reported `10.0.26100`. `wpr -profiles` succeeded (exit code 0) and listed built-in profiles including `GeneralProfile`, `FileIO`, `Registry`, `DiskIO`, `Network`, and others. FileIO and Registry are available as candidate focused trace profiles.
+- The checked WPR profile directories and Windows Performance Toolkit directories were not present. This does not negate the built-in profiles enumerated by WPR.
+- `xperf.exe` availability was not conclusively recorded: the intended `else` block was pasted separately and failed as a standalone command. Do not classify xperf as absent based on this test.
+- `wevtutil gp` returned provider metadata: 575 lines for Microsoft-Windows-Kernel-File and 724 lines for Microsoft-Windows-Kernel-Registry. The excerpts establish event/task/keyword definitions, but the displayed excerpts do not establish the full payload schema or identify a result/status field for the operations of interest.
+- Standalone `else` command-not-found errors arose from chunked entry of conditional blocks. No WPR recording was started; no system configuration was changed.
+
+## TEST-60 — ETW operation-result field inspection
+
+- Read-only inspection at 2026-11-13 16:09:12 +01:00; raw transcript: `R:\\results.activation-spp-060.txt`.
+- WPR help confirmed `wpr -start` accepts built-in or custom profiles and supports file-mode recording. Provider help documents provider enumeration. WPR status returned `WPR is not recording` (exit code 0).
+- Kernel-File provider metadata search returned 107 matches for terms including status/result/NTSTATUS/access/denied/error and event/payload identifiers. The displayed first 100 matches showed operation/event definitions (including create, cleanup, close, read, write, set-information, rename, query-information, FSCTL and operation-end), keywords and event IDs, but did not expose a confirmed operation-result field in the captured excerpt.
+- Kernel-Registry metadata search returned 106 matches. The displayed first 100 matches showed operation keywords/events including create/open/delete/query key, query/set security, enumerate/query/set/delete values and related operations, but did not expose a confirmed operation-result field in the captured excerpt.
+- Therefore TEST-60 does not yet prove that the selected provider payloads will expose the failing NTSTATUS. It does establish that WPR is idle and the relevant provider metadata is queryable. No trace was started, no activation attempt was made, and no configuration, ACL, service, Defender or licensing state was changed.
+
+### Trace-capture decision after TEST-58–60
+
+WPR's built-in FileIO and Registry profiles are available, but the provider metadata excerpts collected so far are insufficient to guarantee that the trace will contain a usable status/result field or capture the relevant security check. Before recording, inspect the complete event template/payload definitions for the relevant Kernel-File and Kernel-Registry events, and determine whether WPR can capture the required process/thread correlation and access-denied result without an unnecessarily broad or long-running trace. The next step should remain a bounded capability/schema inspection; do not start a trace or trigger activation until its scope, output location, duration and stop procedure are defined.
