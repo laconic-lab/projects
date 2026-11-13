@@ -1622,3 +1622,30 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - Correlation with TEST-68: Security-SPP Event 16384 scheduled a RulesEngine restart for 2026-11-14 13:50:45 local, while Task Scheduler currently reports the daily task's next run at 13:49:58 local (47 seconds earlier). The close timing is suggestive of a relationship between the task schedule and SPP restart scheduling, but does not prove causality or a task failure.
 - No service, task, activation, registry, ACL, Defender, or licensing-store state was changed.
 - Next: read-only export/inspection of the three task XML definitions and Task Scheduler Operational channel metadata; compare action CLSIDs, principals, triggers, settings and registration dates. Do not import or modify task definitions.
+
+
+## TEST-70 — SPP task XML and Task Scheduler channel metadata
+
+- Timestamp: 2026-11-13 18:39:04 +01.
+- Read-only export using `Export-ScheduledTask`; no task execution or modification.
+- All three task definitions identify the same COM handler CLSID: `{B1AEBB5D-EAD9-4476-B375-9C3ED9F32AFC}`.
+  - Daily `SvcRestartTask`: COM handler Data `timer`, principal Network Service (SID S-1-5-20).
+  - `SvcRestartTaskLogon`: COM handler Data `logon`, principal Interactive Users group (SID S-1-5-4).
+  - `SvcRestartTaskNetwork`: COM handler Data `network`, principal Network Service (SID S-1-5-20).
+- Registration source/author/description resource strings refer to `%systemroot%\\system32\\sppc.dll` resources -200 through -203. This is a strong lead for resolving the handler's implementation, but the resource strings alone do not prove the COM server binary.
+- Daily task XML:
+  - Task version 1.6; RegistrationInfo Version 1.0.
+  - Calendar daily trigger StartBoundary `2026-11-14T13:50:25+01:00`.
+  - Task Scheduler Info from TEST-69 reported NextRunTime `2026-11-14 13:49:58` local, 27 seconds earlier than XML StartBoundary. Difference is unresolved; inspect dynamic registration/COM implementation and do not infer corruption.
+  - Network Service principal, Hidden true, MultipleInstancesPolicy IgnoreNew, RestartOnFailure 3 times at 1-minute intervals, ExecutionTimeLimit PT0S, StartWhenAvailable true; battery restrictions true.
+- Logon task: LogonTrigger; Interactive Users principal; handler Data `logon`; Hidden true; IgnoreNew; RestartOnFailure 3 at 1-minute intervals; no execution time limit.
+- Network task: EventTrigger on NetworkProfile/Operational EventID 10000; Network Service principal; handler Data `network`; Hidden true; IgnoreNew; RestartOnFailure 3 at 1-minute intervals; no execution time limit; battery restrictions true.
+- All task XML RegistrationInfo security descriptors grant SYSTEM and Administrators Full Access and include service/task-specific SIDs with differing access masks. No evidence yet of a defective descriptor.
+- Task Scheduler Operational channel exists but is disabled: IsEnabled False, Circular, max size 10 MiB, no RecordCount/LastWriteTime. No historical task events were available; channel was not enabled.
+- Correlation with TEST-69 and TEST-68:
+  - Logon task last ran 2026-11-13 13:50:47, result 0, close to Security-SPP Event 8198/RulesEngine scheduling around 13:50:47–13:50:50.
+  - Network task last ran 13:44:38, result 0, near broker/activation activity around 13:44.
+  - Task Scheduler result 0 means scheduler reports successful task action execution, not proof the SPP service restart or licensing operation succeeded.
+  - Daily XML StartBoundary 13:50:25 local vs scheduler NextRunTime 13:49:58 local is a 27-second discrepancy.
+- Next diagnostic: read-only resolve COM CLSID and AppID registrations (including InprocServer32, LocalServer32, Service, TreatAs, AppID and threading model), inspect referenced DLL path, signature, version, hash, and file ACL. Do not invoke/register the COM server or alter tasks.
+- No activation, service, task, event-channel, registry, ACL, Defender, or licensing-store changes.
