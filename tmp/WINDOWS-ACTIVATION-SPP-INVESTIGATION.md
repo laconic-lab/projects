@@ -1687,3 +1687,21 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - Version divergence between SppExtComObj and sppc/sppsvc is a provenance/servicing question, not proof of a defect. The component store and servicing manifest should be checked before any replacement or repair.
 - No COM registration, DLL, task, service, or licensing-store change was made.
 - Next diagnostic: resolve the CLSID with direct 64-bit and 32-bit .NET registry API reads (including exit/error capture), inspect any InprocServer32/LocalServer32/ProgID/AppID values and their target binary metadata, then verify file/component provenance against the installed component store. Do not run regsvr32 or modify COM registration based on the current evidence.
+
+
+## TEST-72 — Direct registration lookup for the SPP task COM handler
+
+- Read-only .NET RegistryKey lookup at 2026-11-13 18:49:22 +01 resolved CLSID `{B1AEBB5D-EAD9-4476-B375-9C3ED9F32AFC}` in both Registry64 and Registry32 views.
+- Both views contain the same class registration:
+  - Default class name: `SppSvcRestartTaskHandler Class`.
+  - `InprocServer32` default: `C:\\Windows\\System32\\sppcext.dll`.
+  - `ThreadingModel=Both`.
+  - No `LocalServer32`, `AppID`, `ProgID`, or `TreatAs` subkeys were present in the queried class key.
+- This resolves the empty TEST-71 `reg.exe query` output: the COM registration exists; the earlier command output was inconclusive, not proof of a missing registration.
+- SHA-256 and Authenticode verification:
+  - `sppc.dll`, version 10.0.26100.8457, SHA-256 `139FDC103093B39779B802D439CBEC7D4198B9095FEFE2CDBF53B4228284894C`, signature Valid.
+  - `sppsvc.exe`, version 10.0.26100.8457, SHA-256 `5E8D0BD26B36248FDD8EE62AF3D698094BAFA189929D2DC424A76D9E1A9D7B09`, signature Valid.
+  - `SppExtComObj.Exe`, version 10.0.26100.9549, SHA-256 `33602174C535C543FA852598C4A25A5D57D8808559D40333F3C2560397F8C3BF`, signature Valid.
+- The COM handler DLL `sppcext.dll` was identified but was not yet hashed, signature-checked, version-checked, or traced at runtime. This is the next direct target.
+- All three inspected files have valid Microsoft Authenticode signatures. The version difference between SppExtComObj and sppc/sppsvc remains a servicing-provenance question, not proof of corruption.
+- No COM registration or binary was modified; no task/service/licensing-store change.
