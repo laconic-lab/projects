@@ -1857,3 +1857,64 @@ The investigation has accumulated substantial evidence, but the next step must a
 5. **The actual repair decision remains open.** A tokens.dat-only rebuild is the only licensing-store reconstruction candidate promoted in this document, but is not authorized. Before asking the user to authorize it, verify the exact Microsoft procedure's applicability to this Windows 11 build and prepare a concrete preservation, rollback, and verification plan. Do not broaden the operation to data.dat/cache.dat.
 
 **Next-action rule:** pursue one synchronized, bounded operation-level capture only if it can be prepared directly and safely for the next natural SPP activation attempt. Otherwise stop adding audit tests and present the evidence-based choice between proceeding with a separately authorized tokens.dat-only repair experiment and deferring repair. Do not create another sequence of exploratory tests, do not repeat `/ato`, and do not treat additional inventory as progress by itself.
+
+
+## Follow-up findings — 2026-11-13 evening (Sysmon / DCOM / account context)
+
+### Correlation of the 20:33 Security-SPP failures with Sysmon process creation
+
+Three additional Security-SPP Event 8198 records were examined:
+
+| Local event time | Trigger | Process ID | Result |
+|---|---|---:|---|
+| 2026-11-13 20:33:19 | UserLogon | 9448 | `0x80070005` |
+| 2026-11-13 20:33:20 | NetworkAvailable | 9492 | `0x80070005` |
+| 2026-11-13 20:33:20 | NetworkAvailable | 9920 | `0x80070005` |
+
+All three records carried the same activation RuleId `3482d82e-ca2c-4e1f-8864-da0267b484b2`, AppId `55c92734-d682-4d71-983e-d6ec3f16059f`, and SkuId `4de7cb65-cdf1-4de9-8ae8-e3cce27b9f2c`.
+
+Sysmon Event ID 1 process-creation records matched the three PIDs to:
+
+| PID | Sysmon creation time (UTC) | Image / command context | Process identity | Parent |
+|---:|---|---|---|---|
+| 9448 | 2026-11-13 19:33:15.365 | `C:\Windows\System32\slui.exe`, `Trigger=UserLogon` | `NT AUTHORITY\NETWORK SERVICE` | `SppExtComObj.exe`, PID 9296, same identity |
+| 9492 | 2026-11-13 19:33:15.417 | `C:\Windows\System32\slui.exe`, `Trigger=NetworkAvailable` | `NT AUTHORITY\NETWORK SERVICE` | `SppExtComObj.exe`, same identity |
+| 9920 | 2026-11-13 19:33:17.098 | `C:\Windows\System32\slui.exe`, `Trigger=NetworkAvailable` | `NT AUTHORITY\NETWORK SERVICE` | `SppExtComObj.exe`, same identity |
+
+The three `slui.exe` records had the same SHA-256. The process-creation evidence therefore confirms that these automatic activation requests were executed in the Network Service security context and launched by the SPP COM extension process. It does **not** identify which subsequent operation or resource returned Access Denied. The process identity alone is not proof that a particular file, registry key, COM endpoint, service, or licensing object has an incorrect ACL.
+
+**PID reuse caution:** PID 9448 was later reused by `ApplicationFrameHost.exe` at approximately 20:33:30 local time, with a different Sysmon ProcessGuid. That later process is unrelated to the 20:33:19 `slui.exe` activation event. PID-only searches without a time/ProcessGuid boundary can therefore introduce false matches.
+
+### DCOM permission inspection and the Microsoft SELF guidance
+
+The user inspected Component Services → Computers → My Computer → Properties → COM Security:
+
+- **Access Permissions → Edit Default:** `SELF` was present with Full Access.
+- **Access Permissions → Edit Limits:** `SELF` was not listed; `Everyone` was listed with Full Access.
+- Launch and Activation Permissions were not established by this inspection.
+
+The Microsoft troubleshooting article's specific recommendation to restore `SELF` in the default Access Permissions list does not match the observed Edit Default state: `SELF` was already present there. The absence of a separate `SELF` entry in Edit Limits, while `Everyone` has Full Access, does not by itself demonstrate a restrictive limit causing this failure. No DCOM permission was changed.
+
+Adding the interactive user `Laco` would not be equivalent to restoring `SELF`, nor would it directly grant rights to the observed automatic activation process, which runs as `NT AUTHORITY\NETWORK SERVICE`. These are distinct security principals. No evidence currently justifies adding `Laco`, `NETWORK SERVICE`, or another principal to a DCOM ACL.
+
+Reference: [Microsoft — Error 0x80070005 (Access denied) when activating Windows](https://learn.microsoft.com/en-us/troubleshoot/windows-server/licensing-and-activation/error-0x80070005-access-denied).
+
+### Local account / elevation context
+
+Read-only account inspection showed:
+
+- Local account `Laco` is enabled (SID ending `-1001`).
+- The current `Laco` account is a member of the local Administrators group; the tested PowerShell token reported Administrator role `True` and High Mandatory Level.
+- The built-in French account `Administrateur` is disabled. The other built-in accounts shown (`DefaultAccount`, `Invité`, and `WDAGUtilityAccount`) were also disabled.
+
+This confirms that the tested `Laco` shell was elevated; it does not change the security identity of the SPP automatic activation process. Enabling the built-in `Administrateur` account or adding `Laco` to DCOM permissions is not supported by the current evidence and is not recommended as an activation workaround.
+
+### Findings and decision
+
+1. The latest automatic Event 8198 failures are directly correlated with three short-lived `slui.exe` processes launched by `SppExtComObj.exe` as Network Service.
+2. This strengthens attribution of the failing automatic activation path, but does not identify the denied operation or object.
+3. The Microsoft article's `SELF`-in-Edit-Default correction is not indicated by the observed default Access Permissions list, where `SELF` is already present.
+4. The interactive administrator `Laco` is not the identity executing these automatic activation processes. Adding `Laco` would not be a principled substitute for correcting a demonstrated permission failure.
+5. No DCOM, account, service, registry, file, ACL, activation, or licensing-store changes were made during this follow-up.
+
+**Next-action boundary:** do not repeat `/ato`, enable the built-in Administrator account, or make speculative DCOM/ACL changes. The exact denied operation remains unknown. Prefer the practical recovery path already recorded in the staged plan (Activation troubleshooter, then a separately authorized and fully planned tokens.dat-only recovery decision) over another broad inventory loop. Any licensing-store modification still requires separate explicit authorization and a verified persistent preservation/rollback plan.
