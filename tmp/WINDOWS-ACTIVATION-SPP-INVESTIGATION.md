@@ -1113,3 +1113,15 @@ The attempted transcript start used `Start-Transcript -Encoding UTF8`, which is 
 - This narrows the process chain but does not identify the specific API, COM method, RPC, file, registry, or other resource operation returning `0x80070005`. The DCOM 10016 events still identify Network Service as the requesting security identity but do not identify the client PID or prove that the WaaS DCOM denial caused the SPP activation failure.
 - No services, DCOM permissions, ACLs, Defender settings, licensing data, or activation state were changed. No activation attempt was made.
 
+
+## TEST-58 — operation-level tracing capability inventory
+
+- Timestamp: 2026-11-13 16:07:17–16:07:35 +01:00.
+- Raw local log: `R:\results.activation-spp-058.txt`.
+- Read-only inventory; no application was launched, installed, or configured, and no activation attempt was made.
+- Process Monitor was not found in PATH, common Sysinternals/Tools locations, Downloads, Desktop, or the inspected uninstall registry entries. Therefore no executable signature or version could be checked. The search was intentionally limited to common locations and does not prove the executable is absent everywhere.
+- `wpr.exe` exists at `C:\Windows\System32\wpr.exe`. `wpr -profiles` returned no visible profile listing in the transcript but exit code 0. Profile availability and usable profile names remain unverified; do not infer that no profiles exist.
+- `logman query providers` confirmed registration of these relevant ETW providers: Microsoft-Windows-CodeIntegrity, Microsoft-Windows-DistributedCOM, Microsoft-Windows-Kernel-File, Microsoft-Windows-Kernel-Process, Microsoft-Windows-Kernel-Registry, and Microsoft-Windows-Security-Auditing. Provider registration alone does not prove the required event keywords, access-denied status fields, or a useful trace configuration are available.
+- Several `else` blocks were entered separately after their corresponding `if` blocks, producing command-not-found errors. The primary inventory results remain: no Process Monitor found in checked locations, no matching uninstall registration, WPR present with a silent `-profiles` result and exit code 0, and the listed ETW providers registered.
+- This test establishes that built-in ETW/WPR components are present, but does not yet establish a safe, sufficiently detailed capture recipe for identifying the exact failed SPP operation. No audit policy, ETW session, service, DCOM permission, ACL, Defender setting, licensing data, or activation state was changed.
+
