@@ -1386,3 +1386,23 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Help also supports XML/HTML reports and XML/CSV/EVTX dumps, but none were generated in this test.
 - No ETL processing was performed; source ETL remains unchanged.
 - Next step: generate only a summary text report on R:, without `-o` or `-report`, to avoid exporting the full event stream.
+
+
+## TEST-66W — WPR ETL summary report
+
+- Source summary published in the repository: `tmp/summary.activation-spp-066S.txt`; source ETL remains local at `R:\\activation-spp-066S.etl` and was not uploaded.
+- TraceRpt processed the ETL successfully. Reported 678 buffers, 4,100,685 total events, 0 lost events, and 84 seconds elapsed. Start and end dates both reported Friday 13 November 2026; the summary output used the system's French date localization.
+- Kernel FileIO provider GUID `90cbdc39-4a3e-11d1-84f4-0000f80464e3` is present. The summary includes 102,927 FileIO OperationEnd events, 23,252 Create, 621 FileCreate, 6,907 Write, 14,230 Read, 16,207 Close, 16,420 Cleanup, 15,937 QueryInfo, and additional file operations.
+- Kernel Registry provider GUID `ae53722e-c863-11d2-8659-00c04fa321a1` is present. The summary includes 285,618 QueryValue, 236,067 Open, 180,004 Query, 193,875 Close, 31,291 EnumerateKey, 30,721 EnumerateValueKey, 12,812 Create, 857 SetValue, 249 DeleteValue, and other registry operations.
+- Process/thread events and stack-walk events are also present (including 26 Process Start, 16 Process End, and 1,279,615 StackWalk events). Numerous ancillary providers are present, including Microsoft Antimalware providers.
+- Interpretation: the saved recording contains substantial kernel FileIO and Registry activity and operation-end events, with zero reported lost events. This makes it a potentially useful source for offline correlation of process activity and file/registry operations. The summary alone does not show event payloads, status values, process IDs for individual operations, whether the active session was exactly the intended custom profile, or whether an SPP-triggered activation occurred during the 84-second interval. It therefore does not yet identify the operation responsible for `0x80070005`.
+- The trace is broad and includes system-wide activity and security-product providers. Keep the raw ETL local; do not publish/upload it. The text summary is suitable for repository documentation.
+- No activation attempt, service restart, ACL/permission change, Defender change, licensing-store change, or other Windows state change occurred during this summary test.
+
+## Investigation checkpoint — transition from inventory to targeted empirical diagnosis
+
+- Established: Windows Pro is in Notification state; automatic activation attempts launched `slui.exe` under Network Service through `SppExtComObj.exe`; Security-SPP Event 8198 records `0x80070005` and `0x8007139F`; the ProfileList Network Service ACL correction did not resolve the failure.
+- Established: no demonstrated Defender block, blanket SPP store ACL defect, SPP service descriptor defect, or causal DCOM/WaaSMedicSvc denial. Do not repeat broad ACL/Defender/DCOM changes or reset the licensing store on current evidence.
+- New opportunity: the local ETL summary confirms kernel FileIO and Registry operation families, including FileIO OperationEnd events and process/thread context, with zero reported lost events. The next diagnostic objective is to extract only the relevant interval/process activity and identify any failed file or registry operation associated with the SPP broker/activation process. The summary is not itself proof of an access-denied operation.
+- The next phase may include controlled state-changing experiments, but each must be tied to a specific finding, narrowly scoped, reversible where possible, and followed by verification and canonical documentation. Do not repeat `/ato` merely to generate another failure; the single approved TEST-36 attempt has already been consumed. Prefer a naturally occurring activation event for correlation unless a new activation attempt is separately justified and authorized.
+- Candidate sequence: (1) offline ETL event-level extraction and correlation; (2) select one specific suspected resource/API only if the trace identifies it; (3) apply one minimal reversible intervention with a saved before-state; (4) observe service/broker behavior and natural activation result; (5) verify whether the notification state and Event 8198 outcome changed. If ETL cannot be parsed adequately with built-in tools, reassess the least invasive local analysis option before installing additional tooling.
