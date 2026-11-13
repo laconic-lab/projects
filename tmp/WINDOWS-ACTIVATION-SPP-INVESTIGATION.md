@@ -1268,3 +1268,59 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Consequently, the XML loading, provider GUID resolution, and provider configuration inspection did not execute. No provider identity or event coverage conclusion can be drawn from TEST-65R.
 - No ETW recording was started, no profile file was modified, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
 - Process correction for the next attempt: remove conditional branching entirely and execute the known-existing profile read directly, avoiding split `if/else` blocks.
+
+
+## TEST-63 — exported FileIO + Registry WPR profile inspection
+
+- Timestamp: 2026-11-13 16:13:25–16:13:27 local.
+- Raw transcript: `R:\\results.activation-spp-063.txt`.
+- `wpr -exportprofile FileIO+Registry R:\\activation-spp-063-profiles.wprp -filemode` returned exit code 0 and created an 11,386-byte XML profile. XML parsed successfully. The attempted SHA-256 output was blank in the transcript, so no hash is recorded.
+- Exported profile: `FileIORegistry.Verbose.File`, Name `FileIORegistry`, Description `RunningProfile:Registry.Verbose.File, FileIO.Verbose.File`, LoggingMode File, DetailLevel Verbose.
+- System provider enables CpuConfig, CSwitch, DiskIO, DPC, FileIO, FileIOInit, HardFaults, IdealProcessor, Interrupt, Loader, MemoryInfo, ProcessCounter, Power, ProcessThread, ReadyThread, SampledProfile, ThreadPriority, WDFDPC, WDFInterrupt and Registry.
+- Stack collection includes FileCreate, FileCleanup, FileClose, FileRead, FileWrite, FileSetInformation, FileDelete, FileRename, FileDirEnum, FileFlush, FileQueryInformation, FileFSCTL, FileOpEnd, FileDirNotify, ThreadDCEnd, and registry create/open/delete/query/set/enumerate/flush/security operations.
+- System and event collectors each specify 1,024-KiB buffers and 40 buffers.
+- The profile is broad, not SPP-process-filtered. It includes the FileIO and Registry instrumentation needed for the next investigation stage, but also CPU, disk, memory, power, and other system activity. Any recording should therefore be short and bounded.
+- The initial provider listing printed EventProvider attributes rather than nested XML; the subsequent full profile XML was separately supplied and confirms the SystemProvider keywords and stacks above.
+- TEST-63 did not start a recording or change system configuration.
+
+## TEST-64 — WPR memory-mode profile preflight (incomplete)
+
+- Timestamp: 2026-11-13 16:15:11–16:15:15 local.
+- Raw transcript: `R:\\results.activation-spp-064.txt`.
+- The attempt to export `FileIO+Registry` without `-filemode` did not execute as intended: the `else` block was pasted separately and PowerShell reported that `else` was not recognized.
+- `wpr -status` returned exit code 0 with no output; this is consistent with WPR remaining idle, but does not establish whether the default/memory-mode profile can be exported.
+- No trace was started and no system configuration was changed. Treat memory-mode profile behavior as untested.
+
+## TEST-65 / TEST-65R — provider resolution attempts (incomplete)
+
+- Raw transcripts: `R:\\results.activation-spp-065.txt` and `R:\\results.activation-spp-065R.txt`.
+- TEST-65 failed at PowerShell parse time because a pipeline followed a `foreach` statement block in a form not accepted by Windows PowerShell 5.1. The separately pasted `else` in TEST-65R also failed. Neither attempt produced a valid provider-resolution result.
+- No trace was started and no system configuration was changed.
+
+## TEST-65S — WPR event-provider GUID resolution
+
+- Timestamp: 2026-11-13 16:17:35–16:17:55 local.
+- Raw transcript: `R:\\results.activation-spp-065S.txt`.
+- Successfully parsed the exported TEST-63 WPR profile and extracted 19 unique EventProvider GUIDs.
+- Seventeen GUIDs resolved through `Get-WinEvent -ListProvider *`:
+  - `36b6f488-aad7-48c2-afe3-d4ec2c8b46fa` — Microsoft-Windows-Performance-Recorder-Control (56 events).
+  - `57277741-3638-4a4b-bdba-0ac6e45da56c` — Microsoft-JScript (258).
+  - `e13c0d23-ccbc-4e12-931b-d9cc2eee27e4` — Microsoft-Windows-DotNETRuntime (168).
+  - `b675ec37-bdb6-4648-bc92-f3fdc74d3ca2` — Microsoft-Windows-Kernel-EventTracing (52).
+  - `d49918cf-9489-4bf1-9d7b-014d864cf71f` — Microsoft-Windows-ProcessStateManager (8).
+  - `e6835967-e0d2-41fb-bcec-58387404e25a` — Microsoft-Windows-BrokerInfrastructure (48).
+  - `314de49f-ce63-4779-ba2b-d616f6963a88` — Microsoft-Windows-NCSI (57).
+  - `8c416c79-d49b-4f01-a467-e56d3aa8234c` — Microsoft-Windows-Win32k (369).
+  - `e7ef96be-969f-414f-97d7-3ddb7b558ccc` — unresolved by this enumeration.
+  - `9580d7dd-0379-4658-9870-d5be7d52d6de` — Microsoft-Windows-WLAN-AutoConfig (255).
+  - `8e92deef-5e17-413b-b927-59b2f06a3cfc` — Microsoft-Antimalware-RTP (29).
+  - `0a002690-3839-4e3a-b3b6-96d8df868d99` — Microsoft-Antimalware-Engine (130).
+  - `cfeb0608-330e-4410-b00d-56d8da9986e6` — Microsoft-Antimalware-AMFilter (11).
+  - `e4b70372-261f-4c54-8fa6-a5a7914d73da` — Microsoft-Antimalware-Protection (7).
+  - `751ef305-6c6e-4fed-b847-02ef79d26aef` — Microsoft-Antimalware-Service (75).
+  - `a669021c-c450-4609-a035-5af59af4df18` — Microsoft-Windows-DotNETRuntimeRundown (45).
+  - `0f67e49f-fe51-4e9f-b490-6f2948cc6027` — Microsoft-Windows-Kernel-Processor-Power (319).
+- Two GUIDs were not resolved by this enumeration: `b7a19fcd-15ba-41ba-a3d7-dc352d5f79ba` and `e7ef96be-969f-414f-97d7-3ddb7b558ccc`. The latter also appears as a CaptureState provider in the exported profile. Failure to resolve through this cmdlet is not proof that the provider is unavailable to WPR.
+- The profile's EventProvider definitions include several providers with explicit keyword masks and levels, and several with no explicit keyword/level attributes. The SystemProvider explicitly enables FileIO, FileIOInit, Registry, and ProcessThread plus the stack set documented in TEST-63.
+- Interpretation: the profile contains the required kernel FileIO and Registry instrumentation and useful process/thread context. The two unresolved event-provider GUIDs and the broad ancillary providers should be noted, but do not invalidate the kernel SystemProvider configuration. This inspection does not prove that every event template/version will be emitted or that every denied operation will be captured.
+- No WPR recording was started; no activation attempt, audit-policy change, service change, DCOM permission change, ACL change, Defender change, licensing-store change, or other system configuration change was made.
