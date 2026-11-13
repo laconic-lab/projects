@@ -655,3 +655,35 @@ The user explicitly requested that the investigation proceed without asking for 
 - Do not repeat the broad XML dump. The useful next evidence is historical process creation / process lifetime telemetry for the Event 8198 ProcessIDs, especially around the first 20:31:08 failure and later 13:13 / 13:50 failures.
 - First inspect whether Security process-creation auditing (Event 4688) or Sysmon process-creation logging was enabled and retained for those timestamps. This is read-only. If no such telemetry exists, the old PIDs cannot be reliably reconstructed after the fact; use a narrowly scoped, forward-looking diagnostic capture only if justified.
 - No `/ato` retry is authorized.
+
+
+
+### TEST-47 — Historical process telemetry check (partially invalid; script defects)
+
+**Timestamp:** 2026-11-13 14:56:00–14:57:21 +01:00  
+**Raw log:** `R:\results.activation-spp-047.txt`  
+**Scope:** Read-only inspection of process-creation auditing, Security Event 4688, and Sysmon process-creation records around the 13 Event 8198 timestamps/PIDs from TEST-46.
+
+**Execution findings**
+- The Security log is enabled, contains 21,034 records, has a 20 MiB maximum size, and uses Circular logging.
+- The `auditpol /get /subcategory:"Process Creation"` invocation failed with `0x00000057` (“The parameter is incorrect”). Therefore this test did **not** establish whether Process Creation auditing was enabled. The command syntax/localized subcategory handling needs correction; do not interpret this as auditing being disabled.
+- The first 4688 query window (2026-11-12 20:30–20:32) returned no 4688 events.
+- The matching loops used `$pid` as a loop variable. PowerShell variable names are case-insensitive, and `$PID` is a built-in read-only automatic variable. Every attempted assignment therefore raised `SessionStateUnauthorizedAccessException` / “Cannot overwrite variable PID because it is read-only or constant.”
+- This variable collision generated the very large volume of repeated errors in the transcript and prevented reliable PID matching in the remaining windows. It is a defect in the diagnostic script, not a Windows activation or Security-log error.
+- Because the matching loops failed, TEST-47 cannot provide a valid conclusion about matching Event 4688 records in the remaining windows or Sysmon Event 1 records. Any Sysmon section affected by the same `$pid` variable collision is invalid.
+- The transcript did close normally with `Stop-Transcript`; no system settings or audit policy were changed.
+
+**Interpretation**
+- TEST-47 is **partially invalid**, not a negative finding about process telemetry.
+- The Security log's enabled/circular state is established, but its 20 MiB capacity and 21,034 records do not tell us whether the relevant older process-creation events were retained.
+- No historical PID-to-process mapping has yet been recovered. The one valid observation—no 4688 events returned in the first two-minute window—must not be generalized to the other windows or treated as proof that process auditing was disabled.
+- No activation attempt, service change, audit-policy change, or permission change occurred.
+
+**Corrective approach**
+- Do not rerun the broad, error-producing script. A corrected, narrowly scoped follow-up should:
+  1. Query Process Creation auditing using a verified subcategory identifier/name and capture the command's exit code.
+  2. Query the relevant Security 4688 records without assigning to `$PID`; use a differently named loop variable (for example, `$targetProcessId`) or parse event XML fields directly.
+  3. Check whether the Sysmon Operational channel exists and is enabled before querying Event 1.
+  4. Keep output compact: report event counts and only matching records, not every event XML in the time windows.
+- If the relevant historical telemetry was not enabled or has rolled out of the circular log, those old PIDs cannot be reconstructed retroactively. A forward-looking trace may then be considered, but it should be tightly scoped and separately explained before enabling any audit setting.
+- No `/ato` retry is authorized.
