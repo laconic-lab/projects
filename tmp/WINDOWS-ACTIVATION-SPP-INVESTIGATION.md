@@ -939,3 +939,39 @@ The user explicitly requested that the investigation proceed without asking for 
 - Resolve the Network Service CLSID/APPID `{9EA82395-E31B-41CA-8DF7-EC1CEE7194DF}` / `{2ED83BAA-B2FD-43B1-99BF-E6149C622692}` and the separate Local Service CLSID/APPID from registry metadata, including AppID LocalService/RunAs and registered server paths.
 - Read the exact XML/data fields for the two Network Service Event 10016 records and compare with Sysmon process creation/termination timestamps.
 - Do not modify DCOM launch/access permissions or attempt a permission repair based solely on Event 10016.
+
+
+### TEST-53 — Resolve DCOM CLSID/APPID registrations
+
+**Timestamp:** 2026-11-13 15:09:01 +01:00  
+**Raw log:** R:\\results.activation-spp-053.txt  
+**Scope:** Read-only resolution of the Network Service and Local Service DCOM registrations and exact XML for the two Network Service Event 10016 records.
+
+**Network Service DCOM registration**
+- CLSID `{9EA82395-E31B-41CA-8DF7-EC1CEE7194DF}` resolves to **WaaSProtectedSettingsProvider**.
+- APPID `{2ED83BAA-B2FD-43B1-99BF-E6149C622692}` resolves to **WaaSMedicSvc**.
+- APPID registration has `LocalService = WaaSMedicSvc` and a binary `LaunchPermission` value (104 bytes; SHA-256 `9EE74A635598D1937840AF1FDC763BC5238C5949770FF1F0AE2905FCFCD060F2`). No `AccessPermission` or `Configuration` value was present.
+- The CLSID key contained only its default name and AppID mapping; this query did not identify an in-process or local-server executable path.
+
+**Local Service DCOM registration**
+- CLSID `{6B3B8D23-FA8D-40B9-8DBD-B950333E2C52}` resolves to **ShellServiceHost**.
+- APPID `{4839DDB7-58C2-48F5-8283-E1D1807D0D7D}` also resolves to **ShellServiceHost**.
+- APPID registration has `RunAs = Interactive User` and a binary `LaunchPermission` value (360 bytes; SHA-256 `BE223FC163FFFB858C6D3D0FB72FD3A5B470291AA0E88BEEB18B3F25F1D459C4`). No `AccessPermission` or `Configuration` value was present.
+- This is a separate COM registration from the Network Service/WaaSMedicSvc event and is not currently tied to SPP.
+
+**Exact Event 10016 XML**
+- Record 125167: 2026-11-13 05:07:47.085 local time; DCOM Event 10016; denied Local Activation for Network Service (S-1-5-20), CLSID WaaSProtectedSettingsProvider, APPID WaaSMedicSvc; LocalHost/LRPC.
+- Record 125360: 2026-11-13 13:44:20.381 local time; same identity, CLSID, APPID and denial.
+- Both records have DCOM provider execution PID 1368. That is the process hosting/reporting the DCOM event, not evidence that PID 1368 is the caller or the denied COM server. The XML has no caller image or client process PID. Both records' Security UserID is S-1-5-20.
+
+**Interpretation**
+- The Network Service DCOM lead resolves to the Windows Update Medic / WaaS Medic service family, not directly to the Software Protection Platform. The name alone does not prove a causal relationship to activation.
+- The events' close timing to activation bursts remains noteworthy, but there is no evidence yet that `slui.exe` requested this COM class, that WaaSMedicSvc was the operation returning `0x80070005`, or that the DCOM denial caused Security-SPP Event 8198.
+- The binary LaunchPermission was only measured for length/hash; it was not decoded, changed, or declared incorrect. An Event 10016 does not by itself justify editing DCOM permissions.
+- The Local Service/ShellServiceHost events remain a distinct issue.
+- No registry values, DCOM permissions, services, audit policy, ACLs, Defender, licensing store or activation state were changed. No activation attempt occurred.
+- The pasted `finally` block was entered separately and produced a PowerShell command-not-found error; the test's substantive read-only queries had completed and the transcript output ended with TEST-53 COMPLETE. This is a shell-block handling issue, not a Windows failure.
+
+**Next diagnostic direction**
+- Inspect the WaaSMedicSvc service configuration, executable/service-host identity and relevant service events; inspect the CLSID/AppID registration's full merged registry view only if needed.
+- Correlate WaaSMedicSvc activity and process identity with the Sysmon process timeline. Do not modify DCOM permissions or infer SPP causation from temporal proximity alone.
