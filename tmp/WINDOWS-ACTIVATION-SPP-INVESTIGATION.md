@@ -1705,3 +1705,16 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - The COM handler DLL `sppcext.dll` was identified but was not yet hashed, signature-checked, version-checked, or traced at runtime. This is the next direct target.
 - All three inspected files have valid Microsoft Authenticode signatures. The version difference between SppExtComObj and sppc/sppsvc remains a servicing-provenance question, not proof of corruption.
 - No COM registration or binary was modified; no task/service/licensing-store change.
+
+
+## TEST-73 — SPP scheduled-task COM handler DLL inspection
+
+- Read-only inspection at 2026-11-13 18:50:05–18:51:47 +01.
+- COM handler DLL `C:\\Windows\\System32\\sppcext.dll` exists, size 659,456 bytes, file version `10.0.26100.8457`, last-write/creation time 2026-10-30 03:13:07 UTC.
+- SHA-256: `4CAE59336E7991573E1B0DB82FFF8287E48A860C221850EF10053C727F39F896`.
+- Authenticode signature Valid; Microsoft Windows signer.
+- Owner TrustedInstaller. ACL grants read/execute-class access to SYSTEM, Administrators, Users, TrustedInstaller service SID, All Application Packages and All Restricted Application Packages; no ACL modification.
+- COM registration confirmed again: InprocServer32 points to `C:\\Windows\\System32\\sppcext.dll`, ThreadingModel `Both`.
+- Recursive WinSxS filename search returned four entries (two duplicate-looking amd64 paths and two wow64 paths), all under component directory identities containing version `10.0.26100.9818`. The command's table formatting truncated the full paths, and it did not inspect file versions, hashes, manifests, hardlinks, or servicing ownership. This is a significant lead: the active System32 handler reports file version 10.0.26100.8457 while the matching WinSxS component directory name reports 10.0.26100.9818. It is not yet proof of a mismatched or damaged component; Windows component directories can contain files whose individual file version differs from the package identity, and the exact manifest must be checked.
+- No DLL, COM registration, service, task, ACL, or licensing-store changes.
+- Next: enumerate the exact four WinSxS paths without truncation; compare file size, version, SHA-256 and hardlink targets against System32; inspect the component manifest and CBS package/servicing metadata for `microsoft-windows-security-spp-clientext` at `10.0.26100.9818`. Do not replace the DLL or run SFC/DISM repair until the component ownership and manifest evidence are understood.
