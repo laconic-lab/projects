@@ -1774,3 +1774,19 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - The two .mum files are readable XML and identify the package as a Feature Pack integrating multiple SPP SKU/license packages (including Professional License). Their displayed first 50 lines do not declare `security-spp-clientext` or `sppcext.dll`; they are not established as owners of the client-extension component. Package installation state was not established.
 - No file, package, manifest, component, registry, task, service, ACL, activation or licensing-store modification; no activation attempt or servicing repair.
 - Next: check whether a trusted/local `SXSEXP` or compatible decoder already exists and inspect available Windows servicing decompression libraries without downloading or modifying anything. If absent, assess source/provenance and least-invasive acquisition separately before use. Decode copies to `R:\\`, never overwrite WinSxS files. Then parse manifest XML and follow explicit component/file ownership relationships.
+
+
+## TEST-77 — Local DCM decoder and servicing-library inventory
+
+- Read-only inventory performed 2026-11-13 19:04:16–19:04:19 +01.
+- `sxsexp.exe` was not found in PATH or the bounded common locations checked (System32, SysWOW64, Program Files, Program Files (x86), C:\\Tools, C:\\Sysinternals, R:\\). No decoder executable signature/provenance could therefore be assessed.
+- Windows libraries present:
+  - `C:\\Windows\\System32\\msdelta.dll`, 642,392 bytes, FileVersion 5.00, description Microsoft Patch Engine.
+  - `C:\\Windows\\System32\\UpdateCompression.dll`, 630,104 bytes, FileVersion 5.00, description Windows Update Compression Engine.
+  - `C:\\Windows\\System32\\wcp.dll` was not listed by the output (not established present by this test).
+- WinSxS servicing-stack component directories include base 26100.1 and servicing-stack 26100.9971 variants (including inetsrv and onecore); inventory only, no file or API/export analysis yet.
+- Hex dump of exact amd64 9818 manifest confirms leading bytes `44 43 4D 01 50 41 33 30` (ASCII `DCM\\x01PA30`), consistent with a DCM v1 PA30 compressed CBS manifest. Manifest was not decoded.
+- `python.exe` resolves only to WindowsApps alias path `C:\\Users\\Laco\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe`; no Python runtime/version execution was tested. `py.exe` not found.
+- A PowerShell pipeline was interrupted during Format-Hex output (`The pipeline has been stopped`); header bytes were nevertheless captured. No servicing libraries or decoders were executed.
+- No tool download/install, DLL load, manifest decode, component modification, activation attempt, service/task/ACL change or licensing-store change.
+- Next: establish whether Windows' own UpdateCompression API can decode DCM v1 manifests safely, or whether an independently sourced decoder is required. Inspect signatures, exports, file versions and installed SDK/ADK tooling read-only first. Do not call undocumented APIs or load arbitrary DLLs into PowerShell as an experiment; decode only copies on R: after a verified method and source/basis requirements are known.
