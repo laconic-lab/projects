@@ -975,3 +975,40 @@ The user explicitly requested that the investigation proceed without asking for 
 **Next diagnostic direction**
 - Inspect the WaaSMedicSvc service configuration, executable/service-host identity and relevant service events; inspect the CLSID/AppID registration's full merged registry view only if needed.
 - Correlate WaaSMedicSvc activity and process identity with the Sysmon process timeline. Do not modify DCOM permissions or infer SPP causation from temporal proximity alone.
+
+### TEST-54 — WaaSMedicSvc runtime and process timeline
+
+**Timestamp:** 2026-11-13 15:09:49–15:11:12 +01:00  
+**Raw log:** R:\\results.activation-spp-054.txt  
+**Scope:** Read-only service configuration, current runtime state, System event windows, and Sysmon process-create/terminate records.
+
+**Service configuration observed**
+- CIM reported WaaSMedicSvc **Stopped**, PID 0, exit codes 0. CIM returned StartMode Unknown, no account or image path; this is incomplete service metadata, not proof the service is unregistered.
+- The service registry key exists. Values: Start=3 (demand start), Type=32 (share process), ObjectName=LocalSystem, ImagePath=C:\\WINDOWS\\system32\\svchost.exe -k wusvcs -p, DependOnService=rpcss, LaunchProtected=2, ServiceSidType=1.
+- Parameters: ServiceDll=C:\\Windows\\System32\\WaaSMedicSvc.dll, ServiceMain=ServiceMain, ServiceDllUnloadOnStop=1.
+- Required privileges include SeTcbPrivilege, SeChangeNotifyPrivilege, SeImpersonatePrivilege, SeTakeOwnershipPrivilege, SeSecurityPrivilege, SeBackupPrivilege, SeRestorePrivilege, SeManageVolumePrivilege and SeAssignPrimaryTokenPrivilege.
+- sc.exe qc, queryex and qtriggerinfo produced no visible output in this run; therefore their results are unavailable and no conclusions are drawn from them.
+- At the observation time there was no active service PID to inspect.
+
+**System event correlation**
+- In the 05:07:35–05:08:10 local window, the Network Service/WaaSMedicSvc DCOM Event 10016 (record 125167, 05:07:47) is present. A separate Local Service/ShellServiceHost pair of Event 10016 records occurs at 05:07:55.
+- Nearby SCM Event 7040 records at 05:07:46 and 05:08:08 describe start-type changes for Windows Modules Installer and IsolationSession, not WaaSMedicSvc.
+- In the 13:44:10–13:44:50 local window, the Network Service/WaaSMedicSvc DCOM Event 10016 (record 125360, 13:44:20) is present. SCM Event 7026 at 13:44:24 reports boot/system-start drivers dam and wesp did not load; no WaaSMedicSvc-specific SCM event was shown.
+
+**Sysmon process evidence**
+- The query returned 19 matching Sysmon Event 1/5 records for the WaaSMedic service-host command line. The displayed matching records are process-create events for:
+  C:\\Windows\\System32\\svchost.exe -k wusvcs -p -s WaaSMedicSvc
+- Each shown process runs as NT AUTHORITY\\SYSTEM (French display: AUTORITE NT\\Système), integrity System, parent services.exe, with svchost file version 10.0.26100.8737 and SHA-256 1222A44A5FDB4EFDE4DFCB41093648627950E7EC02D8667F1C26CCAE31D922E2.
+- Around the first DCOM denial, the closest shown process creation is 05:08:31 local (Sysmon UtcTime 04:08:31.479), about 44 seconds after the 05:07:47 denial. Another creation is 05:10:16 local. The displayed list does not show a WaaSMedicSvc process start before the 05:07:47 denial.
+- Around the second denial at 13:44:20 local, the displayed process creations include 13:46:26 and 13:48:22 local, after the denial; no shown creation immediately precedes it.
+- The output contains repeated service-host starts throughout the morning and early afternoon, but the pasted output does not provide a clean start/stop lifecycle or prove a process was alive at either DCOM event. Event 5 records were included in the query but none of the displayed matches was a termination event.
+
+**Interpretation and limits**
+- WaaSMedicSvc is a demand-start, protected, LocalSystem service hosted in the wusvcs svchost group. This corrects the earlier assumption that the registered AppID's LocalService name alone established the runtime service identity: the service registry explicitly specifies LocalSystem.
+- The DCOM Event 10016 identifies Network Service as the requesting caller; the service configuration and Sysmon process events identify WaaSMedicSvc's service host as LocalSystem. These are different security identities. The event XML does not identify the client process or prove that WaaSMedicSvc itself was the denied caller.
+- The observed WaaSMedicSvc process starts occur after, rather than before, the two DCOM denials in the supplied timeline. This weakens a simple theory that an already-running WaaSMedicSvc process caused the activation failures, although the incomplete event timeline cannot rule out a prior process instance or another COM activation path.
+- No direct evidence connects WaaSMedicSvc to the SPP slui.exe AutoActivate operation. No DCOM permissions, service configuration, registry, ACLs, Defender, licensing store or activation state were changed; no activation attempt occurred.
+- The script's separately pasted else blocks generated PowerShell command-not-found errors. The substantive registry, event and Sysmon queries nevertheless ran; the transcript ends with TEST-54 COMPLETE.
+
+**Next diagnostic direction**
+- Resolve the remaining identity/timing ambiguity using the raw Sysmon Event 1/5 XML and System SCM events around both DCOM timestamps, including a sufficiently wide window to identify process lifetimes. Do not edit DCOM permissions or service configuration based on these correlations.
