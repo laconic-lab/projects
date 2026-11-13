@@ -1258,3 +1258,13 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Because the script failed to parse, neither provider-resolution output nor provider-configuration output was produced. The separately pasted `else` block then failed as a standalone command; it does not indicate that the profile file was absent.
 - No provider identity or event coverage conclusion can be drawn from TEST-65. The successfully exported profile from TEST-63 remains unchanged and authoritative for the system-provider keywords and requested stacks.
 - No ETW recording was started, no profile file was modified, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
+
+
+## TEST-65R — Corrected WPR event-provider resolution attempt (incomplete)
+
+- Timestamp: 2026-11-13 16:16:49–16:16:51 +01:00.
+- Raw local log: `R:\\results.activation-spp-065R.txt`.
+- The existing profile path had been confirmed by TEST-63. However, the script's initial `if (-not (Test-Path ...))` was entered and executed separately from its following `else` block. The condition was false because the file existed; the subsequent standalone `else` generated a command-not-found error.
+- Consequently, the XML loading, provider GUID resolution, and provider configuration inspection did not execute. No provider identity or event coverage conclusion can be drawn from TEST-65R.
+- No ETW recording was started, no profile file was modified, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
+- Process correction for the next attempt: remove conditional branching entirely and execute the known-existing profile read directly, avoiding split `if/else` blocks.
