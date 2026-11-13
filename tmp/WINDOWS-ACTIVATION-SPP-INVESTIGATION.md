@@ -568,3 +568,35 @@ The user explicitly requested that the investigation proceed without asking for 
 - First capture the current service state and recent SPP/System events using a corrected event query. Avoid repeating the service start because it has already succeeded.
 - Since the service is now running, use the active service process/PID to inspect its process identity and relevant runtime state. If pursuing access-denied attribution, collect targeted audit/ETW evidence rather than broad ACL inventories.
 - Do not combine event collection with an activation retry. No further `/ato` attempt is authorized.
+
+
+### TEST-45 — SPP runtime state and event correlation
+
+**Timestamp:** 2026-11-13 14:51:56 +01:00  
+**Raw log:** `R:\results.activation-spp-045.txt`  
+**Scope:** Read-only inspection of current service state, live process details, and recent Application/System events. No service, registry, ACL, licensing, or activation changes were made.
+
+**Findings**
+- At 14:51:56, approximately 117 seconds after TEST-44's successful start, `sppsvc` was STOPPED again.
+- Configuration remained Auto and `NT AUTHORITY\NetworkService`; PID 0 and both reported exit codes were 0.
+- No live SPP process was available for process-owner or token inspection.
+- Security-SPP events since the TEST-44 start:
+  - 14:50:00, Event 900, Information: “The Software Protection service is starting. Parameters:<explicit>”.
+  - 14:50:00, Event 16394, Information: “Offline downlevel migration succeeded.”
+  - 14:50:47, Event 16384, Information: “Successfully scheduled Software Protection service for re-start at 2026-11-14T12:50:47Z. Reason: RulesEngine.”
+- The System log query returned no matching Service Control Manager events in the selected window.
+- The TEST-45 Application query worked using `Get-WinEvent -LogName Application -MaxEvents 1500` followed by filtering. This avoids the parameter error encountered in TEST-44's FilterHashtable query.
+
+**Interpretation**
+- TEST-44's start was real and successful, but the service did not remain running. It had stopped again by TEST-45.
+- This is consistent with an on-demand/triggered service completing its startup work and returning to a stopped state; it is not, by itself, proof of a crash or service failure. Both service exit codes were zero, and no SCM failure event was found in the queried window.
+- Event 16394 reports successful offline downlevel migration. This is an informational SPP event; its presence alone does not establish that current Windows activation is successful or that the licensing store is repaired.
+- Event 16384 records a RulesEngine-scheduled restart. The message's scheduled timestamp is preserved verbatim; do not infer a local-time conversion or causation from it.
+- Because the process had already stopped, TEST-45 could not inspect its runtime token. The exact access-denied caller and target object remain unidentified.
+- No evidence justifies changing the service startup type, service account, service descriptor, or service permissions.
+
+**Next diagnostic direction**
+- The service's start-and-stop behavior is not currently the leading explanation for `0x80070005`. Avoid repeatedly starting it.
+- Correlate the original Security-SPP 8198 activation failures with the exact Windows activation client/caller and any corresponding diagnostic or access-denied events. The next test should focus on the activation failure's event XML and process/service context, without issuing another activation request.
+- Preserve the distinction between the service's successful informational startup/migration events and the separate failed activation events.
+- No further `/ato` attempt is authorized.
