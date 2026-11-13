@@ -1358,3 +1358,13 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - This is not evidence that the requested custom FileIORegistry profile was successfully started by this command. It establishes that a WPR file-mode recording was already active when the start request was processed. Its active profile identity/configuration is not shown by the captured status output.
 - No new start should be attempted while this session is active. Do not assume the current ETL will contain the intended FileIO/Registry events until the active session is identified or the trace is stopped and inspected.
 - No activation attempt was made; no system configuration change was made. Recording remains active pending immediate safe disposition.
+
+
+## TEST-66T — Stop and preserve the pre-existing WPR recording
+
+- Stopped the already-active WPR session with `wpr -stop R:\\activation-spp-066S.etl "SPP diagnostic capture - active WPR session"`.
+- WPR reported "The trace was successfully saved"; stop exit code 0.
+- ETL exists at `R:\\activation-spp-066S.etl`, size 710,934,528 bytes (~678 MiB); filesystem creation time 2026-11-13 16:22:15 and last-write time 16:22:33 (local system time).
+- Subsequent `wpr -status` reported "WPR is not recording".
+- The prior status showed an active File-mode recording, but no profile identity. The stop operation preserves that session; it does not establish that it was the intended custom FileIORegistry profile.
+- No activation attempt, service/configuration change, or new WPR start occurred. ETL retained locally on R: pending offline metadata/provider inspection; do not upload raw trace because it may contain sensitive system activity and paths.
