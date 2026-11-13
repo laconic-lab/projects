@@ -1454,3 +1454,151 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - Historical correlation: the 2026-11-13 13:50:47 local Event 16384 scheduled the following day's restart at 12:50:47Z; the same minute contained a new SppExtComObj broker instance, `slui.exe` AutoActivate child processes, and Security-SPP Event 8198 at 13:50:50 local. This suggests the RulesEngine scheduling event can occur in the same short window as an activation attempt, but does not prove the scheduled restart caused that attempt.
 - Next observation target: 2026-11-14 around 13:50 local. A short bounded trace should begin shortly before the target and be stopped after the next relevant SPP 8198/broker activity or at a strict time/disk limit. Do not issue `/ato`.
 - Read-only test; no service, schedule, activation, or configuration change.
+
+
+# New Reflection Approach — SPP Licensing Store Repair, Reconstruction, and Subsystem Reinitialization
+
+**Status: proposed investigation and repair strategy; no licensing-store rebuild or subsystem reinitialization has been authorized or performed by this chapter.**
+
+This chapter opens a parallel line of reasoning. The investigation should no longer assume that repeated permission adjustments are the most productive route. Rebuilding or reconstructing the local Software Protection Platform (SPP) licensing store is a serious candidate, but it must be distinguished from repairing individual permissions and from recreating Microsoft's activation entitlement.
+
+## 1. Three different operations
+
+1. **Repair the existing store:** preserve its current contents while correcting a demonstrated corruption or authorization defect.
+2. **Reconstruct the local licensing store:** rebuild local databases and licensing metadata from the Windows installation's own licensing components.
+3. **Reinitialize the licensing subsystem:** cause Windows to rediscover its installed edition, licensing configuration and any existing digital entitlement.
+
+These are not interchangeable. Rebuilding local licensing data does not recreate, replace, or guarantee the recovery of Microsoft's activation entitlement. The working premise remains that Windows was legitimately activated before this incident; no evidence so far establishes that the entitlement has disappeared.
+
+## 2. Established evidence and its limits
+
+| Finding | What it supports | What it does not establish |
+|---|---|---|
+| Windows 11 Pro, build 26200.9974; incident followed November servicing | Servicing chronology is relevant | That KB5132061 damaged SPP |
+| `tokens.dat` exists (about 15.87 MB) | Token-store file is present | Internal integrity or consistency |
+| `data.dat` exists (about 29.9 KB) | Trusted-store file is present | Internal integrity or consistency |
+| Network Service has Full Control on the examined SPP store paths and files | A blanket filesystem ACL failure is less likely | That every access path, handle, registry operation or runtime authorization succeeds |
+| SPP service SID has Full Control on relevant store objects | A simple missing service-SID ACE is less likely | That all required access checks succeed |
+| SPP service starts successfully | Service can be launched | That every SPP operation succeeds |
+| Automatic activation runs through `SppExtComObj.exe` → `slui.exe`, with both processes under Network Service | Execution chain and security context are attributed | Which file, registry, COM, WMI, RPC or network operation fails |
+| Activation child process exits very quickly and Event 8198 reports `0x80070005` (with some `0x8007139F`) | Failure occurs early in the automatic activation path | Exact failing API/resource or a proven store-corruption cause |
+
+TEST-48 and TEST-57 remain the strongest process-attribution evidence: Sysmon Event 1/5 records establish the exact broker/child process relationship and Network Service context. The investigation still lacks operation-level evidence identifying the source of Access Denied.
+
+## 3. Licensing-store rebuild: candidate, not an immediate action
+
+A commonly documented Windows repair path involves stopping `sppsvc`, preserving/renaming `tokens.dat`, starting the service, and using `slmgr.vbs /rilc`, followed by restarts. Microsoft documents a Tokens.dat rebuild procedure for Windows licensing; independent troubleshooting articles discuss related activation failures.
+
+References for later verification before any execution:
+- Microsoft: [Rebuild the Tokens.dat file](https://learn.microsoft.com/en-us/troubleshoot/windows-server/licensing-and-activation/rebuild-tokens-dotdat-file)
+- TheWindowsClub: [Fix activation error 0xC004F012](https://www.thewindowsclub.com/windows-10-activation-error-0xc004f012)
+- Arco Software: [Token Store damage investigation](https://arcosw.com/kb/0x8004e101-0x8004e10a-token-store-damaged/)
+
+Two scopes must be kept separate:
+
+- **Candidate A — rebuild only `tokens.dat`:** the narrower store-rebuild candidate. It is not yet approved for execution. Before considering it, verify that the Microsoft procedure applies to this exact Windows 11 build and licensing state, record all relevant file metadata and ACLs, preserve a recoverable copy, confirm adequate space, and establish a rollback/verification plan.
+- **Candidate B — rebuild `tokens.dat`, `data.dat` and `cache.dat`:** some third-party tooling describes a broader token-rebuild operation affecting all three. This is materially more invasive and is not justified by current evidence. Do not delete or rename `data.dat` or `cache.dat` as part of the initial experiment.
+
+The three files have distinct roles and must not be treated as interchangeable. Presence and ACLs do not prove content integrity, but neither do they justify deleting the files. Do not copy licensing databases from another machine.
+
+**Current position:** retain a tokens.dat-only rebuild as a serious, conditional repair experiment. Do not execute it merely because the file exists or because activation currently fails.
+
+## 4. Other repair and diagnostic leads
+
+### 4.1 Software Protection scheduled tasks
+
+Community reports describe SPP scheduled-task failures, including Event 16385 and missing or damaged `SvcRestartTask` definitions. A Windows 11 25H2 Microsoft Q&A discussion reports task-definition/security repair after a token-store rebuild did not resolve the issue:
+- [Windows 11 25H2 — Event ID 16385 SoftwareProtectionPlatform rebuild](https://learn.microsoft.com/en-us/answers/questions/5805866/event-id-16385-softwareprotectionplatform-rebuild)
+- [Missing SvcRestartTask.xml discussion](https://learn.microsoft.com/en-us/answers/questions/4062565/error-code-0x80070002-in-event-viewer-missing-svcr)
+
+For this machine, Event 16384 records successfully scheduling an SPP service restart, and Event 16394 recorded successful offline downlevel migration. These do not establish that all SPP tasks are healthy, nor do they demonstrate a task failure. Inspect task existence, XML definitions, principals, triggers, actions and security descriptors before considering repair. Any reference configuration must be from a trustworthy matching Windows build; do not import task files from an unrelated installation.
+
+### 4.2 WMI, COM and SPP registration
+
+Community suggestions include registering `sppwmi.dll`, restarting SPP, or repairing WMI/COM registration. Do not blindly run `regsvr32`: a DLL loading successfully does not prove it exports or supports `DllRegisterServer`, and a registration error does not establish that registration caused the activation failure.
+
+Investigate only as evidence warrants:
+- SPP WMI provider registration and namespace health;
+- relevant COM class/AppID registration;
+- whether the failing operation is actually a WMI, COM or RPC call.
+
+No WMI repository reset, mass DLL registration, or blanket COM/DCOM permission changes are approved by this chapter.
+
+### 4.3 Component-store and servicing consistency
+
+The observed SPP service version is `10.0.26100.9974`, while the inspected `sppsvc.exe` file version is `10.0.26100.8457`. This discrepancy merits provenance checking against component-store manifests and servicing state, but version numbers alone do not prove corruption or an outdated binary.
+
+Use the separate KB5132061 servicing audit and matching component manifests to assess SPP component consistency before considering a repair installation. A matching-media in-place repair installation remains a later fallback, not an immediate step.
+
+### 4.4 ProcMon and operation-level tracing
+
+Microsoft Sysinternals Process Monitor is a promising alternative to the broad ETW capture because it can record file, registry, process/thread activity, filter by process/result/path, and capture call stacks:
+- [Microsoft Sysinternals Process Monitor](https://learn.microsoft.com/en-us/sysinternals/downloads/procmon)
+
+ProcMon is not confirmed installed. Before using it, verify provenance, driver requirements, capture overhead, storage bounds and filters. The intended scope is the natural activation sequence involving `SppExtComObj.exe` and `slui.exe`, especially relevant `ACCESS DENIED` results and SPP store/registry paths. Do not install or start it until the capture plan is reviewed. WPR remains an alternative if its profile can be started reliably and the trace can be synchronized with the activation event.
+
+### 4.5 Filesystem, storage and network leads
+
+- **Filesystem/storage:** file presence and ACLs say nothing conclusive about data integrity. If other evidence suggests corruption, inspect NTFS/storage health and relevant file metadata before any repair. Do not run destructive filesystem repairs without evidence.
+- **Network:** `0x8007139F` appeared on NetworkAvailable-triggered attempts. Existing Sysmon configuration did not capture NetworkConnect events, so absence of Event 3 is not evidence of no network attempt. If operation-level evidence points to network activation, investigate network availability detection, WinHTTP/proxy, DNS, TLS/certificate validation and WFP. Do not reset Winsock, alter firewall rules or disable security software without a demonstrated cause.
+- **Weakly connected approaches:** broad Windows Update component resets are not currently supported by the evidence and should remain low priority.
+
+## 5. Explicitly avoid misleading or unsafe third-party procedures
+
+A third-party article references a token location under `C:\Windows\ServiceProfiles\LocalService\AppData\Local\Microsoft\WSLicense`. Do not assume that location is interchangeable with the modern SPP store examined here at `C:\Windows\System32\spp\store\2.0`. Confirm the exact product, Windows generation and component before applying any procedure.
+
+Do not:
+- delete `data.dat` or `cache.dat` in the initial rebuild experiment;
+- copy `tokens.dat` or `data.dat` from another machine;
+- change broad SPP, registry or DCOM permissions;
+- disable Defender or other security controls;
+- rearm Windows or substitute a product key;
+- repeat `/ato` merely to create a failure;
+- reinstall Windows prematurely.
+
+## 6. Proposed staged plan
+
+### Phase 1 — Establish the actual failure
+1. Inspect SPP scheduled tasks, their XML, principals, triggers and security descriptors.
+2. Establish component provenance and servicing consistency for SPP files affected by the November update.
+3. Prepare a targeted ProcMon or WPR capture synchronized to the next natural activation attempt. The existing `activation-spp-066S.etl` is not suitable for explaining the known failures: it began around 16:20, whereas the latest known Event 8198 was around 13:50.
+4. Continue distinguishing `0x80070005` from `0x8007139F`; do not assume they have the same source.
+
+### Phase 2 — Identify the failing component
+Determine whether the failure is attributable to:
+- file access;
+- registry access;
+- COM/RPC;
+- WMI;
+- licensing database consumption;
+- network communication.
+
+### Phase 3 — Select one controlled repair
+Choose only the repair supported by evidence:
+- demonstrated specific ACL defect → narrowly scoped ACL correction;
+- demonstrated token-store corruption/inconsistency, or a justified controlled repair after preserving state → consider tokens.dat-only rebuild;
+- demonstrated SPP registration defect → targeted component repair;
+- demonstrated scheduled-task defect → restore verified matching task definitions;
+- demonstrated component-store mismatch/corruption → servicing repair.
+
+For any state-changing experiment, record the exact target, purpose, expected effect, before-state, backup location, rollback procedure, impact and verification criteria. Change one variable at a time. Preserve the original store before any rebuild and verify that the backup is readable and complete. Do not claim rollback is guaranteed until the restoration method is established.
+
+### Phase 4 — Verify
+After a justified repair, verify:
+- SPP service behavior and event sequence;
+- Windows edition and installed licensing configuration;
+- activation state and relevant Security-SPP events;
+- persistence after controlled restarts;
+- whether the automatic activation path still fails.
+
+Do not infer entitlement loss merely from local store reconstruction or a continued notification state. Entitlement validation and local licensing-state repair are distinct.
+
+## 7. Working hypotheses and current recommendation
+
+**Hypothesis A — Local licensing-store inconsistency.** The token store may be internally damaged or inconsistent despite existing and having apparently appropriate ACLs. A carefully preserved tokens.dat-only rebuild could restore local licensing state.
+
+**Hypothesis B — Automatic activation authorization/path failure.** The SPP execution chain may be failing on a specific file, registry, COM/WMI/RPC or network operation. This is consistent with the observed Network Service execution context and rapid `slui.exe` failure, but the exact operation remains unknown.
+
+Pursue both hypotheses in parallel at the planning level: investigate B enough to identify the failing operation, while preparing A as a conditional, narrowly scoped repair experiment. Do not spend an open-ended sequence of tests adjusting unrelated permissions. Equally, do not rebuild the store blindly and discard useful evidence.
+
+**Decision status:** tokens.dat-only rebuild is promoted to a serious candidate for the first controlled licensing-store repair, but remains conditional. The user has not yet authorized execution of that rebuild. The next immediate diagnostics remain the SPP task inspection and a properly synchronized capture of a natural activation attempt; the scheduled RulesEngine restart target from TEST-68 is 2026-11-14 13:50:45 local (latest schedule record), with the understanding that the exact execution/activation timing may vary.
