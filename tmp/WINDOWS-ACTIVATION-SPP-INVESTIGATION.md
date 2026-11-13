@@ -1061,3 +1061,34 @@ The user explicitly requested that the investigation proceed without asking for 
 - The Event 5 records close the specific termination-query gap identified in TEST-55: these six ProcessGuids have corresponding termination records. They do not establish that a WaaSMedicSvc process caused the SPP activation failure. The only demonstrated overlap is the 05:10:41 DCOM event and PID 4764's lifetime; the initial DCOM events closest to the activation bursts remain before the shown service-host starts.
 - The separately pasted `else` generated a harmless command-not-found error after the `if` block had completed; it did not invalidate the six matches. No service, DCOM, registry, ACL, Defender, licensing-store or activation state was changed. No `/ato` attempt occurred.
 - Interpretation: downgrade WaaSMedicSvc/DCOM from a candidate direct explanation of the SPP AutoActivate failures to a limited temporal correlation requiring client-process attribution before any remediation could be considered. Do not change DCOM permissions or WaaSMedicSvc configuration on this evidence. Prefer pivoting to instrumentation of the SPP `slui.exe` AutoActivate operation and its actual denied resource/API.
+
+
+## TEST-56 — WaaSMedicSvc process termination correlation by ProcessGuid
+
+**Timestamp:** 2026-11-13 15:18:09 +01:00  
+**Raw log intended:** `R:\results.activation-spp-056.txt` (transcript did not start; see instrumentation note below)  
+**Scope:** Read-only query of Sysmon Operational Event ID 5 from 2026-11-13 05:00–15:30 local time, matching six ProcessGuid values previously identified for `WaaSMedicSvc` service-host processes.
+
+### Results
+
+- Sysmon Event 5 query returned 3,089 records in the requested window.
+- All six target ProcessGuids had a matching termination event:
+  - PID 3136 — 05:09:31.648 local, Event Record 2445380.
+  - PID 4764 — 05:11:40.486 local, Event Record 2445435.
+  - PID 7308 — 13:47:26.440 local, Event Record 2449102.
+  - PID 2184 — 13:49:22.563 local, Event Record 2449113.
+  - PID 11920 — 13:54:11.832 local, Event Record 2449450.
+  - PID 6344 — 14:00:21.476 local, Event Record 2449529.
+- The matching records identify `C:\Windows\System32\svchost.exe`; the ProcessGuid values match the six previously identified WaaSMedicSvc service-host instances. Event 5 confirms process termination but does not provide an exit status or explain why each process ended.
+- In the first DCOM window, the Network Service/WaaSProtectedSettingsProvider denial occurred at 05:07:47.085. The nearest identified WaaSMedicSvc process start was approximately 05:08:31, after the denial; its matching termination was 05:09:31.648. The next identified instance terminated at 05:11:40.486.
+- In the second DCOM window, the denial occurred at 13:44:20.381. The nearest identified WaaSMedicSvc process start was approximately 13:46:26, after the denial; its matching termination was 13:47:26.440. Further instances terminated at 13:49:22.563, 13:54:11.832, and 14:00:21.476.
+
+### Interpretation and limits
+
+The process-lifetime evidence does not support a simple hypothesis that one of these already-running WaaSMedicSvc service-host processes was the client issuing either Network Service DCOM activation request: the nearest identified process instances began after the respective DCOM events. This weakens the DCOM/WaaSMedicSvc lead substantially. It does not exclude another COM activation path, an unobserved process instance, or a more complex interaction; the DCOM event XML still does not identify the client process.
+
+The DCOM events identify Network Service (S-1-5-20) as the requesting identity, while the WaaSMedicSvc service configuration identifies LocalSystem as the service account. These identities must not be conflated. No causal link to the SPP `slui.exe` AutoActivate operation has been established.
+
+### Instrumentation note
+
+The attempted transcript start used `Start-Transcript -Encoding UTF8`, which is not a supported parameter in Windows PowerShell 5.1; therefore no transcript was created. A separately entered `else` block was not syntactically attached to its preceding `if`, and `Stop-Transcript` consequently reported that transcription was not active. These are logging/script-entry issues and do not invalidate the six returned Event 5 matches. No system configuration, service, DCOM permission, ACL, Defender setting, licensing data, or activation state was changed. No activation attempt was made.
