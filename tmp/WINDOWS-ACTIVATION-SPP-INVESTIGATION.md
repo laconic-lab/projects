@@ -1248,3 +1248,13 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - A subsequent `wpr -status` returned exit code 0 but no visible output. This is inconclusive as a standalone status observation; TEST-62 had already explicitly reported “WPR is not recording.”
 - TEST-64 therefore adds no new profile-definition or ETW-session evidence. The successful TEST-63 export remains authoritative.
 - No ETW recording was started, no existing profile file was overwritten, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
+
+
+## TEST-65 — WPR event-provider resolution (incomplete)
+
+- Timestamp: 2026-11-13 16:16:14–16:16:16 +01:00.
+- Raw local log: `R:\\results.activation-spp-065.txt`.
+- The script loaded the exported TEST-63 WPR profile and prepared to resolve the event-provider GUIDs, but PowerShell 5.1 raised a parser error at two pipelines attached directly to `foreach` statement blocks.
+- Because the script failed to parse, neither provider-resolution output nor provider-configuration output was produced. The separately pasted `else` block then failed as a standalone command; it does not indicate that the profile file was absent.
+- No provider identity or event coverage conclusion can be drawn from TEST-65. The successfully exported profile from TEST-63 remains unchanged and authoritative for the system-provider keywords and requested stacks.
+- No ETW recording was started, no profile file was modified, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
