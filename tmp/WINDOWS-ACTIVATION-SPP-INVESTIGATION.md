@@ -1559,7 +1559,7 @@ Do not:
 ## 6. Proposed staged plan
 
 ### Phase 1 — Establish the actual failure
-1. Inspect SPP scheduled tasks, their XML, principals, triggers and security descriptors.
+1. **Completed (TEST-69 through TEST-73):** inspect SPP scheduled tasks, XML, principals, triggers, COM handler registration and binary provenance. All three tasks are registered and Ready; Logon and Network tasks recorded successful scheduler results. No task-definition defect has been demonstrated. The daily task's reported NextRunTime and XML StartBoundary differed by 27 seconds in separate observations; this remains a timing detail, not proof of failure.
 2. Establish component provenance and servicing consistency for SPP files affected by the November update.
 3. Prepare a targeted ProcMon or WPR capture synchronized to the next natural activation attempt. The existing `activation-spp-066S.etl` is not suitable for explaining the known failures: it began around 16:20, whereas the latest known Event 8198 was around 13:50.
 4. Continue distinguishing `0x80070005` from `0x8007139F`; do not assume they have the same source.
@@ -1601,7 +1601,7 @@ Do not infer entitlement loss merely from local store reconstruction or a contin
 
 Pursue both hypotheses in parallel at the planning level: investigate B enough to identify the failing operation, while preparing A as a conditional, narrowly scoped repair experiment. Do not spend an open-ended sequence of tests adjusting unrelated permissions. Equally, do not rebuild the store blindly and discard useful evidence.
 
-**Decision status:** tokens.dat-only rebuild is promoted to a serious candidate for the first controlled licensing-store repair, but remains conditional. The user has not yet authorized execution of that rebuild. The next immediate diagnostics remain the SPP task inspection and a properly synchronized capture of a natural activation attempt; the scheduled RulesEngine restart target from TEST-68 is 2026-11-14 13:50:45 local (latest schedule record), with the understanding that the exact execution/activation timing may vary.
+**Decision status:** tokens.dat-only rebuild remains a serious, conditional candidate for the first controlled licensing-store repair; the user has not authorized its execution. The SPP scheduled-task inspection is complete (TEST-69 through TEST-73) and has not demonstrated a task defect. The DCM/PE decoder branch (TEST-76 through TEST-81) is paused because it has not established a connection to the activation failure or a need for manifest decoding before choosing a repair. The only remaining high-value diagnostic proposed by this chapter is a short, properly bounded operation-level capture synchronized to a naturally occurring activation attempt; the existing ETL is not suitable, and no new `/ato` attempt is authorized. TEST-68's latest RulesEngine target was 2026-11-14 13:50:45 local, but actual task/activation timing may vary. If a trustworthy, low-overhead capture cannot be prepared without another open-ended tooling branch, stop diagnostics and make an explicit decision whether to authorize the narrowly scoped tokens.dat-only experiment after its exact applicability, preservation and rollback plan are verified.
 
 
 ## TEST-69 — SPP scheduled-task inventory
@@ -1844,3 +1844,16 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
 - No resource was extracted; no DLL was loaded or executed; no source file, component, registry, service, task, ACL, activation state, or licensing-store content was changed.
 - **Investigation decision:** pause the custom PE/resource-decoding branch here. Although the presence of resource 614 is a concrete technical finding, decoding it is not yet shown to advance the actual activation diagnosis or validate the proposed tokens.dat repair. Do not automatically continue with more parser tests. Revisit only if a specific decision depends on the resource's contents and a trusted decoder path is established.
 - Return focus to the canonical staged plan: operation-level evidence from a naturally occurring SPP activation attempt, and a deliberate decision on the conditional tokens.dat-only repair. Do not repeat `/ato`; do not modify or rebuild the licensing store without separate explicit authorization and a documented recovery plan.
+
+
+## Investigation checkpoint — stop the audit-test loop
+
+The investigation has accumulated substantial evidence, but the next step must answer a decision question rather than generate another inventory:
+
+1. **The SPP scheduled-task branch is complete enough for now.** TEST-69 through TEST-73 found all three expected tasks registered and Ready, with successful scheduler result codes for the Logon and Network triggers. The COM handler CLSID resolves in both registry views to the signed Microsoft `sppcext.dll`. No demonstrated task or registration defect justifies task repair.
+2. **The SPP process chain is attributed, but the denied operation is not.** TEST-48/49 and TEST-57 establish that the automatic activation path launches `slui.exe` under Network Service from `SppExtComObj.exe`, followed by rapid process termination and Event 8198. They do not identify the exact file, registry, COM/RPC, WMI, database, or network operation returning the error.
+3. **The existing WPR ETL cannot explain the known failures.** It began about 2.5 hours after the latest known Event 8198. Its millions of unrelated operations should not be decoded as a substitute for a correctly synchronized capture.
+4. **The DCM manifest-decoder branch is paused.** TEST-81 confirms WCP resource ID 614 exists, but no evidence yet shows that decoding it would diagnose activation or decide whether to rebuild the licensing store. Do not continue PE/resource parser work by default.
+5. **The actual repair decision remains open.** A tokens.dat-only rebuild is the only licensing-store reconstruction candidate promoted in this document, but is not authorized. Before asking the user to authorize it, verify the exact Microsoft procedure's applicability to this Windows 11 build and prepare a concrete preservation, rollback, and verification plan. Do not broaden the operation to data.dat/cache.dat.
+
+**Next-action rule:** pursue one synchronized, bounded operation-level capture only if it can be prepared directly and safely for the next natural SPP activation attempt. Otherwise stop adding audit tests and present the evidence-based choice between proceeding with a separately authorized tokens.dat-only repair experiment and deferring repair. Do not create another sequence of exploratory tests, do not repeat `/ato`, and do not treat additional inventory as progress by itself.
