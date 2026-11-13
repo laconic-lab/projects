@@ -1237,3 +1237,14 @@ Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registr
 - The profile is verbose and system-wide, not restricted to sppsvc, SppExtComObj or slui. It can collect unrelated file/registry activity and potentially sensitive paths/data. A future recording must therefore be short, monitored, saved only to the user's R: diagnostic RAM drive, and stopped immediately after a relevant SPP automatic-activation event or at a strict time/size boundary.
 - The displayed Get-FileHash section contained no hash output; no hash value is recorded for this profile artifact.
 - No ETW recording was started. No activation attempt, service or system configuration change, audit policy change, DCOM permission change, ACL change, Defender change or licensing-store change occurred.
+
+
+## TEST-64 — WPR profile re-export attempt (incomplete)
+
+- Timestamp: 2026-11-13 16:15:11–16:15:15 +01:00.
+- Raw local log: `R:\\results.activation-spp-064.txt`.
+- The script checked the same profile destination used by TEST-63, `R:\\activation-spp-063-profiles.wprp`. Because that file already existed, the first `if` branch correctly declined to overwrite it.
+- The separately pasted `else` block was not attached to the preceding conditional and produced a PowerShell command-not-found error. Consequently, the intended second export and profile inspection did not run.
+- A subsequent `wpr -status` returned exit code 0 but no visible output. This is inconclusive as a standalone status observation; TEST-62 had already explicitly reported “WPR is not recording.”
+- TEST-64 therefore adds no new profile-definition or ETW-session evidence. The successful TEST-63 export remains authoritative.
+- No ETW recording was started, no existing profile file was overwritten, and no Windows configuration, service, ACL, DCOM permission, Defender setting, licensing data or activation state was changed.
