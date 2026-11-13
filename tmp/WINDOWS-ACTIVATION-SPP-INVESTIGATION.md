@@ -1649,3 +1649,41 @@ Pursue both hypotheses in parallel at the planning level: investigate B enough t
   - Daily XML StartBoundary 13:50:25 local vs scheduler NextRunTime 13:49:58 local is a 27-second discrepancy.
 - Next diagnostic: read-only resolve COM CLSID and AppID registrations (including InprocServer32, LocalServer32, Service, TreatAs, AppID and threading model), inspect referenced DLL path, signature, version, hash, and file ACL. Do not invoke/register the COM server or alter tasks.
 - No activation, service, task, event-channel, registry, ACL, Defender, or licensing-store changes.
+
+
+## TEST-70 — SPP scheduled-task XML and Task Scheduler channel metadata
+
+- Read-only export of the three registered tasks under `\\Microsoft\\Windows\\SoftwareProtectionPlatform\\` at 2026-11-13 18:39:04 +01.
+- All three task definitions use the same COM handler CLSID: `{B1AEBB5D-EAD9-4476-B375-9C3ED9F32AFC}`.
+- `SvcRestartTask`:
+  - Principal: Network Service (SID `S-1-5-20`).
+  - COM handler data: `timer`.
+  - Daily CalendarTrigger StartBoundary: `2026-11-14T13:50:25+01:00`.
+  - Hidden; IgnoreNew; StartWhenAvailable true; execution time limit PT0S; restart-on-failure count 3, interval PT1M.
+  - Registration source/author/description are resource references in `sppc.dll`.
+- `SvcRestartTaskLogon`:
+  - Principal: Interactive Users group (SID `S-1-5-4`).
+  - LogonTrigger; COM handler data: `logon`.
+  - Hidden; IgnoreNew; execution time limit PT0S; restart-on-failure count 3, interval PT1M.
+- `SvcRestartTaskNetwork`:
+  - Principal: Network Service (SID `S-1-5-20`).
+  - EventTrigger subscribes to NetworkProfile/Operational Event ID 10000; COM handler data: `network`.
+  - Hidden; IgnoreNew; execution time limit PT0S; restart-on-failure count 3, interval PT1M.
+- Task Scheduler Operational channel exists but is disabled (`IsEnabled=False`); no execution-event history was available from this channel. It was not enabled.
+- Timing observation: TEST-69 dynamic task metadata reported the daily task NextRunTime as 13:49:58 local, while exported XML StartBoundary was 13:50:25+01. These values differ by 27 seconds and were observed about 39 seconds apart. The Security-SPP Event 16384 target was 13:50:45 local. These are close in time but not identical; the discrepancy and relationship require further observation and must not be treated as proof of causation.
+- TEST-69 reported successful last-run result 0 for Logon and Network tasks at 13:50:47 and 13:44:38 local respectively. Those are scheduler task-result values, not proof that the COM handler's internal SPP action succeeded.
+- No task was run or modified; no channel configuration changed.
+
+## TEST-71 — SPP scheduled-task COM handler registration and binary provenance
+
+- Read-only investigation of the shared task COM handler CLSID `{B1AEBB5D-EAD9-4476-B375-9C3ED9F32AFC}`.
+- The transcript shows no output from `reg.exe query` against the 64-bit CLSID path, the WOW6432Node CLSID path, or HKCR. Because command exit codes and direct registry API results were not captured, this is an incomplete registration lookup, not yet conclusive proof that the CLSID is unregistered.
+- `C:\\Windows\\System32\\sppc.dll` exists (147,456 bytes), SHA-256 `139FDC103093B39779B802D439CBEC7D4198B9095FEFE2CDBF53B4228284894C`; Authenticode signature Valid, Microsoft Windows signer. File version `10.0.26100.8457`; timestamp 2026-05-01 11:39:28 UTC.
+- SPP component file versions observed together:
+  - `sppc.dll`: 10.0.26100.8457.
+  - `sppsvc.exe`: 10.0.26100.8457.
+  - `SppExtComObj.Exe`: 10.0.26100.9549.
+- `sppc.dll` owner TrustedInstaller; ACL output includes SYSTEM, Administrators, Users, TrustedInstaller service SID, All Application Packages, and All Restricted Application Packages. No ACL alteration.
+- Version divergence between SppExtComObj and sppc/sppsvc is a provenance/servicing question, not proof of a defect. The component store and servicing manifest should be checked before any replacement or repair.
+- No COM registration, DLL, task, service, or licensing-store change was made.
+- Next diagnostic: resolve the CLSID with direct 64-bit and 32-bit .NET registry API reads (including exit/error capture), inspect any InprocServer32/LocalServer32/ProgID/AppID values and their target binary metadata, then verify file/component provenance against the installed component store. Do not run regsvr32 or modify COM registration based on the current evidence.
