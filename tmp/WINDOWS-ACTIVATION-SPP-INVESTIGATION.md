@@ -1184,3 +1184,40 @@ WPR's built-in FileIO and Registry profiles are available, but the provider meta
 ### Trace-capture decision after TEST-61
 
 Proceed to a bounded WPR capture design using the built-in `FileIO` and `Registry` profiles, retaining process/thread headers and file-operation completion/status events. Before starting, verify the WPR profile variants and capture/stop syntax, ensure a dedicated output file on `R:\\`, and define a short capture window around one explicitly authorized reproduction of the existing automatic activation trigger. The trace must be stopped immediately after the relevant SPP broker/slui activity is observed. Do not change permissions or trigger `/ato` as part of this step; the reproduction mechanism and exact capture boundary must be agreed before recording.
+
+
+## TEST-60 — ETW operation-result metadata inspection
+
+- Timestamp: 2026-11-13 16:09:12–16:09:15 +01:00.
+- Raw local log: `R:\\results.activation-spp-060.txt`.
+- Read-only inspection; no ETW session was started and no activation attempt was made.
+- `wpr -help start` confirmed WPR supports built-in or custom profiles and multiple profiles on one command line. `wpr -help providers` confirmed provider enumeration syntax.
+- Kernel-File provider metadata exposed operation keywords for file create, read, write, delete, rename/link, and operation-end activity. Event metadata includes numerous file operation events; the keyword list itself does not establish that every operation reports a result.
+- Kernel-Registry metadata exposed operation keywords including OpenKey, CreateKey, QueryKey, QueryValueKey, EnumerateKey/Value, SetValueKey, DeleteKey, QuerySecurityKey and SetSecurityKey.
+- WPR status reported `WPR is not recording` (exit code 0).
+- Important limitation: the broad text filter returned event IDs and keyword metadata, but did not establish event payload schemas or whether a given file event carries an NTSTATUS result. Follow-up template inspection was required.
+- No provider configuration, audit policy, ETW session, service, DCOM permission, ACL, Defender setting, licensing data or activation state changed.
+ 
+## TEST-61 — Kernel-File and Kernel-Registry event-template schema inspection
+
+- Timestamp: 2026-11-13 16:10:33–16:10:35 +01:00.
+- Raw local log: `R:\\results.activation-spp-061.txt`.
+- Read-only inspection using `Get-WinEvent -ListProvider`; no ETW session was started and no activation attempt was made.
+- Kernel-File provider exposed 43 event definitions. Most file create/read/write and metadata-operation templates inspected include file/IRP identifiers, file object/key, issuing thread ID and/or file name/path, but not an explicit Status field in the displayed templates. Event 24 version 0 contains `Irp`, `ExtraInformation`, and `Status` (UInt32). This is a potential I/O completion result source; correlation to the originating file operation would be required and has not yet been demonstrated.
+- Kernel-Registry provider exposed 45 event definitions. Events 1–15 include a `Status` (UInt32) field on key create/open/delete/query/enumerate/set operations, with key name and, where applicable, value name and captured data. Additional hive-related events expose StatusCode fields.
+- This is a meaningful lead: a registry trace may directly identify unsuccessful operations and the affected key. File tracing may require correlating Event 24 completion records with operation events using IRP/file/thread identifiers.
+- The schema inspection does not yet prove which statuses will be emitted under the selected WPR profile, whether all relevant operations are captured, or whether the trace can be filtered to the SPP processes without losing correlation.
+- No configuration, audit policy, ETW session, service, DCOM permission, ACL, Defender setting, licensing data or activation state changed.
+
+## TEST-62 — WPR capture preflight
+
+- Timestamp: 2026-11-13 16:12:04–16:12:06 +01:00.
+- Raw local log: `R:\\results.activation-spp-062.txt`.
+- Read-only preflight; no recording was started or stopped and no activation attempt was made.
+- WPR start/stop help confirmed the supported command syntax. Available built-in profiles include `FileIO` and `Registry`, in addition to GeneralProfile and other profiles.
+- `wpr -status` reported that WPR was not recording.
+- Proposed output path `R:\\activation-spp-062.etl` did not already exist.
+- R: RAM drive reported 4,149,526,528 bytes free (approximately 3.865 GiB), sufficient for a short, bounded capture subject to monitoring file growth.
+- A separately entered `else` block produced a PowerShell command-not-found error after the preceding `if` block had already completed. The drive-capacity and path checks themselves returned the values above; the error does not invalidate them.
+- WPR profile availability is now established, but profile event detail, capture size, process attribution, and the exact stop/analysis workflow remain to be validated. No trace has been recorded.
+- No ETW session, service, DCOM permission, ACL, audit policy, Defender setting, licensing data or activation state changed.
