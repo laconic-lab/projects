@@ -735,3 +735,50 @@ The user explicitly requested that the investigation proceed without asking for 
 - If Event 3 was not enabled, report that limitation rather than enabling it speculatively. Network connection telemetry may clarify connectivity but will not, by itself, identify a file or registry access denial.
 - The priority remains identifying the exact operation behind `0x80070005`; no ACL repair, Defender disablement, licensing-store reset, or service security change is justified by TEST-48.
 - No `/ato` retry is authorized.
+
+
+### TEST-49 — Sysmon process GUID, network-connection and termination correlation
+
+**Timestamp:** 2026-11-13 15:02:25–15:02:47 +01:00  
+**Raw log:** `R:\\results.activation-spp-049.txt`  
+**Scope:** Read-only correlation of the 13 activation `slui.exe` processes identified in TEST-48, using Sysmon ProcessGuid to query Event 3 (network connections) and Event 5 (process termination).
+
+**Process creation / identity**
+- All 13 target PIDs from TEST-46/TEST-48 were matched to exact Sysmon Event 1 records for `C:\\Windows\\System32\\slui.exe`.
+- Each record supplied a unique ProcessGuid. This avoids PID-reuse ambiguity when correlating subsequent events.
+- All 13 ran as `NT AUTHORITY\\NETWORK SERVICE`, with parent image `C:\\Windows\\System32\\SppExtComObj.Exe`.
+- Creation timestamps matched the corresponding activation attempts:
+  - PID 12200: 2026-11-12 20:31:07.
+  - PIDs 5976, 5128, 1764: 2026-11-13 05:05:36–05:05:38.
+  - PIDs 4324, 4344, 7664: 2026-11-13 05:07:32–05:07:54.
+  - PIDs 14012, 13488, 13696: 2026-11-13 13:13:25–13:13:29.
+  - PIDs 7116, 7592: 2026-11-13 13:44:31–13:44:38.
+  - PID 7140: 2026-11-13 13:50:48.
+
+**Sysmon Event 3 — network connections**
+- Queried all five corresponding time windows for Event 3 and matched records by the 13 unique ProcessGuids.
+- No Event 3 records were returned in any of the five windows.
+- This means no matching Sysmon network-connection telemetry is available in those windows. It does **not** prove that the processes made no network connections: Event 3 may not be configured to record them, or the events may not have been retained. The test did not inspect or change Sysmon configuration.
+
+**Sysmon Event 5 — process termination**
+- Matching Event 5 records were found for all 13 activation `slui.exe` ProcessGuids:
+  - PID 12200 terminated at 20:31:08 on 2026-11-12.
+  - PIDs 5976, 5128, 1764 terminated at 05:05:36–05:05:39 on 2026-11-13.
+  - PIDs 4324, 4344, 7664 terminated at 05:07:33–05:07:56.
+  - PIDs 14012, 13488, 13696 terminated at 13:13:27–13:13:31.
+  - PIDs 7116, 7592 terminated at 13:44:32–13:44:39.
+  - PID 7140 terminated at 13:50:50.
+- These termination records align closely with the Security-SPP Event 8198 failure timestamps already extracted in TEST-46. For the first failure, the activation process was created at 20:31:07, Event 8198 was recorded at 20:31:08.742, and the process termination event was recorded at 20:31:08.
+- The Event 5 records establish short process lifetimes and confirm that the correlated activation clients exited. They do not by themselves establish whether each process exited normally or identify the internal API/object that returned the error.
+
+**Interpretation**
+- TEST-49 completes the process-lifetime correlation for all 13 Event 8198 process IDs: each is a distinct, short-lived `slui.exe` automatic-activation client running as Network Service and launched by `SppExtComObj.Exe`.
+- The first failure's creation, Security-SPP failure, and termination occur within approximately one second. The later attempts show the same short-lived pattern.
+- No matching Event 3 network telemetry was found. Network connectivity or endpoint reachability therefore remains unproven; do not interpret the zero results as proof that no network activity occurred.
+- Combined with TEST-36, the interactive elevated administrator's manual `/ato` attempt returned `0x80070005`; TEST-48/49 independently show that automatic activation attempts execute under Network Service. The next investigation should focus on the operation performed inside the Network Service activation path, not repeat administrator-token checks.
+- No service, audit policy, Sysmon configuration, ACL, registry, Defender, licensing-store, or activation state was changed. No activation attempt occurred.
+
+**Next diagnostic direction**
+- Inspect the existing Sysmon configuration to determine whether Event 3 network-connection logging is enabled and whether exclusions apply to `slui.exe` or `SppExtComObj.Exe`. This is read-only; do not alter the Sysmon configuration merely to obtain network events.
+- Then prioritize targeted evidence for the actual Access Denied operation in the SPP activation path (for example, existing relevant SPP/COM/RPC/operational diagnostics). Avoid broad tracing or enabling new audit categories until the likely resource or API is narrowed.
+- Do not repeat `/ato`; no new activation attempt is authorized.
