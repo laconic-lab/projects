@@ -1012,3 +1012,34 @@ The user explicitly requested that the investigation proceed without asking for 
 
 **Next diagnostic direction**
 - Resolve the remaining identity/timing ambiguity using the raw Sysmon Event 1/5 XML and System SCM events around both DCOM timestamps, including a sufficiently wide window to identify process lifetimes. Do not edit DCOM permissions or service configuration based on these correlations.
+
+
+## TEST-55 — WaaSMedicSvc process-lifetime and System-event reconstruction
+
+**Timestamp:** 2026-11-13 15:12:45–15:13:23 +01:00  
+**Raw transcript:** `R:\results.activation-spp-055.txt`  
+**Scope:** Read-only Sysmon Event 1/5 and System Service Control Manager / DistributedCOM XML in windows 05:00–05:20 and 13:35–14:00 local time.
+
+**Sysmon process-create findings**
+- First window: two matching Event 1 records for `svchost.exe -k wusvcs -p -s WaaSMedicSvc`: PID 3136 at 05:08:31 local (Sysmon UTC 04:08:31.479) and PID 4764 at 05:10:16 local (UTC 04:10:16.028). Both run as LocalSystem at System integrity, parent `services.exe`, same image SHA-256 `1222A44A5FDB4EFDE4DFCB41093648627950E7EC02D8667F1C26CCAE31D922E2`.
+- Second window: four matching Event 1 records: PID 7308 at 13:46:26, PID 2184 at 13:48:22, PID 11920 at 13:53:11 and PID 6344 at 13:59:21 local. Same service-host command line, LocalSystem/System integrity, parent `services.exe`, and same SHA-256.
+- The first known DCOM denial in the first window (05:07:47) precedes the first displayed service-host creation by about 44 seconds. The targeted second denial (13:44:20) precedes the first displayed creation by about 2 minutes 6 seconds.
+
+**Additional DCOM events visible in the windows**
+- A further Network Service / `WaaSProtectedSettingsProvider` / `WaaSMedicSvc` Local Activation denial occurred at 05:10:41 (System record 125195), after the 05:10:16 service-host creation.
+- A further matching Network Service denial occurred at 13:54:35 (System record 125405), after the 13:53:11 service-host creation.
+- These later events add temporal overlap between service-host creation and repeated DCOM denials, but do not establish that the service host was still running at the event time or that it was the denied caller. The DCOM XML identifies Network Service as the caller identity; the WaaSMedicSvc service is configured to run as LocalSystem. The DCOM event does not identify the client process.
+
+**Important instrumentation limitation**
+- The query filtered Sysmon Event 1 and Event 5 records by `Message -match 'WaaSMedicSvc'`. Event 1 contains the service-specific command line, but Event 5 termination records may contain only the image/process identity and omit the service name. Therefore this filter can exclude the corresponding termination events. The absence of displayed Event 5 records is not evidence that no termination occurred.
+- The supplied output therefore does not establish complete process lifetimes or prove whether any listed service-host PID was alive at the DCOM event timestamps. A follow-up, if needed, must retrieve Event 5 records by the Event 1 ProcessGuid/PID rather than filtering termination messages for the service name.
+
+**Other System events**
+- Windows Search repeatedly failed with SCM 7023/7031/7034 events in both windows; these remain a separate service issue with no demonstrated SPP link.
+- SCM 7040 events concern TrustedInstaller, IsolationSession and BITS; none identifies WaaSMedicSvc.
+- No service configuration, DCOM permissions, registry, ACL, Defender, licensing-store or activation state was changed. No activation attempt occurred.
+
+**Interpretation / next direction**
+- The original 05:07:47 and 13:44:20 DCOM denials both precede the first displayed WaaSMedicSvc process creation in their respective windows. The later repeated DCOM denials at 05:10:41 and 13:54:35 occur after service-host creation, so temporal association cannot be dismissed entirely.
+- However, the identity mismatch and missing client-process attribution remain decisive limits. DCOM Event 10016 does not prove WaaSMedicSvc itself was the requesting client, and process creation alone does not prove that process was alive at the denial.
+- Keep the DCOM/WaaSMedicSvc thread as an unresolved correlation, not an established cause of SPP `0x80070005`. Do not modify DCOM permissions or WaaSMedicSvc configuration. If pursuing this thread further, first reconstruct Event 5 lifetimes using ProcessGuid/PID; otherwise pivot to instrumentation of the SPP `slui.exe` AutoActivate operation and its actual denied resource/API.
