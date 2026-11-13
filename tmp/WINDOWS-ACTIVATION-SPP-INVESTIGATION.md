@@ -1,5 +1,7 @@
 # Windows Activation / Software Protection Platform (SPP) Investigation — Dell Precision M4800
 
+> **Machine-wide handoff:** See [M4800 — Windows Integrity, Subsystem Failures & Recovery Assessment](https://github.com/laconic-lab/projects/blob/main/tmp/M4800-WINDOWS-INTEGRITY-AND-RECOVERY-ASSESSMENT.md) for the consolidated status of activation, servicing and Windows Search, plus the recovery decision framework. This file remains the detailed, activation-specific evidence register; do not merge unrelated Search or servicing tests into its SPP test sequence.
+
 **Status:** Open — diagnosis in progress; no successful reactivation  
 **Last updated:** 2026-11-13 (evening follow-up added: latest Sysmon activation correlation, DCOM permission review, and local account context)  
 **System:** Dell Precision M4800, Windows 11 Pro 25H2, build 26200.9974  
