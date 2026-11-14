@@ -3,7 +3,7 @@
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU-KVM  
 **Current VM:** `windows-box` container; `windows-vm` guest  
 **Status:** noVNC verified from PC; RDP publication and guest-side readiness pending  
-**Policy:** manual lifecycle only; no boot autostart, automatic restart, Windows guest backups or snapshots.
+**Policy:** manual lifecycle only; no boot autostart or automatic restart. VM projects are disposable: no backup folders, guest backups, VM snapshots, virtual-disk copies or routine configuration-script backups.
 
 ## 1. Identity naming convention
 
