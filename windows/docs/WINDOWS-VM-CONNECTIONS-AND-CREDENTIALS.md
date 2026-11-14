@@ -98,7 +98,51 @@ If the user wants a non-expiring password for this disposable local sandbox, con
 - Preserve configuration knowledge, scripts and test evidence in Git; keep populated secret-bearing environment files local.
 - Recreate a damaged disposable guest when appropriate instead of restoring a "wounded duck".
 
-## 8. References
+
+## 8. Operator connection procedure
+
+### Start the Windows VM
+
+```bash
+# Run on the Steam Deck host as user deck (not inside a Distrobox).
+cd /home/deck/WindowsVM/config
+./windows-box-start.sh
+
+# Confirm the container/VM state without changing it.
+./windows-box-status.sh
+```
+
+**Do not use** `distrobox enter windows-box`: `windows-box` is a rootless Podman container, not a Distrobox environment. The Windows guest is launched by the host-side script above. Do not substitute `podman start windows-box` for the script during normal operation; the script is the documented entry point and applies the project's intended configuration.
+
+If the start script reports that the container is already running, do not create another container or remove/recreate anything. Check the status output and continue to the connection step if the guest is ready.
+
+### Connect from the PC
+
+1. Start the VM on the Deck using the command above.
+2. On the PC, open the browser console:
+
+   `http://192.168.1.161:8006/`
+
+3. The noVNC page displays and controls the Windows guest. The verified console is currently unprotected (`PROTECT=N`); only use it on the intended trusted LAN and remember that any client able to reach the published port can interact with the guest.
+4. Sign in to Windows with the local account `DeckVM` if Windows requests it. The password is the local secret in `/home/deck/WindowsVM/config/windows-box.env`; do not print, paste, transmit in chat, or commit that file.
+
+### RDP status
+
+The intended RDP target is `192.168.1.161:3389`, using Windows account `DeckVM`. RDP is **not yet verified as published and reachable** in this deployment. Use noVNC as the working connection method until the RDP host publication, Dockur user-port forwarding, Windows listener and Windows firewall rule have all been tested. Do not interpret the presence of a `3389/tcp` container port declaration as proof that RDP works end-to-end.
+
+### Optional read-only host checks
+
+```bash
+# Container state and published ports
+podman ps -a --filter name=windows-box
+
+# Published port mapping
+podman port windows-box
+```
+
+These commands inspect the host-side Podman container. They do not enter Windows. Do not use `podman exec` as a substitute for the noVNC console or for launching the guest.
+
+## 9. References
 
 - [Dockur environment variables](https://github.com/dockur/windows/blob/master/docs/environment.md)
 - [Dockur README: shared folders, account settings and published ports](https://github.com/dockur/windows#readme)
