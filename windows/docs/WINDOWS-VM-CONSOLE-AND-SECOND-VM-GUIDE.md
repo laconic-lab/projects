@@ -273,151 +273,267 @@ The official Dockur environment reference documents variables including USERNAME
 
 https://github.com/dockur/windows/blob/master/docs/environment.md
 
-## 6. Second Windows VM: isolation rules
+## 6. Create another Windows VM — reusable step-by-step checklist
 
-A second guest needs its own:
+This is the reusable deployment recipe for a new, independent Windows VM project. Follow it from top to bottom. The examples use a second VM name, but every path and name is deliberately selected per project.
 
-- Podman container name;
-- protected environment file and generated password;
-- persistent storage directory, including its own data.img and firmware variables;
-- shared folder;
-- host-side web-console port.
+**Architecture rule:** the Dockur image is the VM runtime package. It is not a Windows ISO. Windows installation media is selected separately. For this workflow, use a locally prepared UUP ISO and mount it into the installation container at `/custom.iso`. After Windows is installed, recreate the container without that ISO mount.
 
-Never run two QEMU guests against the same storage directory or data.img. Never reuse the first guest's storage directory. Do not publish both web viewers on the same host IP/port pair.
+**One VM at a time:** this Steam Deck workflow normally runs only one Windows guest at once. Sequential VM projects may therefore reuse host TCP port `8006` and the same bookmark. The previous container must be stopped before starting the next one. If two guests are intentionally run simultaneously, they need distinct host ports and sufficient CPU/RAM/storage.
 
-The example creates windows-box-2, guest windows-vm-2, project root /home/deck/WindowsVM-2 and web viewer port 8007. The runtime container is intentionally ISO-free. If a custom ISO is selected for initial installation, use it only in the temporary installation phase described in Section 12, then recreate the container without the ISO mount. This is a template only; it has not been executed.
+### 6.1 Deployment checklist — decisions before commands
 
-### 5.1 Read-only preflight
+Complete these choices before creating files or containers:
 
-Run as the normal SteamOS user deck, not with sudo:
+- [ ] **Project root:** choose a unique path, e.g. `/home/deck/Windows11HomeVM`.
+- [ ] **Container name:** choose a unique Podman name, e.g. `windows-home-box`.
+- [ ] **Environment filename:** choose a per-VM file under that project's `config/`.
+- [ ] **Windows ISO:** identify the exact local ISO file to install, e.g. `/home/deck/Downloads/windows-11-home.iso`. This is where the ISO is selected. It is not selected by the Dockur image digest.
+- [ ] **Guest identity and resources:** decide edition/media, Windows account name, locally generated password, hostname, CPU, RAM, disk, locale and keyboard.
+- [ ] **Host console port:** use `8006` for sequential/manual VM use; select a different free port only if concurrent guests are required.
+- [ ] **Persistent storage:** each VM must have its own empty `storage/` directory and its own `shared/` directory.
+- [ ] **Image version:** use the reviewed pinned Dockur image digest; do not silently switch to a moving tag.
+
+Do not proceed if the project root, container name or storage directory already exists. Inspect it rather than overwriting it.
+
+### 6.2 Read-only preflight
+
+Run as the normal SteamOS user `deck`, not with sudo. Adapt the values to the new project:
 
 ~~~bash
-echo "===== CONTAINER NAME ====="
-podman ps -a --filter name='^windows-box-2$'
-
-echo
-echo "===== PINNED IMAGE ====="
+PROJECT="/home/deck/Windows11HomeVM"
+CONTAINER="windows-home-box"
+ISO="/home/deck/Downloads/windows-11-home.iso"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
-podman image exists "$IMAGE"
-echo "image-exists-exit=$?"
+HOST_PORT="8006"
+
+echo "===== PROJECT / CONTAINER COLLISIONS ====="
+[[ ! -e "$PROJECT" ]] && echo "Project path is available" || echo "STOP: project path already exists"
+podman ps -a --filter "name=^$CONTAINER$"
 
 echo
-echo "===== KVM ====="
-test -r /dev/kvm && test -w /dev/kvm && echo "/dev/kvm accessible"
+echo "===== SELECTED WINDOWS ISO ====="
+[[ -r "$ISO" ]] && stat -c 'Readable: yes | Size: %s bytes | %n' "$ISO" || echo "STOP: ISO is not readable"
 
 echo
-echo "===== HOME CAPACITY ====="
+echo "===== PINNED DOCKUR IMAGE ====="
+podman image exists "$IMAGE" && echo "Image available" || echo "STOP: pinned image is unavailable"
+
+echo
+echo "===== KVM / STORAGE / MEMORY ====="
+test -r /dev/kvm && test -w /dev/kvm && echo "/dev/kvm accessible" || echo "STOP: /dev/kvm unavailable"
 df -h /home
+free -h
 
 echo
-echo "===== HOST PORT ====="
-ss -ltn '( sport = :8007 )'
+echo "===== HOST CONSOLE PORT ====="
+ss -lnt "( sport = :$HOST_PORT )"
 ~~~
 
-Stop if the container name or project directory already exists. Inspect it rather than overwriting it. Ensure there is enough RAM for both guests plus SteamOS, and enough storage for the second guest's growth.
+A stopped old container may retain historical port-publication metadata. That does not itself mean the host port is occupied; check the actual listener and ensure no other guest is running on it. Do not remove or modify old containers as part of this preflight.
 
-### 5.2 Create a separate protected configuration
+### 6.3 Create the project and protected per-VM environment file
 
-Only after reviewing the preflight and deciding to create a second VM:
+Set `PROJECT`, `CONTAINER` and `ENV_FILE` for this VM. Directory paths are derived from `PROJECT`, so changing that root adapts the layout. The ISO path is a separate deployment input and is intentionally not stored in the normal runtime environment file.
 
 ~~~bash
 set -euo pipefail
 umask 077
 
-PROJECT="/home/deck/WindowsVM-2"
+PROJECT="/home/deck/Windows11HomeVM"
 CONFIG="$PROJECT/config"
 STORAGE="$PROJECT/storage"
 SHARED="$PROJECT/shared"
-IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
+ENV_FILE="$CONFIG/windows-home-box.env"
 
 if [[ -e "$PROJECT" ]]; then
     echo "ERROR: $PROJECT already exists; inspect it before proceeding." >&2
     exit 1
 fi
 
-podman image exists "$IMAGE"
-
 mkdir -p "$CONFIG" "$STORAGE" "$SHARED"
 chmod 700 "$PROJECT" "$CONFIG" "$STORAGE" "$SHARED"
 
-# Generate a unique per-VM password; never print it.
 VM_PASSWORD="$(openssl rand -hex 24)"
-
-cat > "$CONFIG/windows-box-2.env" <<EOF
+cat > "$ENV_FILE" <<EOF
 VERSION=11
 LANGUAGE=en-US
-REGION=en-US
-KEYBOARD=en-US
-CPU_CORES=2
-RAM_SIZE=4G
+REGION=fr-FR
+KEYBOARD=fr-FR
+CPU_CORES=4
+RAM_SIZE=8G
 RAM_CHECK=Y
 KVM=Y
-DISK_SIZE=128G
+DISK_SIZE=72G
 DISK_FMT=raw
 ALLOCATE=N
 NETWORK=user
 DISPLAY=web
+WIDTH=1920
+HEIGHT=1080
 WEB=Y
 WEB_PORT=8006
-USERNAME=DeckVM2
+PROTECT=N
+USERNAME=win-user
 PASSWORD=$VM_PASSWORD
 AUTOLOGIN=Y
-HOST=windows-vm-2
+HOST=windeck-home
 SAMBA=Y
 EOF
-
 unset VM_PASSWORD
-chmod 600 "$CONFIG/windows-box-2.env"
-stat -c '%A %a %U:%G %n' "$PROJECT" "$CONFIG" "$STORAGE" "$SHARED" "$CONFIG/windows-box-2.env"
+chmod 600 "$ENV_FILE"
+
+stat -c '%A %a %U:%G %n' "$PROJECT" "$CONFIG" "$STORAGE" "$SHARED" "$ENV_FILE"
 ~~~
 
-This example starts with 2 vCPUs and 4 GiB RAM, but these are not guaranteed safe allocations if both VMs run simultaneously. The first VM already uses 4 vCPUs and 6 GiB RAM. Check current host memory and CPU contention before running both at once.
+The values above are an example profile, not universal defaults. Review and change guest settings before first installation. Keep the password local; never print the environment file, paste its contents into chat, or commit it to Git. Preserve the documented environment template's optional commented settings when using that template.
 
-The second account password is stored only in the second environment file. Automatic logon is enabled, but the account still has a password. Retrieve it locally if interactive authentication is later required.
+### 6.4 Select the Windows ISO — the critical step
 
-### 5.3 Create and start the second container
+**This is the explicit ISO selection point.** Set the host-side path in the installation command:
 
-This is the Podman equivalent of the existing deployment pattern. It does not modify windows-box or its storage:
+~~~bash
+ISO="/home/deck/Downloads/windows-11-home.iso"
+~~~
+
+Then expose that exact file to the container using a read-only bind mount:
+
+~~~bash
+--volume "$ISO:/custom.iso:ro"
+~~~
+
+The left side is the actual ISO path on SteamOS. The right side, `/custom.iso`, is the path Dockur expects inside the container. The `:ro` suffix prevents the container from modifying the source ISO.
+
+When `/custom.iso` is mounted, Dockur uses that local ISO and ignores the `VERSION` download selection. Thus `VERSION=11` in the environment file does **not** choose or download media in this custom-ISO deployment. It is not a substitute for setting `ISO=/path/to/your.iso`.
+
+### 6.5 Create the temporary installation container
+
+Use the unique project/container names, the selected local ISO, the pinned image and the project's persistent directories. This is the **only** creation command in the normal workflow that includes the ISO mount.
 
 ~~~bash
 set -euo pipefail
 
-PROJECT="/home/deck/WindowsVM-2"
+PROJECT="/home/deck/Windows11HomeVM"
+CONTAINER="windows-home-box"
+ENV_FILE="$PROJECT/config/windows-home-box.env"
+ISO="/home/deck/Downloads/windows-11-home.iso"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
+HOST_IP="192.168.1.161"
+HOST_PORT="8006"
+
+test -r "$ISO"
+test -r "$ENV_FILE"
+podman image exists "$IMAGE"
 
 podman create \
-    --name windows-box-2 \
+    --name "$CONTAINER" \
     --pull=never \
     --restart=no \
     --stop-timeout 120 \
     --device=/dev/kvm \
-    --publish 192.168.1.161:8007:8006 \
+    --publish "$HOST_IP:$HOST_PORT:8006" \
     --volume "$PROJECT/storage:/storage:rw" \
     --volume "$PROJECT/shared:/shared:rw" \
-    --env-file "$PROJECT/config/windows-box-2.env" \
+    --volume "$ISO:/custom.iso:ro" \
+    --env-file "$ENV_FILE" \
     "$IMAGE"
-
-# Inspect the stopped container before the first boot.
-podman inspect windows-box-2 --format '{{.State.Status}}'
-podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
-
-# Start only after confirming the intended mounts and absence of /custom.iso.
-podman start windows-box-2
 ~~~
 
-The second console would be http://192.168.1.161:8007/.
-
-### 5.4 Verify the second VM
+Before starting, inspect the created container:
 
 ~~~bash
-podman ps -a --filter name='^windows-box-2$'
-podman port windows-box-2
-podman inspect windows-box-2 --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
-podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
-podman top windows-box-2
+podman inspect "$CONTAINER" --format '{{.State.Status}}'
+podman inspect "$CONTAINER" --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+podman inspect "$CONTAINER" --format '{{json .HostConfig.PortBindings}}'
 ~~~
 
-Verify the unique container, restart policy no, host port 8007 mapped to container port 8006, second storage mounted at /storage, no /custom.iso mount in the runtime definition, and QEMU using KVM. After setup, verify Windows edition, build, account, computer name, activation and guest networking.
+Confirm all of the following:
+
+- [ ] Container is created but not yet running.
+- [ ] The intended project `storage/` maps to `/storage`.
+- [ ] The intended project `shared/` maps to `/shared`.
+- [ ] The selected ISO maps to `/custom.iso` with read-only access.
+- [ ] The expected host IP and port map to container port 8006.
+- [ ] No other Windows guest is running on the same host port.
+
+Only then start the installation container:
+
+~~~bash
+podman start "$CONTAINER"
+~~~
+
+Open `http://192.168.1.161:8006/` from the LAN client and complete/monitor Windows Setup. Wait until Windows is installed on the project's persistent virtual disk. Shut Windows down cleanly before changing the container definition.
+
+### 6.6 Transition from installation to normal runtime
+
+The installation ISO is not part of the installed Windows disk and is not required for ordinary startup. The ISO mount exists only in the temporary installation container definition.
+
+After Windows Setup is complete and the guest is shut down:
+
+1. Stop the container if it is still running.
+2. Remove only the temporary container object.
+3. Do **not** delete or recreate the project directory, `storage/` or `shared/`.
+4. Recreate the container using the same image, environment file, device, port and persistent mounts, but omit the `/custom.iso` mount.
+5. Inspect the new container before starting it.
+
+~~~bash
+set -euo pipefail
+
+PROJECT="/home/deck/Windows11HomeVM"
+CONTAINER="windows-home-box"
+ENV_FILE="$PROJECT/config/windows-home-box.env"
+IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
+HOST_IP="192.168.1.161"
+HOST_PORT="8006"
+
+podman stop --time 120 "$CONTAINER" 2>/dev/null || true
+podman rm "$CONTAINER"
+
+podman create \
+    --name "$CONTAINER" \
+    --pull=never \
+    --restart=no \
+    --stop-timeout 120 \
+    --device=/dev/kvm \
+    --publish "$HOST_IP:$HOST_PORT:8006" \
+    --volume "$PROJECT/storage:/storage:rw" \
+    --volume "$PROJECT/shared:/shared:rw" \
+    --env-file "$ENV_FILE" \
+    "$IMAGE"
+
+echo "=== Verify ISO-free runtime mounts before start ==="
+podman inspect "$CONTAINER" --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+~~~
+
+The inspected mounts must include the intended `storage/` and `shared/` directories and must **not** include `/custom.iso`. Start only after confirming this:
+
+~~~bash
+podman start "$CONTAINER"
+~~~
+
+### 6.7 Final verification and operating checklist
+
+- [ ] Windows boots from the persistent virtual disk with no ISO mounted.
+- [ ] Container uses the intended pinned Dockur image.
+- [ ] `/storage` maps to this VM project's unique storage directory.
+- [ ] `/shared` maps to this VM project's unique shared directory.
+- [ ] No `/custom.iso` mount exists in the normal runtime container.
+- [ ] Host console is reachable at `http://192.168.1.161:8006/`.
+- [ ] Container restart policy is `no`; startup remains manual.
+- [ ] Start/stop/status scripts, if created, describe the ISO-free normal runtime only.
+
+Useful read-only checks:
+
+~~~bash
+podman ps -a --filter "name=^windows-home-box$"
+podman port windows-home-box
+podman inspect windows-home-box --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
+podman inspect windows-home-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+podman top windows-home-box
+ss -lnt '( sport = :8006 )'
+~~~
+
+For a future VM, repeat this checklist with a new project root, container name, environment file, ISO path and unique storage. Reusing port 8006 is appropriate when VMs are strictly sequential; only concurrently active guests require distinct host ports.
 
 ## 7. Lifecycle commands
 
