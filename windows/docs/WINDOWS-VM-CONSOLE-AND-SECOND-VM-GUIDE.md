@@ -106,7 +106,7 @@ podman inspect windows-box --format '{{range .Mounts}}{{println .Source "->" .De
 
 The original publication was `127.0.0.1:8006:8006`; it has now been changed and verified as `192.168.1.161:8006:8006`. Confirm the persistent host storage mount is `/home/deck/WindowsVM/storage -> /storage` before any future container recreation. If either differs from the documented current state, stop and inspect rather than applying the example blindly.
 
-After confirming those facts, edit the start script directly. This is a disposable lab and the user has explicitly rejected configuration-script backups as well as Windows guest backups. Preserve the known original setting in project documentation instead:
+After confirming those facts, edit the start script directly. This is a disposable lab. The user has explicitly rejected backup copies of guest state and configuration scripts. Preserve the known original setting in project documentation instead:
 
 ~~~bash
 set -euo pipefail
