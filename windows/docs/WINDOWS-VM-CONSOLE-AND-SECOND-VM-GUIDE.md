@@ -130,7 +130,7 @@ podman rm windows-box
 /home/deck/WindowsVM/config/windows-box-start.sh
 ~~~
 
-The rm command removes the stopped container object, not /home/deck/WindowsVM/storage. Do not run rm -rf on the project directory or storage. The start script creates a new container using the same pinned image, environment file, ISO and persistent bind mounts.
+The rm command removes the stopped container object, not /home/deck/WindowsVM/storage. Do not run rm -rf on the project directory or storage. The start script creates a new runtime container using the same pinned image, environment file and persistent bind mounts. The normal runtime container does not mount an installation ISO.
 
 Verify on the Steam Deck:
 
@@ -384,7 +384,6 @@ set -euo pipefail
 
 PROJECT="/home/deck/WindowsVM-2"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
-ISO="/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO"
 
 podman create \
     --name windows-box-2 \
