@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase (2026-11-12): Windows 11 Pro 24H2 installed (user-confirmed); manual lifecycle configured; LAN noVNC access verified from the PC client at `http://192.168.1.161:8006/`; RDP diagnosis pending. No VM backup or snapshot is in scope.**
+> **Current phase (2026-11-14): the temporary Windows 11 Pro 24H2 guest is running from persistent storage in an ISO-free runtime container; LAN Web Console connectivity is user-confirmed. The initial-install ISO mount has been removed from the normal start definition. The guest is a validation instance, not the intended long-term VM. RDP remains unconfigured. No VM backup or snapshot is in scope.**
 
 ## 1. Objective
 
@@ -185,7 +185,7 @@ Created and verified on 2026-11-12:
 └── storage/                mode 0700
 ```
 
-The ISO remains at its existing path under `/home/deck/uup-box`; it was not duplicated into the project. The container mounts it read-only at `/custom.iso`. Persistent guest data is mounted from `/home/deck/WindowsVM/storage:/storage`. Runtime inspection confirmed the disk and firmware files. Backup/restore has not been performed and is explicitly deferred until the user declares the VM complete.
+Historical installation record: the ISO was stored under `/home/deck/uup-box` and mounted read-only at `/custom.iso` for the initial Windows installation. That mount is not part of the corrected runtime container. Persistent guest data remains mounted from `/home/deck/WindowsVM/storage:/storage`. Backup/restore has not been performed and is explicitly deferred until the user declares the VM complete.
 
 **Storage evidence:** `df -h /home` reported a 939 GiB filesystem, 433 GiB used and 507 GiB available (47% used) at the time of the check. The selected ISO was readable. A 128 GiB logical-capacity growable raw disk has been created; the initial storage directory usage was 898 MiB.
 
@@ -214,7 +214,7 @@ This layout was created successfully. The deployment configuration files have pa
 - Guest-reported IPv4: `192.168.1.161`; DNS: `192.168.1.1`. The IPv4 matches the Steam Deck host address recorded in the deployment. Because QEMU is configured with `NETWORK=user`/`passt`, do not assume this represents a separately assigned, independently reachable LAN address. The guest networking model and any required inbound access must be verified before documenting it as a distinct endpoint.
 - The user opened `http://127.0.0.1:8006/` locally on the Steam Deck and confirmed successful noVNC access. Browser tab title: `Windows - noVNC`.
 
-**Status:** Windows installation and local console access are USER-CONFIRMED. The previously observed QEMU/KVM process, pinned container, persistent mounts, read-only ISO and loopback port remain the runtime baseline. Windows activation, guest outbound network, shared-folder operation and PC-client access are not yet verified.
+**Historical status at that point:** Windows installation and local console access were user-confirmed. The read-only ISO mount was used during initial installation only; it is not part of the corrected 2026-11-14 runtime baseline. Windows activation, guest outbound network and shared-folder operation remain separate validation items.
 
 **Lifecycle intent:** retain manual start/stop/status operation using the existing project scripts. No SteamOS boot autostart or always-on service is intended. The three script contents and stop/start behaviour are to be reviewed before declaring lifecycle documentation final.
 
