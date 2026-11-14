@@ -2,7 +2,7 @@
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / dockur/windows  
 **Current guest:** windows-vm in container windows-box  
-**Status:** LAN noVNC access verified from the PC client; RDP path documented and diagnosis pending; second-VM example is not executed.
+**Status:** LAN noVNC access verified from the PC client; RDP path documented and diagnosis pending; the second-VM procedure has now been executed for `windows-home-box`, with Windows installation in progress (2026-11-14).
 
 ## 1. Purpose and architecture
 
@@ -439,6 +439,14 @@ podman create \
     "$IMAGE"
 ~~~
 
+**Required device/capability baseline — follow this for future VMs:**
+
+- Include **only** `--device=/dev/kvm` for the proven hardware-virtualisation device mapping.
+- Do **not** add `--device=/dev/net/tun`, `--cap-add=NET_ADMIN` or `--privileged` by default. The known-working first VM was created with `/dev/kvm` only, without TUN, NET_ADMIN or privileged mode. No requirement for the extra device or capability has been demonstrated.
+- Add another device or capability only when a specific feature requires it and a separate test establishes that requirement. Do not copy unexplained capabilities from an example command.
+
+**Podman inspection caveat from this SteamOS rootless deployment:** `podman inspect` returned an empty `HostConfig.Devices` array for both the original known-working `windows-box` and the recreated `windows-home-box`, even though each recorded `CreateCommand` includes `--device=/dev/kvm`. Therefore, do not interpret `Devices=[]` alone as proof that KVM was not requested or is unavailable. Check the recorded create command, then verify actual QEMU/KVM startup evidence when diagnosing runtime acceleration. The create command records the requested configuration; it does not, by itself, prove that QEMU successfully initialized KVM.
+
 Before starting, inspect the created container:
 
 ~~~bash
@@ -534,6 +542,31 @@ ss -lnt '( sport = :8006 )'
 ~~~
 
 For a future VM, repeat this checklist with a new project root, container name, environment file, ISO path and unique storage. Reusing port 8006 is appropriate when VMs are strictly sequential; only concurrently active guests require distinct host ports.
+
+### 6.8 Actual second-VM deployment record — 2026-11-14
+
+**USER-CONFIRMED / IN PROGRESS:** The reusable procedure above was executed for the independent Home guest:
+
+| Item | Verified state |
+|---|---|
+| Project | `/home/deck/Windows11HomeVM` |
+| Container | `windows-home-box` |
+| Image | Same pinned Dockur image digest as the first VM |
+| Device request | `--device=/dev/kvm` |
+| TUN / NET_ADMIN | Not requested in the final container definition |
+| Privileged mode | `false` |
+| Host console | `192.168.1.161:8006` |
+| Persistent mounts | Project `storage/` to `/storage`; project `shared/` to `/shared` |
+| Installation media | Selected local ISO mounted read-only at `/custom.iso` for installation |
+| Restart policy | `no` |
+| Initial state before launch | `created` |
+| Current state | `running`; user confirmed successful connection to the Web Console and Windows Setup is in progress |
+
+The first proposed Home VM create command temporarily included `/dev/net/tun` and `NET_ADMIN`. Those additions were removed by recreating the still-unstarted container before its first launch. The final container definition follows the KVM-only baseline above. No TUN or NET_ADMIN requirement was established.
+
+The Home VM's `HostConfig.Devices` inspection also returned `[]`, matching the original known-working container. Its recorded `CreateCommand` includes `--device=/dev/kvm`. This is a deployment-specific inspection observation, not evidence that KVM is missing. The Home VM's successful Web Console connection confirms container startup and viewer reachability; it does not alone prove the QEMU process selected KVM acceleration. Record that only after obtaining direct QEMU/KVM runtime evidence.
+
+Windows installation has not yet been reported complete. Do not mark the Home guest as fully installed or ISO-independent until Setup completes, the guest is shut down, and the ISO-free runtime transition is verified.
 
 ## 7. Lifecycle commands
 
