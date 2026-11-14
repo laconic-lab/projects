@@ -251,7 +251,7 @@ This layout was created successfully. The deployment configuration files passed 
 - Image size: 707,889,576 bytes.
 - The inspected ID matches the image used in the earlier successful QEMU/KVM validation.
 
-**Persistent directory creation:** created `/home/deck/WindowsVM` and subdirectories `config/`, `storage/`, `shared/`, and `docs/`. All were verified as owned by `deck:deck` with mode `0700`. The old project layout also included an unused `backups/` directory at that time; it is not part of the current design and must not be recreated. No container or guest was created by this step.
+**Persistent directory creation:** created `/home/deck/WindowsVM` and its project subdirectories. The current documented layout consists of `config/`, `storage/`, `shared/`, and `docs/`, owned by `deck:deck` with mode `0700`. No container or guest was created by this step.
 
 **ISO check:** the existing installation ISO at `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO` is readable. It remains in place and was not copied or modified.
 
