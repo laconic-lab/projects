@@ -231,7 +231,7 @@ Windows has a different shutdown boundary from a Uvicorn process. The script mus
 - Do not add privileged mode or broaden host permissions.
 - Do not modify host KVM modules, swap/zram, firewall or system services as an automatic side effect.
 - Do not print the protected environment file.
-- Do not create Windows guest backups, snapshots or copies of `data.img`; this is a disposable lab. Preserve technical knowledge and configuration facts in documentation.
+- Do not create backup folders, Windows guest backups, VM snapshots, virtual-disk copies or routine configuration-script backups. This is a disposable lab; preserve technical knowledge and configuration facts in documentation.
 - Do not delete host storage during ordinary stop or container recreation.
 - Any future move to automatic startup requires a separate explicit user decision.
 
