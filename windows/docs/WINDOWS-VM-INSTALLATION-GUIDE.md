@@ -168,9 +168,9 @@ The selected arrangement is rootless Podman running the purpose-built `dockurr/w
 
 These values must be checked against current host memory, disk capacity, Windows requirements and the selected VM implementation before creation.
 
-## 7. Resilience and persistent project layout
+## 7. Persistent project layout and disposable guest policy
 
-**Design objective:** the Windows guest and its recoverable state must survive SteamOS system updates. The Podman container is a replaceable runtime wrapper; the guest's durable data must live in a dedicated location under the user's persistent home filesystem, not in the container writable layer or SteamOS-managed system directories.
+**Design objective:** the Windows guest disk must persist independently of its Podman container so the container can be replaced without reinstalling Windows. This is ordinary runtime persistence, not backup or disaster recovery. The guest is intentionally disposable; no backup or snapshot layer is maintained.
 
 Selected project root: `/home/deck/WindowsVM`.
 
@@ -178,28 +178,27 @@ Created and verified on 2026-11-12:
 
 ```text
 /home/deck/WindowsVM/       mode 0700, owner deck:deck
-├── backups/                mode 0700
 ├── config/                 mode 0700
 ├── docs/                   mode 0700
 ├── shared/                 mode 0700
 └── storage/                mode 0700
 ```
 
-Historical installation record: the ISO was stored under `/home/deck/uup-box` and mounted read-only at `/custom.iso` for the initial Windows installation. That mount is not part of the corrected runtime container. Persistent guest data remains mounted from `/home/deck/WindowsVM/storage:/storage`. Backup/restore has not been performed and is explicitly deferred until the user declares the VM complete.
+Historical installation record: the ISO was stored under `/home/deck/uup-box` and mounted read-only at `/custom.iso` for the initial Windows installation. That mount is not part of the corrected runtime container. Persistent guest data remains mounted from `/home/deck/WindowsVM/storage:/storage`. The storage directory survives container replacement, but is not backed up.
 
 **Storage evidence:** `df -h /home` reported a 939 GiB filesystem, 433 GiB used and 507 GiB available (47% used) at the time of the check. The selected ISO was readable. A 128 GiB logical-capacity growable raw disk has been created; the initial storage directory usage was 898 MiB.
 
 **Image identity:** local image ID `cbfaef1f04b4cb08137512116a64ed2005b58852bf04067b3f896342d5b3cb02`; reported repo digests include `docker.io/dockurr/windows@sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea` and `docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc`. The latter is the manifest digest previously used for the KVM validation. The local image configuration reports the same image ID as the validated image.
 
-**Resilience approach (design; backup intentionally deferred):**
+**Operating model:**
 - Keep the VM disk and all guest state in the host-backed `storage/` directory.
 - Keep the deployment definition and lifecycle commands in `config/`, independent of the container instance.
 - Pin the tested image digest for reproducible recreation; perform image upgrades deliberately, not by silently tracking `latest`.
 - Keep manual start/stop; do not add boot autostart or a host service.
-- Backup/restore is deferred by explicit user request until the VM is declared fully configured. Do not run or schedule backups during installation finalization.
+- No backup folder, guest backup, VM snapshot, virtual-disk copy or routine configuration-script backup is part of this project. If a guest becomes damaged, preserve useful findings and recreate the guest when appropriate.
 - After SteamOS updates, verify Podman, KVM device access, project mount ownership, container recreation and guest boot. SteamOS update survival is a design goal, not a guarantee until recovery has been tested.
 
-This layout was created successfully. The deployment configuration files have passed syntax/permission checks. The container, guest storage and Windows installation are in place. Backup/restore and post-SteamOS-update recovery remain deferred/pending.
+This layout was created successfully. The deployment configuration files passed syntax/permission checks. The container, guest storage and Windows installation are in place. Container recreation has been demonstrated; survival of future SteamOS changes remains a separate validation item.
 
 ## 8. Journey log
 
@@ -220,7 +219,7 @@ This layout was created successfully. The deployment configuration files have pa
 
 **LAN console decision (2026-11-12):** the user selected http://192.168.1.161:8006/ for PC client 192.168.1.169 and accepts LAN reachability. The current host listener is still 127.0.0.1:8006. The start script must be changed to publish 192.168.1.161:8006:8006, then the existing container must be stopped and recreated (without deleting /home/deck/WindowsVM/storage) for the new binding to take effect. The active public firewalld zone already has broad TCP/UDP allowances for ports 1024-65535; no firewall change has been made. Do not publish guest RDP or other guest ports.
 
-**Backup boundary:** the user explicitly instructed that no VM backup be performed until the VM is fully configured. No backup was run, created or scheduled. Backup/restore documentation may describe a future procedure, but the current work must not execute it or imply that it has been validated.
+**Disposable-guest boundary:** the user explicitly rejected guest backups, VM snapshots, virtual-disk copies and routine script backups. This is a permanent project design choice, not a temporary deferral. Preserve verified configuration and engineering findings in documentation; do not plan a later backup phase.
 
 
 
@@ -252,13 +251,13 @@ This layout was created successfully. The deployment configuration files have pa
 - Image size: 707,889,576 bytes.
 - The inspected ID matches the image used in the earlier successful QEMU/KVM validation.
 
-**Persistent directory creation:** created `/home/deck/WindowsVM` and subdirectories `config/`, `storage/`, `shared/`, `backups/`, and `docs/`. All were verified as owned by `deck:deck` with mode `0700`. This is the first persistent filesystem change for the VM project. No container or guest was created by this step.
+**Persistent directory creation:** created `/home/deck/WindowsVM` and subdirectories `config/`, `storage/`, `shared/`, and `docs/`. All were verified as owned by `deck:deck` with mode `0700`. The old project layout also included an unused `backups/` directory at that time; it is not part of the current design and must not be recreated. No container or guest was created by this step.
 
 **ISO check:** the existing installation ISO at `/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO` is readable. It remains in place and was not copied or modified.
 
 **Storage:** `df -h /home` reported 939 GiB total, 433 GiB used, 507 GiB available, 47% used. This is point-in-time capacity evidence.
 
-**Resilience decision:** durable guest state will reside under `/home/deck/WindowsVM/storage`, outside the container writable layer and away from SteamOS-managed system paths. Deployment configuration will be stored separately under `config/`. The container will be treated as replaceable; image upgrades will be deliberate and digest-pinned. Manual lifecycle remains the default. Backup/restore and post-SteamOS-update recovery must be documented and tested before claiming resilience is proven.
+**Storage decision:** guest state resides under `/home/deck/WindowsVM/storage`, outside the container writable layer and away from SteamOS-managed system paths. Deployment configuration is stored separately under `config/`. The container is replaceable; image upgrades remain deliberate and digest-pinned. Manual lifecycle remains the default. This design supports replacing the container while retaining the guest, but it does not protect the guest disk from loss or corruption.
 
 ### 2026-11-12 — Selected ISO verified; UUP version difference explained
 
@@ -308,7 +307,7 @@ This also explains why the base ISO is not a matching repair source for the Dell
 - `storage/` reported 898 MiB by `du`; `data.img` has a logical size of 137,438,953,472 bytes (128 GiB). This is consistent with a growable, non-preallocated raw disk; logical capacity is not the same as physical blocks consumed.
 - Storage files observed: `setup.img` (64 MiB), `windows.rom`, `windows.vars`, `windows.base`, `windows.ver`, `windows.mac`, and `data.img`.
 
-**Interpretation and boundary:** container creation, persistent storage mount, QEMU/KVM startup, initial UEFI boot from the ISO and web-console service startup are VERIFIED from the supplied output. Windows Setup interaction, completion of OS installation, guest network connectivity, shared-folder functionality, Windows activation/build, and backup/restore remain UNVERIFIED. The guest process is running; this is not yet proof that Windows installation is complete.
+**Interpretation and boundary:** container creation, persistent storage mount, QEMU/KVM startup, initial UEFI boot from the ISO and web-console service startup are VERIFIED from the supplied output. Windows Setup interaction, completion of OS installation, guest network connectivity, shared-folder functionality, Windows activation/build remain UNVERIFIED. The guest process is running; this is not yet proof that Windows installation is complete.
 
 **Network note:** `NETWORK=user` is implemented by the image using `passt`; the logs show guest user-mode networking. The container's web console is bound to host loopback only. The image's internal QEMU guest network information should not be confused with direct LAN publication of the web console.
 
@@ -393,8 +392,7 @@ Windows installation is user-confirmed complete. The selected LAN noVNC endpoint
 6. (Completed; user-confirmed) Install Windows 11 Pro 24H2 and access the noVNC console locally.
 7. (Pending) Verify guest networking, shared-folder workflow and activation status; installed edition/build are user-confirmed.
 8. (Pending) Apply the selected LAN console publication at 192.168.1.161:8006 and test from PC client 192.168.1.169.
-9. (Deferred by user) Backup/restore validation. Do not run or schedule a backup until the user declares the VM fully configured.
-10. Tune resources or display only in response to observed needs.
+9. Tune resources or display only in response to observed needs.
 
 ## 10. Change and evidence register
 
@@ -419,7 +417,6 @@ Windows installation is user-confirmed complete. The selected LAN noVNC endpoint
 | 2026-11-12 | Local noVNC console | USER-CONFIRMED | Opened successfully on Deck at `127.0.0.1:8006`; browser title `Windows - noVNC` |
 | 2026-11-12 | Guest network configuration | USER-REPORTED | Guest reports IPv4 `192.168.1.161` and DNS `192.168.1.1`; same IPv4 as Deck host, requires interpretation under user-mode `passt` networking |
 | 2026-11-12 | PC-client noVNC endpoint | USER-SELECTED / HOST CHANGE PENDING | 192.168.1.161:8006 for client 192.168.1.169; runtime still loopback-only; container recreation required |
-| 2026-11-12 | Backup/restore | DEFERRED BY USER | No backup or restore operation until VM is declared fully configured |
 
 ---
 
@@ -430,12 +427,12 @@ Windows installation is user-confirmed complete. The selected LAN noVNC endpoint
 
 The user selected Steam Deck address 192.168.1.161, TCP port 8006, and PC client 192.168.1.169 for noVNC, and explicitly accepts LAN reachability. The current container and start script are still loopback-bound. The intended publication is 192.168.1.161:8006:8006; the container must be recreated for that setting to take effect while preserving the host-backed storage directory. No firewall change has been made; the active public zone already has broad high-port TCP/UDP allowances.
 
-A new Console and Second-VM Deployment Guide documents viewer operation, host-side resource settings, unattended setup variables, and an isolated second-VM example. The example is documentation only; no second VM has been created. No backup has been run or scheduled.
+A new Console and Second-VM Deployment Guide documents viewer operation, host-side resource settings, unattended setup variables, and an isolated second-VM example. The example is documentation only; no second VM has been created.
 
 
 ### 2026-11-12 — Disposable guest and storage-tuning lab policy
 
-The user clarified that this Windows VM is a disposable sandbox for learning QEMU/KVM, rootless Podman and Dockur. Do not create Windows guest backups, snapshots or copies of `data.img`. The user prefers diagnosing a damaged guest and creating a fresh VM over repairing a “wounded” experimental guest. Configuration parameters, deployment settings and verified technical findings must be preserved in documentation; this is not authorization to back up guest state or routinely copy scripts.
+The user clarified that this Windows VM is a disposable sandbox for learning QEMU/KVM, rootless Podman and Dockur. Do not create backup folders, guest backups, VM snapshots, copies of `data.img` or routine copies of configuration scripts. The user prefers diagnosing a damaged guest and creating a fresh VM over repairing a “wounded” experimental guest. Preserve configuration parameters, deployment settings and verified technical findings in documentation.
 
 A dedicated [Disposable I/O, RAM-Backed Temporary Storage and SSD Lab](./WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md) records the proposed RAM-disk, TEMP/TMP, pagefile, TRIM, Optimize Drives and NVMe-health investigations. No Windows storage tuning has been applied. The PowerShell baseline was mistakenly entered in SteamOS Bash and therefore did not run; it must be executed inside the Windows guest.
 
@@ -577,7 +574,7 @@ Do not remove the current guest until:
 - the proposed .env values and actual Windows account name have been agreed;
 - the disposable I/O/SSD lab has a read-only baseline and a safe experiment plan.
 
-No VM deletion, disk recreation, backup, snapshot or disk copy is authorized by this preparation note.
+No VM deletion, disk recreation, snapshot or disk copy is authorized by this preparation note.
 
 
 ### 14.11 Local account and OOBE — why the current install did not need a Microsoft account
