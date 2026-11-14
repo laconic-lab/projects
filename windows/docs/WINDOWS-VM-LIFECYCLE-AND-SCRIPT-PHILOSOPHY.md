@@ -65,7 +65,7 @@ The start script is the deliberate entry point. The known deployment:
 - Passes `/dev/kvm` to the container.
 - Uses `--restart=no`.
 - Publishes noVNC on `192.168.1.161:8006`.
-- Mounts persistent guest storage at `/storage`, the installation ISO read-only at `/custom.iso`, and the shared directory at `/shared`.
+- Mounts persistent guest storage at `/storage` and the shared directory at `/shared`. The normal runtime container has no installation ISO mount.
 - Reads configuration from the protected environment file.
 - Passes shell syntax validation with `bash -n`.
 
@@ -242,7 +242,7 @@ The local Windows scripts are not committed in the GitHub `windows/` directory. 
 - [ ] Pinned image digest and rootless execution as `deck`.
 - [ ] `--restart=no`; no hidden autostart mechanism.
 - [ ] No privileged mode; correct `/dev/kvm` device mapping.
-- [ ] Correct persistent storage, read-only ISO and shared-folder mounts.
+- [ ] Correct persistent storage and shared-folder mounts; no installation ISO dependency in the normal runtime container.
 - [ ] Verified LAN publication `192.168.1.161:8006:8006`.
 - [ ] Existing running/stopped container handling; no duplicate guest.
 - [ ] Stop semantics, timeout and failure behavior.
@@ -266,3 +266,21 @@ This is a focused review plan, not a requirement to add complexity or extra scri
 ---
 
 *Operating philosophy: the user enters the box deliberately; the box does not start itself. Keep the lifecycle transparent, manual, observable and safe for SteamOS.*
+
+
+## 10. Installation media versus normal runtime — correction verified 2026-11-14
+
+A custom ISO may be mounted read-only at /custom.iso for the initial Windows installation. It is not a normal runtime dependency after Windows has been installed to the persistent guest disk.
+
+The 2026-11-12 deployment originally kept the ISO mount in the regular start script and container definition. This was a lifecycle mistake: deleting the ISO then blocked startup at the script's readability check, even though the installed guest data remained in /home/deck/WindowsVM/storage.
+
+**Correct normal-runtime definition:**
+- /home/deck/WindowsVM/storage:/storage:rw
+- /home/deck/WindowsVM/shared:/shared:rw
+- no /custom.iso mount and no ISO readability check.
+
+**2026-11-14 validation:** the original stopped container was preserved as windows-box-iso-legacy; a replacement windows-box was created with the same persistent storage, shared folder, pinned Dockur image, protected environment file, KVM device, port publication and --restart=no. Before it was started, inspection showed exactly the two mounts above and no ISO mount. The replacement then started successfully and the user confirmed Web Console connectivity at http://192.168.1.161:8006/.
+
+Future custom-ISO deployments must use two distinct container-definition phases: an installation container with the temporary read-only ISO mount, followed by a normal runtime container without it. Recreate the container object to change its bind mounts; preserve the host-backed guest storage throughout. Inspect the created runtime container before starting it. Never run two containers against the same guest storage simultaneously.
+
+The preserved windows-box-iso-legacy container is a rollback reference for this validation only. Do not start it while the replacement uses the same storage.
