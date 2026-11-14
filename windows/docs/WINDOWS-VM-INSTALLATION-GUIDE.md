@@ -600,3 +600,43 @@ The user does not want to maintain a manually authored XML file. That remains th
 - Power: "Best performance" is a Windows guest power-mode/plan setting, not a Dockur environment variable. Verify the actual selected plan/mode inside the installed guest. If automated later, use a narrowly scoped post-install command and verify its result.
 
 No debloating, package removal, privacy-policy change or power-plan change has been applied as part of this groundwork.
+
+
+## 2026-11-14 — Installation ISO is not a runtime dependency
+
+**Correction based on successful container recreation and Web Console validation.** The original deployment mounted the custom installation ISO at /custom.iso for the initial Windows installation. That mount was mistakenly retained in the normal VM start definition. When the ISO was later deleted, the start script refused to run even though the installed Windows guest and its persistent disk remained present.
+
+The correct lifecycle separates installation media from the installed guest:
+
+- **Installation phase:** mount a selected custom ISO read-only at /custom.iso only when creating the guest for its initial installation (or a deliberately planned recovery/reinstallation workflow).
+- **Runtime phase:** do not mount /custom.iso; do not make the ISO a prerequisite in the normal start script. The installed guest boots from persistent storage.
+- **Persistent state:** /home/deck/WindowsVM/storage remains mounted at /storage. The guest disk (data.img) and associated firmware/state files live there. Preserve this directory when replacing a container wrapper.
+- **Container configuration:** Podman bind mounts are part of the container definition. Deleting an ISO from the host does not remove its old mount entry from an existing container. Recreate the container without that mount to remove the obsolete dependency; retain the host storage directory.
+
+### Verified repair — 2026-11-14
+
+The original stopped container was preserved as windows-box-iso-legacy. A replacement windows-box was created against the same persistent storage and shared directory, using the same pinned image, protected environment file, KVM device, LAN console publication and manual restart policy. The replacement was inspected while still in the created state.
+
+Verified replacement mounts:
+
+~~~text
+/home/deck/WindowsVM/storage -> /storage  RW=true
+/home/deck/WindowsVM/shared  -> /shared   RW=true
+~~~
+
+There is no /custom.iso mount. The replacement was then started successfully; Podman reported it running, the host listener appeared on 192.168.1.161:8006, and the user confirmed successful Web Console connectivity. The ISO-free runtime correction therefore passed container creation, mount inspection, startup and console-connectivity validation.
+
+The corrected local start script no longer defines an ISO path, checks whether an installation ISO is readable, or mounts /custom.iso. It continues to preserve the persistent storage and shared-folder mounts and the existing pinned runtime configuration.
+
+The prior ISO-mounted deployment details above are retained as historical installation evidence. They must not be copied into a normal runtime start script.
+
+### Required pattern for future VMs
+
+1. Create a unique project root, protected environment file and empty, unique storage directory for the new guest.
+2. If using a custom ISO, create the initial installation container with that ISO mounted read-only at /custom.iso. Inspect its mounts before starting it.
+3. Complete Windows installation and shut down the guest.
+4. Preserve the new guest's storage directory. Remove/recreate only the container object, then create the normal runtime container with the storage and shared-folder mounts but without the ISO mount.
+5. Inspect the runtime container mounts before starting it. Confirm that /storage points to the intended guest directory and that no /custom.iso mount remains.
+6. Start the runtime container and verify the guest boots from its installed disk.
+
+Do not run two containers against the same guest storage simultaneously. Do not delete or recreate the storage directory during this transition. Retain the ISO separately as optional offline installation media if desired; its continued presence is not required for ordinary VM startup.
