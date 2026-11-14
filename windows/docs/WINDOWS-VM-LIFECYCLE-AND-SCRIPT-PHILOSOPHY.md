@@ -96,6 +96,48 @@ Normal stop should not remove the container object. Container removal is reserve
 
 The status script should be observational: report container state, exit status, port publication and relevant mounts without starting, stopping, recreating, pruning or repairing anything.
 
+
+### Operator quick reference — manual start and stop
+
+Run these commands in a SteamOS host terminal as the normal host account `deck`. Do not enter a Distrobox first.
+
+**Start the VM:**
+
+```bash
+cd /home/deck/WindowsVM/config
+./windows-box-start.sh
+```
+
+**Check its state:**
+
+```bash
+cd /home/deck/WindowsVM/config
+./windows-box-status.sh
+```
+
+**Connect to the guest from the PC:**
+
+- Open the verified noVNC console: `http://192.168.1.161:8006/`
+- The Windows local account is `DeckVM`. Its password remains in the local protected environment file; never display or share that file.
+- RDP at `192.168.1.161:3389` remains pending end-to-end verification. Do not use it as the documented working path yet.
+
+**Stop the VM deliberately:**
+
+```bash
+cd /home/deck/WindowsVM/config
+./windows-box-stop.sh
+./windows-box-status.sh
+```
+
+The stop script's currently documented Podman stop request is `podman stop --time 120 windows-box`. This provides a bounded container-stop wait; it is not, by itself, proof that Windows received and completed a clean guest shutdown. Prefer a Windows-initiated shutdown when practical, then use the stop script to complete the documented host-side lifecycle. Check the status output afterward.
+
+**Important command distinction:**
+
+- `distrobox enter windows-box` is incorrect: the named object is not a Distrobox.
+- `podman start windows-box` directly bypasses the project start script and is not the normal operator procedure.
+- `podman exec -it windows-box ...` opens a process inside an already-running container; it does not start the VM and is not the Windows user interface.
+- Do not remove the container or guest storage as part of routine start/stop.
+
 ## 4. Manual lifecycle policy
 
 | Event | Expected behavior |
