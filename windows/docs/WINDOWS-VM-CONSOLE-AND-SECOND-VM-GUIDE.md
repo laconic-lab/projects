@@ -285,7 +285,7 @@ A second guest needs its own:
 
 Never run two QEMU guests against the same storage directory or data.img. Never reuse the first guest's storage directory. Do not publish both web viewers on the same host IP/port pair.
 
-The example creates windows-box-2, guest windows-vm-2, project root /home/deck/WindowsVM-2 and web viewer port 8007. It uses the same pinned image and existing ISO. It is a template only; it has not been executed.
+The example creates windows-box-2, guest windows-vm-2, project root /home/deck/WindowsVM-2 and web viewer port 8007. The runtime container is intentionally ISO-free. If a custom ISO is selected for initial installation, use it only in the temporary installation phase described in Section 12, then recreate the container without the ISO mount. This is a template only; it has not been executed.
 
 ### 5.1 Read-only preflight
 
@@ -304,10 +304,6 @@ echo "image-exists-exit=$?"
 echo
 echo "===== KVM ====="
 test -r /dev/kvm && test -w /dev/kvm && echo "/dev/kvm accessible"
-
-echo
-echo "===== ISO ====="
-test -r /home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO && echo "ISO readable"
 
 echo
 echo "===== HOME CAPACITY ====="
@@ -333,14 +329,12 @@ CONFIG="$PROJECT/config"
 STORAGE="$PROJECT/storage"
 SHARED="$PROJECT/shared"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
-ISO="/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO"
 
 if [[ -e "$PROJECT" ]]; then
     echo "ERROR: $PROJECT already exists; inspect it before proceeding." >&2
     exit 1
 fi
 
-test -r "$ISO"
 podman image exists "$IMAGE"
 
 mkdir -p "$CONFIG" "$STORAGE" "$SHARED"
@@ -392,7 +386,7 @@ PROJECT="/home/deck/WindowsVM-2"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
 ISO="/home/deck/uup-box/26200.9974_pro/26100.1.1_PROFESSIONAL_X64_EN-US.ISO"
 
-podman run --detach \
+podman create \
     --name windows-box-2 \
     --pull=never \
     --restart=no \
@@ -400,10 +394,16 @@ podman run --detach \
     --device=/dev/kvm \
     --publish 192.168.1.161:8007:8006 \
     --volume "$PROJECT/storage:/storage:rw" \
-    --volume "$ISO:/custom.iso:ro" \
     --volume "$PROJECT/shared:/shared:rw" \
     --env-file "$PROJECT/config/windows-box-2.env" \
     "$IMAGE"
+
+# Inspect the stopped container before the first boot.
+podman inspect windows-box-2 --format '{{.State.Status}}'
+podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+
+# Start only after confirming the intended mounts and absence of /custom.iso.
+podman start windows-box-2
 ~~~
 
 The second console would be http://192.168.1.161:8007/.
@@ -418,7 +418,7 @@ podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .
 podman top windows-box-2
 ~~~
 
-Verify the unique container, restart policy no, host port 8007 mapped to container port 8006, second storage mounted at /storage, ISO mounted read-only, and QEMU using KVM. After setup, verify Windows edition, build, account, computer name, activation and guest networking.
+Verify the unique container, restart policy no, host port 8007 mapped to container port 8006, second storage mounted at /storage, no /custom.iso mount in the runtime definition, and QEMU using KVM. After setup, verify Windows edition, build, account, computer name, activation and guest networking.
 
 ## 7. Lifecycle commands
 
@@ -583,7 +583,7 @@ For a second VM, update NAME, PROJECT and EXPECTED to that VM's independently ve
 ### 8.4 What is not removed automatically
 
 - The shared Dockur image remains available for other Windows VM containers. Do not remove it while another guest uses it.
-- The installation ISO is stored outside the project at /home/deck/uup-box/...; this procedure does not delete it.
+- Any installation ISO stored outside the project is independent of the guest storage; this procedure does not delete it. It is not required by the normal runtime container.
 - Other Podman containers and projects are unaffected.
 - No global prune command is required. Avoid podman system prune, podman volume prune, or broad podman rm -a for removing one guest.
 
@@ -628,3 +628,23 @@ See [Windows VM Connections and Credential Naming Convention](./WINDOWS-VM-CONNE
 ### 3.1 Verified PC-client access — 2026-11-12
 
 The user confirmed that `http://192.168.1.161:8006/` opens successfully from PC client `192.168.1.169` in both Brave and Chrome at the same time. This is a mirrored view of one Windows guest console, not independent guest sessions. No guest RDP port was published as part of this change.
+
+
+## 12. Custom ISO lifecycle: install once, run without the ISO
+
+**Important correction, verified on the first VM on 2026-11-14:** do not keep a custom installation ISO mounted in the normal runtime container. The ISO is installation media, not the installed Windows system. Once Setup has installed Windows to the guest's persistent /storage disk, ordinary startup should use that disk without /custom.iso.
+
+For a future second VM that needs a custom ISO:
+
+1. Use its own empty storage directory and its own container name. During the initial installation only, create the container with the additional read-only mount:
+   ~~~bash
+   --volume "$ISO:/custom.iso:ro"
+   ~~~
+   The ISO path must be readable at that time. Inspect the container definition before starting it.
+2. Complete Windows Setup and shut down the guest.
+3. Remove only the stopped installation container object. Do not delete /home/deck/WindowsVM-2/storage or its contents.
+4. Create the normal runtime container with the same storage, shared folder, environment file, image, device and port settings, but omit the /custom.iso mount entirely.
+5. Inspect the created container while it is still stopped. Confirm the expected unique /storage and /shared mounts and confirm there is no /custom.iso mount.
+6. Start the runtime container and verify Windows boots from its installed disk.
+
+The normal second-VM example in Section 5.3 is the ISO-free runtime definition. It is not a substitute for the temporary initial-installation definition in the steps above. Never run the installation and runtime containers concurrently against the same guest storage.
