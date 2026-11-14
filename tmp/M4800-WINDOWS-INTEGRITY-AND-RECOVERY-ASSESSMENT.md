@@ -86,7 +86,7 @@ Key established findings:
 
 - Windows was reportedly activated before the November 2026 servicing incident. The user's prior legitimate activation / digital entitlement has not been shown to be revoked or lost.
 - Current recorded licensing state is **Notification**. `slmgr /xpr` reported Notification mode; the installed partial key ends in `3V66T`, which is the generic Windows Pro setup key suffix and does not establish whether the user's entitlement is absent.
-- Activation attempts have returned **0x80070005**. One user-approved `/ato` attempt failed; no further activation attempt is authorized.
+- Earlier activation attempts returned **0x80070005**. On 2026-11-14 the user subsequently ran `slmgr.vbs /rilc` and `slmgr.vbs /ipk` with a Windows 11 Pro key; `/rilc` initiated licensing-file reinstallation/reinitialization and `/ipk` accepted the supplied key. A later `/ato` was attempted but did not complete activation. The user requested that the reason/result details of that manual attempt not be included in this document. A separate automatic activation / troubleshooting path still reports **0x80070005**.
 - The ProfileList Network Service ACL discrepancy was corrected under explicit approval (TEST-35R), but the subsequent approved activation attempt still failed.
 - Defender investigation did not demonstrate that Defender blocked SPP.
 - Sysmon correlated three automatic Security-SPP Event 8198 failures on November 13 with short-lived `slui.exe` processes launched by `SppExtComObj.exe` as **NT AUTHORITY\NETWORK SERVICE**.
@@ -94,9 +94,9 @@ Key established findings:
 - The observed DCOM Default Access Permissions already contained SELF. No DCOM permission change was justified.
 - SPP scheduled tasks and the Microsoft-signed `sppcext.dll` registration were found present; no demonstrated task/registration defect justified repair.
 
-**Assessment:** Activation is still unresolved. The evidence narrows the execution path but does not prove that the activation entitlement is invalid or that the activation failure is caused by the component-store or Search problems.
+**Assessment:** Activation remains unresolved. The licensing-file reinstallation and key installation commands were accepted / initiated, but Windows activation has not been confirmed. A separate automatic activation / troubleshooting path still reports 0x80070005. The evidence narrows the execution path but does not prove that the activation failure is caused by the component-store or Search problems.
 
-**Do not:** repeat `/ato`, retry product keys, run `slmgr /upk`, rearm, reset the licensing store, change DCOM permissions, or modify SPP service / registry ACLs without a separate reviewed plan and explicit approval.
+**Do not:** repeat `/ato`, retry or replace product keys, run `slmgr /upk`, rearm, reset the licensing store, change DCOM permissions, or modify SPP service / registry ACLs without a separate reviewed plan and explicit approval.
 
 ### 3.3 Windows Search subsystem
 
@@ -291,9 +291,9 @@ A new session must read this assessment first, then read the relevant detailed b
 
 | Sequence | Command / action | Result |
 |---|---|---|
-| 1 | slmgr.vbs /rilc | Command initiated a licensing-file reinstallation. After some time, a Windows dialog opened and displayed a process reinitializing / reinstalling numerous files. User reports this operation proceeded. |
-| 2 | slmgr.vbs /ipk [redacted Windows 11 Pro key] | Windows accepted the key through PowerShell. The key value is deliberately omitted from this record. |
-| 3 | slmgr.vbs /ato | Activation did not succeed. Windows returned **0xC004C003** and reported that the key was blocked. The command was executed, but activation must not be recorded as successful. |
+| 1 | `slmgr.vbs /rilc` | Initiated licensing-file reinstallation / reinitialization. After some time, a Windows dialog opened and displayed a process reinitializing numerous files. User reports that this operation proceeded. |
+| 2 | `slmgr.vbs /ipk [redacted Windows 11 Pro key]` | Windows accepted the supplied key through PowerShell. The key value is deliberately omitted from this record. |
+| 3 | `slmgr.vbs /ato` | Attempted after key installation, but did not complete activation. Detailed result intentionally omitted at the user's request. |
 
 ### Additional activation error still observed
 
@@ -303,25 +303,25 @@ The user reports that system / activation troubleshooting continues to show a se
 - **Message:** License Activation (slui.exe) failed with the following error code: hr=0x80070005.
 - **Command-line context:** RuleId=3482d82e-ca2c-4e1f-8864-da0267b484b2; Action=AutoActivate; AppId=55c92734-d682-4d71-983e-d6ec3f16059f; SkuId=4de7cb65-cdf1-4de9-8ae8-e3cce27b9f2c; NotificationInterval=1440; Trigger=NetworkAvailable.
 
-This 0x80070005 report is recorded separately from the explicit 0xC004C003 result returned by the manual /ato command. The precise resource denied by the 0x80070005 path remains unidentified. Do not assume the two codes have the same cause.
+This 0x80070005 report is recorded separately from the manual activation attempt. The precise resource denied by the automatic activation / troubleshooting path remains unidentified. Do not assume the two paths have the same cause.
 
 ### Interpretation and status
 
-1. /rilc was used to reinstall / reinitialize licensing files. This is a material change to the licensing subsystem and must be included in the activation investigation chronology.
-2. /ipk accepted the supplied Windows 11 Pro key. Acceptance by the command does not itself establish successful activation or entitlement validity.
-3. /ato returned **0xC004C003**; activation remains unsuccessful.
+1. `/rilc` was used to reinstall / reinitialize licensing files. This is a material change to the licensing subsystem and must be included in the activation investigation chronology.
+2. `/ipk` accepted the supplied Windows 11 Pro key. Acceptance by the command does not itself establish successful activation or entitlement validity.
+3. `/ato` was attempted but did not complete activation; detailed result is intentionally omitted at the user's request.
 4. A separate automatic activation / troubleshooting path continues to report **0x80070005**. Its denied object or operation has not been identified.
 5. The previous SPP process-path observations remain historical context; no new process attribution or ACL diagnosis is established by these command results.
-6. This action log intentionally records only the commands and technical results. It does not record any explanation for the key's blocked status or any organizational / subscription history.
+6. This action log intentionally excludes the user's explanation for the key's status and any organizational / subscription history.
 
 ### Current action boundary
 
-- Record /rilc and /ipk as executed; record /ato as executed but unsuccessful with 0xC004C003.
+- Record `/rilc` and `/ipk` as initiated / accepted, respectively; record `/ato` as attempted but unsuccessful.
 - Do not store or reproduce the actual product key in repository documentation, logs or chat transcripts.
-- Do not repeat activation attempts, change keys, run /upk, rearm, reset the licensing store, or modify SPP / DCOM / ACL settings without a separately reviewed plan and explicit approval.
-- Treat 0xC004C003 and 0x80070005 as distinct recorded errors until evidence connects them.
+- Do not repeat activation attempts, change keys, run `/upk`, rearm, reset the licensing store, or modify SPP / DCOM / ACL settings without a separately reviewed plan and explicit approval.
+- Treat the separate **0x80070005** automatic activation / troubleshooting error as unresolved; its denied resource is unknown.
 - Windows Search remains separately reported as unable to start; these licensing commands do not establish any change to Search.
 
 ### Current activation verdict
 
-**LICENSING FILE REINSTALLATION: INITIATED VIA /RILC. PRODUCT KEY INSTALLATION: ACCEPTED VIA /IPK. MANUAL ACTIVATION: FAILED WITH 0xC004C003. SEPARATE AUTOMATIC ACTIVATION / TROUBLESHOOTING ERROR: 0x80070005 STILL REPORTED. WINDOWS ACTIVATION IS NOT CONFIRMED.**
+**LICENSING FILE REINSTALLATION: INITIATED VIA /RILC. PRODUCT KEY INSTALLATION: ACCEPTED VIA /IPK. MANUAL ACTIVATION: ATTEMPTED BUT NOT SUCCESSFUL (DETAILS OMITTED AT USER REQUEST). SEPARATE AUTOMATIC ACTIVATION / TROUBLESHOOTING ERROR: 0x80070005 STILL REPORTED. WINDOWS ACTIVATION IS NOT CONFIRMED.**
