@@ -19,7 +19,7 @@ The existing guest is not to be removed yet. Preparation work includes Windows-b
 - Rootless Podman successfully passed `/dev/kvm` into a temporary container.
 - QEMU inside `dockurr/windows` successfully started a minimal KVM-accelerated VM, and the deployed guest QEMU process is running with KVM acceleration.
 - The `dockurr/windows` image is downloaded and its entrypoint, defaults, `/storage` volume and exposed ports have been inspected.
-- `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/`, `backups/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
+- `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
 - The protected environment file and three manual lifecycle scripts have been created; the environment file is mode `0600`, scripts are mode `0700`, and all scripts pass `bash -n`.
 - Existing guest configuration: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, LAN-bound web viewer at 192.168.1.161:8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
 - The selected ISO remains readable at its original `uup-box` path and is mounted read-only by the running VM.
@@ -57,7 +57,6 @@ The names are deliberately distinct: `windows-box` is the Podman container hosti
 - Treat the container as replaceable; preserve the guest under the host-backed `/storage` mount and keep deployment configuration independently reproducible.
 - Pin the tested image digest for recreation and update it deliberately; do not silently follow a moving `latest` tag.
 - This is a disposable Windows laboratory. Do not create Windows guest backups, snapshots or virtual-disk copies; if the guest becomes damaged, inspect the failure and prefer a fresh VM when appropriate. Preserve configuration parameters, deployment scripts and verified technical findings in documentation.
-- Avoid creating backup copies of experimental guest state or configuration scripts unless the user explicitly requests a specific configuration backup.
 - Obtain explicit approval before package installation, host configuration changes, service changes, or creation/deletion of persistent VM data.
 - Record evidence and distinguish VERIFIED, REPORTED, PROPOSED and PENDING states.
 
