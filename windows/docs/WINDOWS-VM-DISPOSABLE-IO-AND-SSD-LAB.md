@@ -21,14 +21,14 @@ This document is an experiment plan, not a claim that any proposed optimization 
 ## 2. Explicit disposable-VM policy
 
 - Do not create Windows guest backups, snapshots or copies of `data.img`.
-- Do not create routine copies of the VM configuration scripts unless the user explicitly requests a specific configuration backup.
+- Do not create backup copies of VM configuration scripts.
 - Preserve important configuration parameters, environment-variable names, image digest, command procedures, measurements and test results in project documentation.
 - If the guest becomes damaged, diagnose the cause where useful; prefer creating a fresh guest over attempting prolonged repair.
 - Recreating a container wrapper while retaining the current guest disk is a separate operation from discarding/rebuilding the guest. Confirm the intended scope before either.
 - Do not delete or alter the Steam Deck host's swap, zram, memory settings, filesystem, NVMe configuration or system services as a Windows optimization.
 - No automated VM startup, background tuning or host-level write-cache experiment is authorized by this document.
 
-The existing `backups/` directory is historical project structure only; it is not an instruction to create VM backups. It may remain unused.
+No `backups/` directory is part of the project layout. Do not create one.
 
 ## 3. Current architecture and storage path
 
@@ -326,7 +326,7 @@ The LAN console milestone is complete. The PC client at 192.168.1.169 successful
 
 ## 11. LAN console milestone — 2026-11-12
 
-**VERIFIED:** The start script publishes TCP 8006 on `192.168.1.161`. The previous container was stopped and only its container object was removed; the replacement was created from the updated script. The existing `/home/deck/WindowsVM/storage` bind mount and `data.img` were retained. No guest backup or snapshot was created.
+**VERIFIED:** The start script publishes TCP 8006 on `192.168.1.161`. The previous container was stopped and only its container object was removed; the replacement was created from the updated script. The existing `/home/deck/WindowsVM/storage` bind mount and `data.img` were retained. No guest backup or snapshot is maintained.
 
 Host-side verification reported `8006/tcp -> 192.168.1.161:8006` from `podman port`, and `ss` showed a listener on `192.168.1.161:8006` owned by `passt.avx2`. The user then confirmed successful access from PC client `192.168.1.169` in both Brave and Chrome at the same time. Both browser windows mirror the same Windows guest display/input session.
 
