@@ -8,6 +8,8 @@
 
 > **Current VM lifecycle note (2026-11-15):** the separate `windows-pro-box` runtime is running with Web Console and RDP verified and no installation ISO bind. Older RDP-deferred and original `windows-box` statements in this lab are historical snapshots. The NO ISO BIND rule applies to all guests; for accidental ISO-bound runtime containers, follow [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Do not combine that fixed container correction with storage experiments.
 
+> **Installation-path boundary:** this document is a storage/I/O experiment plan and evidence register, not an installation procedure. For new VMs, follow the [Installation Guide's two-path decision](./WINDOWS-VM-INSTALLATION-GUIDE.md#installation-decision--two-separate-procedures). Path A (`/storage/custom.iso`, one container, no ISO bind) is preferred; Path B (temporary ISO-bound installer followed by a separate ISO-free runtime container) is an alternative. The no-ISO-bind rule applies to every normal runtime container. Do not combine container correction with storage experiments.
+
 ## Contents
 
 - [Purpose](#1-purpose)
@@ -366,6 +368,6 @@ The earlier PowerShell command block was mistakenly entered into SteamOS Bash ov
 
 The planned replacement guest is 8 GiB RAM and a 72 GiB growable raw disk, but neither value has been empirically tested yet. The earlier 6 GiB guest's historical host reading showed only 3.0 GiB available. Before starting an 8 GiB guest, remeasure host memory availability and memory pressure. A RAM disk would consume guest memory backed by the same finite host RAM budget; it must not be treated as a free way to reduce SSD writes.
 
-The user's preferred order is to finish UUP/ISO and Windows setup groundwork first, then complete the read-only storage analysis, and only then run disposable I/O experiments. RDP publication is not a prerequisite for this work and is deferred.
+**Historical planning note (2026-11-13):** the original test plan placed UUP/ISO and Windows setup groundwork before read-only storage analysis and disposable I/O experiments. Its statement that RDP publication was deferred describes that earlier planning snapshot; the separate Pro guest's RDP access was subsequently user-confirmed on 2026-11-15.
 
 The current official Dockur environment reference documents BALLOONING, BALLOONING_MIN_MEM and host-pressure thresholds. Ballooning is not equivalent to freely changing the guest's configured maximum RAM at runtime. Its behavior and guest driver support must be verified before enabling it. Do not enable it in the initial replacement configuration by assumption.
