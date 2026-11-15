@@ -265,6 +265,29 @@ This is a focused review plan, not a requirement to add complexity or extra scri
 
 ---
 
+## 11. Repeated ISO-bound container correction — standard procedure
+
+**NO ISO BIND is mandatory for every normal Windows VM runtime.** Installation media belongs only to a separately named, temporary installer container. The normal runtime container and its start script must not define or mount `/custom.iso`.
+
+This failure class has now recurred across multiple Windows VM attempts. Do not troubleshoot it from scratch each time. When a completed guest is attached to an ISO-bound container:
+
+1. Stop retrying startup; do not change the ISO path or edit the env file as a workaround.
+2. Shut down Windows cleanly from inside the guest and wait for the container to stop.
+3. Inspect the exact container's state, image, mounts, port bindings and restart policy. Confirm the project storage path.
+4. Confirm no other container (including exited containers) references that same guest storage.
+5. Remove only the stopped container object with `podman rm <name>`. Never use `-v`; never remove or recreate `storage/`, `shared/`, the project root or the protected env file.
+6. Invoke the reviewed NO ISO BIND runtime start script for that VM. It must recreate the container with the same pinned image, project paths, environment, KVM device and approved port bindings, without any ISO argument.
+7. Verify the actual mount table and configured port bindings before start. The required mounts are only `storage/ -> /storage` and `shared/ -> /shared`. Confirm no `/custom.iso`. The script must fail closed on any mismatch.
+8. Confirm the guest starts and its intended connection methods work.
+
+If Windows Setup did not complete or clean shutdown cannot be established, this completed-guest correction is not applicable: preserve everything and obtain a separate recovery decision. Never infer that the guest disk should be deleted.
+
+**Port inspection note:** for a container in `Created` state, inspect configured mappings with `podman inspect <name> --format '{{json .HostConfig.PortBindings}}'`. An empty `podman port <name>` result before start does not mean the configured mappings are absent. The Pro runtime script was corrected on 2026-11-15 to use the inspect field and compare the complete expected mapping.
+
+**Verified Pro result, 2026-11-15:** `windows-pro-box` now runs with exactly the persistent `/storage` and `/shared` mounts, no `/custom.iso`, correct Web Console and RDP host port bindings, and `--restart=no`. The user confirmed Web Console and RDP both work. No guest storage was removed or recreated.
+
+---
+
 *Operating philosophy: the user enters the box deliberately; the box does not start itself. Keep the lifecycle transparent, manual, observable and safe for SteamOS.*
 
 
