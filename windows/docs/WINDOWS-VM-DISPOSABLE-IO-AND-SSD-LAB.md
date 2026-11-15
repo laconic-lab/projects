@@ -6,6 +6,8 @@
 **Status:** LAN noVNC access verified; replacement-guest groundwork and read-only storage analysis in progress; no tuning experiments applied  
 **Priority:** Understand the I/O and memory model and collect baselines before removing the current guest or creating its replacement. Protect SteamOS and the Steam Deck NVMe first.
 
+> **Current VM lifecycle note (2026-11-15):** the separate `windows-pro-box` runtime is running with Web Console and RDP verified and no installation ISO bind. Older RDP-deferred and original `windows-box` statements in this lab are historical snapshots. The NO ISO BIND rule applies to all guests; for accidental ISO-bound runtime containers, follow [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Do not combine that fixed container correction with storage experiments.
+
 ## 1. Purpose
 
 This Windows VM is a disposable laboratory for learning and testing QEMU, KVM, rootless Podman and Dockur. It is not a precious workstation installation. The user is comfortable discarding a damaged guest and creating a fresh one rather than spending time repairing a compromised or confusing experimental state.
