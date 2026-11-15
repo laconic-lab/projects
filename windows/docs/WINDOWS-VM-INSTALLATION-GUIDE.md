@@ -1286,7 +1286,7 @@ For a future VM, repeat this checklist with a new project root, container name, 
 
 #### 6.8 Actual second-VM deployment record — 2026-11-14
 
-**USER-CONFIRMED / IN PROGRESS:** The reusable procedure above was executed for the independent second guest:
+**USER-CONFIRMED (historical record):** The reusable procedure above was executed during a second independent VM deployment. The status below records what was observed at that time:
 
 | Item | Verified state |
 |---|---|
@@ -1540,8 +1540,8 @@ The ISO-free runtime architecture was already decided and successfully verified 
 
 **Mandatory rule for every VM:** custom ISO mount only during initial installation or deliberately approved recovery/reinstallation; normal runtime container must never mount `/custom.iso`. Preserve each guest's persistent storage during the transition, recreate only the container object, inspect the ISO-free runtime mounts before starting, and never attach the same guest storage to two containers simultaneously.
 
-### second VM discrepancy identified — 2026-11-15
+### Second-VM ISO-mount discrepancy identified — 2026-11-15
 
-Read-only inspection of `windows-box-2` showed that its existing container still retained the initial-installation ISO bind mount. The recorded source path `the selected Windows installation ISO` was no longer present. A subsequent start attempt failed before the container started because crun could not stat that missing bind-mount source. The container was already reported as `Exited (0)` before this failed attempt; that status alone does not establish whether Windows had shut down cleanly.
+Read-only inspection of `windows-box-2` showed that its existing container still retained the initial-installation ISO bind mount. The recorded ISO source file was no longer present at its configured host path. A subsequent start attempt failed before the container started because crun could not stat that missing bind-mount source. The container was already reported as `Exited (0)` before this failed attempt; that status alone does not establish whether Windows had shut down cleanly.
 
 This incident demonstrated why the 2026-11-14 ISO-free runtime rule must be checked for every VM. If the same condition is encountered again, preserve that VM's existing `storage/` and `shared/` data, verify that no other container is using the same guest storage, confirm the guest is shut down, and obtain explicit approval before removing/recreating its container object. The lesson is reusable; the retired test VM's project identity and paths are not.
