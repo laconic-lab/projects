@@ -4,12 +4,12 @@
 
 | Date | Time | Entry | Decisions / Actions / Results / Remarks |
 |:---:|:---:|:---:|:---|
-| 15/11/2026 | — | **Decision** | Continue the UUP download/conversion run for the selected Windows 11 25H2 media; do not interrupt it solely because the log reports errors. |
+| 15/11/26 | — | **Decision** | Continue the UUP download/conversion run for the selected Windows 11 25H2 media; do not interrupt it solely because the log reports errors. |
 | | | **Action** | Allow the download/conversion process to continue and retain `aria2_download.log`. |
 | | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
 | | | **Remark** | It remains unverified whether required payloads were missing, whether conversion completed, or whether the resulting ISO is valid. |
 | | | | |
-| 13/11/2026 | 18:00:11 UTC | **Decision** | For the intended updated Home installation media, select the latest available Windows 11 25H2 UUP package set. |
+| 13/11/26 | 18:00:11 UTC | **Decision** | For the intended updated Home installation media, select the latest available Windows 11 25H2 UUP package set. |
 | | | **Action** | Download the base ESD and update payloads; configure `AddUpdates=1`. |
 | | | **Result** | 25H2 package set selected; KB5127936, KB5130881 and KB5054156 identified. |
 | | | **Remark** | This is the intended 25H2 media-generation effort. Package selection and download do not prove successful integration into the install image. |
@@ -24,7 +24,7 @@
 | | | **Result** | VM used for UUP/media work. |
 | | | **Remark** | This is a work environment, not the final deployment target. |
 | | | | |
-| 13/11/2026 | — | **Decision** | Try the Linux UUP conversion route for the Pro installation media. |
+| 13/11/26 | — | **Decision** | Try the Linux UUP conversion route for the Pro installation media. |
 | | | **Action** | Generate the Pro ISO. |
 | | | **Result** | Image recorded as `26100.1.1_PROFESSIONAL_X64_EN-US.ISO`. |
 | | | **Remark** | `AddUpdates=1` did not produce the intended update integration. This failure motivated using a Windows environment for later conversion. |
