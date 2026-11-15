@@ -6,6 +6,23 @@
 **Status:** Manual lifecycle policy documented; local Windows script source is on the Deck and has not yet been committed for line-by-line repository review  
 **Policy:** Manual start and stop only. No boot autostart, unattended startup or automatic restart.
 
+## Contents
+
+- [Purpose](#1-purpose)
+- [Keep the lifecycle layers distinct](#2-keep-the-lifecycle-layers-distinct)
+- [Windows lifecycle scripts](#3-windows-lifecycle-scripts)
+- [Manual lifecycle policy](#4-manual-lifecycle-policy)
+- [Reference analysis: Odysseus lifecycle scripts](#5-reference-analysis-odysseus-lifecycle-scripts)
+- [Principles to carry into Windows scripts](#6-principles-to-carry-into-windows-scripts)
+- [Host safety and authorization](#7-host-safety-and-authorization)
+- [Focused source-review checklist](#8-focused-source-review-checklist)
+- [Verified state](#9-verified-state-2026-11-12)
+- [Repeated ISO-bound container correction](#11-repeated-iso-bound-container-correction-standard-procedure)
+- [Installation media versus normal runtime](#10-installation-media-versus-normal-runtime-correction-verified-2026-11-14)
+
+---
+
+
 ## 1. Purpose
 
 The Windows VM is an on-demand laboratory. The user deliberately starts it when entering the Windows box and stops it when finished. It must not start itself when SteamOS boots or quietly become an always-on service.
