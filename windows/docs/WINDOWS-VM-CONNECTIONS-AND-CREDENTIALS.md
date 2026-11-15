@@ -8,6 +8,8 @@
 
 > **Current Pro guest status (2026-11-15):** `windows-pro-box` is running. The user confirms Web Console access at `http://192.168.1.161:8006/` and RDP at `192.168.1.161:3389`. Its normal runtime has no `/custom.iso` mount. The older connection matrix and detailed `windows-box` procedure below are historical records for the original deployment; they do not describe the current Pro guest. The fleet-wide NO ISO BIND recovery rule is in the [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container).
 
+> **Installation-path authority:** this is a connection and credential operations document, not an installation recipe. New VM installation must follow the [Installation Guide's two-path decision](./WINDOWS-VM-INSTALLATION-GUIDE.md#installation-decision--two-separate-procedures): Path A (`/storage/custom.iso`, one container, no ISO bind) is preferred; Path B (temporary ISO-bound installer, then separate ISO-free runtime container) is an alternative. Every normal runtime container must be ISO-bind-free.
+
 ## Contents
 
 - [Identity naming convention](#1-identity-naming-convention)
