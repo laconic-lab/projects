@@ -15,16 +15,16 @@
 - [Purpose](#1-purpose)
 - [Explicit disposable-VM policy](#2-explicit-disposable-vm-policy)
 - [Current architecture and storage path](#3-current-architecture-and-storage-path)
-- [Baseline evidence](#4-baseline-evidence-2026-11-12)
+- [Baseline evidence](#4-baseline-evidence--2026-11-12)
 - [Technical questions and candidate experiments](#5-technical-questions-and-candidate-experiments)
-- [Windows baseline commands](#6-windows-baseline-commands-run-inside-the-guest)
-- [SteamOS host baseline commands](#7-steamos-host-baseline-commands-read-only)
+- [Windows baseline commands](#6-windows-baseline-commands--run-inside-the-guest)
+- [SteamOS host baseline commands](#7-steamos-host-baseline-commands--read-only)
 - [Host safety gates](#8-host-safety-gates)
 - [Test order and current priority](#9-test-order-and-current-priority)
 - [Evidence and change register](#10-evidence-and-change-register)
 - [NO ISO BIND runtime safeguard](#13-no-iso-bind-runtime-safeguard)
-- [LAN console milestone](#11-lan-console-milestone-2026-11-12)
-- [Replacement-guest preparation note](#12-replacement-guest-preparation-note-2026-11-13)
+- [LAN console milestone](#11-lan-console-milestone--2026-11-12)
+- [Replacement-guest preparation note](#12-replacement-guest-preparation-note--2026-11-13)
 
 ---
 
