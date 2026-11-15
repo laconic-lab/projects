@@ -4,6 +4,9 @@ A living installation guide and evidence log for evaluating a Windows virtual ma
 
 > **Current phase (2026-11-15):** The separate Windows 11 Pro 25H2 guest `windows-pro-box` is installed and running. The user confirms **Windows 11 Pro, version 25H2, OS build 26200.9974**, Web Console access, RDP access and an ISO-free normal runtime. The former ISO-bound Podman container object was removed only after clean guest shutdown; the persistent project root, guest storage, shared directory and protected environment file were preserved. A replacement runtime container was created and verified with exactly the `/storage` and `/shared` mounts, correct configured ports, and no `/custom.iso`; it then started successfully. The active start script's pre-start port check was corrected to inspect `.HostConfig.PortBindings`, not `podman port` on a Created container. **NO ISO BIND remains the mandatory fleet-wide rule.** See the Roadbook for the incident history and the separate Home ISO investigation. No VM backup or snapshot is in scope.**
 
+
+> **Record interpretation:** This guide also retains historical deployment plans and evidence for the earlier `windows-box` guest. Any older paragraph saying RDP is deferred, an ISO is mounted for runtime, or a guest is awaiting replacement describes that earlier snapshot—not the current `windows-pro-box` state recorded above. The current Pro status and the mandatory NO ISO BIND procedure take precedence.
+
 ## TOP-PRIORITY RULE — NO ISO BIND IN NORMAL RUNTIME
 
 **MANDATORY HARD GATE — READ THIS BEFORE EVERY VM CREATE OR START ACTION**
@@ -44,7 +47,7 @@ The normal runtime creation gate applies to every guest, including second and la
 
 **Creation gate:** no guest is ready for ordinary operation until its ISO-free runtime container has passed all three checks. A script that warns about an ISO mount and then continues is non-compliant and must fail closed.
 
-**Decision history:** the ISO-free runtime transition was verified for `windows-box` on 2026-11-14. The Pro VM's 2026-11-15 failure demonstrates why the gate must be enforced before every normal start.## 0.1 First confirmation before any VM action — NO ISO BIND
+**Decision history:** the ISO-free runtime transition was verified for `windows-box` on 2026-11-14 and for `windows-pro-box` on 2026-11-15. The Pro incident also exposed a pre-start port-inspection defect: `podman port` returned no output while the container was `Created`, although `.HostConfig.PortBindings` contained the correct configuration. The Pro script and repository template now use exact `.HostConfig.PortBindings` inspection. The Pro VM is running with no ISO bind; Web Console and RDP are user-confirmed working.## 0.1 First confirmation before any VM action — NO ISO BIND
 
 Before running any Bash command that creates, recreates or starts a normal Windows VM container, stop and inspect the exact command. Confirm there is no ISO source variable and no `/custom.iso` volume argument. Then inspect the actual Podman object after creation and immediately before start. This confirmation is mandatory even if an earlier template or script was previously reviewed.
 
