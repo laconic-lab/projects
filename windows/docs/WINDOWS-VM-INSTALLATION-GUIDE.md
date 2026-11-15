@@ -47,7 +47,7 @@ The preferred sequence creates **one Podman container once** with the permanent 
 
 Dockur's upstream installer explicitly handles removal of custom installation media after a completed installation. Do not remove the ISO while Setup is using it or while installation is incomplete. If the installer did not complete successfully, preserve the ISO and storage and investigate before deleting anything.
 
-The older ISO bind method (`ISO:/custom.iso:ro`) remains documented below as a **legacy alternative only**. Podman retains that mount in the container definition, so deleting the host ISO does not detach it. The runtime-only template remains ISO-free.
+The ISO-bind method (`ISO:/custom.iso:ro`) is documented below as **Path B — an alternative, not the preferred default**. Podman retains that mount in the installer container definition, so deleting the host ISO does not detach it; Path B therefore requires removal of that temporary container object and creation of a separate ISO-free runtime container. The runtime-only template remains ISO-free.
 
 **Creation gate:** no guest is ready for ordinary operation until its ISO-free runtime container has passed all three checks. A script that warns about an ISO mount and then continues is non-compliant and must fail closed.
 
