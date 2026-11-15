@@ -6,6 +6,8 @@
 **Status:** Manual lifecycle policy documented; local Windows script source is on the Deck and has not yet been committed for line-by-line repository review  
 **Policy:** Manual start and stop only. No boot autostart, unattended startup or automatic restart.
 
+> **Installation-path rule:** Path A in the [Windows VM Installation Guide](./WINDOWS-VM-INSTALLATION-GUIDE.md#installation-decision--two-separate-procedures) is preferred: one container, with the ISO temporarily stored as `/storage/custom.iso` and no ISO bind. Path B is an alternative using a temporary ISO-bound installer container followed by a separate ISO-free runtime container. Both paths end with an ISO-free runtime. This document covers normal start/stop behaviour and the correction of an already-created ISO-bound container; it is not a second installation recipe.
+
 ## Contents
 
 - [Purpose](#1-purpose)
@@ -284,7 +286,7 @@ This is a focused review plan, not a requirement to add complexity or extra scri
 
 ## 11. Repeated ISO-bound container correction — standard procedure
 
-**NO ISO BIND is mandatory for every normal Windows VM runtime.** Installation media belongs only to a separately named, temporary installer container. The normal runtime container and its start script must not define or mount `/custom.iso`.
+**NO ISO BIND is mandatory for every normal Windows VM runtime.** The installation method is a separate decision: Path A (preferred) stores `custom.iso` as a regular file inside `/storage` and uses one container; Path B uses a temporary ISO-bound installer container and then creates a separate runtime container. In either case, the normal runtime container and its start script must not define or mount `/custom.iso`. See the [Installation Guide's two-path decision](./WINDOWS-VM-INSTALLATION-GUIDE.md#installation-decision--two-separate-procedures) for the actual installation commands.
 
 This failure class has now recurred across multiple Windows VM attempts. Do not troubleshoot it from scratch each time. When a completed guest is attached to an ISO-bound container:
 
@@ -310,7 +312,7 @@ If Windows Setup did not complete or clean shutdown cannot be established, this 
 
 ## 10. Installation media versus normal runtime — correction verified 2026-11-14
 
-A custom ISO may be mounted read-only at /custom.iso for the initial Windows installation. It is not a normal runtime dependency after Windows has been installed to the persistent guest disk.
+A custom ISO is installation media, not a normal runtime dependency after Windows has been installed to the persistent guest disk. There are two documented installation methods: the preferred one-container `/storage/custom.iso` method (no ISO bind), and the alternative temporary ISO-bind installer followed by a second ISO-free runtime container.
 
 The 2026-11-12 deployment originally kept the ISO mount in the regular start script and container definition. This was a lifecycle mistake: deleting the ISO then blocked startup at the script's readability check, even though the installed guest data remained in /home/deck/WindowsVM/storage.
 
@@ -321,6 +323,6 @@ The 2026-11-12 deployment originally kept the ISO mount in the regular start scr
 
 **2026-11-14 validation:** the original stopped container was preserved as windows-box-iso-legacy; a replacement windows-box was created with the same persistent storage, shared folder, pinned Dockur image, protected environment file, KVM device, port publication and --restart=no. Before it was started, inspection showed exactly the two mounts above and no ISO mount. The replacement then started successfully and the user confirmed Web Console connectivity at http://192.168.1.161:8006/.
 
-Future custom-ISO deployments must use two distinct container-definition phases: an installation container with the temporary read-only ISO mount, followed by a normal runtime container without it. Recreate the container object to change its bind mounts; preserve the host-backed guest storage throughout. Inspect the created runtime container before starting it. Never run two containers against the same guest storage simultaneously.
+**Historical Path B transition:** the 2026-11-14 `windows-box` deployment used two distinct container definitions: an ISO-bound installation container followed by an ISO-free runtime container. That is now the documented alternative, not the default. For new deployments, prefer Path A: create one container without an ISO bind, place `custom.iso` inside the host-backed `/storage`, install Windows, remove only the ISO file after successful installation and clean shutdown, then reuse the same container object. If Path B is deliberately selected, recreate only the container object between phases; preserve host-backed guest storage throughout. Inspect the runtime container before starting it. Never run two containers against the same guest storage simultaneously.
 
 The preserved windows-box-iso-legacy container is a rollback reference for this validation only. Do not start it while the replacement uses the same storage.
