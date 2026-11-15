@@ -1,9 +1,9 @@
 # Windows VM Lifecycle and Manual Start/Stop Script Philosophy
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU/KVM  
-**Container:** `windows-box`  
-**Guest:** `windows-vm`  
-**Status:** Manual lifecycle policy documented; local Windows script source is on the Deck and has not yet been committed for line-by-line repository review  
+**Historical reference container:** `windows-box`  
+**Historical reference guest:** `windows-vm`  
+**Document status:** Manual lifecycle policy documented; the local Windows script source was on the Deck and had not yet been committed for line-by-line repository review at the time of this record  
 **Policy:** Manual start and stop only. No boot autostart, unattended startup or automatic restart.
 
 > **Installation-path rule:** Path A in the [Windows VM Installation Guide](./WINDOWS-VM-INSTALLATION-GUIDE.md#installation-decision--two-separate-procedures) is preferred: one container, with the ISO temporarily stored as `/storage/custom.iso` and no ISO bind. Path B is an alternative using a temporary ISO-bound installer container followed by a separate ISO-free runtime container. Both paths end with an ISO-free runtime. This document covers normal start/stop behaviour and the correction of an already-created ISO-bound container; it is not a second installation recipe.
