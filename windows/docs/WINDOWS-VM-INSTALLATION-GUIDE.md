@@ -117,12 +117,12 @@ The ISO bind is a lifecycle constraint on the **installer container object**: de
 - [Hardware and host preflight](#5-hardware-and-host-preflight)
 - [Architecture decision](#6-architecture-decision)
 - [Persistent project layout and disposable guest policy](#7-persistent-project-layout-and-disposable-guest-policy)
+- [Console operation and multi-VM deployment](#console-operation-and-multi-vm-deployment)
 - [Lab history and evidence register](#8-lab-history-and-evidence-register)
 - [Next steps](#9-next-steps)
 - [Change and evidence register](#10-change-and-evidence-register)
 - [Next guest preparation](#14-next-guest-preparation--2026-11-13)
 - [Installation ISO is not a runtime dependency](#2026-11-14--installation-iso-is-not-a-runtime-dependency)
-- [Console operation and multi-VM deployment](#console-operation-and-multi-vm-deployment)
 - [Roadbook — 2026-11-15](#roadbook--2026-11-15-0527-cet)
 
 ---
