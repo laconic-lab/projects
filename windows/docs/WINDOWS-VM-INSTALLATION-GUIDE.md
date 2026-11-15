@@ -55,9 +55,9 @@ The older ISO bind method (`ISO:/custom.iso:ro`) remains documented below as a *
 
 ## Contents
 
-- [Top-priority rule — NO ISO BIND](#top-priority-rule-no-iso-bind-in-normal-runtime)
-  - [First confirmation before any VM action](#01-first-confirmation-before-any-vm-action-no-iso-bind)
-  - [Correction procedure for an ISO-bound runtime container](#02-standard-correction-procedure-accidental-iso-bound-runtime-container)
+- [Top-priority rule — NO ISO BIND](#top-priority-rule--no-iso-bind-in-normal-runtime)
+  - [First confirmation before any VM action](#01-first-confirmation-before-any-vm-action--no-iso-bind)
+  - [Correction procedure for an ISO-bound runtime container](#02-standard-correction-procedure--accidental-iso-bound-runtime-container)
 - [Objective](#1-objective)
 - [Scope and boundaries](#2-scope-and-boundaries)
 - [Naming and component roles](#3-naming-and-component-roles)
@@ -68,10 +68,10 @@ The older ISO bind method (`ISO:/custom.iso:ro`) remains documented below as a *
 - [Journey log](#8-journey-log)
 - [Next steps](#9-next-steps)
 - [Change and evidence register](#10-change-and-evidence-register)
-- [Next guest preparation](#14-next-guest-preparation-2026-11-13)
-- [Installation ISO is not a runtime dependency](#2026-11-14-installation-iso-is-not-a-runtime-dependency)
+- [Next guest preparation](#14-next-guest-preparation--2026-11-13)
+- [Installation ISO is not a runtime dependency](#2026-11-14--installation-iso-is-not-a-runtime-dependency)
 - [Console operation and multi-VM deployment](#console-operation-and-multi-vm-deployment)
-- [Roadbook — 2026-11-15](#roadbook-2026-11-15-0527-cet)
+- [Roadbook — 2026-11-15](#roadbook--2026-11-15-0527-cet)
 
 ---
 
