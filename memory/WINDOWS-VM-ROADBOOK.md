@@ -19,7 +19,7 @@
 | | | **Result** | The earlier ISO installed Windows 11 Home 24H2, build 26100.1. [Download log for this earlier ISO](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log). |
 | | | **Remark** | This records the outcome of an earlier ISO test only. It was not a decision to target 24H2, and it says nothing about the contents or validity of the later 25H2 ISO. |
 | | | | |
-| — | — | **Decision** | Use a Windows environment for UUP conversion. |
+| 13/11/26 | — | **Decision** | Use a Windows environment for UUP conversion. |
 | | | **Action** | Create and use a temporary Steam Deck Windows VM. |
 | | | **Result** | VM used for UUP/media work. |
 | | | **Remark** | This is a work environment, not the final deployment target. |
