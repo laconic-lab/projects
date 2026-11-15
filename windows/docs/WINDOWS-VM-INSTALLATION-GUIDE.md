@@ -1137,7 +1137,7 @@ The values above are an example profile, not universal defaults. Review and chan
 
 **Preferred method: copy the selected ISO into the project's host-backed `storage/` directory and name it exactly `custom.iso`. Do not bind the ISO separately.**
 
-Dockur's README documents this local-file method: rename the ISO to `custom.iso` and place it in an otherwise empty `/storage` directory. Dockur's installer scans `/storage` for that filename. The project's one permanent `storage/ -> /storage` bind mount makes the file visible without adding any ISO-specific mount.
+Dockur's README documents this local-file method: rename the ISO to `custom.iso` and place it in an otherwise empty `/storage` directory. Dockur's installer scans `/storage` for that filename. The project's one permanent `storage/ -> /storage` bind mount makes the file visible without adding any ISO-specific mount. The upstream issue and current installer source support this workflow, but this exact pinned image digest has not yet been runtime-tested with the storage-file method. Treat the first deployment as a validation run: retain the ISO until Setup has completed and the installed guest has been verified.
 
 Example for the Home VM:
 
