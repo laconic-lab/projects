@@ -321,6 +321,14 @@ The LAN console milestone is complete. The PC client at 192.168.1.169 successful
 
 ---
 
+## 13. NO ISO BIND runtime safeguard
+
+The VM's persistent guest disk is the data boundary; the Podman container object is replaceable. A normal runtime container must mount only that VM project's `storage/` at `/storage` and `shared/` at `/shared`. An installation ISO at `/custom.iso` is never a runtime dependency.
+
+If a completed VM is accidentally left with an ISO bind, use the fixed replacement procedure in the [Installation Guide, Section 0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Do not delete or recreate the guest disk to correct a container mount. After a clean Windows shutdown and exclusive-storage check, remove only the stopped container object (without `-v`), recreate it through the reviewed ISO-free runtime script, and verify the actual mounts and port bindings before startup.
+
+This safeguard is independent of all RAM-disk, pagefile, TRIM and SSD-wear experiments. Do not combine an ISO-bind correction with storage tuning or guest reinstallation. The 2026-11-15 Pro correction preserved the existing storage and shared directory; the user verified Web Console and RDP access after the ISO-free runtime started.
+
 *Living lab document. Record tested behavior, not assumptions. Any optimization that threatens SteamOS stability is rejected, regardless of Windows performance benefit.*
 
 
