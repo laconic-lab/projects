@@ -28,7 +28,7 @@ PROJECT="/home/deck/WindowsVM"
 NAME="windows-box"
 
 # Environment file for this VM. Do not commit it: it may contain secrets.
-ENV_FILE="$PROJECT/config/windows-box.env"
+ENV_FILE="$PROJECT/config/${NAME}.env"
 
 # Pin the exact image version/digest used by this VM.
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
