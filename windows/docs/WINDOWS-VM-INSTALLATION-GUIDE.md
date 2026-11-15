@@ -51,7 +51,32 @@ The older ISO bind method (`ISO:/custom.iso:ro`) remains documented below as a *
 
 **Creation gate:** no guest is ready for ordinary operation until its ISO-free runtime container has passed all three checks. A script that warns about an ISO mount and then continues is non-compliant and must fail closed.
 
-**Decision history:** the ISO-free runtime transition was verified for `windows-box` on 2026-11-14 and for `windows-pro-box` on 2026-11-15. The Pro incident also exposed a pre-start port-inspection defect: `podman port` returned no output while the container was `Created`, although `.HostConfig.PortBindings` contained the correct configuration. The Pro script and repository template now use exact `.HostConfig.PortBindings` inspection. The Pro VM is running with no ISO bind; Web Console and RDP are user-confirmed working.## 0.1 First confirmation before any VM action — NO ISO BIND
+**Decision history:** the ISO-free runtime transition was verified for `windows-box` on 2026-11-14 and for `windows-pro-box` on 2026-11-15. The Pro incident also exposed a pre-start port-inspection defect: `podman port` returned no output while the container was `Created`, although `.HostConfig.PortBindings` contained the correct configuration. The Pro script and repository template now use exact `.HostConfig.PortBindings` inspection. The Pro VM is running with no ISO bind; Web Console and RDP are user-confirmed working.
+
+## Contents
+
+- [Top-priority rule — NO ISO BIND](#top-priority-rule-no-iso-bind-in-normal-runtime)
+  - [First confirmation before any VM action](#01-first-confirmation-before-any-vm-action-no-iso-bind)
+  - [Correction procedure for an ISO-bound runtime container](#02-standard-correction-procedure-accidental-iso-bound-runtime-container)
+- [Objective](#1-objective)
+- [Scope and boundaries](#2-scope-and-boundaries)
+- [Naming and component roles](#3-naming-and-component-roles)
+- [Repository and platform rules](#4-repository-and-platform-rules)
+- [Hardware and host preflight](#5-hardware-and-host-preflight)
+- [Architecture decision](#6-architecture-decision)
+- [Persistent project layout and disposable guest policy](#7-persistent-project-layout-and-disposable-guest-policy)
+- [Journey log](#8-journey-log)
+- [Next steps](#9-next-steps)
+- [Change and evidence register](#10-change-and-evidence-register)
+- [Next guest preparation](#14-next-guest-preparation-2026-11-13)
+- [Installation ISO is not a runtime dependency](#2026-11-14-installation-iso-is-not-a-runtime-dependency)
+- [Console operation and multi-VM deployment](#console-operation-and-multi-vm-deployment)
+- [Roadbook — 2026-11-15](#roadbook-2026-11-15-0527-cet)
+
+---
+
+
+## 0.1 First confirmation before any VM action — NO ISO BIND
 
 Before running any Bash command that creates, recreates or starts a normal Windows VM container, stop and inspect the exact command. Confirm there is no ISO source variable and no `/custom.iso` volume argument. Then inspect the actual Podman object after creation and immediately before start. This confirmation is mandatory even if an earlier template or script was previously reviewed.
 
