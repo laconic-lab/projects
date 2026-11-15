@@ -957,6 +957,7 @@ test -r "$ENV_FILE"
 test -d "$PROJECT/storage"
 test -d "$PROJECT/shared"
 podman image exists "$IMAGE"
+ss -lnt "( sport = :$HOST_PORT )"
 
 if podman container exists "$CONTAINER" || podman container exists "$INSTALLER_CONTAINER"; then
     echo "STOP: target container name already exists; inspect it before proceeding." >&2
@@ -994,7 +995,7 @@ podman inspect "$INSTALLER_CONTAINER" --format '{{range .Mounts}}{{println .Sour
 podman inspect "$INSTALLER_CONTAINER" --format '{{json .HostConfig.PortBindings}}'
 ```
 
-Confirm that the intended project storage maps to `/storage`, the shared directory maps to `/shared`, the ISO source maps read-only to `/custom.iso`, and no other guest is using this storage or host port. Then start the installer container and complete Windows Setup:
+Confirm that the intended project storage maps to `/storage`, the shared directory maps to `/shared`, the ISO source maps read-only to `/custom.iso`, and no other guest is using this storage. Confirm the host port is not listening and no other guest is using it. Then start the installer container and complete Windows Setup:
 
 ```bash
 podman start "$INSTALLER_CONTAINER"
@@ -1004,7 +1005,7 @@ After installation, shut Windows down cleanly from inside the guest. Confirm the
 
 ```bash
 podman inspect "$INSTALLER_CONTAINER" --format 'State={{.State.Status}}'
-find "$PROJECT/storage" -maxdepth 1 -type f -printf '%f %s bytes\\n'
+find "$PROJECT/storage" -maxdepth 1 -type f -printf '%f %s bytes\n'
 ```
 
 If the guest is not confirmed installed and cleanly shut down, stop here. Do not remove the installer container or alter its storage.
