@@ -10,7 +10,12 @@ The Windows 11 Pro guest installation is user-confirmed complete. LAN noVNC acce
 
 ## Current status
 
-**Status: EXISTING WINDOWS 11 PRO 24H2 GUEST AVAILABLE / LAN NOVNC VERIFIED / NEXT-GUEST GROUNDWORK IN PROGRESS (2026-11-13)**
+**Status (2026-11-15): WINDOWS 11 PRO 25H2 GUEST RUNNING / WEB CONSOLE VERIFIED / RDP VERIFIED / NO ISO BIND VERIFIED**
+
+The current `windows-pro-box` guest reports Windows 11 Pro 25H2, build `26200.9974`. The user confirms both Web Console and RDP access. Its normal runtime container has exactly the project `storage/ -> /storage` and `shared/ -> /shared` mounts, no `/custom.iso`, and the expected host port bindings.
+
+> **TOP PRIORITY — NO ISO BIND:** Installation media is permitted only in a separately identified temporary installer container. A normal runtime container and its start script must never define or mount `/custom.iso`. If a completed VM is accidentally ISO-bound, do not troubleshoot or retry it: follow [Installation Guide Section 0.2](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Preserve guest storage; replace only the stopped container object after clean guest shutdown and exclusive-storage verification.
+
 
 The existing guest is not to be removed yet. Preparation work includes Windows-based UUP conversion of a current Windows 11 25H2 image, comparison with released 26H2 versus 26H2 Experimental, review of offline servicing and setup customization, and analysis of the disposable I/O/SSD lab. RDP publication is deliberately deferred.
 
@@ -45,6 +50,8 @@ The selected ISO's SHA-256 and contents have now been verified; its base-build s
 | `windows-vm` | Windows guest virtual machine | Windows 11 Pro 24H2 build 26100 installed; user-confirmed running |
 
 The names are deliberately distinct: `windows-box` is the Podman container hosting QEMU; `windows-vm` is the virtual Windows computer. We will not repurpose the existing `uup-box` or modify other project environments.
+
+- **NO ISO BIND in normal runtime:** every Windows VM runtime container must have only its project-specific `/storage` and `/shared` mounts; never `/custom.iso`. Apply the documented container-object replacement procedure if this rule is violated.
 
 ## Operating principles
 
