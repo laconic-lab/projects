@@ -123,15 +123,16 @@ The Windows VM is intended as a temporary/controlled tool environment for this c
 - Changing Pi-hole, SSH, Shyrka, Odysseus or other existing projects.
 - Host boot autostart, persistent background services or unattended VM startup.
 - GPU passthrough; it is not required for UUP conversion.
-- Publishing Windows guest services or RDP to the LAN. The user selected LAN publication of noVNC at 192.168.1.161:8006 for PC client 192.168.1.169; the host-side change is documented but not yet applied.
+- For the original `windows-box` deployment, publishing RDP was outside its initial scope. The separate `windows-pro-box` deployment now has user-verified Web Console (`192.168.1.161:8006`) and RDP (`192.168.1.161:3389`) access as of 2026-11-15.
 - Installing host packages, changing host configuration, or modifying permissions without a reviewed proposal and explicit approval.
 
 ## 3. Naming and component roles
 
 | Name | Role | Current state |
 |---|---|---|
-| `windows-box` | Dedicated rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Running; QEMU/KVM and local noVNC console verified |
-| `windows-vm` | Windows guest VM | User reports Windows 11 Pro 24H2 build 26100 installed and running |
+| `windows-box` | Original rootless Podman container running the `dockurr/windows` QEMU/KVM Windows VM image | Exited in the latest 2026-11-15 checkbox snapshot; historical original guest |
+| `windows-vm` | Original Windows guest | Historical Windows 11 Pro 24H2 build 26100 installation |
+| `windows-pro-box` | Separate rootless Podman runtime container for the Pro 25H2 guest | Running; Web Console, RDP and ISO-free mounts user-verified 2026-11-15 |
 | QEMU | Virtual machine process/emulator; with KVM acceleration it can use the Linux kernel's hardware virtualisation interface | QEMU 11.1.1 available inside the downloaded `dockurr/windows` image; KVM probe passed |
 | KVM | Linux kernel virtualisation facility exposed through `/dev/kvm` | Host and rootless-container access verified; QEMU KVM launch passed |
 | OVMF | UEFI firmware implementation commonly used by QEMU guests | Not installed in the earlier inventory |
