@@ -24,7 +24,7 @@
 | | | **Result** | VM used for UUP/media work. |
 | | | **Remark** | This is a work environment, not the final deployment target. |
 | | | | |
-| — | — | **Decision** | Try the Linux UUP conversion route for the Pro installation media. |
+| 13/11/2026 | — | **Decision** | Try the Linux UUP conversion route for the Pro installation media. |
 | | | **Action** | Generate the Pro ISO. |
 | | | **Result** | Image recorded as `26100.1.1_PROFESSIONAL_X64_EN-US.ISO`. |
 | | | **Remark** | `AddUpdates=1` did not produce the intended update integration. This failure motivated using a Windows environment for later conversion. |
