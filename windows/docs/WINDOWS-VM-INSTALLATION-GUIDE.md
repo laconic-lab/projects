@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase (2026-11-15):** The separate Windows 11 Pro 25H2 guest `windows-pro-box` is installed and running. The user confirms **Windows 11 Pro, version 25H2, OS build 26200.9974**, Web Console access, RDP access and an ISO-free normal runtime. The former ISO-bound Podman container object was removed only after clean guest shutdown; the persistent project root, guest storage, shared directory and protected environment file were preserved. A replacement runtime container was created and verified with exactly the `/storage` and `/shared` mounts, correct configured ports, and no `/custom.iso`; it then started successfully. The active start script's pre-start port check was corrected to inspect `.HostConfig.PortBindings`, not `podman port` on a Created container. **NO ISO BIND remains the mandatory fleet-wide rule.** See the Roadbook for the incident history and the separate Home ISO investigation. No VM backup or snapshot is in scope.**
+> **Current phase (2026-11-15):** The separate Windows 11 Pro 25H2 guest `windows-pro-box` is installed and running. The user confirms **Windows 11 Pro, version 25H2, OS build 26200.9974**, Web Console access, RDP access and an ISO-free normal runtime. The former ISO-bound Podman container object was removed only after clean guest shutdown; the persistent project root, guest storage, shared directory and protected environment file were preserved. A replacement runtime container was created and verified with exactly the `/storage` and `/shared` mounts, correct configured ports, and no `/custom.iso`; it then started successfully. The active start script's pre-start port check was corrected to inspect `.HostConfig.PortBindings`, not `podman port` on a Created container. **NO ISO BIND remains the mandatory fleet-wide rule.** See the Roadbook for the incident history and the second-VM ISO investigation. No VM backup or snapshot is in scope.**
 
 
 > **Record interpretation:** This guide also retains historical deployment plans and evidence for the earlier `windows-box` guest. Any older paragraph saying RDP is deferred, an ISO is mounted for runtime, or a guest is awaiting replacement describes that earlier snapshot—not the current `windows-pro-box` state recorded above. The current Pro status and the mandatory NO ISO BIND procedure take precedence.
@@ -96,7 +96,7 @@ For a Created container, use `.HostConfig.PortBindings` to inspect configured ho
 - Never use the runtime-only template as an ISO installer definition.
 - Never convert this known correction into repeated speculative troubleshooting. Follow the sequence above; stop only at a failed safety gate or uncertain guest state.
 
-**Incident history:** this same ISO-bind lifecycle error has recurred across the Windows VM work, including the original `windows-box` transition, the Home VM attempt recorded in the Roadbook, and the Pro VM transition on 2026-11-15. The Pro correction is now verified: ISO-bound container object removed, persistent data retained, ISO-free replacement started, Web Console and RDP user-confirmed. The recurrence is why this standard procedure is mandatory for every VM.
+**Incident history:** this same ISO-bind lifecycle error has recurred across the Windows VM work, including the original `windows-box` transition, the second-VM attempt recorded in the Roadbook, and the Pro VM transition on 2026-11-15. The Pro correction is now verified: ISO-bound container object removed, persistent data retained, ISO-free replacement started, Web Console and RDP user-confirmed. The recurrence is why this standard procedure is mandatory for every VM.
 
 ## 1. Objective
 
@@ -1026,10 +1026,10 @@ This is the reusable deployment recipe for a new, independent Windows VM project
 
 Complete these choices before creating files or containers:
 
-- [ ] **Project root:** choose a unique path, e.g. `/home/deck/Windows11HomeVM`.
-- [ ] **Container name:** choose a unique Podman name, e.g. `windows-home-box`.
+- [ ] **Project root:** choose a unique path, e.g. `/home/deck/WindowsVM-2`.
+- [ ] **Container name:** choose a unique Podman name, e.g. `windows-box-2`.
 - [ ] **Environment filename:** choose a per-VM file under that project's `config/`.
-- [ ] **Windows ISO:** identify the exact local ISO file to install, e.g. `/home/deck/Downloads/windows-11-home.iso`. This is where the ISO is selected. It is not selected by the Dockur image digest.
+- [ ] **Windows ISO:** identify the exact local ISO file to install, e.g. `/home/deck/Downloads/windows-11.iso`. This is where the ISO is selected. It is not selected by the Dockur image digest.
 - [ ] **Guest identity and resources:** decide edition/media, Windows account name, locally generated password, hostname, CPU, RAM, disk, locale and keyboard.
 - [ ] **Host console port:** use `8006` for sequential/manual VM use; select a different free port only if concurrent guests are required.
 - [ ] **Persistent storage:** each VM must have its own empty `storage/` directory and its own `shared/` directory.
@@ -1042,9 +1042,9 @@ Do not proceed if the project root, container name or storage directory already 
 Run as the normal SteamOS user `deck`, not with sudo. Adapt the values to the new project:
 
 ~~~bash
-PROJECT="/home/deck/Windows11HomeVM"
-CONTAINER="windows-home-box"
-ISO="/home/deck/Downloads/windows-11-home.iso"
+PROJECT="/home/deck/WindowsVM-2"
+CONTAINER="windows-box-2"
+ISO="/home/deck/Downloads/windows-11.iso"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
 HOST_PORT="8006"
 
@@ -1081,11 +1081,11 @@ Set `PROJECT`, `CONTAINER` and `ENV_FILE` for this VM. Directory paths are deriv
 set -euo pipefail
 umask 077
 
-PROJECT="/home/deck/Windows11HomeVM"
+PROJECT="/home/deck/WindowsVM-2"
 CONFIG="$PROJECT/config"
 STORAGE="$PROJECT/storage"
 SHARED="$PROJECT/shared"
-ENV_FILE="$CONFIG/windows-home-box.env"
+ENV_FILE="$CONFIG/windows-box-2.env"
 
 if [[ -e "$PROJECT" ]]; then
     echo "ERROR: $PROJECT already exists; inspect it before proceeding." >&2
@@ -1118,7 +1118,7 @@ PROTECT=N
 USERNAME=win-user
 PASSWORD=$VM_PASSWORD
 AUTOLOGIN=Y
-HOST=windeck-home
+HOST=windeck-2
 SAMBA=Y
 EOF
 unset VM_PASSWORD
@@ -1134,7 +1134,7 @@ The values above are an example profile, not universal defaults. Review and chan
 **This is the explicit ISO selection point.** Set the host-side path in the installation command:
 
 ~~~bash
-ISO="/home/deck/Downloads/windows-11-home.iso"
+ISO="/home/deck/Downloads/windows-11.iso"
 ~~~
 
 Then expose that exact file to the container using a read-only bind mount:
@@ -1154,10 +1154,10 @@ Use the unique project/container names, the selected local ISO, the pinned image
 ~~~bash
 set -euo pipefail
 
-PROJECT="/home/deck/Windows11HomeVM"
-CONTAINER="windows-home-box"
-ENV_FILE="$PROJECT/config/windows-home-box.env"
-ISO="/home/deck/Downloads/windows-11-home.iso"
+PROJECT="/home/deck/WindowsVM-2"
+CONTAINER="windows-box-2"
+ENV_FILE="$PROJECT/config/windows-box-2.env"
+ISO="/home/deck/Downloads/windows-11.iso"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
 HOST_IP="192.168.1.161"
 HOST_PORT="8006"
@@ -1186,7 +1186,7 @@ podman create \
 - Do **not** add `--device=/dev/net/tun`, `--cap-add=NET_ADMIN` or `--privileged` by default. The known-working first VM was created with `/dev/kvm` only, without TUN, NET_ADMIN or privileged mode. No requirement for the extra device or capability has been demonstrated.
 - Add another device or capability only when a specific feature requires it and a separate test establishes that requirement. Do not copy unexplained capabilities from an example command.
 
-**Podman inspection caveat from this SteamOS rootless deployment:** `podman inspect` returned an empty `HostConfig.Devices` array for both the original known-working `windows-box` and the recreated `windows-home-box`, even though each recorded `CreateCommand` includes `--device=/dev/kvm`. Therefore, do not interpret `Devices=[]` alone as proof that KVM was not requested or is unavailable. Check the recorded create command, then verify actual QEMU/KVM startup evidence when diagnosing runtime acceleration. The create command records the requested configuration; it does not, by itself, prove that QEMU successfully initialized KVM.
+**Podman inspection caveat from this SteamOS rootless deployment:** `podman inspect` returned an empty `HostConfig.Devices` array for both the original known-working `windows-box` and the recreated `windows-box-2`, even though each recorded `CreateCommand` includes `--device=/dev/kvm`. Therefore, do not interpret `Devices=[]` alone as proof that KVM was not requested or is unavailable. Check the recorded create command, then verify actual QEMU/KVM startup evidence when diagnosing runtime acceleration. The create command records the requested configuration; it does not, by itself, prove that QEMU successfully initialized KVM.
 
 Before starting, inspect the created container:
 
@@ -1228,9 +1228,9 @@ After Windows Setup is complete and the guest is shut down:
 ~~~bash
 set -euo pipefail
 
-PROJECT="/home/deck/Windows11HomeVM"
-CONTAINER="windows-home-box"
-ENV_FILE="$PROJECT/config/windows-home-box.env"
+PROJECT="/home/deck/WindowsVM-2"
+CONTAINER="windows-box-2"
+ENV_FILE="$PROJECT/config/windows-box-2.env"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
 HOST_IP="192.168.1.161"
 HOST_PORT="8006"
@@ -1274,11 +1274,11 @@ podman start "$CONTAINER"
 Useful read-only checks:
 
 ~~~bash
-podman ps -a --filter "name=^windows-home-box$"
-podman port windows-home-box
-podman inspect windows-home-box --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
-podman inspect windows-home-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
-podman top windows-home-box
+podman ps -a --filter "name=^windows-box-2$"
+podman port windows-box-2
+podman inspect windows-box-2 --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
+podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+podman top windows-box-2
 ss -lnt '( sport = :8006 )'
 ~~~
 
@@ -1286,12 +1286,10 @@ For a future VM, repeat this checklist with a new project root, container name, 
 
 #### 6.8 Actual second-VM deployment record — 2026-11-14
 
-**USER-CONFIRMED / IN PROGRESS:** The reusable procedure above was executed for the independent Home guest:
+**USER-CONFIRMED / IN PROGRESS:** The reusable procedure above was executed for the independent second guest:
 
 | Item | Verified state |
 |---|---|
-| Project | `/home/deck/Windows11HomeVM` |
-| Container | `windows-home-box` |
 | Image | Same pinned Dockur image digest as the first VM |
 | Device request | `--device=/dev/kvm` |
 | TUN / NET_ADMIN | Not requested in the final container definition |
@@ -1301,13 +1299,13 @@ For a future VM, repeat this checklist with a new project root, container name, 
 | Installation media | Selected local ISO mounted read-only at `/custom.iso` for installation |
 | Restart policy | `no` |
 | Initial state before launch | `created` |
-| Current state | `running`; user confirmed successful connection to the Web Console and Windows Setup is in progress |
+| State at time of record | `running`; user confirmed successful connection to the Web Console and Windows Setup was in progress |
 
-The first proposed Home VM create command temporarily included `/dev/net/tun` and `NET_ADMIN`. Those additions were removed by recreating the still-unstarted container before its first launch. The final container definition follows the KVM-only baseline above. No TUN or NET_ADMIN requirement was established.
+The first proposed second VM create command temporarily included `/dev/net/tun` and `NET_ADMIN`. Those additions were removed by recreating the still-unstarted container before its first launch. The final container definition follows the KVM-only baseline above. No TUN or NET_ADMIN requirement was established.
 
-The Home VM's `HostConfig.Devices` inspection also returned `[]`, matching the original known-working container. Its recorded `CreateCommand` includes `--device=/dev/kvm`. This is a deployment-specific inspection observation, not evidence that KVM is missing. The Home VM's successful Web Console connection confirms container startup and viewer reachability; it does not alone prove the QEMU process selected KVM acceleration. Record that only after obtaining direct QEMU/KVM runtime evidence.
+The second VM's `HostConfig.Devices` inspection also returned `[]`, matching the original known-working container. Its recorded `CreateCommand` includes `--device=/dev/kvm`. This is a deployment-specific inspection observation, not evidence that KVM is missing. The second VM's successful Web Console connection confirms container startup and viewer reachability; it does not alone prove the QEMU process selected KVM acceleration. Record that only after obtaining direct QEMU/KVM runtime evidence.
 
-Windows installation has not yet been reported complete. Do not mark the Home guest as fully installed or ISO-independent until Setup completes, the guest is shut down, and the ISO-free runtime transition is verified.
+Windows installation has not yet been reported complete. Do not mark the second guest as fully installed or ISO-independent until Setup completes, the guest is shut down, and the ISO-free runtime transition is verified.
 
 #### 7. Lifecycle commands
 
@@ -1542,8 +1540,8 @@ The ISO-free runtime architecture was already decided and successfully verified 
 
 **Mandatory rule for every VM:** custom ISO mount only during initial installation or deliberately approved recovery/reinstallation; normal runtime container must never mount `/custom.iso`. Preserve each guest's persistent storage during the transition, recreate only the container object, inspect the ISO-free runtime mounts before starting, and never attach the same guest storage to two containers simultaneously.
 
-### Home VM discrepancy identified — 2026-11-15
+### second VM discrepancy identified — 2026-11-15
 
-Read-only inspection of `windows-home-box` showed that its existing container still retained the initial-installation ISO bind mount. The recorded source path `/home/deck/Downloads/26100.1.240331-1435.GE_win11home_RELEASE_CLIENTCORE_OEM_RET_X64FRE_EN-US.ISO` was no longer present. A subsequent start attempt failed before the container started because crun could not stat that missing bind-mount source. The container was already reported as `Exited (0)` before this failed attempt; that status alone does not establish whether Windows had shut down cleanly.
+Read-only inspection of `windows-box-2` showed that its existing container still retained the initial-installation ISO bind mount. The recorded source path `the selected Windows installation ISO` was no longer present. A subsequent start attempt failed before the container started because crun could not stat that missing bind-mount source. The container was already reported as `Exited (0)` before this failed attempt; that status alone does not establish whether Windows had shut down cleanly.
 
-This Home VM configuration is non-compliant with the 2026-11-14 architecture decision. It has not yet been migrated by this documentation update. Any correction must preserve the Home VM's existing `storage/` and `shared/` data, verify that no other container is using the same guest storage, confirm the guest is shut down, and obtain explicit approval before removing/recreating its container object. No VM container or guest storage was changed by this documentation work.
+This incident demonstrated why the 2026-11-14 ISO-free runtime rule must be checked for every VM. If the same condition is encountered again, preserve that VM's existing `storage/` and `shared/` data, verify that no other container is using the same guest storage, confirm the guest is shut down, and obtain explicit approval before removing/recreating its container object. The lesson is reusable; the retired test VM's project identity and paths are not.
