@@ -2,7 +2,7 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase (2026-11-14): the temporary Windows 11 Pro 24H2 guest is running from persistent storage in an ISO-free runtime container; LAN Web Console connectivity is user-confirmed. The initial-install ISO mount has been removed from the normal start definition. The guest is a validation instance, not the intended long-term VM. RDP remains unconfigured. No VM backup or snapshot is in scope.**
+> **Current phase (2026-11-15):** The first VM, `windows-box`, passed the ISO-free runtime transition on 2026-11-14: persistent storage was preserved, the replacement container was inspected without `/custom.iso`, startup succeeded, and LAN Web Console access was user-confirmed. The separate `windows-home-box` still has its obsolete installation-time `/custom.iso` bind mount; its recorded ISO source is missing, and its 2026-11-15 start attempt failed before container startup. The Home VM's clean guest-shutdown state has not been re-established, and its ISO-free migration remains pending. See the Roadbook at the end of this guide. RDP remains unconfigured. No VM backup or snapshot is in scope.**
 
 ## CRITICAL MANDATORY RULE — installation ISO is never a runtime dependency
 
