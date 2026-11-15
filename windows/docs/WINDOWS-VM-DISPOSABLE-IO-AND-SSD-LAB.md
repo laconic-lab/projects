@@ -8,6 +8,25 @@
 
 > **Current VM lifecycle note (2026-11-15):** the separate `windows-pro-box` runtime is running with Web Console and RDP verified and no installation ISO bind. Older RDP-deferred and original `windows-box` statements in this lab are historical snapshots. The NO ISO BIND rule applies to all guests; for accidental ISO-bound runtime containers, follow [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Do not combine that fixed container correction with storage experiments.
 
+## Contents
+
+- [Purpose](#1-purpose)
+- [Explicit disposable-VM policy](#2-explicit-disposable-vm-policy)
+- [Current architecture and storage path](#3-current-architecture-and-storage-path)
+- [Baseline evidence](#4-baseline-evidence-2026-11-12)
+- [Technical questions and candidate experiments](#5-technical-questions-and-candidate-experiments)
+- [Windows baseline commands](#6-windows-baseline-commands-run-inside-the-guest)
+- [SteamOS host baseline commands](#7-steamos-host-baseline-commands-read-only)
+- [Host safety gates](#8-host-safety-gates)
+- [Test order and current priority](#9-test-order-and-current-priority)
+- [Evidence and change register](#10-evidence-and-change-register)
+- [NO ISO BIND runtime safeguard](#13-no-iso-bind-runtime-safeguard)
+- [LAN console milestone](#11-lan-console-milestone-2026-11-12)
+- [Replacement-guest preparation note](#12-replacement-guest-preparation-note-2026-11-13)
+
+---
+
+
 ## 1. Purpose
 
 This Windows VM is a disposable laboratory for learning and testing QEMU, KVM, rootless Podman and Dockur. It is not a precious workstation installation. The user is comfortable discarding a damaged guest and creating a fresh one rather than spending time repairing a compromised or confusing experimental state.
