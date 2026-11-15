@@ -101,6 +101,8 @@ If the user wants a non-expiring password for this disposable local sandbox, con
 
 ## 8. Operator connection procedure
 
+**Mandatory runtime gate:** before connecting to any Windows guest, the normal runtime container must be ISO-free. If the start script reports an ISO mount or a mount inspection shows `/custom.iso`, do not retry startup or change the ISO path. Follow [Installation Guide Section 0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Preserve the guest storage and replace only the stopped container object after clean guest shutdown and exclusive-storage verification. For a `Created` container, configured host ports are read from `.HostConfig.PortBindings`; do not treat empty `podman port` output as a missing configuration.
+
 ### Start the Windows VM
 
 ```bash
