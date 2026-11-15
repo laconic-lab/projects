@@ -14,15 +14,15 @@
 | | | **Result** | VM used for UUP/media work. |
 | | | **Remark** | This is a work environment, not the final deployment target. |
 | | | | |
-| — | — | **Decision** | Test the generated Home media. |
-| | | **Action** | Install the Home ISO in the Home VM. |
-| | | **Result** | Windows 11 Home 24H2, build 26100.1. [Associated download log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log). |
-| | | **Remark** | Unexpected result. It does not establish what a later ISO contains. |
+| — | — | **Decision** | Run a preliminary test of the earlier generated Windows 11 Home ISO. This was not the target media for the later 25H2 effort. |
+| | | **Action** | Install that earlier Home ISO in the Home VM. |
+| | | **Result** | The earlier ISO installed Windows 11 Home 24H2, build 26100.1. [Associated download log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log). |
+| | | **Remark** | This preliminary test established what that particular ISO installed; it did not change the intended target to 24H2 or establish the contents of a subsequently generated ISO. |
 | | | | |
-| 13/11/2026 | 18:00:11 UTC | **Decision** | Select the latest available Windows 11 25H2 UUP package set. |
+| 13/11/2026 | 18:00:11 UTC | **Decision** | For the intended updated Home installation media, select the latest available Windows 11 25H2 UUP package set. |
 | | | **Action** | Download the base ESD and update payloads; configure `AddUpdates=1`. |
-| | | **Result** | Package set selected; KB5127936, KB5130881 and KB5054156 identified. |
-| | | **Remark** | Package selection and download do not prove successful integration into the install image. |
+| | | **Result** | 25H2 package set selected; KB5127936, KB5130881 and KB5054156 identified. |
+| | | **Remark** | This is the 25H2 media-generation effort. Package selection and download do not prove successful integration into the install image. |
 | | | | |
 | 15/11/2026 | — | **Decision** | Do not interrupt the active run solely because the log reports errors. |
 | | | **Action** | Allow the UUP download/conversion process to continue; retain `aria2_download.log`. |
