@@ -249,7 +249,7 @@ verify_runtime_container() {
     actual_ports="$(podman inspect "$NAME" --format '{{json .HostConfig.PortBindings}}')"
     echo
     echo "===== CONFIGURED HOST PORT BINDINGS ====="
-    printf '%s\\n' "$actual_ports"
+    printf '%s\n' "$actual_ports"
 
     python3 - "$actual_ports" "$HOST_IP" "$WEB_PORT" "$RDP_PORT" <<'PORTCHECK'
 import json
