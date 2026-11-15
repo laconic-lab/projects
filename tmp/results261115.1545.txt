@@ -1,0 +1,994 @@
+(deck@Laco ~)$ #!/usr/bin/env bash
+set -euo pipefail
+
+ISO="/home/deck/Downloads/26200.9974_win11pro-updates-included/26200.9974.261109-0904.25H2_GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_EN-US.ISO"
+
+echo "===== AVAILABLE ISO / WIM INSPECTION TOOLS ====="
+for tool in 7z 7zz bsdtar xorriso wimlib-imagex; do
+    if command -v "$tool" >/dev/null 2>&1; then
+        printf '%-18s %s\n' "$tool" "$(command -v "$tool")"
+    else
+        printf '%-18s not installed\n' "$tool"
+    fi
+done
+
+echo
+echo "===== ISO INSTALLATION IMAGE ENTRIES ====="
+if command -v 7z >/dev/null 2>&1; then
+    7z l "$ISO" | grep -Ei 'sources/(install\.(wim|esd)|boot\.wim)|sources/'
+elif command -v 7zz >/dev/null 2>&1; then
+    7zz l "$ISO" | grep -Ei 'sources/(install\.(wim|esd)|boot\.wim)|sources/'
+elif command -v xorriso >/dev/null 2>&1; then
+    xorriso -indev "$ISO" -find /sources -type f
+else
+    echo "No supported ISO listing utility found."
+fi
+
+echo
+echo "===== INSPECTION COMPLETE — NO CHANGES MADE ====="
+===== AVAILABLE ISO / WIM INSPECTION TOOLS =====
+7z                 /usr/bin/7z
+7zz                not installed
+bsdtar             /usr/bin/bsdtar
+xorriso            not installed
+wimlib-imagex      not installed
+
+===== ISO INSTALLATION IMAGE ENTRIES =====
+2026-11-09 09:04:33 .....       169264       169984  boot/resources/bootres.dll
+2026-11-09 09:04:33 .....       111920       112640  boot/resources/bootres_hci.dll
+2026-11-09 09:04:33 .....       169376       169984  efi/microsoft/boot/resources/bootres.dll
+2026-11-09 09:04:33 .....       111920       112640  efi/microsoft/boot/resources/bootres_hci.dll
+2026-11-09 09:04:33 D....                            sources/_manifest
+2026-11-09 09:04:33 D....                            sources/_manifest/spdx_2.2
+2026-11-09 09:04:33 .....         5350         6144  sources/_manifest/spdx_2.2/manifest.spdx.cose
+2026-11-09 09:04:33 .....       619136       620544  sources/_manifest/spdx_2.2/manifest.spdx.json
+2026-11-09 09:04:33 .....           64         2048  sources/_manifest/spdx_2.2/manifest.spdx.json.sha256
+2026-11-09 09:04:33 .....       628128       628736  sources/acmigration.dll
+2026-11-09 09:04:33 .....       363880       364544  sources/acres.dll
+2026-11-09 09:04:33 .....       267584       268288  sources/actionqueue.dll
+2026-11-09 09:04:33 .....        75168        75776  sources/adfscomp.dll
+2026-11-09 09:04:33 .....       103976       104448  sources/admtv3check.dll
+2026-11-09 09:04:33 .....      1131952      1132544  sources/aeinv.dll
+2026-11-09 09:04:33 .....         1046         2048  sources/alert.gif
+2026-11-09 09:04:33 .....        11673        12288  sources/appcompat.xsl
+2026-11-09 09:04:33 .....        12498        14336  sources/appcompat_bidi.xsl
+2026-11-09 09:04:33 .....        13608        14336  sources/appcompat_detailed.xsl
+2026-11-09 09:04:33 .....        13732        14336  sources/appcompat_detailed_bidi.xsl
+2026-11-09 09:04:33 .....        13371        14336  sources/appcompat_detailed_bidi_txt.xsl
+2026-11-09 09:04:33 .....        13326        14336  sources/appcompat_detailed_txt.xsl
+2026-11-09 09:04:33 .....        95648        96256  sources/appcompatservicing.dll
+2026-11-09 09:04:33 .....       488880       489472  sources/appextagent.dll
+2026-11-09 09:04:33 .....      3095904      3096576  sources/appraiser.dll
+2026-11-09 09:04:33 .....      2818213      2820096  sources/appraiser.sdb
+2026-11-09 09:04:33 .....        10699        12288  sources/appraiserdatasha1.cat
+2026-11-09 09:04:33 .....       171336       172032  sources/appraiserres.dll
+2026-11-09 09:04:33 .....           90         2048  sources/appraisersdblatestoshash.txt
+2026-11-09 09:04:33 .....       152896       153600  sources/arunimg.dll
+2026-11-09 09:04:33 .....        25904        26624  sources/arunres.dll
+2026-11-09 09:04:33 D....                            sources/asz
+2026-11-09 09:04:33 .....       152992       153600  sources/asz/arunimg.dll
+2026-11-09 09:04:33 .....        26032        26624  sources/asz/arunres.dll
+2026-11-09 09:04:33 .....         4940         6144  sources/asz/background_asz.bmp
+2026-11-09 09:04:33 D....                            sources/asz/en-us
+2026-11-09 09:04:33 .....         6144         6144  sources/asz/en-us/arunres.dll.mui
+2026-11-09 09:04:33 .....         8704        10240  sources/asz/en-us/spwizres.dll.mui
+2026-11-09 09:04:33 .....       205824       206848  sources/asz/en-us/w32uires.dll.mui
+2026-11-09 09:04:33 .....           25         2048  sources/asz/setupmedia.cfg
+2026-11-09 09:04:33 .....        95536        96256  sources/asz/spwizimg.dll
+2026-11-09 09:04:33 .....        26032        26624  sources/asz/spwizres.dll
+2026-11-09 09:04:33 .....       222624       223232  sources/asz/w32uires.dll
+2026-11-09 09:04:33 .....       214448       215040  sources/autorun.dll
+2026-11-09 09:04:33 .....         4841         6144  sources/background_cli.bmp
+2026-11-09 09:04:33 .....       182584       184320  sources/bcd.dll
+2026-11-09 09:04:33 .....    811151070    811151360  sources/boot.wim
+2026-11-09 09:04:33 .....       332600       333824  sources/bootsvc.dll
+2026-11-09 09:04:33 .....         1976         2048  sources/cdplib.mof
+2026-11-09 09:04:33 .....          571         2048  sources/cdplibuninstall.mof
+2026-11-09 09:04:33 .....        50728        51200  sources/clustercompliance.dll
+2026-11-09 09:04:33 .....       226608       227328  sources/cmi2migxml.dll
+2026-11-09 09:04:33 .....       177472       178176  sources/cmisetup.dll
+2026-11-09 09:04:33 .....       230816       231424  sources/compatappraiserresources.dll
+2026-11-09 09:04:33 .....       273784       274432  sources/compatctrl.dll
+2026-11-09 09:04:33 .....        75184        75776  sources/compatplugin.dll
+2026-11-09 09:04:33 .....      2393408      2394112  sources/compatresources.dll
+2026-11-09 09:04:33 .....          780         2048  sources/compliance.ini
+2026-11-09 09:04:33 .....        50728        51200  sources/compres.dll
+2026-11-09 09:04:33 .....        50728        51200  sources/cryptosetup.dll
+2026-11-09 09:04:33 .....       718144       718848  sources/csiagent.dll
+2026-11-09 09:04:33 .....           49         2048  sources/cversion.ini
+2026-11-09 09:04:33 .....         1499         2048  sources/db_msftproductionwindowssigningca.cer
+2026-11-09 09:04:33 .....       640416       641024  sources/deployprovider.dll
+2026-11-09 09:04:33 .....       861488       862208  sources/devinv.dll
+2026-11-09 09:04:33 .....        99632       100352  sources/diager.dll
+2026-11-09 09:04:33 .....       218416       219136  sources/diagnostic.dll
+2026-11-09 09:04:33 .....      1365856      1366016  sources/diagtrack.dll
+2026-11-09 09:04:33 .....        88256        90112  sources/diagtrackrunner.exe
+2026-11-09 09:04:33 .....       329120       329728  sources/dism.exe
+2026-11-09 09:04:33 .....      1363296      1363968  sources/dismapi.dll
+2026-11-09 09:04:33 .....       552320       552960  sources/dismcore.dll
+2026-11-09 09:04:33 .....       249208       249856  sources/dismcoreps.dll
+2026-11-09 09:04:33 .....       359800       360448  sources/dismprov.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests
+2026-11-09 09:04:33 .....         4705         6144  sources/dlmanifests/accessibilitycpl-dl.man
+2026-11-09 09:04:33 .....          670         2048  sources/dlmanifests/activedirectory-webservices-dl.man
+2026-11-09 09:04:33 .....         1164         2048  sources/dlmanifests/activedirectory-wmireplicationprovider-dl.man
+2026-11-09 09:04:33 .....         3725         4096  sources/dlmanifests/adsi-ldap-extensions-dl.man
+2026-11-09 09:04:33 .....         1676         2048  sources/dlmanifests/adsi-ldap-provider-dl.man
+2026-11-09 09:04:33 .....         1962         2048  sources/dlmanifests/adsi-router-dl.man
+2026-11-09 09:04:33 .....         1655         2048  sources/dlmanifests/adsi-winnt-provider-dl.man
+2026-11-09 09:04:33 .....         3193         4096  sources/dlmanifests/browserservice-dl.man
+2026-11-09 09:04:33 .....         7079         8192  sources/dlmanifests/capi2_certs-dl.man
+2026-11-09 09:04:33 .....         2879         4096  sources/dlmanifests/commandprompt-dl.man
+2026-11-09 09:04:33 .....         1643         2048  sources/dlmanifests/coreos-dl.man
+2026-11-09 09:04:33 .....         2224         4096  sources/dlmanifests/credential-manager-dl.man
+2026-11-09 09:04:33 .....         2947         4096  sources/dlmanifests/crypto_keys-dl.man
+2026-11-09 09:04:33 .....         1468         2048  sources/dlmanifests/cryptoconfig-dl.man
+2026-11-09 09:04:33 .....         1685         2048  sources/dlmanifests/dfsclient-dl.man
+2026-11-09 09:04:33 .....         2062         4096  sources/dlmanifests/dfsmgmt-dl.man
+2026-11-09 09:04:33 .....         1514         2048  sources/dlmanifests/dhcpclient-dl.man
+2026-11-09 09:04:33 .....         2199         4096  sources/dlmanifests/directoryservices-adam-dl.man
+2026-11-09 09:04:33 .....         2054         4096  sources/dlmanifests/directoryservices-domain-dl.man
+2026-11-09 09:04:33 .....         1837         2048  sources/dlmanifests/directoryservices-ism-smtp-dl.man
+2026-11-09 09:04:33 .....         3754         4096  sources/dlmanifests/dns-client-dl.man
+2026-11-09 09:04:33 .....         2305         4096  sources/dlmanifests/dns-server-service-dl.man
+2026-11-09 09:04:33 .....         4533         6144  sources/dlmanifests/dpapi_keys-dl.man
+2026-11-09 09:04:33 .....         1459         2048  sources/dlmanifests/etw-core-dl.man
+2026-11-09 09:04:33 .....         6028         6144  sources/dlmanifests/etwtracing.man
+2026-11-09 09:04:33 .....         1759         2048  sources/dlmanifests/eventlog-dl.man
+2026-11-09 09:04:33 .....         2571         4096  sources/dlmanifests/explorer-dl.man
+2026-11-09 09:04:33 .....         1613         2048  sources/dlmanifests/feclient-dl.man
+2026-11-09 09:04:33 .....          794         2048  sources/dlmanifests/fonts-type1-dl.man
+2026-11-09 09:04:33 .....         4453         6144  sources/dlmanifests/frs-core-dl.man
+2026-11-09 09:04:33 .....         7121         8192  sources/dlmanifests/gpbase-dl.man
+2026-11-09 09:04:33 .....         1383         2048  sources/dlmanifests/gpmc-dl.man
+2026-11-09 09:04:33 .....         1509         2048  sources/dlmanifests/gpmgmt-dl.man
+2026-11-09 09:04:33 .....         1444         2048  sources/dlmanifests/grouppolicy-admin-gpedit-dl.man
+2026-11-09 09:04:33 .....         1454         2048  sources/dlmanifests/grouppolicy-admin-gpedit-snapin-dl.man
+2026-11-09 09:04:33 .....         1923         2048  sources/dlmanifests/grouppolicy-cse-softwareinstallation-dl.man
+2026-11-09 09:04:33 .....         1734         2048  sources/dlmanifests/grouppolicy-serveradmintools-gpmc-dl.man
+2026-11-09 09:04:33 .....         1085         2048  sources/dlmanifests/ieframe-dl.man
+2026-11-09 09:04:33 .....         1534         2048  sources/dlmanifests/ime-traditional-chinese-migration-dl.man
+2026-11-09 09:04:33 .....         2062         4096  sources/dlmanifests/kerberos-key-distribution-center-dl.man
+2026-11-09 09:04:33 .....         1510         2048  sources/dlmanifests/ldap-client-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-activedirectory-webservices-dl
+2026-11-09 09:04:33 .....       124320       124928  sources/dlmanifests/microsoft-activedirectory-webservices-dl/adwsmigrate.dll
+2026-11-09 09:04:33 .....         1614         2048  sources/dlmanifests/microsoft-windows-bits-client-dl.man
+2026-11-09 09:04:33 .....         1865         2048  sources/dlmanifests/microsoft-windows-certificateservices-ca-dl.man
+2026-11-09 09:04:33 .....         1439         2048  sources/dlmanifests/microsoft-windows-certificateservices-camanagement-dl.man
+2026-11-09 09:04:33 .....         1721         2048  sources/dlmanifests/microsoft-windows-certificateservices-mscep-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-com-complus-setup-dl
+2026-11-09 09:04:33 .....       198064       198656  sources/dlmanifests/microsoft-windows-com-complus-setup-dl/commig.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-com-dtc-setup-dl
+2026-11-09 09:04:33 .....       107824       108544  sources/dlmanifests/microsoft-windows-com-dtc-setup-dl/msdtcstp.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-dhcpservermigplugin-dl
+2026-11-09 09:04:33 .....       128416       129024  sources/dlmanifests/microsoft-windows-dhcpservermigplugin-dl/dhcpsrvmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-directoryservices-adam-dl
+2026-11-09 09:04:33 .....       156976       157696  sources/dlmanifests/microsoft-windows-directoryservices-adam-dl/adammigrate.dll
+2026-11-09 09:04:33 .....         1938         2048  sources/dlmanifests/microsoft-windows-errorreportingcore-dl.man
+2026-11-09 09:04:33 .....         1298         2048  sources/dlmanifests/microsoft-windows-errorreportingfaults-dl.man
+2026-11-09 09:04:33 .....         3761         4096  sources/dlmanifests/microsoft-windows-fax-client-applications-dl.man
+2026-11-09 09:04:33 .....         1831         2048  sources/dlmanifests/microsoft-windows-fax-client-proenterprise-dl.man
+2026-11-09 09:04:33 .....         4829         6144  sources/dlmanifests/microsoft-windows-fax-common-dl.man
+2026-11-09 09:04:33 .....         1855         2048  sources/dlmanifests/microsoft-windows-fax-server-dl.man
+2026-11-09 09:04:33 .....         7636         8192  sources/dlmanifests/microsoft-windows-fax-service-dl.man
+2026-11-09 09:04:33 .....         1789         2048  sources/dlmanifests/microsoft-windows-htmlhelp-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-iasserver-migplugin
+2026-11-09 09:04:33 .....       783680       784384  sources/dlmanifests/microsoft-windows-iasserver-migplugin/iasmigplugin.dll
+2026-11-09 09:04:33 .....       511792       512000  sources/dlmanifests/microsoft-windows-iasserver-migplugin/iasmigreader.exe
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-ie-clientnetworkprotocolimplementation-migration
+2026-11-09 09:04:33 .....        38192        38912  sources/dlmanifests/microsoft-windows-ie-clientnetworkprotocolimplementation-migration/wininetplugin.dll
+2026-11-09 09:04:33 .....         2091         4096  sources/dlmanifests/microsoft-windows-ie-esc-dl.man
+2026-11-09 09:04:33 .....         2339         4096  sources/dlmanifests/microsoft-windows-ie-feeds-platform-dl.man
+2026-11-09 09:04:33 .....        13460        14336  sources/dlmanifests/microsoft-windows-ie-internetexplorer-dl.man
+2026-11-09 09:04:33 .....         1461         2048  sources/dlmanifests/microsoft-windows-iis-corewebengine-deployment-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-internet-naming-service-runtime
+2026-11-09 09:04:33 .....        83360        83968  sources/dlmanifests/microsoft-windows-internet-naming-service-runtime/winsplgn.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-msmq-messagingcoreservice
+2026-11-09 09:04:33 .....       189872       190464  sources/dlmanifests/microsoft-windows-msmq-messagingcoreservice/mqmigplugin.dll
+2026-11-09 09:04:33 .....         9028        10240  sources/dlmanifests/microsoft-windows-netfx35-dl.man
+2026-11-09 09:04:33 .....         1273         2048  sources/dlmanifests/microsoft-windows-netfx35cdfcomp-dl.man
+2026-11-09 09:04:33 .....        45175        47104  sources/dlmanifests/microsoft-windows-netfxcorecomp-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-networkbridge
+2026-11-09 09:04:33 .....       136496       137216  sources/dlmanifests/microsoft-windows-networkbridge/bridgemigplugin.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-networkloadbalancing-core
+2026-11-09 09:04:33 .....       144800       145408  sources/dlmanifests/microsoft-windows-networkloadbalancing-core/nlbmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-rasconnectionmanager
+2026-11-09 09:04:33 .....        99632       100352  sources/dlmanifests/microsoft-windows-rasconnectionmanager/cmmigr.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-rasserver-migplugin
+2026-11-09 09:04:33 .....       419248       419840  sources/dlmanifests/microsoft-windows-rasserver-migplugin/rasmigplugin.dll
+2026-11-09 09:04:33 .....         8158         8192  sources/dlmanifests/microsoft-windows-storagemigration-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-tapisetup
+2026-11-09 09:04:33 .....        99760       100352  sources/dlmanifests/microsoft-windows-tapisetup/tapimigplugin.dll
+2026-11-09 09:04:33 .....         2587         4096  sources/dlmanifests/microsoft-windows-tapisetup-dl.man
+2026-11-09 09:04:33 .....         1320         2048  sources/dlmanifests/microsoft-windows-terminalservices-clientactivexcore-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-terminalservices-licenseserver
+2026-11-09 09:04:33 .....       140720       141312  sources/dlmanifests/microsoft-windows-terminalservices-licenseserver/tlsmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl
+2026-11-09 09:04:33 .....       169392       169984  sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl/chxmig.dll
+2026-11-09 09:04:33 .....       214448       215040  sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl/imjpmig.dll
+2026-11-09 09:04:33 .....       140704       141312  sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl/imkrmig.dll
+2026-11-09 09:04:33 .....       173376       174080  sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl/msctfmig.dll
+2026-11-09 09:04:33 .....       112048       112640  sources/dlmanifests/microsoft-windows-textservicesframework-migration-dl/tabletextservicemig.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-unimodem-config
+2026-11-09 09:04:33 .....       124224       124928  sources/dlmanifests/microsoft-windows-unimodem-config/modemmigplugin.dll
+2026-11-09 09:04:33 .....         2591         4096  sources/dlmanifests/microsoft-windows-wab-dl.man
+2026-11-09 09:04:33 .....         4869         6144  sources/dlmanifests/microsoft-windows-wcfcorecomp-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-winsock-core-infrastructure-upgrade
+2026-11-09 09:04:33 .....       255304       256000  sources/dlmanifests/microsoft-windows-winsock-core-infrastructure-upgrade/wsupgrade.dll
+2026-11-09 09:04:33 D....                            sources/dlmanifests/microsoft-windows-wmi-core
+2026-11-09 09:04:33 .....       714032       714752  sources/dlmanifests/microsoft-windows-wmi-core/wmimigrationplugin.dll
+2026-11-09 09:04:33 .....         1806         2048  sources/dlmanifests/microsoft.windows.com.base-dl.man
+2026-11-09 09:04:33 .....         2383         4096  sources/dlmanifests/microsoft.windows.com.complus.setup.dl.man
+2026-11-09 09:04:33 .....         1697         2048  sources/dlmanifests/msmq-dcom-dl.man
+2026-11-09 09:04:33 .....         1546         2048  sources/dlmanifests/msmq-domain-ic-dl.man
+2026-11-09 09:04:33 .....         2282         4096  sources/dlmanifests/msmq-http-dl.man
+2026-11-09 09:04:33 .....         6789         8192  sources/dlmanifests/msmq-messagingcoreservice-dl.man
+2026-11-09 09:04:33 .....         1544         2048  sources/dlmanifests/msmq-multicast-dl.man
+2026-11-09 09:04:33 .....         1451         2048  sources/dlmanifests/msmq-routing-dl.man
+2026-11-09 09:04:33 .....         1749         2048  sources/dlmanifests/msmq-triggers-dl.man
+2026-11-09 09:04:33 .....         1533         2048  sources/dlmanifests/mup-dl.man
+2026-11-09 09:04:33 .....         1215         2048  sources/dlmanifests/netfx-wcf-http-activation-dl.man
+2026-11-09 09:04:33 .....         1621         2048  sources/dlmanifests/netfx-wcf-msmqactivation-registration-dl.man
+2026-11-09 09:04:33 .....         1621         2048  sources/dlmanifests/netfx-wcf-pipeactivation-registration-dl.man
+2026-11-09 09:04:33 .....         1615         2048  sources/dlmanifests/netfx-wcf-tcpactivation-registration-dl.man
+2026-11-09 09:04:33 .....         1151         2048  sources/dlmanifests/netfx-wcf-tcpportsharing-dl.man
+2026-11-09 09:04:33 .....         1576         2048  sources/dlmanifests/netfx3-dl.man
+2026-11-09 09:04:33 .....         1550         2048  sources/dlmanifests/netfx4-wcf-client-dl.man
+2026-11-09 09:04:33 .....         1466         2048  sources/dlmanifests/netfx4-wcf-extended-dl.man
+2026-11-09 09:04:33 .....        15846        16384  sources/dlmanifests/netfx4clientcorecomp-dl.man
+2026-11-09 09:04:33 .....         2053         4096  sources/dlmanifests/netlogon-dl.man
+2026-11-09 09:04:33 D....                            sources/dlmanifests/networking-mpssvc-svc
+2026-11-09 09:04:33 .....       169376       169984  sources/dlmanifests/networking-mpssvc-svc/icfupgd.dll
+2026-11-09 09:04:33 .....         4052         4096  sources/dlmanifests/ntfs-dl.man
+2026-11-09 09:04:33 .....         8035         8192  sources/dlmanifests/ntoskrnl-dl.man
+2026-11-09 09:04:33 .....         4814         6144  sources/dlmanifests/odbc32dll-dl.man
+2026-11-09 09:04:33 .....         1045         2048  sources/dlmanifests/partmgr-dl.man
+2026-11-09 09:04:33 .....         2598         4096  sources/dlmanifests/printing-spooler-core-dl.man
+2026-11-09 09:04:33 .....         2290         4096  sources/dlmanifests/printing-spooler-networkclient-dl.man
+2026-11-09 09:04:33 .....         3288         4096  sources/dlmanifests/rights-management-client-v1-api-dl.man
+2026-11-09 09:04:33 .....         3265         4096  sources/dlmanifests/rights-management-services-server-dl.man
+2026-11-09 09:04:33 .....         1682         2048  sources/dlmanifests/rpc-http-dl.man
+2026-11-09 09:04:33 .....         1429         2048  sources/dlmanifests/rpc-http_proxy-dl.man
+2026-11-09 09:04:33 .....         1859         2048  sources/dlmanifests/rpc-local-dl.man
+2026-11-09 09:04:33 .....         1973         2048  sources/dlmanifests/rpc-remote-dl.man
+2026-11-09 09:04:33 .....         1461         2048  sources/dlmanifests/schannel-dl.man
+2026-11-09 09:04:33 .....         1923         2048  sources/dlmanifests/schedsvc-dl.man
+2026-11-09 09:04:33 .....          803         2048  sources/dlmanifests/security-digest-dl.man
+2026-11-09 09:04:33 .....          803         2048  sources/dlmanifests/security-kerberos-dl.man
+2026-11-09 09:04:33 .....         1458         2048  sources/dlmanifests/security-ntlm-dl.man
+2026-11-09 09:04:33 .....         1079         2048  sources/dlmanifests/security-ntlm-lmc.man
+2026-11-09 09:04:33 .....         1288         2048  sources/dlmanifests/shutdown-event-tracker-dl.man
+2026-11-09 09:04:33 .....         3757         4096  sources/dlmanifests/smartcardsubsystem-dl.man
+2026-11-09 09:04:33 .....        13993        14336  sources/dlmanifests/smbserver-dl.man
+2026-11-09 09:04:33 .....         1694         2048  sources/dlmanifests/smss-dl.man
+2026-11-09 09:04:33 .....         1164         2048  sources/dlmanifests/smtpsvc-admin-dl.man
+2026-11-09 09:04:33 .....         1180         2048  sources/dlmanifests/smtpsvc-service-dl.man
+2026-11-09 09:04:33 .....         2858         4096  sources/dlmanifests/speechcommon-dl.man
+2026-11-09 09:04:33 .....         1737         2048  sources/dlmanifests/tabletpc-tabbtn-dl.man
+2026-11-09 09:04:33 .....         1429         2048  sources/dlmanifests/tabletpcinputpanel-dl.man
+2026-11-09 09:04:33 .....         8752        10240  sources/dlmanifests/tabletpcjournal-dl.man
+2026-11-09 09:04:33 .....         1127         2048  sources/dlmanifests/tabletpcplatforminput-core-dl.man
+2026-11-09 09:04:33 .....         1573         2048  sources/dlmanifests/terminalservices-appserver-dl.man
+2026-11-09 09:04:33 .....         1305         2048  sources/dlmanifests/terminalservices-appserver-licensing-dl.man
+2026-11-09 09:04:33 .....         1141         2048  sources/dlmanifests/terminalservices-drivers-dl.man
+2026-11-09 09:04:33 .....         2253         4096  sources/dlmanifests/terminalservices-licenseserver-dl.man
+2026-11-09 09:04:33 .....         1438         2048  sources/dlmanifests/terminalservices-localsessionmanager-dl.man
+2026-11-09 09:04:33 .....        20861        22528  sources/dlmanifests/terminalservices-rdp-winstationextensions-dl.man
+2026-11-09 09:04:33 .....         1438         2048  sources/dlmanifests/terminalservices-remoteconnectionmanager-dl.man
+2026-11-09 09:04:33 .....         2240         4096  sources/dlmanifests/terminalservices-sessiondirectory-client-dl.man
+2026-11-09 09:04:33 .....         2453         4096  sources/dlmanifests/terminalservices-sessiondirectory-server-dl.man
+2026-11-09 09:04:33 .....         1919         2048  sources/dlmanifests/terminalservices-terminalservicesclient-dl.man
+2026-11-09 09:04:33 .....         2841         4096  sources/dlmanifests/textservicesframework-migration-dl.man
+2026-11-09 09:04:33 .....         2038         2048  sources/dlmanifests/video-tvvideocontrol-dl.man
+2026-11-09 09:04:33 .....         1043         2048  sources/dlmanifests/volsnap-dl.man
+2026-11-09 09:04:33 .....         2018         2048  sources/dlmanifests/wcf-http-activation-dl.man
+2026-11-09 09:04:33 .....         1572         2048  sources/dlmanifests/wcf-http-activation-postapply-dl.man
+2026-11-09 09:04:33 .....         1523         2048  sources/dlmanifests/wcf-nonhttp-activation-dl.man
+2026-11-09 09:04:33 .....         1914         2048  sources/dlmanifests/web-services-for-management-core-dl.man
+2026-11-09 09:04:33 .....         1676         2048  sources/dlmanifests/webenroll-dl.man
+2026-11-09 09:04:33 .....        12503        14336  sources/dlmanifests/win32k-settings-dl.man
+2026-11-09 09:04:33 .....         5855         6144  sources/dlmanifests/windowssearchengine-dl.man
+2026-11-09 09:04:33 .....         2887         4096  sources/dlmanifests/winlogon-dl.man
+2026-11-09 09:04:33 .....         2372         4096  sources/dlmanifests/wmi-core-dl.man
+2026-11-09 09:04:33 .....         1811         2048  sources/dlmanifests/workstationservice-dl.man
+2026-11-09 09:04:33 .....       210352       210944  sources/du.dll
+2026-11-09 09:04:33 D....                            sources/en-us
+2026-11-09 09:04:33 .....       334336       335872  sources/en-us/acres.dll.mui
+2026-11-09 09:04:33 .....         3584         4096  sources/en-us/actionqueue.dll.mui
+2026-11-09 09:04:33 .....         3584         4096  sources/en-us/appraiser.dll.mui
+2026-11-09 09:04:33 .....         5632         6144  sources/en-us/arunres.dll.mui
+2026-11-09 09:04:33 .....         4608         6144  sources/en-us/cmisetup.dll.mui
+2026-11-09 09:04:33 .....         7168         8192  sources/en-us/compatappraiserresources.dll.mui
+2026-11-09 09:04:33 .....         4608         6144  sources/en-us/compatctrl.dll.mui
+2026-11-09 09:04:33 .....        23552        24576  sources/en-us/compatresources.dll.mui
+2026-11-09 09:04:33 .....        30720        30720  sources/en-us/compres.dll.mui
+2026-11-09 09:04:33 .....      7235573      7235584  sources/en-us/credits.htm
+2026-11-09 09:04:33 .....     10654768     10655744  sources/en-us/credits.txt
+2026-11-09 09:04:33 .....         2560         4096  sources/en-us/deployprovider.dll.mui
+2026-11-09 09:04:33 .....        30208        30720  sources/en-us/dism.exe.mui
+2026-11-09 09:04:33 .....         5120         6144  sources/en-us/dismapi.dll.mui
+2026-11-09 09:04:33 .....         7680         8192  sources/en-us/dismcore.dll.mui
+2026-11-09 09:04:33 .....         2560         4096  sources/en-us/dismprov.dll.mui
+2026-11-09 09:04:33 .....          276         2048  sources/en-us/erofflps.txt
+2026-11-09 09:04:33 .....         2560         4096  sources/en-us/folderprovider.dll.mui
+2026-11-09 09:04:33 .....        18944        20480  sources/en-us/imagingprovider.dll.mui
+2026-11-09 09:04:33 .....        25600        26624  sources/en-us/input.dll.mui
+2026-11-09 09:04:33 .....         6144         6144  sources/en-us/logprovider.dll.mui
+2026-11-09 09:04:33 .....        80896        81920  sources/en-us/mediasetupuimgr.dll.mui
+2026-11-09 09:04:33 .....         7680         8192  sources/en-us/migres.dll.mui
+2026-11-09 09:04:33 .....        66560        67584  sources/en-us/nlsbres.dll.mui
+2026-11-09 09:04:33 .....       111188       112640  sources/en-us/oobe_help_opt_in_details.rtf
+2026-11-09 09:04:33 .....         3072         4096  sources/en-us/osimageprovider.dll.mui
+2026-11-09 09:04:33 .....         5120         6144  sources/en-us/pnpibs.dll.mui
+2026-11-09 09:04:33 .....          771         2048  sources/en-us/privacy.rtf
+2026-11-09 09:04:33 .....         1817         2048  sources/en-us/reagent.adml
+2026-11-09 09:04:33 .....        10752        12288  sources/en-us/reagent.dll.mui
+2026-11-09 09:04:33 .....         4608         6144  sources/en-us/rollback.exe.mui
+2026-11-09 09:04:33 .....        18432        18432  sources/en-us/setup.exe.mui
+2026-11-09 09:04:33 .....         3072         4096  sources/en-us/setupcompat.dll.mui
+2026-11-09 09:04:33 .....        18944        20480  sources/en-us/setupcore.dll.mui
+2026-11-09 09:04:33 .....         3584         4096  sources/en-us/setuperror.exe.mui
+2026-11-09 09:04:33 .....         2560         4096  sources/en-us/setupmgr.dll.mui
+2026-11-09 09:04:33 .....        24448        24576  sources/en-us/setupplatform.exe.mui
+2026-11-09 09:04:33 .....        26624        26624  sources/en-us/setupprep.exe.mui
+2026-11-09 09:04:33 .....        12288        12288  sources/en-us/smiengine.dll.mui
+2026-11-09 09:04:33 .....         8192         8192  sources/en-us/spwizres.dll.mui
+2026-11-09 09:04:33 .....         4608         6144  sources/en-us/upgloader.dll.mui
+2026-11-09 09:04:33 .....         3072         4096  sources/en-us/uxlibres.dll.mui
+2026-11-09 09:04:33 .....         7680         8192  sources/en-us/vhdprovider.dll.mui
+2026-11-09 09:04:33 .....          769         2048  sources/en-us/vofflps.rtf
+2026-11-09 09:04:33 .....       205824       206848  sources/en-us/w32uires.dll.mui
+2026-11-09 09:04:33 .....         7680         8192  sources/en-us/wdsclient.dll.mui
+2026-11-09 09:04:33 .....         6144         6144  sources/en-us/wdsimage.dll.mui
+2026-11-09 09:04:33 .....        16384        16384  sources/en-us/wimgapi.dll.mui
+2026-11-09 09:04:33 .....        28160        28672  sources/en-us/wimprovider.dll.mui
+2026-11-09 09:04:33 .....         5632         6144  sources/en-us/windlp.dll.mui
+2026-11-09 09:04:33 .....        53760        55296  sources/en-us/winsetup.dll.mui
+2026-11-09 09:04:33 D....                            sources/etwproviders
+2026-11-09 09:04:33 .....        21944        22528  sources/etwproviders/actionqueueetw.dll
+2026-11-09 09:04:33 .....        26168        26624  sources/etwproviders/auditetw.dll
+2026-11-09 09:04:33 .....        26168        26624  sources/etwproviders/cmisetupetw.dll
+2026-11-09 09:04:33 D....                            sources/etwproviders/en-us
+2026-11-09 09:04:33 .....         3584         4096  sources/etwproviders/en-us/actionqueueetw.dll.mui
+2026-11-09 09:04:33 .....         6868         8192  sources/etwproviders/etwproviderinstall.vbs
+2026-11-09 09:04:33 .....        26040        26624  sources/etwproviders/oobeldretw.dll
+2026-11-09 09:04:33 .....        30248        30720  sources/etwproviders/setupcletw.dll
+2026-11-09 09:04:33 .....        30112        30720  sources/etwproviders/setupetw.dll
+2026-11-09 09:04:33 .....        26056        26624  sources/etwproviders/setupugcetw.dll
+2026-11-09 09:04:33 .....        30136        30720  sources/etwproviders/sysprepetw.dll
+2026-11-09 09:04:33 .....        26152        26624  sources/etwproviders/windeployetw.dll
+2026-11-09 09:04:33 .....        75320        75776  sources/etwproviders/winsetupetw.dll
+2026-11-09 09:04:33 .....      1133952      1134592  sources/facilitator.dll
+2026-11-09 09:04:33 .....        95552        96256  sources/folderprovider.dll
+2026-11-09 09:04:33 .....       243000       243712  sources/hwcompat.dll
+2026-11-09 09:04:33 .....       963297       964608  sources/hwcompat.txt
+2026-11-09 09:04:33 .....          257         2048  sources/hwcompatPE.txt
+2026-11-09 09:04:33 .....           51         2048  sources/hwexclude.txt
+2026-11-09 09:04:33 .....           15         2048  sources/hwexcludePE.txt
+2026-11-09 09:04:33 .....       462152       462848  sources/hwreqchk.dll
+2026-11-09 09:04:33 .....       251448       251904  sources/hypervcomplcheck.dll
+2026-11-09 09:04:33 .....       783680       784384  sources/iasmigplugin.dll
+2026-11-09 09:04:33 .....         7222         8192  sources/icbexclusion.inf
+2026-11-09 09:04:33 .....          122         2048  sources/idwbinfo.txt
+2026-11-09 09:04:33 .....        50744        51200  sources/iiscomp.dll
+2026-11-09 09:04:33 .....      1013168      1013760  sources/imagelib.dll
+2026-11-09 09:04:33 .....       247104       247808  sources/imagingprovider.dll
+2026-11-09 09:04:33 D....                            sources/inf
+2026-11-09 09:04:33 .....         3616         4096  sources/inf/setup.cfg
+2026-11-09 09:04:33 .....       382368       382976  sources/input.dll
+2026-11-09 09:04:33 .....   7170576210   7170576384  sources/install.wim
+2026-11-09 09:04:33 .....       116264       116736  sources/itgtupg.dll
+2026-11-09 09:04:33 .....           78         2048  sources/lang.ini
+2026-11-09 09:04:33 .....       861992       862208  sources/locale.nls
+2026-11-09 09:04:33 .....       189856       190464  sources/logprovider.dll
+2026-11-09 09:04:33 .....      1772904      1773568  sources/mediasetupuimgr.dll
+2026-11-09 09:04:33 .....       221248       223232  sources/microsoft.media.playready.appraiser.dll
+2026-11-09 09:04:33 .....       329120       329728  sources/migapp.dll
+2026-11-09 09:04:33 .....       654548       655360  sources/migapp.xml
+2026-11-09 09:04:33 .....      9266480      9267200  sources/migcore.dll
+2026-11-09 09:04:33 .....       288064       288768  sources/mighost.exe
+2026-11-09 09:04:33 .....       148800       149504  sources/migisol.dll
+2026-11-09 09:04:33 D....                            sources/migration
+2026-11-09 09:04:33 D....                            sources/migration/wtr
+2026-11-09 09:04:33 .....          651         2048  sources/migration/wtr/adminpack_en-us.inf
+2026-11-09 09:04:33 .....          414         2048  sources/migration/wtr/adminpack_en-us_noloc.inf
+2026-11-09 09:04:33 .....        17201        18432  sources/migration/wtr/appmanwtr.inf
+2026-11-09 09:04:33 .....         7194         8192  sources/migration/wtr/browserchoice_win7.inf
+2026-11-09 09:04:33 .....         1589         2048  sources/migration/wtr/browserchoice_win8.inf
+2026-11-09 09:04:33 .....         1619         2048  sources/migration/wtr/compattelemetry.inf
+2026-11-09 09:04:33 .....         1643         2048  sources/migration/wtr/ftp_7.0.inf
+2026-11-09 09:04:33 .....         2108         4096  sources/migration/wtr/ftp_7.5_en-us_noloc.inf
+2026-11-09 09:04:33 .....         2773         4096  sources/migration/wtr/ftp_7.5_loc.inf
+2026-11-09 09:04:33 .....         1078         2048  sources/migration/wtr/gwxmig.inf
+2026-11-09 09:04:33 .....         1002         2048  sources/migration/wtr/powershell_en-us_noloc.inf
+2026-11-09 09:04:33 .....         2551         4096  sources/migration/wtr/powershell_loc.inf
+2026-11-09 09:04:33 .....        10086        10240  sources/migration/wtr/unpmig.inf
+2026-11-09 09:04:33 .....          724         2048  sources/migration/wtr/webdav_7.0.inf
+2026-11-09 09:04:33 .....          961         2048  sources/migration/wtr/webdav_7.5_en-us_noloc.inf
+2026-11-09 09:04:33 .....         1265         2048  sources/migration/wtr/webdav_7.5_loc.inf
+2026-11-09 09:04:33 .....        26016        26624  sources/migres.dll
+2026-11-09 09:04:33 .....      1303984      1304576  sources/migstore.dll
+2026-11-09 09:04:33 .....       464304       464896  sources/migsys.dll
+2026-11-09 09:04:33 .....        75320        75776  sources/migtestplugin.dll
+2026-11-09 09:04:33 .....       337208       337920  sources/mitigation.dll
+2026-11-09 09:04:33 .....       386480       387072  sources/mxeagent.dll
+2026-11-09 09:04:33 .....       103728       104448  sources/nlsbres.dll
+2026-11-09 09:04:33 .....        54824        55296  sources/ntdsupg.dll
+2026-11-09 09:04:33 .....        75320        75776  sources/ntfrsupg.dll
+2026-11-09 09:04:33 .....         1475         2048  sources/nxquery.inf
+2026-11-09 09:04:33 .....        54728        55296  sources/nxquery.sys
+2026-11-09 09:04:33 .....        44544        45056  sources/offline.xml
+2026-11-09 09:04:33 .....       243120       243712  sources/offlineprofileutils.dll
+2026-11-09 09:04:33 .....       449323       450560  sources/oscomps.xml
+2026-11-09 09:04:33 .....        21299        22528  sources/osfilter.inf
+2026-11-09 09:04:33 .....       324912       325632  sources/osimageprovider.dll
+2026-11-09 09:04:33 .....         4780         6144  sources/outofbox_windows_db.bin
+2026-11-09 09:04:33 .....        99648       100352  sources/pnpibs.dll
+2026-11-09 09:04:33 .....       107952       108544  sources/pnppropmig.dll
+2026-11-09 09:04:33 .....         5120         6144  sources/product.ini
+2026-11-09 09:04:33 .....        50608        51200  sources/rdsupgcheck.dll
+2026-11-09 09:04:33 .....         1240         2048  sources/reagent.admx
+2026-11-09 09:04:33 .....       794008       794624  sources/reagent.dll
+2026-11-09 09:04:33 .....          837         2048  sources/reagent.xml
+2026-11-09 09:04:33 D....                            sources/replacementmanifests
+2026-11-09 09:04:33 .....         4021         4096  sources/replacementmanifests/Content-Indexing-Common-Replacement.man
+2026-11-09 09:04:33 .....         2481         4096  sources/replacementmanifests/FailoverCluster-ClusSvc-Replacement.man
+2026-11-09 09:04:33 .....         1383         2048  sources/replacementmanifests/ProductEnumerator-Replacement.man
+2026-11-09 09:04:33 .....         1552         2048  sources/replacementmanifests/Windows-Internal-Shell-AIX-Config-Replacement.man
+2026-11-09 09:04:33 .....         1702         2048  sources/replacementmanifests/activedirectory-webservices-replacement.man
+2026-11-09 09:04:33 .....         1995         2048  sources/replacementmanifests/adsi-router-replacement.man
+2026-11-09 09:04:33 .....        12020        12288  sources/replacementmanifests/application-experience-program-compatibility-assistant-replacement.man
+2026-11-09 09:04:33 .....         2097         4096  sources/replacementmanifests/appmanmigration-replacement.man
+2026-11-09 09:04:33 .....         2057         4096  sources/replacementmanifests/appxalluserstore-replacement.man
+2026-11-09 09:04:33 .....        10855        12288  sources/replacementmanifests/appxdeploymentserver-replacement.man
+2026-11-09 09:04:33 .....         3300         4096  sources/replacementmanifests/audio-audiocore-client-replacement.man
+2026-11-09 09:04:33 .....         1285         2048  sources/replacementmanifests/audiommecore-mm-other-migration-replacement.man
+2026-11-09 09:04:33 .....         8193        10240  sources/replacementmanifests/authui-migration-replacement.man
+2026-11-09 09:04:33 .....        11555        12288  sources/replacementmanifests/authui-migration-win8-replacement.man
+2026-11-09 09:04:33 .....          869         2048  sources/replacementmanifests/azshci-service-migration-replacement.man
+2026-11-09 09:04:33 .....         1511         2048  sources/replacementmanifests/bisrv-replacement.man
+2026-11-09 09:04:33 .....        13032        14336  sources/replacementmanifests/capi2_certs-repl.man
+2026-11-09 09:04:33 .....          976         2048  sources/replacementmanifests/certificateenrollment-replacement.man
+2026-11-09 09:04:33 .....         4021         4096  sources/replacementmanifests/cliplicensemigration-replacement.man
+2026-11-09 09:04:33 .....         1724         2048  sources/replacementmanifests/cloudapreplacement.man
+2026-11-09 09:04:33 .....          972         2048  sources/replacementmanifests/cloudexperiencehostonecore-replacement.man
+2026-11-09 09:04:33 .....         3266         4096  sources/replacementmanifests/codeintegrity-repl.man
+2026-11-09 09:04:33 .....         2781         4096  sources/replacementmanifests/commandprompt-win7-replacement.man
+2026-11-09 09:04:33 .....        11675        12288  sources/replacementmanifests/commandprompt-win8-replacement.man
+2026-11-09 09:04:33 .....         7419         8192  sources/replacementmanifests/contentdeliverymanager.utilities-replacement.man
+2026-11-09 09:04:33 .....         1147         2048  sources/replacementmanifests/coremmres-replacement.man
+2026-11-09 09:04:33 .....         1644         2048  sources/replacementmanifests/coreos-repl.man
+2026-11-09 09:04:33 .....         5419         6144  sources/replacementmanifests/credential-manager-replacement.man
+2026-11-09 09:04:33 .....         2834         4096  sources/replacementmanifests/crypto_keys-repl.man
+2026-11-09 09:04:33 .....         1225         2048  sources/replacementmanifests/dataintegrityscan-replacement.man
+2026-11-09 09:04:33 .....          734         2048  sources/replacementmanifests/dcb-repl.man
+2026-11-09 09:04:33 .....         5314         6144  sources/replacementmanifests/desktopux-replacement.man
+2026-11-09 09:04:33 .....         1543         2048  sources/replacementmanifests/deviceassociationframework-replacement.man
+2026-11-09 09:04:33 .....         1222         2048  sources/replacementmanifests/devicedirectory-devicedirectoryclient-desktop-replacement.man
+2026-11-09 09:04:33 .....         1053         2048  sources/replacementmanifests/deviceregistration-replacement.man
+2026-11-09 09:04:33 .....         4144         6144  sources/replacementmanifests/dhcpclientdll-repl.man
+2026-11-09 09:04:33 .....          654         2048  sources/replacementmanifests/dhcpserver-tools-replacement.man
+2026-11-09 09:04:33 .....        12795        14336  sources/replacementmanifests/dhcpservermigplugin-rep.man
+2026-11-09 09:04:33 .....         6093         6144  sources/replacementmanifests/dhcpservermigpluginwin8-replacement.man
+2026-11-09 09:04:33 .....         1228         2048  sources/replacementmanifests/directaccessservermanagement-repl.man
+2026-11-09 09:04:33 .....         1064         2048  sources/replacementmanifests/directoryservices-adam-client-replacement.man
+2026-11-09 09:04:33 .....          682         2048  sources/replacementmanifests/directoryservices-adam-tools-replacement.man
+2026-11-09 09:04:33 .....          684         2048  sources/replacementmanifests/directoryservices-administrativecenter-replacement.man
+2026-11-09 09:04:33 .....         1170         2048  sources/replacementmanifests/directoryservices-domaincontroller-servercoreupg-replacement.man
+2026-11-09 09:04:33 .....          700         2048  sources/replacementmanifests/directoryservices-domaincontroller-tools-replacement.man
+2026-11-09 09:04:33 .....         1676         2048  sources/replacementmanifests/directoryservices-sm-plugin.registration-replacement.man
+2026-11-09 09:04:33 .....         2206         4096  sources/replacementmanifests/displayconfigsettings_win7update.man
+2026-11-09 09:04:33 .....         2845         4096  sources/replacementmanifests/dmrcwin7replacement.man
+2026-11-09 09:04:33 .....         7700         8192  sources/replacementmanifests/dns-client-mw-replacement.man
+2026-11-09 09:04:33 .....         2300         4096  sources/replacementmanifests/dns-client-replacement.man
+2026-11-09 09:04:33 .....          820         2048  sources/replacementmanifests/dns-server-role-replacement.man
+2026-11-09 09:04:33 .....          652         2048  sources/replacementmanifests/dns-server-tools-replacement.man
+2026-11-09 09:04:33 .....         4308         6144  sources/replacementmanifests/dpapi_keys-repl.man
+2026-11-09 09:04:33 .....         1589         2048  sources/replacementmanifests/dsreg-replacement.man
+2026-11-09 09:04:33 .....          923         2048  sources/replacementmanifests/edgemigrationplugin.man
+2026-11-09 09:04:33 .....          830         2048  sources/replacementmanifests/edpnotify-replacement.man
+2026-11-09 09:04:33 .....         1016         2048  sources/replacementmanifests/elam-replacement.man
+2026-11-09 09:04:33 .....         1377         2048  sources/replacementmanifests/etw-core-replacement.man
+2026-11-09 09:04:33 .....         2153         4096  sources/replacementmanifests/eudcedit-replacement.man
+2026-11-09 09:04:33 .....         4870         6144  sources/replacementmanifests/explorer-repl.man
+2026-11-09 09:04:33 .....         3019         4096  sources/replacementmanifests/extensibleauthenticationprotocolhostservice-rep.man
+2026-11-09 09:04:33 .....          932         2048  sources/replacementmanifests/failovercluster-core-wow64-rm.man
+2026-11-09 09:04:33 .....         2731         4096  sources/replacementmanifests/failovercluster-updating-powershellcore-replacement.man
+2026-11-09 09:04:33 .....         1017         2048  sources/replacementmanifests/feclient-replacement-th.man
+2026-11-09 09:04:33 .....         1585         2048  sources/replacementmanifests/fidocredprov_dll_repl.man
+2026-11-09 09:04:33 .....         1290         2048  sources/replacementmanifests/fileserver-replacement.man
+2026-11-09 09:04:33 .....       101661       102400  sources/replacementmanifests/font-truetype-fontsregistrysettingsmigration-replacement.man
+2026-11-09 09:04:33 .....         1380         2048  sources/replacementmanifests/fonts-type1-replacement.man
+2026-11-09 09:04:33 .....          916         2048  sources/replacementmanifests/fsdepends-replacement.man
+2026-11-09 09:04:33 .....         1392         2048  sources/replacementmanifests/fundisc-replacement.man
+2026-11-09 09:04:33 .....         1101         2048  sources/replacementmanifests/fveapi-replacement.man
+2026-11-09 09:04:33 .....         1735         2048  sources/replacementmanifests/gatewayservice-replacement.man
+2026-11-09 09:04:33 .....        10121        10240  sources/replacementmanifests/gpbase-replacement.man
+2026-11-09 09:04:33 .....         1216         2048  sources/replacementmanifests/gpiobuttons-replacement.man
+2026-11-09 09:04:33 .....         1211         2048  sources/replacementmanifests/hal-repl.man
+2026-11-09 09:04:33 .....         1033         2048  sources/replacementmanifests/helpandsupport-replacement.man
+2026-11-09 09:04:33 .....          948         2048  sources/replacementmanifests/http-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/hwvid-migration-2
+2026-11-09 09:04:33 .....       103856       104448  sources/replacementmanifests/hwvid-migration-2/hwvidmigplugin.dll
+2026-11-09 09:04:33 .....         1070         2048  sources/replacementmanifests/hwvid-migration-replacement-2.man
+2026-11-09 09:04:33 .....         1879         2048  sources/replacementmanifests/hyperv-compute-host-service-replacement.man
+2026-11-09 09:04:33 .....         6438         8192  sources/replacementmanifests/iasruntime-repl.man
+2026-11-09 09:04:33 .....         1481         2048  sources/replacementmanifests/identityserver-migration-replacement.man
+2026-11-09 09:04:33 .....         1981         2048  sources/replacementmanifests/identityserver-proxymigration-replacement.man
+2026-11-09 09:04:33 .....         1233         2048  sources/replacementmanifests/identitystore-replacement.man
+2026-11-09 09:04:33 .....          978         2048  sources/replacementmanifests/iis-adminservice-rm.man
+2026-11-09 09:04:33 .....         1051         2048  sources/replacementmanifests/iis-appwarmup-rm.man
+2026-11-09 09:04:33 .....          975         2048  sources/replacementmanifests/iis-ftpsvc-rm.man
+2026-11-09 09:04:33 .....          751         2048  sources/replacementmanifests/iis-managementconsole-rm.man
+2026-11-09 09:04:33 .....         1887         2048  sources/replacementmanifests/iis-sharedlibraries-rm.man
+2026-11-09 09:04:33 .....         1308         2048  sources/replacementmanifests/iis-w3logsvc-rm.man
+2026-11-09 09:04:33 .....         1294         2048  sources/replacementmanifests/iis-w3svc-rm.man
+2026-11-09 09:04:33 .....         1553         2048  sources/replacementmanifests/ime-eashared-migration-replacement.man
+2026-11-09 09:04:33 .....         4905         6144  sources/replacementmanifests/international-core-replacement.man
+2026-11-09 09:04:33 .....         3606         4096  sources/replacementmanifests/international-timezones-replacement.man
+2026-11-09 09:04:33 .....         4643         6144  sources/replacementmanifests/internet-naming-service-runtime-rep.man
+2026-11-09 09:04:33 .....          660         2048  sources/replacementmanifests/internet-naming-tools-replacement.man
+2026-11-09 09:04:33 .....          917         2048  sources/replacementmanifests/ioschedfilter-replacement.man
+2026-11-09 09:04:33 .....         3805         4096  sources/replacementmanifests/ipv4ipv6coexistencemigration-net-replacement.man
+2026-11-09 09:04:33 .....         1338         2048  sources/replacementmanifests/kernel-pnp-repl.man
+2026-11-09 09:04:33 .....         1340         2048  sources/replacementmanifests/kernel-server-replacement.man
+2026-11-09 09:04:33 .....          896         2048  sources/replacementmanifests/kernel32-replacement.man
+2026-11-09 09:04:33 .....          657         2048  sources/replacementmanifests/kernel32-server-replacement.man
+2026-11-09 09:04:33 .....         1095         2048  sources/replacementmanifests/keyboardfilter-replacement.man
+2026-11-09 09:04:33 .....         1431         2048  sources/replacementmanifests/ldap-client-replacement.man
+2026-11-09 09:04:33 .....         4791         6144  sources/replacementmanifests/legacy-sapi-repl.man
+2026-11-09 09:04:33 .....        25564        26624  sources/replacementmanifests/mdm_migration-replacement.man
+2026-11-09 09:04:33 .....          993         2048  sources/replacementmanifests/media-settings-migration-replacement.man
+2026-11-09 09:04:33 .....         1975         2048  sources/replacementmanifests/memextdriver-replacement.man
+2026-11-09 09:04:33 .....         1030         2048  sources/replacementmanifests/mfmpeg2srcsnk-migration-replacement.man
+2026-11-09 09:04:33 .....         2859         4096  sources/replacementmanifests/mfplat-migration-replacement.man
+2026-11-09 09:04:33 .....         1164         2048  sources/replacementmanifests/mfsrcsnk-migration-replacement.man
+2026-11-09 09:04:33 .....          721         2048  sources/replacementmanifests/microsoft-activedirectory-powershell-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-activedirectory-webservices
+2026-11-09 09:04:33 .....       124336       124928  sources/replacementmanifests/microsoft-activedirectory-webservices/adwsmigrate.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-azurestack-hci-plugin
+2026-11-09 09:04:33 .....       112032       112640  sources/replacementmanifests/microsoft-azurestack-hci-plugin/azshcimigplugin.dll
+2026-11-09 09:04:33 .....         1941         2048  sources/replacementmanifests/microsoft-certificateauthority-enrollment-serverupgrade-replacement.man
+2026-11-09 09:04:33 .....         2088         4096  sources/replacementmanifests/microsoft-certificateservices-ca-serverupgrade-replacement.man
+2026-11-09 09:04:33 .....         2018         2048  sources/replacementmanifests/microsoft-certificateservices-mscep-serverupgrade-replacement.man
+2026-11-09 09:04:33 .....         1959         2048  sources/replacementmanifests/microsoft-certificateservices-ocsp-serverupgrade-replacement.man
+2026-11-09 09:04:33 .....         1936         2048  sources/replacementmanifests/microsoft-certificateservices-policy-serverupgrade-replacement.man
+2026-11-09 09:04:33 .....         2057         4096  sources/replacementmanifests/microsoft-certificateservices-webenrollment-serverupgrade-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-client-license-platform-service-migration
+2026-11-09 09:04:33 .....       271680       272384  sources/replacementmanifests/microsoft-client-license-platform-service-migration/clipmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-edge-migration-plugin
+2026-11-09 09:04:33 .....       220544       221184  sources/replacementmanifests/microsoft-edge-migration-plugin/edgemigrationplugin.dll
+2026-11-09 09:04:33 .....         1335         2048  sources/replacementmanifests/microsoft-hyper-v-client-migration-replacement.man
+2026-11-09 09:04:33 .....          634         2048  sources/replacementmanifests/microsoft-hyper-v-drivers-migration-replacement.man
+2026-11-09 09:04:33 .....         6082         6144  sources/replacementmanifests/microsoft-hyper-v-migration-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-onecore-tiledatarepository
+2026-11-09 09:04:33 .....       161184       161792  sources/replacementmanifests/microsoft-onecore-tiledatarepository/tilestoremigrationplugin.dll
+2026-11-09 09:04:33 .....          933         2048  sources/replacementmanifests/microsoft-onecore-tiledatarepository-replacement.man
+2026-11-09 09:04:33 .....         1242         2048  sources/replacementmanifests/microsoft-windows-advertisingid-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-appmanagement-migration
+2026-11-09 09:04:33 .....      1181000      1181696  sources/replacementmanifests/microsoft-windows-appmanagement-migration/appmanmigrationplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-appx-deployment-server
+2026-11-09 09:04:33 .....         3497         4096  sources/replacementmanifests/microsoft-windows-appx-deployment-server/appxprovisioning.xml
+2026-11-09 09:04:33 .....       605544       606208  sources/replacementmanifests/microsoft-windows-appx-deployment-server/appxupgrademigrationplugin.dll
+2026-11-09 09:04:33 .....         1692         2048  sources/replacementmanifests/microsoft-windows-appx-deployment-server/microsoft.windows.secondarytileexperience_10.0.0.0_neutral__cw5n1h2txyewy.xml
+2026-11-09 09:04:33 .....         1498         2048  sources/replacementmanifests/microsoft-windows-appx-deployment-server/windows.miracastview_6.3.0.0_neutral_neutral_cw5n1h2txyewy.xml
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-audio-mmecore-other
+2026-11-09 09:04:33 .....       124336       124928  sources/replacementmanifests/microsoft-windows-audio-mmecore-other/audmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-clusterupgradeplugin
+2026-11-09 09:04:33 .....       118088       118784  sources/replacementmanifests/microsoft-windows-clusterupgradeplugin/ClusterUpgradePlugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-com-complus-setup
+2026-11-09 09:04:33 .....       198064       198656  sources/replacementmanifests/microsoft-windows-com-complus-setup/commig.dll
+2026-11-09 09:04:33 .....          898         2048  sources/replacementmanifests/microsoft-windows-coresystem-initmachineconfig-replacement.man
+2026-11-09 09:04:33 .....         1962         2048  sources/replacementmanifests/microsoft-windows-credentialmanagementrole-replacement.man
+2026-11-09 09:04:33 .....         1331         2048  sources/replacementmanifests/microsoft-windows-credentialmanagementrole-tools-replacement.man
+2026-11-09 09:04:33 .....          690         2048  sources/replacementmanifests/microsoft-windows-deployment-services-admin-pack-replacement.man
+2026-11-09 09:04:33 .....         1446         2048  sources/replacementmanifests/microsoft-windows-deviceaccess-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-deviceassociationframeworkmigration
+2026-11-09 09:04:33 .....       333216       333824  sources/replacementmanifests/microsoft-windows-deviceassociationframeworkmigration/dafmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-directoryservices-adam-client
+2026-11-09 09:04:33 .....       157088       157696  sources/replacementmanifests/microsoft-windows-directoryservices-adam-client/adammigrate.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-diskmonitor
+2026-11-09 09:04:33 .....       176128       176128  sources/replacementmanifests/microsoft-windows-diskmonitor/diskmonmigplugin.dll
+2026-11-09 09:04:33 .....         1266         2048  sources/replacementmanifests/microsoft-windows-enterprisemgmt-replacement.man
+2026-11-09 09:04:33 .....        18143        18432  sources/replacementmanifests/microsoft-windows-errorreportingcore-replacement.man
+2026-11-09 09:04:33 .....         1291         2048  sources/replacementmanifests/microsoft-windows-errorreportingfaults-replacement.man
+2026-11-09 09:04:33 .....          657         2048  sources/replacementmanifests/microsoft-windows-failovercluster-adminpak-replacement.man
+2026-11-09 09:04:33 .....         2038         2048  sources/replacementmanifests/microsoft-windows-familysafety-refreshtask-replacement.man
+2026-11-09 09:04:33 .....         3998         4096  sources/replacementmanifests/microsoft-windows-fax-service-replacement.man
+2026-11-09 09:04:33 .....         1436         2048  sources/replacementmanifests/microsoft-windows-feedback-service-replacement.man
+2026-11-09 09:04:33 .....         4915         6144  sources/replacementmanifests/microsoft-windows-flighting-settings.replacement.man
+2026-11-09 09:04:33 .....         1884         2048  sources/replacementmanifests/microsoft-windows-geolocation-replacement.man
+2026-11-09 09:04:33 .....         2107         4096  sources/replacementmanifests/microsoft-windows-identity-foundation-migration-replacement.man
+2026-11-09 09:04:33 .....         4225         6144  sources/replacementmanifests/microsoft-windows-ie-adminkitbranding-repl.man
+2026-11-09 09:04:33 .....        19519        20480  sources/replacementmanifests/microsoft-windows-ie-clientnetworkprotocolimplementation-repl.man
+2026-11-09 09:04:33 .....        19973        20480  sources/replacementmanifests/microsoft-windows-ie-internetexplorer-repl-2.man
+2026-11-09 09:04:33 .....        16882        18432  sources/replacementmanifests/microsoft-windows-ie-internetexplorer-repl.man
+2026-11-09 09:04:33 .....         2837         4096  sources/replacementmanifests/microsoft-windows-ie-pdm-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-iis-rm
+2026-11-09 09:04:33 .....       398768       399360  sources/replacementmanifests/microsoft-windows-iis-rm/iismig.dll
+2026-11-09 09:04:33 .....         9200        10240  sources/replacementmanifests/microsoft-windows-ime-traditional-chinese-core-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-mapscontrol-migration
+2026-11-09 09:04:33 .....       128320       129024  sources/replacementmanifests/microsoft-windows-mapscontrol-migration/mapsmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-mup
+2026-11-09 09:04:33 .....       148896       149504  sources/replacementmanifests/microsoft-windows-mup/mupmigplugin.dll
+2026-11-09 09:04:33 .....          869         2048  sources/replacementmanifests/microsoft-windows-netfx35cdfcomp-replacement.man
+2026-11-09 09:04:33 .....        45739        47104  sources/replacementmanifests/microsoft-windows-netfxcorecomp-repl.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-network-setup
+2026-11-09 09:04:33 .....       181664       182272  sources/replacementmanifests/microsoft-windows-network-setup/netsetupapi.dll
+2026-11-09 09:04:33 .....       910768       911360  sources/replacementmanifests/microsoft-windows-network-setup/netsetupengine.dll
+2026-11-09 09:04:33 .....       382256       382976  sources/replacementmanifests/microsoft-windows-network-setup/networkbindingenginemigplugin.dll
+2026-11-09 09:04:33 .....          895         2048  sources/replacementmanifests/microsoft-windows-network-setup-replacement.man
+2026-11-09 09:04:33 .....          707         2048  sources/replacementmanifests/microsoft-windows-networkbridge-replacement.man
+2026-11-09 09:04:33 .....          959         2048  sources/replacementmanifests/microsoft-windows-networkcontroller-framework-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-offlinefiles-core
+2026-11-09 09:04:33 .....       169280       169984  sources/replacementmanifests/microsoft-windows-offlinefiles-core/cscmig.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-offlinefiles-core/en-us
+2026-11-09 09:04:33 .....         3072         4096  sources/replacementmanifests/microsoft-windows-offlinefiles-core/en-us/cscmig.dll.mui
+2026-11-09 09:04:33 .....         8092         8192  sources/replacementmanifests/microsoft-windows-offlinefiles-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-pnpmigration
+2026-11-09 09:04:33 .....       427440       428032  sources/replacementmanifests/microsoft-windows-pnpmigration/pnpmig.dll
+2026-11-09 09:04:33 .....        25391        26624  sources/replacementmanifests/microsoft-windows-pnpmigration/pnpmig.inf
+2026-11-09 09:04:33 .....      1026200      1028096  sources/replacementmanifests/microsoft-windows-pnpmigration/servicingcommon.dll
+2026-11-09 09:04:33 .....         3476         4096  sources/replacementmanifests/microsoft-windows-powershell-replacement.man
+2026-11-09 09:04:33 .....         1148         2048  sources/replacementmanifests/microsoft-windows-powershell-ws08-replacement.man
+2026-11-09 09:04:33 .....          876         2048  sources/replacementmanifests/microsoft-windows-powershellwebaccess-commands-powershell-migration-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-rasapi-mig
+2026-11-09 09:04:33 .....       107936       108544  sources/replacementmanifests/microsoft-windows-rasapi-mig/pbkmigr.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-rasserver-migplugin
+2026-11-09 09:04:33 .....       419248       419840  sources/replacementmanifests/microsoft-windows-rasserver-migplugin/rasmigplugin.dll
+2026-11-09 09:04:33 .....         1708         2048  sources/replacementmanifests/microsoft-windows-rmapi-replacement.man
+2026-11-09 09:04:33 .....         6746         8192  sources/replacementmanifests/microsoft-windows-securestartup-filterdriver-replacement.man
+2026-11-09 09:04:33 .....         1766         2048  sources/replacementmanifests/microsoft-windows-security-ngc-credprov-replacement.man
+2026-11-09 09:04:33 .....         1297         2048  sources/replacementmanifests/microsoft-windows-security-ngc-ctnrsvc-repl.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-security-ngc-localaccountmigplugin
+2026-11-09 09:04:33 .....       120128       120832  sources/replacementmanifests/microsoft-windows-security-ngc-localaccountmigplugin/ngclocalaccountmigplugin.dll
+2026-11-09 09:04:33 .....          704         2048  sources/replacementmanifests/microsoft-windows-servermanager-rsat-featuretools-replacement.man
+2026-11-09 09:04:33 .....          677         2048  sources/replacementmanifests/microsoft-windows-servermanager-rsat-replacement.man
+2026-11-09 09:04:33 .....          698         2048  sources/replacementmanifests/microsoft-windows-servermanager-rsat-roletools-replacement.man
+2026-11-09 09:04:33 .....          747         2048  sources/replacementmanifests/microsoft-windows-servermanager-shell-replacement.man
+2026-11-09 09:04:33 .....          793         2048  sources/replacementmanifests/microsoft-windows-services-targetedcontent-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-shmig
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-shmig/en-us
+2026-11-09 09:04:33 .....         4096         4096  sources/replacementmanifests/microsoft-windows-shmig/en-us/shmig.dll.mui
+2026-11-09 09:04:33 .....       308656       309248  sources/replacementmanifests/microsoft-windows-shmig/shmig.dll
+2026-11-09 09:04:33 .....         1927         2048  sources/replacementmanifests/microsoft-windows-slb-mux-replacement.man
+2026-11-09 09:04:33 .....          936         2048  sources/replacementmanifests/microsoft-windows-smb1-replacement.man
+2026-11-09 09:04:33 .....         1059         2048  sources/replacementmanifests/microsoft-windows-softwareinventorylogging-scheduledtasks-replacement.man
+2026-11-09 09:04:33 .....         1535         2048  sources/replacementmanifests/microsoft-windows-storagemigration-od-replacement.man
+2026-11-09 09:04:33 .....         6368         8192  sources/replacementmanifests/microsoft-windows-storagemigration-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-sxs
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-sxs/en-us
+2026-11-09 09:04:33 .....         2560         4096  sources/replacementmanifests/microsoft-windows-sxs/en-us/sxsmigplugin.dll.mui
+2026-11-09 09:04:33 .....      1026096      1028096  sources/replacementmanifests/microsoft-windows-sxs/servicingcommon.dll
+2026-11-09 09:04:33 .....       148912       149504  sources/replacementmanifests/microsoft-windows-sxs/sxsmigplugin.dll
+2026-11-09 09:04:33 .....         1489         2048  sources/replacementmanifests/microsoft-windows-sxs-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-terminalservices-appserver-licensing
+2026-11-09 09:04:33 .....       124208       124928  sources/replacementmanifests/microsoft-windows-terminalservices-appserver-licensing/tsmigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-terminalservices-licenseserver
+2026-11-09 09:04:33 .....       140608       141312  sources/replacementmanifests/microsoft-windows-terminalservices-licenseserver/tlsrepplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-textservicesframework-migration
+2026-11-09 09:04:33 .....       169376       169984  sources/replacementmanifests/microsoft-windows-textservicesframework-migration/chxmig.dll
+2026-11-09 09:04:33 .....       214320       215040  sources/replacementmanifests/microsoft-windows-textservicesframework-migration/imjpmig.dll
+2026-11-09 09:04:33 .....       140704       141312  sources/replacementmanifests/microsoft-windows-textservicesframework-migration/imkrmig.dll
+2026-11-09 09:04:33 .....       173376       174080  sources/replacementmanifests/microsoft-windows-textservicesframework-migration/msctfmig.dll
+2026-11-09 09:04:33 .....       112032       112640  sources/replacementmanifests/microsoft-windows-textservicesframework-migration/tabletextservicemig.dll
+2026-11-09 09:04:33 .....         3573         4096  sources/replacementmanifests/microsoft-windows-unified-telemetry-client-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-virtualization-vmswitch
+2026-11-09 09:04:33 .....       308544       309248  sources/replacementmanifests/microsoft-windows-virtualization-vmswitch/vmswitchmigrationplugin.dll
+2026-11-09 09:04:33 .....         1956         2048  sources/replacementmanifests/microsoft-windows-virtualization-vmswitch-migration-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/microsoft-windows-vsmkey
+2026-11-09 09:04:33 .....       122208       122880  sources/replacementmanifests/microsoft-windows-vsmkey/VsmKeyMigPlugin.dll
+2026-11-09 09:04:33 .....          837         2048  sources/replacementmanifests/microsoft-windows-wcfcorecomp-replacement.man
+2026-11-09 09:04:33 .....         1290         2048  sources/replacementmanifests/microsoft-windows-workstationservice-replacement.man
+2026-11-09 09:04:33 .....         1943         2048  sources/replacementmanifests/microsoft.windows.com.complus.setup-replacement.man
+2026-11-09 09:04:33 .....         4467         6144  sources/replacementmanifests/microsoft.windows.com.dtc.setup-replacement.man
+2026-11-09 09:04:33 .....         1534         2048  sources/replacementmanifests/microsoftwindowsdefragcore-replacement.man
+2026-11-09 09:04:33 .....         3710         4096  sources/replacementmanifests/mmdeviceapi-migration-replacement.man
+2026-11-09 09:04:33 .....         1375         2048  sources/replacementmanifests/mmsys-migration-replacement.man
+2026-11-09 09:04:33 .....          770         2048  sources/replacementmanifests/mpr-replacement.man
+2026-11-09 09:04:33 .....         1210         2048  sources/replacementmanifests/msmpeg2vdec-migration-replacement.man
+2026-11-09 09:04:33 .....         1678         2048  sources/replacementmanifests/muisettings-replacement.man
+2026-11-09 09:04:33 .....         2520         4096  sources/replacementmanifests/mup-replacement.man
+2026-11-09 09:04:33 .....         3131         4096  sources/replacementmanifests/nchostagent-replacement.man
+2026-11-09 09:04:33 .....         3381         4096  sources/replacementmanifests/ndis-repl.man
+2026-11-09 09:04:33 .....         1853         2048  sources/replacementmanifests/netfx-wcf-http-activation-replacement.man
+2026-11-09 09:04:33 .....         1043         2048  sources/replacementmanifests/netfx-wcf-msmqactivation-registration-replacement.man
+2026-11-09 09:04:33 .....         1043         2048  sources/replacementmanifests/netfx-wcf-pipeactivation-registration-replacement.man
+2026-11-09 09:04:33 .....         1041         2048  sources/replacementmanifests/netfx-wcf-tcpactivation-registration-replacement.man
+2026-11-09 09:04:33 .....          601         2048  sources/replacementmanifests/netfx3-replacement.man
+2026-11-09 09:04:33 .....          851         2048  sources/replacementmanifests/netfx4-policy-replacement.man
+2026-11-09 09:04:33 .....          668         2048  sources/replacementmanifests/netfx4-replacement.man
+2026-11-09 09:04:33 .....         1520         2048  sources/replacementmanifests/netfx4-wcf-client-replacement.man
+2026-11-09 09:04:33 .....         1436         2048  sources/replacementmanifests/netfx4-wcf-extended-replacement.man
+2026-11-09 09:04:33 .....        17499        18432  sources/replacementmanifests/netfx4clientcorecomp-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/networkbridge
+2026-11-09 09:04:33 .....       136624       137216  sources/replacementmanifests/networkbridge/bridgemigplugin.dll
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/networking-mpssvc-svc
+2026-11-09 09:04:33 .....       169376       169984  sources/replacementmanifests/networking-mpssvc-svc/icfupgd.dll
+2026-11-09 09:04:33 .....         1727         2048  sources/replacementmanifests/networking-mpssvc-svc.replacement.man
+2026-11-09 09:04:33 .....          692         2048  sources/replacementmanifests/networkloadbalancingmanagementclient-replacement.man
+2026-11-09 09:04:33 .....          691         2048  sources/replacementmanifests/networkloadbalancingmanagementheadlessserver-replacement.man
+2026-11-09 09:04:33 .....         2117         4096  sources/replacementmanifests/networkprofile-replacement.man
+2026-11-09 09:04:33 .....        10566        12288  sources/replacementmanifests/networksecurity.replacement.man
+2026-11-09 09:04:33 .....         1276         2048  sources/replacementmanifests/nfs-admincore-repl.man
+2026-11-09 09:04:33 .....         1198         2048  sources/replacementmanifests/nfs-clientcore-repl.man
+2026-11-09 09:04:33 .....         1192         2048  sources/replacementmanifests/nfs-servercore-repl.man
+2026-11-09 09:04:33 .....         1087         2048  sources/replacementmanifests/nfs-servercoreupg-clientcore-repl.man
+2026-11-09 09:04:33 .....         1086         2048  sources/replacementmanifests/nfs-servercoreupg-servercore-repl.man
+2026-11-09 09:04:33 .....         1336         2048  sources/replacementmanifests/ngclocalaccountmigplugin-replacement.man
+2026-11-09 09:04:33 .....          907         2048  sources/replacementmanifests/ngcpopkeysrv_dll-repl.man
+2026-11-09 09:04:33 .....          943         2048  sources/replacementmanifests/nlasvc-replace.man
+2026-11-09 09:04:33 .....         1041         2048  sources/replacementmanifests/notepad-repl.man
+2026-11-09 09:04:33 .....          771         2048  sources/replacementmanifests/npas-role-replacement.man
+2026-11-09 09:04:33 .....          651         2048  sources/replacementmanifests/npsui-replacement.man
+2026-11-09 09:04:33 .....        13893        14336  sources/replacementmanifests/odbc32dll-repl.man
+2026-11-09 09:04:33 .....        11188        12288  sources/replacementmanifests/onecore_speechcommon-rep.man
+2026-11-09 09:04:33 .....          910         2048  sources/replacementmanifests/openssh-common-components-onecore-replacement.man
+2026-11-09 09:04:33 .....          905         2048  sources/replacementmanifests/openssh-server-components-onecore-replacement.man
+2026-11-09 09:04:33 .....         3628         4096  sources/replacementmanifests/pcpksp_dll-repl.man
+2026-11-09 09:04:33 .....         6356         8192  sources/replacementmanifests/peerdist-client-migration-replacement.man
+2026-11-09 09:04:33 .....         6363         8192  sources/replacementmanifests/peerdist-server-migration-replacement.man
+2026-11-09 09:04:33 .....         3261         4096  sources/replacementmanifests/peerdist-upgrade-replacement.man
+2026-11-09 09:04:33 .....         1669         2048  sources/replacementmanifests/performancecounterinfrastructurenonexecutable-replacement.man
+2026-11-09 09:04:33 .....         1389         2048  sources/replacementmanifests/personalizationcsp-repl.man
+2026-11-09 09:04:33 .....          896         2048  sources/replacementmanifests/pnpmigration-replacement.man
+2026-11-09 09:04:33 .....         1303         2048  sources/replacementmanifests/posproviders-replacement.man
+2026-11-09 09:04:33 .....         6431         8192  sources/replacementmanifests/power-energyestimationengine-replacement.man
+2026-11-09 09:04:33 .....         2577         4096  sources/replacementmanifests/powercpl-replacement.man
+2026-11-09 09:04:33 .....         6423         8192  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v1019h1.man
+2026-11-09 09:04:33 .....         5934         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v1119h1.man
+2026-11-09 09:04:33 .....         5939         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v12vb.man
+2026-11-09 09:04:33 .....         6414         8192  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v13vb.man
+2026-11-09 09:04:33 .....         7036         8192  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v16sv1sv2.man
+2026-11-09 09:04:33 .....         4384         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v4rs1.man
+2026-11-09 09:04:33 .....         4384         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v5rs1.man
+2026-11-09 09:04:33 .....         4384         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v6rs2.man
+2026-11-09 09:04:33 .....         5654         6144  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v7rs2.man
+2026-11-09 09:04:33 .....         6154         8192  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v8rs4.man
+2026-11-09 09:04:33 .....         6273         8192  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-v9rs5.man
+2026-11-09 09:04:33 .....         1897         2048  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-vista.man
+2026-11-09 09:04:33 .....         3373         4096  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-win10.man
+2026-11-09 09:04:33 .....         2618         4096  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-win7.man
+2026-11-09 09:04:33 .....        27151        28672  sources/replacementmanifests/powermanagement-powerpolicy-definitions-replacement-win8.man
+2026-11-09 09:04:33 .....          654         2048  sources/replacementmanifests/powermanagement-powerpolicy-migration-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/printing-localprinting-replacement
+2026-11-09 09:04:33 .....       161088       161792  sources/replacementmanifests/printing-localprinting-replacement/apmonportmig.dll
+2026-11-09 09:04:33 .....       156992       157696  sources/replacementmanifests/printing-localprinting-replacement/usbportmig.dll
+2026-11-09 09:04:33 .....         3623         4096  sources/replacementmanifests/printing-localprinting-replacement.man
+2026-11-09 09:04:33 .....         1400         2048  sources/replacementmanifests/printing-server-foundation-features-upgrade.man
+2026-11-09 09:04:33 .....          933         2048  sources/replacementmanifests/printing-servercore-wow64-rm.man
+2026-11-09 09:04:33 .....          933         2048  sources/replacementmanifests/printing-spooler-core-replacement.man
+2026-11-09 09:04:33 .....         1870         2048  sources/replacementmanifests/processmodel-cpt-rm.man
+2026-11-09 09:04:33 .....         1054         2048  sources/replacementmanifests/profsvcreplacement.man
+2026-11-09 09:04:33 .....         2282         4096  sources/replacementmanifests/propsys-replacement.man
+2026-11-09 09:04:33 .....         1767         2048  sources/replacementmanifests/quickactions-windows-replacement.man
+2026-11-09 09:04:33 .....         3203         4096  sources/replacementmanifests/rasapi-repl.man
+2026-11-09 09:04:33 .....         6129         6144  sources/replacementmanifests/rasbase-rassstp-repl.man
+2026-11-09 09:04:33 .....         5956         6144  sources/replacementmanifests/rasbase-repl.man
+2026-11-09 09:04:33 .....         2526         4096  sources/replacementmanifests/rasddm-repl.man
+2026-11-09 09:04:33 .....         2272         4096  sources/replacementmanifests/rasmanservice-repl.man
+2026-11-09 09:04:33 .....         2701         4096  sources/replacementmanifests/rasmanservice-replv2.man
+2026-11-09 09:04:33 .....         2805         4096  sources/replacementmanifests/rasmanservice-replv3.man
+2026-11-09 09:04:33 .....         2976         4096  sources/replacementmanifests/rasppp-repl.man
+2026-11-09 09:04:33 .....         1815         2048  sources/replacementmanifests/rasrqs-repl.man
+2026-11-09 09:04:33 .....        27475        28672  sources/replacementmanifests/rasserver-repl.man
+2026-11-09 09:04:33 .....          660         2048  sources/replacementmanifests/rasserveradmintools-replacement.man
+2026-11-09 09:04:33 .....         1159         2048  sources/replacementmanifests/refs-replacement.man
+2026-11-09 09:04:33 .....          457         2048  sources/replacementmanifests/refs-v1-replacement.man
+2026-11-09 09:04:33 .....         1134         2048  sources/replacementmanifests/retaildemo.deployment.replacement.man
+2026-11-09 09:04:33 .....         4465         6144  sources/replacementmanifests/rights-management-client-v1-api-replacement.man
+2026-11-09 09:04:33 .....         1051         2048  sources/replacementmanifests/rights-management-services-admin-tools-replacement.man
+2026-11-09 09:04:33 .....         1060         2048  sources/replacementmanifests/rights-management-services-management-tools-replacement.man
+2026-11-09 09:04:33 .....         1038         2048  sources/replacementmanifests/rights-management-services-role-replacement.man
+2026-11-09 09:04:33 .....         2317         4096  sources/replacementmanifests/schedsvc-replacement.man
+2026-11-09 09:04:33 .....         2609         4096  sources/replacementmanifests/security-malware-windows-defender-repl.man
+2026-11-09 09:04:33 .....         2848         4096  sources/replacementmanifests/security-spp-migration-replacement.man
+2026-11-09 09:04:33 .....          970         2048  sources/replacementmanifests/securitycenter-core-replacement.man
+2026-11-09 09:04:33 .....          766         2048  sources/replacementmanifests/servercore-wow64-rm.man
+2026-11-09 09:04:33 .....          983         2048  sources/replacementmanifests/settingshandlers_accessibility-replacement.man
+2026-11-09 09:04:33 .....         1283         2048  sources/replacementmanifests/sharedpccsp-repl.man
+2026-11-09 09:04:33 .....          643         2048  sources/replacementmanifests/sharemgmt-rsatclient-tools-replacement.man
+2026-11-09 09:04:33 .....        19767        20480  sources/replacementmanifests/shell32-replacement.man
+2026-11-09 09:04:33 .....         2843         4096  sources/replacementmanifests/shmig-replacement.man
+2026-11-09 09:04:33 .....         1170         2048  sources/replacementmanifests/shutdown-event-tracker-repl.man
+2026-11-09 09:04:33 .....         1036         2048  sources/replacementmanifests/signalmanager-replacement.man
+2026-11-09 09:04:33 .....         2906         4096  sources/replacementmanifests/signature-replacement.man
+2026-11-09 09:04:33 .....         2416         4096  sources/replacementmanifests/smartcardsubsystem-repl.man
+2026-11-09 09:04:33 .....         2053         4096  sources/replacementmanifests/smsroutersvc-replacement.man
+2026-11-09 09:04:33 .....          880         2048  sources/replacementmanifests/snippingtoolsettingsmigration-replacement.man
+2026-11-09 09:04:33 .....          652         2048  sources/replacementmanifests/snmp-gui-tools-replacement.man
+2026-11-09 09:04:33 .....         2423         4096  sources/replacementmanifests/sounds-migration-replacement.man
+2026-11-09 09:04:33 .....          858         2048  sources/replacementmanifests/spectrum-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/sppmig
+2026-11-09 09:04:33 .....        71072        71680  sources/replacementmanifests/sppmig/sppmig.dll
+2026-11-09 09:04:33 .....         2610         4096  sources/replacementmanifests/srm-cbadriver-repl.man
+2026-11-09 09:04:33 .....         2621         4096  sources/replacementmanifests/srm-datascrndriver-repl.man
+2026-11-09 09:04:33 .....          713         2048  sources/replacementmanifests/srm-infrastructure-repl.man
+2026-11-09 09:04:33 .....          639         2048  sources/replacementmanifests/srm-management-repl.man
+2026-11-09 09:04:33 .....         2590         4096  sources/replacementmanifests/srm-quotadriver-repl.man
+2026-11-09 09:04:33 .....         4084         4096  sources/replacementmanifests/srm-service-repl.man
+2026-11-09 09:04:33 .....         2827         4096  sources/replacementmanifests/srm-service-reports-repl.man
+2026-11-09 09:04:33 .....         2410         4096  sources/replacementmanifests/srm-ui-repl.man
+2026-11-09 09:04:33 .....         1307         2048  sources/replacementmanifests/srumon-replacement.man
+2026-11-09 09:04:33 .....         4540         6144  sources/replacementmanifests/starttiledata-replacement.man
+2026-11-09 09:04:33 .....         2541         4096  sources/replacementmanifests/storsvc-replacement.man
+2026-11-09 09:04:33 .....         2694         4096  sources/replacementmanifests/sysdm-replacement.man
+2026-11-09 09:04:33 .....         1823         2048  sources/replacementmanifests/sysmain-replacement.man
+2026-11-09 09:04:33 .....          992         2048  sources/replacementmanifests/systemsettings_handlers_cortana-replacement.man
+2026-11-09 09:04:33 .....         1026         2048  sources/replacementmanifests/systemsettingsthreshold-replacement.man
+2026-11-09 09:04:33 .....        15619        16384  sources/replacementmanifests/tabletpcplatforminput-core-replacement.man
+2026-11-09 09:04:33 .....         1935         2048  sources/replacementmanifests/tcblaunch-replacement.man
+2026-11-09 09:04:33 .....        17158        18432  sources/replacementmanifests/tcpip-replacement.man
+2026-11-09 09:04:33 .....         1141         2048  sources/replacementmanifests/terminalservices-appserver-licensing-replacement.man
+2026-11-09 09:04:33 .....         1048         2048  sources/replacementmanifests/terminalservices-gateway-package-r-replacement.man
+2026-11-09 09:04:33 .....         1048         2048  sources/replacementmanifests/terminalservices-gateway-package-replacement.man
+2026-11-09 09:04:33 .....         1061         2048  sources/replacementmanifests/terminalservices-gateway-ui-package-r-replacement.man
+2026-11-09 09:04:33 .....         1061         2048  sources/replacementmanifests/terminalservices-gateway-ui-package-replacement.man
+2026-11-09 09:04:33 .....         1744         2048  sources/replacementmanifests/terminalservices-licenseserver-replacement.man
+2026-11-09 09:04:33 .....         1377         2048  sources/replacementmanifests/terminalservices-localsessionmanager-replacement.man
+2026-11-09 09:04:33 .....          905         2048  sources/replacementmanifests/terminalservices-publishing-wmiprovider-replacement.man
+2026-11-09 09:04:33 .....          863         2048  sources/replacementmanifests/terminalservices-rapweb-replacement.man
+2026-11-09 09:04:33 .....         1086         2048  sources/replacementmanifests/terminalservices-rapwebpart-replacement.man
+2026-11-09 09:04:33 .....         3390         4096  sources/replacementmanifests/terminalservices-rdp-winstationextensions-replacement.man
+2026-11-09 09:04:33 .....         5441         6144  sources/replacementmanifests/terminalservices-remoteconnectionmanager-replacement.man
+2026-11-09 09:04:33 .....         1053         2048  sources/replacementmanifests/terminalservices-role-package-r-replacement.man
+2026-11-09 09:04:33 .....         1053         2048  sources/replacementmanifests/terminalservices-role-package-replacement.man
+2026-11-09 09:04:33 .....         2743         4096  sources/replacementmanifests/terminalservices-sessiondirectory-client-replacement.man
+2026-11-09 09:04:33 .....         4206         6144  sources/replacementmanifests/terminalservices-sessiondirectory-server-replacement.man
+2026-11-09 09:04:33 .....         1298         2048  sources/replacementmanifests/terminalservices-tsv-vmhostagent-replacement.man
+2026-11-09 09:04:33 .....         1065         2048  sources/replacementmanifests/tetheringservice-repl.man
+2026-11-09 09:04:33 .....         6471         8192  sources/replacementmanifests/textservicesframework-migration-replacement.man
+2026-11-09 09:04:33 .....         1194         2048  sources/replacementmanifests/time-service-replacement.man
+2026-11-09 09:04:33 .....         2695         4096  sources/replacementmanifests/tpmdriverwmi-replacement.man
+2026-11-09 09:04:33 .....          916         2048  sources/replacementmanifests/tpmvsc-repl.man
+2026-11-09 09:04:33 .....        12467        14336  sources/replacementmanifests/twinui-replacement.man
+2026-11-09 09:04:33 .....         1614         2048  sources/replacementmanifests/twinui.pcshell-replacement.man
+2026-11-09 09:04:33 .....         1561         2048  sources/replacementmanifests/udfs-replacement.man
+2026-11-09 09:04:33 .....         1125         2048  sources/replacementmanifests/updateagent-replacement.man
+2026-11-09 09:04:33 .....          879         2048  sources/replacementmanifests/updateservices-common-replacement.man
+2026-11-09 09:04:33 .....         2854         4096  sources/replacementmanifests/updateservices-services-replacement.man
+2026-11-09 09:04:33 .....         2460         4096  sources/replacementmanifests/upnpdevicehost-replacement.man
+2026-11-09 09:04:33 .....         2467         4096  sources/replacementmanifests/upnpdevicehost-server-replacement.man
+2026-11-09 09:04:33 .....         2323         4096  sources/replacementmanifests/upnpssdp-replacement.man
+2026-11-09 09:04:33 .....         2330         4096  sources/replacementmanifests/upnpssdp-server-replacement.man
+2026-11-09 09:04:33 .....         1685         2048  sources/replacementmanifests/usbmigration-replacement.man
+2026-11-09 09:04:33 .....         1318         2048  sources/replacementmanifests/userchoiceprotection-replacement.man
+2026-11-09 09:04:33 .....         2188         4096  sources/replacementmanifests/vault-replacement.man
+2026-11-09 09:04:33 .....          928         2048  sources/replacementmanifests/video-tvvideocontrol-replacement.man
+2026-11-09 09:04:33 .....         1785         2048  sources/replacementmanifests/virtualdiskservice-repl.man
+2026-11-09 09:04:33 .....         2954         4096  sources/replacementmanifests/volsnap-repl.man
+2026-11-09 09:04:33 .....         4048         4096  sources/replacementmanifests/volumecontrol.replacement.man
+2026-11-09 09:04:33 .....         4120         6144  sources/replacementmanifests/vssservice-repl.man
+2026-11-09 09:04:33 .....         1385         2048  sources/replacementmanifests/wbiosrvc-replacement.man
+2026-11-09 09:04:33 .....          823         2048  sources/replacementmanifests/wcf-http-activation-replacement.man
+2026-11-09 09:04:33 .....          833         2048  sources/replacementmanifests/wcf-nonhttp-activation-replacement.man
+2026-11-09 09:04:33 .....        13907        14336  sources/replacementmanifests/web-services-for-management-core-replacement.man
+2026-11-09 09:04:33 .....         2138         4096  sources/replacementmanifests/webdavredir-clientonly-replacement.man
+2026-11-09 09:04:33 .....         2138         4096  sources/replacementmanifests/webdavredir-serveronly-replacement.man
+2026-11-09 09:04:33 .....          969         2048  sources/replacementmanifests/wia-coreservices-replacement.man
+2026-11-09 09:04:33 .....         9786        10240  sources/replacementmanifests/wicamigrationav-rl.man
+2026-11-09 09:04:33 .....         1029         2048  sources/replacementmanifests/wid8-migration.man
+2026-11-09 09:04:33 .....        20369        20480  sources/replacementmanifests/win32k-settings-repl.man
+2026-11-09 09:04:33 .....         1134         2048  sources/replacementmanifests/windows-secdriver-rep.man
+2026-11-09 09:04:33 .....         1137         2048  sources/replacementmanifests/windows-secwfpdriver-rep.man
+2026-11-09 09:04:33 .....         2008         2048  sources/replacementmanifests/windows-senseclient-service-rep.man
+2026-11-09 09:04:33 .....         1532         2048  sources/replacementmanifests/windows.cortana.desktop-repl.man
+2026-11-09 09:04:33 .....         2608         4096  sources/replacementmanifests/windows.holographic.displaythrottling-replacement.man
+2026-11-09 09:04:33 .....          993         2048  sources/replacementmanifests/windows.media-migration-replacement.man
+2026-11-09 09:04:33 .....         1422         2048  sources/replacementmanifests/windows.sharedpc.accountmanager-repl.man
+2026-11-09 09:04:33 .....         2054         4096  sources/replacementmanifests/windows.storage-replacement.man
+2026-11-09 09:04:33 .....         2074         4096  sources/replacementmanifests/windows.ui.shell-repl.man
+2026-11-09 09:04:33 .....         1272         2048  sources/replacementmanifests/windowspushnotifications-platform-library-replacement.man
+2026-11-09 09:04:33 D....                            sources/replacementmanifests/windowssearchengine
+2026-11-09 09:04:33 .....       165184       165888  sources/replacementmanifests/windowssearchengine/wsearchmigplugin.dll
+2026-11-09 09:04:33 .....         6798         8192  sources/replacementmanifests/windowssearchengine-replacement.man
+2026-11-09 09:04:33 .....         1175         2048  sources/replacementmanifests/windowsstoreapi-replacement.man
+2026-11-09 09:04:33 .....         1769         2048  sources/replacementmanifests/windowsupdate-replacement.man
+2026-11-09 09:04:33 .....         1137         2048  sources/replacementmanifests/windowswebapphost-replacement.man
+2026-11-09 09:04:33 .....        12599        14336  sources/replacementmanifests/winlogon-replacement.man
+2026-11-09 09:04:33 .....         1016         2048  sources/replacementmanifests/winmde-migration-replacement.man
+2026-11-09 09:04:33 .....         1160         2048  sources/replacementmanifests/winnat-replacement.man
+2026-11-09 09:04:33 .....          937         2048  sources/replacementmanifests/winsat-cmi-replacement.man
+2026-11-09 09:04:33 .....         4918         6144  sources/replacementmanifests/wlidsvc-replacement.man
+2026-11-09 09:04:33 .....         4190         6144  sources/replacementmanifests/wlidsvc.vista-win7.man
+2026-11-09 09:04:33 .....         4165         6144  sources/replacementmanifests/wmdmigration-replacement.man
+2026-11-09 09:04:33 .....         2738         4096  sources/replacementmanifests/wmi-core-replacement.man
+2026-11-09 09:04:33 .....         1128         2048  sources/replacementmanifests/wmiacpi-replacement.man
+2026-11-09 09:04:33 .....         1758         2048  sources/replacementmanifests/wmpnsservice-migration-replacement.man
+2026-11-09 09:04:33 .....         2824         4096  sources/replacementmanifests/wmpplayer-migration-replacement.man
+2026-11-09 09:04:33 .....         1174         2048  sources/replacementmanifests/wsinfra-other-mw-replacement.man
+2026-11-09 09:04:33 .....         1552         2048  sources/replacementmanifests/wsinfra-upgrade-replacement.man
+2026-11-09 09:04:33 .....         1042         2048  sources/replacementmanifests/wwansvc-servercfg-repl.man
+2026-11-09 09:04:33 .....        85352        86016  sources/reportgen.dll
+2026-11-09 09:04:33 .....       359744       360448  sources/reservemanager.dll
+2026-11-09 09:04:33 .....        95664        96256  sources/rmsupg.dll
+2026-11-09 09:04:33 .....       161200       161792  sources/rollback.exe
+2026-11-09 09:04:33 .....       110592       110592  sources/schema.dat
+2026-11-09 09:04:33 .....       423344       423936  sources/sdbapiu.dll
+2026-11-09 09:04:33 .....       980960       980992  sources/segoeui.ttf
+2026-11-09 09:04:33 .....      1062000      1062912  sources/servicingcommon.dll
+2026-11-09 09:04:33 .....       333120       333824  sources/setup.exe
+2026-11-09 09:04:33 .....       388448       389120  sources/setupcompat.dll
+2026-11-09 09:04:33 .....      3046808      3047424  sources/setupcore.dll
+2026-11-09 09:04:33 .....       805856       806912  sources/setupdiag.exe
+2026-11-09 09:04:33 .....        74544        75776  sources/setuperror.exe
+2026-11-09 09:04:33 .....       937320       937984  sources/setuphost.exe
+2026-11-09 09:04:33 .....      1285480      1286144  sources/setupmgr.dll
+2026-11-09 09:04:33 .....        23023        24576  sources/setupplatform.cfg
+2026-11-09 09:04:33 .....     10005896     10006528  sources/setupplatform.dll
+2026-11-09 09:04:33 .....       269664       270336  sources/setupplatform.exe
+2026-11-09 09:04:33 .....      1391968      1392640  sources/setupprep.exe
+2026-11-09 09:04:33 .....         1824         2048  sources/sfcn.dat
+2026-11-09 09:04:33 .....         1644         2048  sources/sflcid.dat
+2026-11-09 09:04:33 .....      5593182      5595136  sources/sflistrs1.dat
+2026-11-09 09:04:33 .....      1703368      1703936  sources/sflistw7.dat
+2026-11-09 09:04:33 .....      2608858      2609152  sources/sflistw8.dat
+2026-11-09 09:04:33 .....      3172904      3174400  sources/sflistwb.dat
+2026-11-09 09:04:33 .....      4935402      4935680  sources/sflistwt.dat
+2026-11-09 09:04:33 .....        11602        12288  sources/sfpat.inf
+2026-11-09 09:04:33 .....       169730       169984  sources/sfpatrs1.inf
+2026-11-09 09:04:33 .....        17396        18432  sources/sfpatw7.inf
+2026-11-09 09:04:33 .....        79818        79872  sources/sfpatw8.inf
+2026-11-09 09:04:33 .....        91635        92160  sources/sfpatwb.inf
+2026-11-09 09:04:33 .....       165729       165888  sources/sfpatwt.inf
+2026-11-09 09:04:33 .....       927024       927744  sources/smiengine.dll
+2026-11-09 09:04:33 .....        58800        59392  sources/spflvrnt.dll
+2026-11-09 09:04:33 .....        83272        83968  sources/spprgrss.dll
+2026-11-09 09:04:33 .....       570672       571392  sources/spwizeng.dll
+2026-11-09 09:04:33 .....        95544        96256  sources/spwizimg.dll
+2026-11-09 09:04:33 .....        25920        26624  sources/spwizres.dll
+2026-11-09 09:04:33 .....        75856        77824  sources/sqmapi.dll
+2026-11-09 09:04:33 D....                            sources/sxs
+2026-11-09 09:04:33 .....        30781        32768  sources/sxs/Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~en-US~.cab
+2026-11-09 09:04:33 .....       304859       305152  sources/sxs/microsoft-windows-internetexplorer-optional-package~31bf3856ad364e35~amd64~~.cab
+2026-11-09 09:04:33 .....     71321276     71321600  sources/sxs/microsoft-windows-netfx3-ondemand-package~31bf3856ad364e35~amd64~~.cab
+2026-11-09 09:04:33 .....        75320        75776  sources/uddicomp.dll
+2026-11-09 09:04:33 .....       275872       276480  sources/unattend.dll
+2026-11-09 09:04:33 .....       453984       454656  sources/unattendmgr.dll
+2026-11-09 09:04:33 .....      1101176      1101824  sources/unbcl.dll
+2026-11-09 09:04:33 .....         4852         6144  sources/uninstall.xml
+2026-11-09 09:04:33 .....        11122        12288  sources/uninstall_data.xml
+2026-11-09 09:04:33 .....      3974448      3975168  sources/updateagent.dll
+2026-11-09 09:04:33 .....       542128       542720  sources/updatecompression.dll
+2026-11-09 09:04:33 .....       136608       137216  sources/upgloader.dll
+2026-11-09 09:04:33 .....       211949       212992  sources/upgrade_bulk.xml
+2026-11-09 09:04:33 .....         6054         6144  sources/upgrade_comp.xml
+2026-11-09 09:04:33 .....        41750        43008  sources/upgrade_data.xml
+2026-11-09 09:04:33 .....        19157        20480  sources/upgrade_frmwrk.xml
+2026-11-09 09:04:33 .....      3302704      3303424  sources/upgradeagent.dll
+2026-11-09 09:04:33 .....        70907        71680  sources/upgradeagent.xml
+2026-11-09 09:04:33 .....       114707       116736  sources/upgwow_bulk.xml
+2026-11-09 09:04:33 .....        66864        67584  sources/utcapi.dll
+2026-11-09 09:04:33 D....                            sources/uup
+2026-11-09 09:04:33 D....                            sources/uup/metadata
+2026-11-09 09:04:33 .....        18873        20480  sources/uup/metadata/desktoptargetcompdb_conditions.xml.cab
+2026-11-09 09:04:33 .....        47682        49152  sources/uup/metadata/desktoptargetcompdb_fod_neutral.xml.cab
+2026-11-09 09:04:33 .....        12406        14336  sources/uup/metadata/desktoptargetcompdb_neutral.xml.cab
+2026-11-09 09:04:33 .....       185648       186368  sources/uxlib.dll
+2026-11-09 09:04:33 .....        21824        22528  sources/uxlibres.dll
+2026-11-09 09:04:33 .....       599360       600064  sources/vhdprovider.dll
+2026-11-09 09:04:33 .....       312624       313344  sources/w32uiimg.dll
+2026-11-09 09:04:33 .....       222512       223232  sources/w32uires.dll
+2026-11-09 09:04:33 .....          597         2048  sources/warning.gif
+2026-11-09 09:04:33 .....       484904       485376  sources/wdsclient.dll
+2026-11-09 09:04:33 .....       267816       268288  sources/wdsclientapi.dll
+2026-11-09 09:04:33 .....       341408       342016  sources/wdscommonlib.dll
+2026-11-09 09:04:33 .....       279872       280576  sources/wdscore.dll
+2026-11-09 09:04:33 .....       112048       112640  sources/wdscsl.dll
+2026-11-09 09:04:33 .....       128568       129024  sources/wdsimage.dll
+2026-11-09 09:04:33 .....       218664       219136  sources/wdstptc.dll
+2026-11-09 09:04:33 .....        46632        47104  sources/wdsupgcompl.dll
+2026-11-09 09:04:33 .....       353600       354304  sources/wdsutil.dll
+2026-11-09 09:04:33 .....       910640       911360  sources/wimgapi.dll
+2026-11-09 09:04:33 .....       697664       698368  sources/wimprovider.dll
+2026-11-09 09:04:33 .....       722240       722944  sources/win32ui.dll
+2026-11-09 09:04:33 .....      1557936      1558528  sources/windlp.dll
+2026-11-09 09:04:33 .....      2950448      2951168  sources/winsetup.dll
+2026-11-09 09:04:33 .....         8192         8192  sources/winsetupboot.hiv
+2026-11-09 09:04:33 .....       142688       143360  sources/winsetupboot.sys
+2026-11-09 09:04:33 .....         8192         8192  sources/winsetupmon.hiv
+2026-11-09 09:04:33 .....       179624       180224  sources/winsetupmon.sys
+2026-11-09 09:04:33 .....      1422752      1423360  sources/wpx.dll
+
+===== INSPECTION COMPLETE — NO CHANGES MADE =====
+(deck@Laco ~)$
