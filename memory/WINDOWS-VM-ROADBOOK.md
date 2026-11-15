@@ -1,102 +1,55 @@
-# Windows VM Project — Roadbook
+# Windows Home / License Transfer — Roadbook
 
 **Repository:** laconic-lab/projects  
-**Project:** Steam Deck Windows VMs using Dockur Windows / Podman  
-**Purpose:** Preserve actual decisions and troubleshooting history across ChatGPT conversations.
+**Purpose:** Keep the important project decisions, verified results and next step available across chats. This is a short handover, not a technical audit.
 
-> Chronological handover, not a replacement for canonical Windows VM documentation. Distinguish recorded facts from hypotheses. Do not infer that a planned step was completed.
+## Goal and current direction
 
-## Current focus
+The intended destination is **Windows 11 Home on the Dell Precision M4800**, using the user's existing Windows Home key. The temporary Steam Deck Windows VM was useful for UUP/media work, but it is not the intended final solution and is no longer required as a deployment target.
 
-Investigate why the newly generated **Windows 11 Home ISO**, intended to contain the November 2026 25H2 updates, installed Windows 11 Home **24H2, build 26100.1**. This is an unresolved discrepancy, not an expected result.
+The immediate priority is to establish trustworthy Windows 11 Home installation media and verify the Home-key activation path **before changing the existing Windows 11 Pro installation**.
 
-The user proposed a controlled test: create another Pro VM using the corresponding updated Pro ISO and compare the installed version/build.
+## Settled decisions and constraints
 
-## History and decisions
+- A Windows Home key licenses **Home, not Pro**.
+- Direct activation of Windows 11 Home using the existing Windows 10/11 Home retail key is expected, but has not yet been conclusively verified on this machine. Do not describe activation as guaranteed.
+- **Do not format or replace the current Pro installation** until Home-key activation is strongly verified.
+- Windows settings and data on the current Windows installation may be lost; the separate physical **D: BitLocker drive must be protected**.
+- Preserve the current Pro-specific setup where possible, especially NVIDIA driver **25.21.14.2678** (reported as 426.78), and record what would need reinstalling after a clean installation.
+- The M4800 is unsupported for Windows 11 by Microsoft's normal hardware requirements. Rufus still offers TPM/Secure Boot bypass; this does not itself establish CPU compatibility. POPCNT/SSE4.2 compatibility remains to be verified.
+- Windows Home does not provide built-in incoming Remote Desktop hosting. Other Pro-only features relevant to the decision include Hyper-V, full BitLocker management, Group Policy, domain/Entra join and Windows Sandbox.
+- Do not run PowerShell tests inside the Home VM through its web console; the lack of convenient copy/paste makes that workflow impractical.
+- Keep the iTunes preservation task as a short checkpoint; the main effort is the installation media.
 
-### 1. Original Windows Pro VM and the UUP conversion problem
+## Media and VM history
 
-- The first Pro ISO was generated using the Linux conversion route.
-- The UUP package had update integration configured with AddUpdates=1, but the Linux conversion route did not integrate the updates as intended.
-- The resulting ISO was recorded as 26100.1.1_PROFESSIONAL_X64_EN-US.ISO.
-- This failure was the reason for creating a Windows VM: UUP's Windows conversion script was required to perform update integration.
-- Do not repeat the incorrect assumption that the Home ISO was an unrelated old stock ISO. It was generated through the later Windows-VM workflow.
+1. The first Pro ISO was produced through the Linux UUP conversion route. Despite \u0060AddUpdates=1\u0060, the resulting image was recorded as \u006026100.1.1_PROFESSIONAL_X64_EN-US.ISO\u0060 without the intended integrated updates. This is why a Windows environment was used for the later UUP conversion workflow.
+2. A temporary Steam Deck Windows VM was created and used in the media investigation. It is not the final Windows installation target.
+3. A Home ISO named \u006026100.1.240331-1435.GE_win11home_RELEASE_CLIENTCORE_OEMRET_X64FRE_EN-US.ISO\u0060 was installed in a Home VM. The observed guest reported Windows 11 Home **24H2, build 26100.1**. This result was unexpected and did not establish whether the ISO contained the later updates.
+4. The user subsequently selected the latest available UUP package set (catalogue timestamp recorded as **2026-11-13 18:00:11 UTC**) for the media work. The package selection included the base ESD and update payloads; references identified in the work include **KB5127936, KB5130881 and KB5054156**. \u0060AddUpdates=1\u0060 was configured.
+5. During a later download/build run, \u0060aria2_download.log\u0060 contained CUID download-aborted/error entries. The script was still running when this was discussed, and the user did not want it interrupted prematurely. The presence of log errors alone does not establish whether required payloads were missing or whether the final ISO is incomplete.
 
-### 2. UUP package selection
+**Keep these stages distinct:** UUP selection, payload download, update integration into the install image, ISO creation, and the image actually installed. Evidence for one stage does not prove the next.
 
-- The Pro UUP selection was recorded as 26200.9974_pro (Windows 11 25H2).
-- The downloaded package included the base ESD and update payloads. Previously identified package references include:
-  - KB5127936
-  - KB5130881
-  - KB5054156
-- ConvertConfig.ini was recorded with AddUpdates=1.
-- The Home and Pro packages were both selected from the latest package set shown for Windows 11 25H2, with the user recording the catalogue timestamp as **2026-11-13 18:00:11 UTC**.
-- The user states that the Home ISO was also generated inside the Windows VM using this updated UUP workflow, with updates intended to be included.
-- The raw download log is available in the repository:
-  [tmp/aria2_download.log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log)
-- The user reports that the log contains recent KB downloads. The log must be examined as evidence of downloaded payloads, not automatically treated as proof that those updates were integrated into the final install image.
+## Current status
 
-**Important distinction:** package selection, successful payload download, successful update integration into the WIM/ESD, and the image actually installed by Windows Setup are separate stages. Verify each stage independently.
+- The earlier Home VM result is confirmed: Home 24H2 / build 26100.1.
+- A later UUP media run was based on the newer package set described above. Its download log needs to be interpreted; do not assume every logged abort is fatal or harmless.
+- The Home-key activation route on the M4800 has not yet been verified strongly enough to authorize replacing the current Pro installation.
+- No decision to format the M4800 has been made.
 
-### 3. Home ISO and unexpected installation result
+## Next steps
 
-- A Home ISO was generated through the Windows VM workflow, with the intention of integrating the selected 25H2 updates.
-- The ISO used for the Home VM is named:
-  26100.1.240331-1435.GE_win11home_RELEASE_CLIENTCORE_OEMRET_X64FRE_EN-US.ISO
-- The Home VM installation completed.
-- Observed guest details:
-  - Edition: Windows 11 Home
-  - Version: 24H2
-  - OS build: 26100.1
-- This is unexpected given the intended 25H2 updated media.
-- The ISO filename alone does not settle what image content is inside it. Its actual install image metadata and servicing state must be inspected.
-- No PowerShell tests are required inside the Home guest. The user finds entering commands through the web console cumbersome because copy/paste is unavailable.
+1. Establish the completion state of the latest UUP download/conversion run without interrupting an active process.
+2. Review the download and conversion logs, then inspect the resulting ISO's actual install-image edition, version/build and servicing state. Do not infer these from its filename or from the UUP catalogue selection.
+3. Verify the Home-key activation route before any destructive installation decision.
+4. Audit the M4800's hardware/Windows installation constraints and protect the separate D: BitLocker drive.
+5. Only after those checks, decide whether and how to replace the existing Pro installation.
 
-### 4. Home VM deployment facts
+## Important reference
 
-- Project root: /home/deck/Windows11HomeVM
-- Container: windows-home-box
-- ISO path: /home/deck/Downloads/26100.1.240331-1435.GE_win11home_RELEASE_CLIENTCORE_OEMRET_X64FRE_EN-US.ISO
-- Host console endpoint: 192.168.1.161:8006
-- The VM was successfully started and the web console worked.
-- The container uses the KVM device. The final configuration was aligned with the original known-working VM and did not include /dev/net/tun or NET_ADMIN.
-- The Home guest installation completed; the discrepancy concerns the Windows version/build installed from the ISO, not a failure to launch the container.
+- Earlier Home ISO download log: [aria2_download.log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log)
 
-## Current investigation — not yet completed
+## Update
 
-1. **Inspect the Home ISO from the Steam Deck host, read-only.**
-   - Determine the actual WIM/ESD image indexes, edition, version, build, and servicing/update state.
-   - Do not rely solely on the ISO filename.
-   - Do not modify or rebuild the ISO during this inspection.
-2. **Inspect Windows UUP conversion evidence.**
-   - Review conversion logs and determine whether update integration was actually applied to the Home install image.
-   - Separate download success from integration success.
-   - Check whether the selected Home UUP files and conversion output correspond to the intended 25H2 package set.
-3. **Run the proposed Pro control installation.**
-   - Create a separate Pro VM using the updated Pro ISO.
-   - Record the exact ISO filename and inspect its image metadata before installation.
-   - After installation, record the guest edition, version, and build.
-   - Compare Pro and Home outcomes to determine whether the issue is specific to the Home package/image or common to the conversion workflow.
-4. Only after evidence is collected, decide whether the Home ISO must be regenerated or whether Windows Setup selected an unexpected image/index.
-
-## Working rules for the next chat
-
-- Do not repeat the historical Linux conversion experiment; its failure is already established.
-- Do not claim that the Home ISO was an old stock ISO. It was generated through the updated Windows-VM conversion workflow according to the user.
-- Do not assume that downloaded KB payloads prove successful integration.
-- Do not assume the ISO filename proves the installed image build.
-- Do not perform PowerShell tests inside the Home guest unless the user explicitly changes this constraint.
-- Prefer host-side, read-only inspection first.
-- The Pro VM test is a proposed diagnostic control, not yet a completed action.
-- Do not modify VM configurations, regenerate media, delete VMs, or change project documentation outside this roadbook without discussing the specific change first.
-
-## Open questions
-
-- What are the actual version/build and servicing packages in the Home ISO's install image?
-- Did the Windows UUP conversion process apply the selected Home updates, or did it leave the original 26100.1 image intact?
-- Is the Pro ISO's install image actually 25H2 with the intended update level?
-- Does installing from the updated Pro ISO produce 25H2 as expected?
-
-## Update log
-
-- **2026-11-15:** Created this roadbook to preserve the UUP/ISO/VM history and prevent loss of the key causal context across ChatGPT conversations. Current Home ISO discrepancy and next diagnostic steps recorded from the user's account and conversation history.
+- **2026-11-15:** Reworked this roadbook to reflect the project's current destination (Windows 11 Home on the Dell M4800), retain the relevant UUP/VM history, and distinguish confirmed results from unresolved media and activation questions. The general \u0060memory/1-README.md\u0060 was intentionally left unchanged.
