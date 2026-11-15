@@ -105,7 +105,7 @@ The repository contains projects at different maturity levels. A project may be 
 | [Stable Diffusion](./stable.diffusion/) | Local image generation using stable-diffusion.cpp and the Deck AMD GPU through Vulkan | Dedicated Distrobox; WebUI binds to loopback; remote access uses an SSH tunnel, not direct LAN publication |
 | [Odysseus](./odysseus/) | AI application and multi-provider integration work | Dedicated project environment; consult the architecture and implementation-status documents before assuming a feature is implemented or a service is running |
 | [Waydroid](./waydroid/) | Feasibility research for Android workloads on the Deck with remote Linux/Windows clients | Investigation/audit; not a completed or approved native SteamOS installation |
-| [Windows](./windows/) | Manually managed Windows 11 VM on the Steam Deck | Rootless Podman + `dockurr/windows` selected; host and QEMU/KVM acceleration validated; guest deployment pending |
+| [Windows](./windows/) | Manually managed Windows 11 Pro 25H2 VM on the Steam Deck | Rootless Podman + `dockurr/windows`; guest running; Web Console and RDP verified; normal runtime verified ISO-free (2026-11-15) |
 
 ### Direct documentation
 
@@ -153,6 +153,16 @@ The repository contains projects at different maturity levels. A project may be 
 **Waydroid**
 - [Consolidated SSH feasibility audit](./waydroid/1.audit/1.0_Waydroid-SSH-Consolidated-Audit.md)
 - [Audit source material](./waydroid/1.audit/)
+
+**Windows VM**
+- [Project overview and current verified status](./windows/README.md)
+- [Installation Guide, deployment paths, console operations and Roadbook](./windows/docs/WINDOWS-VM-INSTALLATION-GUIDE.md)
+- [VM Lifecycle and Manual Start/Stop Script Philosophy](./windows/docs/WINDOWS-VM-LIFECYCLE-AND-SCRIPT-PHILOSOPHY.md)
+- [Connections and Credential Naming Convention](./windows/docs/WINDOWS-VM-CONNECTIONS-AND-CREDENTIALS.md)
+- [Disposable VM I/O, RAM-Backed Temporary Storage and SSD Lab](./windows/docs/WINDOWS-VM-DISPOSABLE-IO-AND-SSD-LAB.md)
+- [Per-VM configuration templates](./windows/templates/)
+
+The installation guide is the operational entry point. It distinguishes **Path A (preferred: ISO as a regular file in persistent storage, no ISO bind mount)** from **Path B (alternative: temporary ISO-bound installer container followed by a separate ISO-free runtime container)**. Path A's behaviour with the exact pinned image remains subject to runtime validation; do not treat that path as proven until its test is completed.
 
 ## Engineering and security philosophy
 
