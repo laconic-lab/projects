@@ -5,6 +5,9 @@
 **Status:** noVNC verified from PC; RDP publication and guest-side readiness pending  
 **Policy:** manual lifecycle only; no boot autostart or automatic restart. VM projects are disposable: no backup folders, guest backups, VM snapshots, virtual-disk copies or routine configuration-script backups.
 
+
+> **Current Pro guest status (2026-11-15):** `windows-pro-box` is running. The user confirms Web Console access at `http://192.168.1.161:8006/` and RDP at `192.168.1.161:3389`. Its normal runtime has no `/custom.iso` mount. The older connection matrix and detailed `windows-box` procedure below are historical records for the original deployment; they do not describe the current Pro guest. The fleet-wide NO ISO BIND recovery rule is in the [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container).
+
 ## 1. Identity naming convention
 
 Use these role labels consistently in documentation, configuration tables and diagnostics. They are labels for identity categories, not literal account names.
@@ -35,7 +38,7 @@ PC client: `192.168.1.169`
 |---|---|---|---:|---|---|
 | noVNC browser console | PC browser to Windows guest display | `http://192.168.1.161:8006/` | TCP 8006 | No `console-user`; `PROTECT=N` | VERIFIED working in Brave and Chrome; both mirror one session |
 | noVNC loopback | Browser on Deck itself | `http://127.0.0.1:8006/` | TCP 8006 | No `console-user` | Not listening on loopback after binding specifically to LAN IP; no change requested |
-| RDP | Windows App / Remote Desktop client on PC | Intended target `192.168.1.161` | TCP 3389 (UDP optional) | `win-user`: `DeckVM` plus its Windows password | NOT YET PUBLISHED / troubleshooting |
+| RDP | Windows App / Remote Desktop client on PC | `192.168.1.161:3389` | TCP 3389 | Guest-specific Windows account | `windows-pro-box`: VERIFIED 2026-11-15; original `windows-box` matrix is historical |
 | Dockur shared folder | Windows File Explorer inside guest | `\\host.lan\Data` (mapped as `Z:` in current guest) | Internal Dockur/Samba integration | SMB identity not yet verified; do not assume `win-user` | Drive visible in guest; actual host path is the `/shared` bind mount |
 | Host SFTP | PC WinSCP to Steam Deck | `192.168.1.161` | TCP 22 | Steam Deck SSH identity (not `win-user`) | Existing host SSH service; host files require host account permissions |
 
@@ -69,7 +72,7 @@ The inspected firewalld public zone previously had broad TCP/UDP allowances cove
 
 Dockur documents the shared-folder path as `\\host.lan\Data`. In this deployment, Podman bind-mounts `/home/deck/WindowsVM/shared` to container `/shared`. Thus the Windows share is backed by that one project directory, not by the entire Deck home directory. It is read/write in the current deployment. Use it for exchange files and audit output, not secrets.
 
-## 5. RDP design for this user-mode deployment
+## 5. Historical RDP design notes for the original `windows-box` deployment
 
 Dockur's current environment reference defines `USER_PORTS` as additional ports forwarded to Windows when user-mode networking is active. Its project examples publish TCP and UDP 3389 at the container boundary. For this deployment, the expected design is:
 
@@ -128,9 +131,9 @@ If the start script reports that the container is already running, do not create
 3. The noVNC page displays and controls the Windows guest. The verified console is currently unprotected (`PROTECT=N`); only use it on the intended trusted LAN and remember that any client able to reach the published port can interact with the guest.
 4. Sign in to Windows with the local account `DeckVM` if Windows requests it. The password is the local secret in `/home/deck/WindowsVM/config/windows-box.env`; do not print, paste, transmit in chat, or commit that file.
 
-### RDP status
+### Historical RDP status — original `windows-box`
 
-The intended RDP target is `192.168.1.161:3389`, using Windows account `DeckVM`. RDP is **not yet verified as published and reachable** in this deployment. Use noVNC as the working connection method until the RDP host publication, Dockur user-port forwarding, Windows listener and Windows firewall rule have all been tested. Do not interpret the presence of a `3389/tcp` container port declaration as proof that RDP works end-to-end.
+The following statement was accurate for the earlier original deployment snapshot only: RDP had not yet been verified, and noVNC was the working connection. It does not describe `windows-pro-box`; the user confirmed Pro RDP connectivity on 2026-11-15.
 
 ### Optional read-only host checks
 
