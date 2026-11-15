@@ -39,11 +39,15 @@ The correction is to replace only the stopped Podman container object. The proje
 
 If Windows Setup did not complete, do not treat this recovery sequence as permission to discard or overwrite the partial guest. Preserve the project root and storage, inspect the failure, and agree a separate recovery/reinstallation plan before any further installation attempt.
 
-### Installation-media distinction — installer is not runtime
+### Installation-media distinction — preferred one-container method
 
-A custom local ISO is installation media, not a runtime dependency. With Dockur's custom-ISO workflow, the ISO is presented to a temporary installer container as `/custom.iso`; that temporary definition is a distinct, explicitly identified phase. It must never be reused as the normal runtime container. The new `windows-pro-box-NO-ISO-BIND.template` is deliberately a **runtime-only** template: it cannot boot a fresh custom ISO installer. If a future fresh installation requires a custom ISO, use a separately reviewed and explicitly labelled temporary installer definition, then replace it with the NO ISO BIND runtime container immediately after Setup and clean guest shutdown. Do not call an ISO-bound installer definition a runtime template.
+**Preferred method for new local custom-ISO installations: place the ISO file inside the host-backed project `storage/` directory as `custom.iso`. Do not bind it at `/custom.iso`.** Dockur documents this local-file method, and its installer scans `/storage` for `custom.iso`. The permanent `storage/ -> /storage` mount makes the ISO available without a separate ISO bind.
 
-The normal runtime creation gate applies to every guest, including second and later VMs. Old examples below that show `/custom.iso` are installer-phase examples only; they must not be copied into runtime start scripts or runtime container creation commands.
+The preferred sequence creates **one Podman container once** with the permanent `storage/ -> /storage` and `shared/ -> /shared` mounts, KVM device, approved port and protected environment file. Copy the ISO to `$PROJECT/storage/custom.iso` before first startup. Complete Windows Setup, shut down cleanly, remove the ISO file from the host-backed storage only after successful installation is confirmed, and start the **same container object** again. No container removal or recreation is required.
+
+Dockur's upstream installer explicitly handles removal of custom installation media after a completed installation. Do not remove the ISO while Setup is using it or while installation is incomplete. If the installer did not complete successfully, preserve the ISO and storage and investigate before deleting anything.
+
+The older ISO bind method (`ISO:/custom.iso:ro`) remains documented below as a **legacy alternative only**. Podman retains that mount in the container definition, so deleting the host ISO does not detach it. The runtime-only template remains ISO-free.
 
 **Creation gate:** no guest is ready for ordinary operation until its ISO-free runtime container has passed all three checks. A script that warns about an ISO mount and then continues is non-compliant and must fail closed.
 
@@ -1129,40 +1133,55 @@ stat -c '%A %a %U:%G %n' "$PROJECT" "$CONFIG" "$STORAGE" "$SHARED" "$ENV_FILE"
 
 The values above are an example profile, not universal defaults. Review and change guest settings before first installation. Keep the password local; never print the environment file, paste its contents into chat, or commit it to Git. Preserve the documented environment template's optional commented settings when using that template.
 
-#### 6.4 Select the Windows ISO — the critical step
+#### 6.4 Prepare the local custom ISO in persistent storage — preferred method
 
-**This is the explicit ISO selection point.** Set the host-side path in the installation command:
+**Preferred method: copy the selected ISO into the project's host-backed `storage/` directory and name it exactly `custom.iso`. Do not bind the ISO separately.**
 
-~~~bash
-ISO="/home/deck/Downloads/windows-11.iso"
-~~~
+Dockur's README documents this local-file method: rename the ISO to `custom.iso` and place it in an otherwise empty `/storage` directory. Dockur's installer scans `/storage` for that filename. The project's one permanent `storage/ -> /storage` bind mount makes the file visible without adding any ISO-specific mount.
 
-Then expose that exact file to the container using a read-only bind mount:
-
-~~~bash
---volume "$ISO:/custom.iso:ro"
-~~~
-
-The left side is the actual ISO path on SteamOS. The right side, `/custom.iso`, is the path Dockur expects inside the container. The `:ro` suffix prevents the container from modifying the source ISO.
-
-When `/custom.iso` is mounted, Dockur uses that local ISO and ignores the `VERSION` download selection. Thus `VERSION=11` in the environment file does **not** choose or download media in this custom-ISO deployment. It is not a substitute for setting `ISO=/path/to/your.iso`.
-
-#### 6.5 Create the temporary installation container
-
-Use the unique project/container names, the selected local ISO, the pinned image and the project's persistent directories. This is the **only** creation command in the normal workflow that includes the ISO mount.
+Example for the Home VM:
 
 ~~~bash
 set -euo pipefail
 
-PROJECT="/home/deck/WindowsVM-2"
-CONTAINER="windows-box-2"
-ENV_FILE="$PROJECT/config/windows-box-2.env"
-ISO="/home/deck/Downloads/windows-11.iso"
+PROJECT="/home/deck/Windows11HomeVM"
+STORAGE="$PROJECT/storage"
+ISO="/home/deck/Downloads/26200.10066_win11home-updates-included.261115.new/26200.10066.261109-1809.25H2_GE_RELEASE_SVC_PROD3_CLIENTCORE_OEMRET_X64FRE_EN-US.ISO"
+
+test -d "$STORAGE"
+test -r "$ISO"
+test -s "$ISO"
+
+if [[ -n "$(find "$STORAGE" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    echo "STOP: storage is not empty; inspect it before proceeding." >&2
+    exit 1
+fi
+
+install -m 600 -- "$ISO" "$STORAGE/custom.iso"
+stat -c 'Size=%s bytes | Mode=%a | File=%n' "$STORAGE/custom.iso"
+sha256sum "$ISO" "$STORAGE/custom.iso"
+~~~
+
+The ISO path above is the current Home candidate; replace it only when selecting a different verified ISO. The source and copied file hashes must match. The copy consumes space inside the project's storage filesystem until removed, so verify available space first.
+
+Do not use `VERSION` as a substitute for this local file. Dockur discovers the custom installation media by its reserved filename, `custom.iso`.
+
+#### 6.5 Create one permanent Podman container — no ISO bind
+
+Create the container once with its final normal-runtime configuration. The same container is used for initial installation and every later boot. There is no temporary ISO-bound container and no post-installation container recreation.
+
+~~~bash
+set -euo pipefail
+
+PROJECT="/home/deck/Windows11HomeVM"
+CONTAINER="windows-home-box"
+ENV_FILE="$PROJECT/config/windows-home-box.env"
 IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
 HOST_IP="192.168.1.161"
 HOST_PORT="8006"
 
-test -r "$ISO"
+test -s "$PROJECT/storage/custom.iso"
+test -d "$PROJECT/shared"
 test -r "$ENV_FILE"
 podman image exists "$IMAGE"
 
@@ -1175,114 +1194,113 @@ podman create \
     --publish "$HOST_IP:$HOST_PORT:8006" \
     --volume "$PROJECT/storage:/storage:rw" \
     --volume "$PROJECT/shared:/shared:rw" \
-    --volume "$ISO:/custom.iso:ro" \
     --env-file "$ENV_FILE" \
     "$IMAGE"
 ~~~
 
-**Required device/capability baseline — follow this for future VMs:**
+**There is deliberately no `--volume "$ISO:/custom.iso:ro"` argument and no `/custom.iso` mount.** The ISO is already a regular file inside the host-backed `storage/` directory.
 
-- Include **only** `--device=/dev/kvm` for the proven hardware-virtualisation device mapping.
-- Do **not** add `--device=/dev/net/tun`, `--cap-add=NET_ADMIN` or `--privileged` by default. The known-working first VM was created with `/dev/kvm` only, without TUN, NET_ADMIN or privileged mode. No requirement for the extra device or capability has been demonstrated.
-- Add another device or capability only when a specific feature requires it and a separate test establishes that requirement. Do not copy unexplained capabilities from an example command.
+**Required device/capability baseline:**
 
-**Podman inspection caveat from this SteamOS rootless deployment:** `podman inspect` returned an empty `HostConfig.Devices` array for both the original known-working `windows-box` and the recreated `windows-box-2`, even though each recorded `CreateCommand` includes `--device=/dev/kvm`. Therefore, do not interpret `Devices=[]` alone as proof that KVM was not requested or is unavailable. Check the recorded create command, then verify actual QEMU/KVM startup evidence when diagnosing runtime acceleration. The create command records the requested configuration; it does not, by itself, prove that QEMU successfully initialized KVM.
+- Include `--device=/dev/kvm`.
+- Do not add `--device=/dev/net/tun`, `--cap-add=NET_ADMIN` or `--privileged` by default. No requirement for those additions has been demonstrated.
+- Keep `--restart=no`; startup remains manual.
 
-Before starting, inspect the created container:
+**Podman inspection caveat:** on this SteamOS rootless deployment, `HostConfig.Devices=[]` has appeared even when the recorded create command included `--device=/dev/kvm`. Do not interpret that field alone as proof that KVM was not requested. Verify actual QEMU/KVM startup evidence when needed.
+
+Before the first start, inspect the created container:
 
 ~~~bash
-podman inspect "$CONTAINER" --format '{{.State.Status}}'
+podman inspect "$CONTAINER" --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
 podman inspect "$CONTAINER" --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
 podman inspect "$CONTAINER" --format '{{json .HostConfig.PortBindings}}'
 ~~~
 
-Confirm all of the following:
+Confirm:
 
-- [ ] Container is created but not yet running.
-- [ ] The intended project `storage/` maps to `/storage`.
-- [ ] The intended project `shared/` maps to `/shared`.
-- [ ] The selected ISO maps to `/custom.iso` with read-only access.
-- [ ] The expected host IP and port map to container port 8006.
-- [ ] No other Windows guest is running on the same host port.
+- [ ] Container is `created`, not running.
+- [ ] Project `storage/` maps read/write to `/storage`.
+- [ ] Project `shared/` maps read/write to `/shared`.
+- [ ] No mount destination is `/custom.iso`.
+- [ ] Expected host IP and port map to container port 8006.
+- [ ] No other running Windows guest occupies the selected host port.
+- [ ] `$PROJECT/storage/custom.iso` exists and its hash matches the selected source ISO.
 
-Only then start the installation container:
+Only after these checks, start the container:
 
 ~~~bash
 podman start "$CONTAINER"
 ~~~
 
-Open `http://192.168.1.161:8006/` from the LAN client and complete/monitor Windows Setup. Wait until Windows is installed on the project's persistent virtual disk. Shut Windows down cleanly before changing the container definition.
+Open `http://192.168.1.161:8006/` from the LAN client and complete Windows Setup. Do not delete or rename `custom.iso` while Dockur is preparing the installation or while Windows Setup is incomplete.
 
-#### 6.6 Transition from installation to normal runtime
+#### 6.6 Remove the ISO after installation — keep the same container
 
-The installation ISO is not part of the installed Windows disk and is not required for ordinary startup. The ISO mount exists only in the temporary installation container definition.
+**Yes: after Windows installation has completed successfully, the `custom.iso` file can be removed to reclaim its storage space.** Dockur's upstream installer explicitly handles a custom ISO being removed after a completed installation; removal of the media does not invalidate the completed guest. This is not permission to remove it during an incomplete or failed installation.
 
-After Windows Setup is complete and the guest is shut down:
+Use this sequence:
 
-1. Stop the container if it is still running.
-2. Remove only the temporary container object.
-3. Do **not** delete or recreate the project directory, `storage/` or `shared/`.
-4. Recreate the container using the same image, environment file, device, port and persistent mounts, but omit the `/custom.iso` mount.
-5. Inspect the new container before starting it.
+1. Complete Windows Setup.
+2. Shut Windows down cleanly from inside the guest.
+3. Confirm the guest installation completed and its persistent virtual disk remains in the project's `storage/`.
+4. Confirm the container is stopped.
+5. Remove only the ISO file from the host-backed storage. Do not remove the container, project, `storage/`, `shared/`, environment file or virtual disk.
+6. Start the **same existing container object**. Dockur should detect the completed installation and boot from its persistent guest disk.
+
+After the clean guest shutdown and successful-installation checks, remove the file:
 
 ~~~bash
 set -euo pipefail
 
-PROJECT="/home/deck/WindowsVM-2"
-CONTAINER="windows-box-2"
-ENV_FILE="$PROJECT/config/windows-box-2.env"
-IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
-HOST_IP="192.168.1.161"
-HOST_PORT="8006"
+PROJECT="/home/deck/Windows11HomeVM"
+CONTAINER="windows-home-box"
+ISO_IN_STORAGE="$PROJECT/storage/custom.iso"
 
-podman stop --time 120 "$CONTAINER" 2>/dev/null || true
-podman rm "$CONTAINER"
+STATE="$(podman inspect "$CONTAINER" --format '{{.State.Status}}')"
+if [[ "$STATE" != "exited" ]]; then
+    echo "STOP: expected the guest container to be stopped; current state: $STATE" >&2
+    exit 1
+fi
 
-podman create \
-    --name "$CONTAINER" \
-    --pull=never \
-    --restart=no \
-    --stop-timeout 120 \
-    --device=/dev/kvm \
-    --publish "$HOST_IP:$HOST_PORT:8006" \
-    --volume "$PROJECT/storage:/storage:rw" \
-    --volume "$PROJECT/shared:/shared:rw" \
-    --env-file "$ENV_FILE" \
-    "$IMAGE"
+test -s "$ISO_IN_STORAGE"
+rm -- "$ISO_IN_STORAGE"
+test ! -e "$ISO_IN_STORAGE"
 
-echo "=== Verify ISO-free runtime mounts before start ==="
-podman inspect "$CONTAINER" --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+echo "custom.iso removed; persistent VM storage and container object preserved."
 ~~~
 
-The inspected mounts must include the intended `storage/` and `shared/` directories and must **not** include `/custom.iso`. Start only after confirming this:
+Then start the same container object:
 
 ~~~bash
-podman start "$CONTAINER"
+podman start windows-home-box
 ~~~
+
+Verify Windows boots successfully from its installed disk. If Dockur reports that installation is incomplete, or the guest does not boot, stop and investigate; do not recreate the container or delete other storage files as an improvised fix.
 
 #### 6.7 Final verification and operating checklist
 
-- [ ] Windows boots from the persistent virtual disk with no ISO mounted.
-- [ ] Container uses the intended pinned Dockur image.
-- [ ] `/storage` maps to this VM project's unique storage directory.
-- [ ] `/shared` maps to this VM project's unique shared directory.
-- [ ] No `/custom.iso` mount exists in the normal runtime container.
+- [ ] Exactly one Podman container object was created for this VM.
+- [ ] The same container object is used for installation and normal runtime.
+- [ ] The container has only the intended project `storage/ -> /storage` and `shared/ -> /shared` mounts.
+- [ ] No `/custom.iso` bind mount exists at any stage.
+- [ ] The temporary `storage/custom.iso` file was removed only after successful installation and clean shutdown.
+- [ ] Windows boots from the persistent virtual disk after ISO-file removal.
+- [ ] Container uses the intended pinned Dockur image and `--restart=no`.
 - [ ] Host console is reachable at `http://192.168.1.161:8006/`.
-- [ ] Container restart policy is `no`; startup remains manual.
-- [ ] Start/stop/status scripts, if created, describe the ISO-free normal runtime only.
+- [ ] Start/stop/status scripts describe this ISO-bind-free runtime.
 
 Useful read-only checks:
 
 ~~~bash
-podman ps -a --filter "name=^windows-box-2$"
-podman port windows-box-2
-podman inspect windows-box-2 --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
-podman inspect windows-box-2 --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
-podman top windows-box-2
+podman ps -a --filter "name=^windows-home-box$"
+podman inspect windows-home-box --format 'State={{.State.Status}} Restart={{.HostConfig.RestartPolicy.Name}}'
+podman inspect windows-home-box --format '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}'
+podman inspect windows-home-box --format '{{json .HostConfig.PortBindings}}'
+podman top windows-home-box
 ss -lnt '( sport = :8006 )'
 ~~~
 
-For a future VM, repeat this checklist with a new project root, container name, environment file, ISO path and unique storage. Reusing port 8006 is appropriate when VMs are strictly sequential; only concurrently active guests require distinct host ports.
+For another VM, repeat with a unique project root, container name, environment file, storage and shared directory. Reuse host port 8006 only when Windows guests are strictly sequential.
 
 #### 6.8 Actual second-VM deployment record — 2026-11-14
 
@@ -1517,18 +1535,11 @@ See [Windows VM Connections and Credential Naming Convention](./WINDOWS-VM-CONNE
 The user confirmed that `http://192.168.1.161:8006/` opens successfully from PC client `192.168.1.169` in both Brave and Chrome at the same time. This is a mirrored view of one Windows guest console, not independent guest sessions. No guest RDP port was published as part of this change.
 
 
-#### Custom ISO lifecycle — mandatory for every VM
+#### Custom ISO lifecycle — preferred one-container method (decision: 2026-11-15)
 
-The installation ISO is installation media, not the installed Windows system. The 2026-11-14 decision applies to every VM, not only the first deployment:
+For new deployments, put the local ISO in the otherwise-empty host-backed project `storage/` directory as `custom.iso`. Create one Podman container with the permanent `/storage` and `/shared` mounts and **no** `/custom.iso` bind. Dockur detects the file during initial setup. After Windows installation is confirmed complete and the guest is cleanly shut down, remove only `storage/custom.iso` to reclaim space, then start the same container object. The installed guest remains on its persistent virtual disk.
 
-1. During initial installation only, the temporary installation container may include the selected ISO as a read-only `/custom.iso` mount.
-2. Complete Windows Setup and shut down the guest.
-3. Preserve the VM's own `storage/` and `shared/` directories. Remove only the stopped installation container object.
-4. Create the normal runtime container using the same intended VM-specific settings and persistent mounts, but omit `/custom.iso` entirely.
-5. Inspect the stopped runtime container. Verify its unique `storage/` and `shared/` mappings and verify that no `/custom.iso` mount exists.
-6. Start the runtime container and verify that Windows boots from its installed disk.
-
-This applies to the first VM, every additional VM, and every future replacement guest. Never run installation and runtime containers concurrently against the same guest storage. Do not make the ISO a prerequisite in a normal runtime script or environment file. See the mandatory rule at the beginning of this guide.
+The legacy ISO-bind method remains documented for historical deployments only. A container created with an ISO bind retains that mount in its definition; removing the host file does not detach it. Such a container may require object replacement to become an ISO-free runtime. Do not apply that legacy recovery procedure to a container created with the preferred storage-file method. Never attach one guest storage directory to two containers simultaneously.
 
 ## Roadbook — 2026-11-15 05:27 CET
 
