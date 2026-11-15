@@ -5,7 +5,7 @@
 | Date | Time | Entry | Decisions / Actions / Results / Remarks |
 |:---:|:---:|:---:|:---|
 | 15/11/26 | — | **Decision** | Do not interrupt the active UUP download/conversion run solely because the log reports errors. |
-| | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\\aria2_download.log` for inspection. |
+| | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\aria2_download.log` for inspection. |
 | | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
 | | | **Remark** | The log entries alone do not establish whether required payloads were ultimately missing or whether the resulting ISO is valid. Completion and image contents still require verification. |
 | | | | |
