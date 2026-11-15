@@ -4,6 +4,11 @@
 
 | Date | Time | Entry | Decisions / Actions / Results / Remarks |
 |:---:|:---:|:---:|:---|
+| 15/11/26 | — | **Decision** | Investigate why the Windows 11 25H2 UUP source (26200.10066) produced an ISO and installed OS reporting Windows 11 Home 24H2 (26100.1). This is the current debugging focus. |
+| | | **Action** | Audit the generated ISO, its `install.wim`, the UUP package contents and the conversion/download logs. Establish which stage introduced the version/build discrepancy before changing the media-generation process. |
+| | | **Result** | Investigation pending; no cause has been established. |
+| | | **Remark** | The 24H2 installation is the observed failure to explain, not a separate preliminary ISO test. Do not generate or install another ISO until the existing evidence has been inspected and the discrepancy understood. |
+| | | | |
 | 15/11/26 | — | **Decision** | Do not interrupt the active UUP download/conversion run solely because the log reports errors. |
 | | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\aria2_download.log` for inspection. |
 | | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
@@ -29,7 +34,7 @@
 
 ## Next actions
 
-1. Preserve and inspect the complete UUP download and conversion logs, including `R:\\aria2_download.log`.
+1. Preserve and inspect the complete UUP download and conversion logs, including `R:\aria2_download.log`.
 2. Inspect the generated ISO's actual `install.wim` metadata and servicing/package state; verify edition, version/build and whether the 25H2 enablement/update packages were integrated.
 3. Establish why the 25H2 build 26200.10066 source resulted in an ISO and installed OS reporting 24H2 build 26100.1. Do not assume a cause before the evidence supports it.
 4. Only after the media discrepancy is understood, resume the separate Home activation and M4800 compatibility checks.
