@@ -2,26 +2,53 @@
 
 A living installation guide and evidence log for evaluating a Windows virtual machine on the Steam Deck OLED (SteamOS).
 
-> **Current phase (2026-11-15):** The first VM, `windows-box`, passed the ISO-free runtime transition on 2026-11-14: persistent storage was preserved, the replacement container was inspected without `/custom.iso`, startup succeeded, and LAN Web Console access was user-confirmed. The separate `windows-home-box` still has its obsolete installation-time `/custom.iso` bind mount; its recorded ISO source is missing, and its 2026-11-15 start attempt failed before container startup. The Home VM's clean guest-shutdown state has not been re-established, and its ISO-free migration remains pending. See the Roadbook at the end of this guide. RDP remains unconfigured. No VM backup or snapshot is in scope.**
+> **Current phase (2026-11-15):** A separate Windows 11 Pro 25H2 guest, `windows-pro-box`, has completed installation. The user confirms **Windows 11 Pro, version 25H2, OS build 26200.9974**, successful RDP connectivity, and installation date 2026-11-15. The existing Podman container still has the installation ISO bind at `/custom.iso`; the project start script warned but continued, and a later start failed because the ISO source path was unavailable. Preserve `/home/deck/Windows11ProVM` and its persistent guest storage while replacing only the stopped container object with an ISO-free runtime container. The NO ISO BIND runtime rule is now the first deployment gate. See the Roadbook for the confirmed result and pending Home ISO comparison. No VM backup or snapshot is in scope.**
 
-## CRITICAL MANDATORY RULE — installation ISO is never a runtime dependency
+## TOP-PRIORITY RULE — NO ISO BIND IN NORMAL RUNTIME
 
-**MANDATORY — ALL WINDOWS VMs**
+**MANDATORY HARD GATE — READ THIS BEFORE EVERY VM CREATE OR START ACTION**
 
-This rule applies to every new Windows VM, including the first VM, every additional VM, and every future replacement guest. It is not optional.
+The normal Windows VM runtime container MUST have **NO installation ISO bind mount**. This rule takes priority over older examples, copied commands, templates and per-VM scripts. A warning that merely reports an ISO bind is not sufficient: the start procedure must refuse to start an ISO-bound container.
 
-- A custom Windows installation ISO may be mounted read-only at `/custom.iso` only in the temporary installation container for initial installation, or in a deliberately approved recovery/reinstallation workflow.
-- **The normal runtime container for every VM MUST NOT contain a `/custom.iso` bind mount.** The normal start script MUST NOT define, test for, or require an installation ISO.
-- After Setup completes and the guest is shut down, preserve the guest's unique persistent `storage/` directory. Remove/recreate only the container object, then create the normal runtime container with the intended image, protected environment file, KVM device, host-console publication, persistent `storage/` and `shared/` mounts, but no ISO mount.
-- Before first runtime start, inspect mounts. Confirm the correct VM-specific host directory maps to `/storage`, the correct shared directory maps to `/shared`, and no mount targets `/custom.iso`.
-- Never run installation and runtime containers concurrently against the same guest storage. Never delete or recreate guest storage during this transition.
-- An ISO may be retained separately as optional installation/recovery media. Its continued presence is never a prerequisite for ordinary VM startup.
+Before any normal runtime container is created or started, perform three independent checks:
 
-**Creation gate:** a new VM is not ready for normal operation until its ISO-free runtime container has passed mount inspection. Any second-VM procedure, template, copied command or per-VM script that leaves the installation ISO mounted is non-compliant.
+1. **Command-source check:** inspect the complete Bash command/script. It must contain no ISO variable, no ISO readability test, and no `--volume "$ISO:/custom.iso:ro"` (or equivalent) argument.
+2. **Created-container check:** inspect the actual Podman mount table. It must show the intended project `storage/` mapped to `/storage`, the intended `shared/` mapped to `/shared`, and no destination named `/custom.iso`.
+3. **Pre-start check:** immediately before the first start, inspect the container again and confirm it is the intended project, its state is `created`, its restart policy is `no`, and `/custom.iso` is absent. Do not start if any check is missing, ambiguous or fails.
 
-**Decision history:** the underlying architectural decision was already made and verified on **2026-11-14** for `windows-box`. The mandatory fleet-wide wording and consolidation were formalized on **2026-11-15**.
+**The normal runtime container and its start script must not define, test for, require or mount an installation ISO.** Deleting or moving an ISO file does not remove a bind mount from an existing Podman container definition. Editing an environment file or start script does not rewrite an existing container's mounts.
 
----
+### Why the container must be recreated
+
+Podman stores bind-mount configuration in the container object at `podman create` time. If an ISO was mounted at `/custom.iso`, that mount remains part of the container definition even after the guest has installed Windows, the ISO is deleted, or a start script is edited. On a later start, the OCI runtime may fail before QEMU starts because it cannot stat the missing host ISO path. This is the exact failure observed for `windows-pro-box`.
+
+The correction is to replace only the stopped Podman container object. The project root, protected environment file, persistent guest disk and shared directory remain in place. The replacement container uses the same pinned image, environment file, KVM device, port publication, and project-specific `storage/` and `shared/` paths—but no ISO bind.
+
+### Recovery if the NO ISO BIND rule was not applied
+
+1. Stop launching the old container. Do not keep retrying an ISO-bound definition.
+2. Establish that Windows has completed a clean guest shutdown. If guest state is uncertain, inspect first; do not assume `Exited (0)` alone proves a clean guest shutdown.
+3. Inspect the exact container name, state, image, ports and mounts. Confirm which project root and `storage/` directory it uses.
+4. Confirm no other container is using that same guest storage. Never attach one guest disk to two containers simultaneously.
+5. Preserve the entire project root. Remove only the stopped container object using `podman rm <container-name>`; **never use `-v`**, never remove the project root, and never delete/recreate `storage/` or `shared/`.
+6. Recreate the same named runtime container using the same project root and protected environment file, with only the `/storage` and `/shared` bind mounts. Omit every ISO-related argument.
+7. Perform the three checks above. Start only after the mount inspection proves there is no `/custom.iso`.
+
+If Windows Setup did not complete, do not treat this recovery sequence as permission to discard or overwrite the partial guest. Preserve the project root and storage, inspect the failure, and agree a separate recovery/reinstallation plan before any further installation attempt.
+
+### Installation-media distinction — installer is not runtime
+
+A custom local ISO is installation media, not a runtime dependency. With Dockur's custom-ISO workflow, the ISO is presented to a temporary installer container as `/custom.iso`; that temporary definition is a distinct, explicitly identified phase. It must never be reused as the normal runtime container. The new `windows-pro-box-NO-ISO-BIND.template` is deliberately a **runtime-only** template: it cannot boot a fresh custom ISO installer. If a future fresh installation requires a custom ISO, use a separately reviewed and explicitly labelled temporary installer definition, then replace it with the NO ISO BIND runtime container immediately after Setup and clean guest shutdown. Do not call an ISO-bound installer definition a runtime template.
+
+The normal runtime creation gate applies to every guest, including second and later VMs. Old examples below that show `/custom.iso` are installer-phase examples only; they must not be copied into runtime start scripts or runtime container creation commands.
+
+**Creation gate:** no guest is ready for ordinary operation until its ISO-free runtime container has passed all three checks. A script that warns about an ISO mount and then continues is non-compliant and must fail closed.
+
+**Decision history:** the ISO-free runtime transition was verified for `windows-box` on 2026-11-14. The Pro VM's 2026-11-15 failure demonstrates why the gate must be enforced before every normal start.## 0.1 First confirmation before any VM action — NO ISO BIND
+
+Before running any Bash command that creates, recreates or starts a normal Windows VM container, stop and inspect the exact command. Confirm there is no ISO source variable and no `/custom.iso` volume argument. Then inspect the actual Podman object after creation and immediately before start. This confirmation is mandatory even if an earlier template or script was previously reviewed.
+
+The runtime-only template is [windows-pro-box-NO-ISO-BIND.template](../templates/windows-pro-box-NO-ISO-BIND.template). The previous ISO-bound template is retained unchanged as [windows-pro-box-ISO-BIND-BAD.template](../templates/windows-pro-box-ISO-BIND-BAD.template) for audit history only; do not execute it.
 
 ## 1. Objective
 
