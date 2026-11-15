@@ -8,6 +8,21 @@
 
 > **Current Pro guest status (2026-11-15):** `windows-pro-box` is running. The user confirms Web Console access at `http://192.168.1.161:8006/` and RDP at `192.168.1.161:3389`. Its normal runtime has no `/custom.iso` mount. The older connection matrix and detailed `windows-box` procedure below are historical records for the original deployment; they do not describe the current Pro guest. The fleet-wide NO ISO BIND recovery rule is in the [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container).
 
+## Contents
+
+- [Identity naming convention](#1-identity-naming-convention)
+- [Connection matrix](#2-connection-matrix)
+- [noVNC authentication and allowlists](#3-novnc-authentication-and-allowlists)
+- [Environment file terms](#4-environment-file-terms)
+- [Historical RDP design notes](#5-historical-rdp-design-notes-for-the-original-windows-box-deployment)
+- [Password expiration](#6-password-expiration)
+- [Manual lifecycle and disposable guest policy](#7-manual-lifecycle-and-disposable-guest-policy)
+- [Operator connection procedure](#8-operator-connection-procedure)
+- [References](#9-references)
+
+---
+
+
 ## 1. Identity naming convention
 
 Use these role labels consistently in documentation, configuration tables and diagnostics. They are labels for identity categories, not literal account names.
