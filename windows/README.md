@@ -17,6 +17,8 @@ The current `windows-pro-box` guest reports Windows 11 Pro 25H2, build `26200.99
 > **TOP PRIORITY — NO ISO BIND:** Installation media is permitted only in a separately identified temporary installer container. A normal runtime container and its start script must never define or mount `/custom.iso`. If a completed VM is accidentally ISO-bound, do not troubleshoot or retry it: follow [Installation Guide Section 0.2](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Preserve guest storage; replace only the stopped container object after clean guest shutdown and exclusive-storage verification.
 
 
+**Historical snapshot notice:** the following inventory bullets and the older `windows-box` naming/status describe the original 2026-11-13 deployment. They are retained as project history; they are not the current `windows-pro-box` runtime status above.
+
 The existing guest is not to be removed yet. Preparation work includes Windows-based UUP conversion of a current Windows 11 25H2 image, comparison with released 26H2 versus 26H2 Experimental, review of offline servicing and setup customization, and analysis of the disposable I/O/SSD lab. RDP publication is deliberately deferred.
 
 - AMD-V is present; `kvm_amd` and `kvm` are loaded.
@@ -27,9 +29,9 @@ The existing guest is not to be removed yet. Preparation work includes Windows-b
 - `/home/deck/WindowsVM` and its `config/`, `storage/`, `shared/` and `docs/` directories have been created and verified as `deck:deck`, mode `0700`.
 - The protected environment file and three manual lifecycle scripts have been created; the environment file is mode `0600`, scripts are mode `0700`, and all scripts pass `bash -n`.
 - Existing guest configuration: 4 vCPUs, 6 GiB RAM, 128 GiB raw virtual disk target (no preallocation), user-mode networking, LAN-bound web viewer at 192.168.1.161:8006, pinned image digest and persistent `/storage` bind mount. The secret remains local and is not recorded in Git.
-- The selected ISO remains readable at its original `uup-box` path and is mounted read-only by the running VM.
+- Historical original `windows-box` installer configuration: the selected ISO was mounted read-only at `/custom.iso` during installation. That mount is not permitted in any normal runtime container.
 - `windows-box` is running with the pinned image digest and `--restart=no`.
-- Runtime inspection confirms `/dev/kvm`, persistent `/storage`, read-only `/custom.iso`, and `/shared` mounts.
+- Historical original `windows-box` runtime inspection included `/custom.iso`; this was corrected by replacing its container object. Normal runtime must now be ISO-free.
 - QEMU is running with 4 vCPUs and 6 GiB RAM; logs detected Windows 11 Pro and reported successful guest startup.
 - The growable raw guest disk `storage/data.img` has a logical capacity of 128 GiB; `du` reported 898 MiB for the storage directory at the time of inspection.
 - Local noVNC console access at `http://127.0.0.1:8006/` was confirmed by the user on the Steam Deck.
@@ -37,7 +39,7 @@ The existing guest is not to be removed yet. Preparation work includes Windows-b
 - The reported guest IPv4 matches the Deck host IPv4; this is recorded as guest-reported network information, not proof that the guest has an independent LAN address. The configured `NETWORK=user`/`passt` mode remains in effect.
 - LAN noVNC publication is verified at `192.168.1.161:8006`; the user successfully opened the same guest desktop from Brave and Chrome on PC client `192.168.1.169` simultaneously. Loopback `127.0.0.1:8006` is intentionally not bound.
 - `/home` had 507 GiB available at the time of the latest check.
-- Windows installation completion and PC-client noVNC console access are user-confirmed. Windows activation is not a project requirement for this sandbox; guest network reachability and the exact shared-folder authentication behavior remain unverified. RDP is not yet published.
+- Original `windows-box` guest and noVNC history is retained above. Current `windows-pro-box` status is Windows 11 Pro 25H2 build `26200.9974`, Web Console verified, RDP verified, and NO ISO BIND verified (2026-11-15).
 - No host packages, services, permissions or configuration have been changed for this project.
 
 The selected ISO's SHA-256 and contents have now been verified; its base-build status and the Linux UUP conversion limitation are documented in the [installation and project journey guide](./docs/WINDOWS-VM-INSTALLATION-GUIDE.md). See that guide for the evidence, decisions and next steps.
