@@ -1,8 +1,8 @@
 # Windows VM Connections and Credential Naming Convention
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU-KVM  
-**Current VM:** `windows-box` container; `windows-vm` guest  
-**Status:** noVNC verified from PC; RDP publication and guest-side readiness pending  
+**Historical reference VM:** `windows-box` container; `windows-vm` guest  
+**Historical status:** noVNC verified from PC; RDP publication and guest-side readiness were pending at the original `windows-box` record date  
 **Policy:** manual lifecycle only; no boot autostart or automatic restart. VM projects are disposable: no backup folders, guest backups, VM snapshots, virtual-disk copies or routine configuration-script backups.
 
 
