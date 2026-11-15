@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+###############################################################################
+# WINDOWS 11 PRO — NO ISO BIND RUNTIME CONTAINER
+# Steam Deck OLED / SteamOS host / user deck / rootless Podman
+#
+# PURPOSE
+#   Create the normal runtime container for the EXISTING Windows guest.
+#   The project root, protected environment file and persistent guest storage
+#   already exist. This script creates only a Podman container object.
+#
+# TOP-PRIORITY RULE — NO ISO BIND
+#   This runtime definition MUST NOT mount an installation ISO.
+#   There is deliberately:
+#     - no ISO variable,
+#     - no ISO readability test,
+#     - no --volume "$ISO:/custom.iso:ro",
+#     - no dependency on the original ISO file path.
+#
+#   The only permitted guest-data mounts are:
+#     PROJECT/storage -> /storage
+#     PROJECT/shared  -> /shared
+#
+#   Do not add /custom.iso to this command. Do not start the container until
+#   the post-create inspection below confirms exactly these mounts and no
+#   /custom.iso destination.
+#
+# SAFETY
+#   - Run as host user deck, never sudo/root.
+#   - Refuses to overwrite an existing container.
+#   - Refuses to proceed if another Podman container already mounts this
+#     project's storage directory.
+#   - Does not create, format, truncate, clean, or delete project directories.
+#   - Does not start Windows Setup or start the runtime container.
+#   - Does not remove any container automatically.
+#   - Keeps the project root and persistent storage independent of the
+#     replaceable Podman container object.
+#
+# If a prior ISO-bound container exists, first establish a clean guest
+# shutdown, inspect its exact mounts and state, then remove ONLY that stopped
+# container object with "podman rm windows-pro-box" (never "podman rm -v").
+# Re-run this script to create the ISO-free runtime container against the
+# SAME project root and SAME storage directory.
+###############################################################################
+
+set -euo pipefail
+umask 077
+
+# ---------------------------------------------------------------------------
+# 1. FIXED PROJECT IDENTITY — DO NOT SUBSTITUTE AN ISO PATH
+# ---------------------------------------------------------------------------
+
+PROJECT="/home/deck/Windows11ProVM"
+CONTAINER="windows-pro-box"
+CONFIG="$PROJECT/config"
+STORAGE="$PROJECT/storage"
+SHARED="$PROJECT/shared"
+ENV_FILE="$CONFIG/windows-pro-box.env"
+
+IMAGE="docker.io/dockurr/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc"
+
+HOST_IP="192.168.1.161"
+WEB_PORT="8006"
+RDP_PORT="3389"
+
+# ---------------------------------------------------------------------------
+# 2. PRE-CREATION GATE — READ-ONLY
+# ---------------------------------------------------------------------------
+
+echo "===== NO ISO BIND — PRE-CREATION GATE ====="
+echo "This script creates a runtime container, not an installation container."
+echo "The command below must contain no /custom.iso mount."
+
+if [[ "$(id -un)" != "deck" ]]; then
+    echo "ERROR: Run as host user deck, not root." >&2
+    exit 1
+fi
+
+for path in "$PROJECT" "$CONFIG" "$STORAGE" "$SHARED"; do
+    if [[ ! -d "$path" ]]; then
+        echo "ERROR: Required existing project directory is missing: $path" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -r "$ENV_FILE" ]]; then
+    echo "ERROR: Protected environment file is missing or unreadable: $ENV_FILE" >&2
+    exit 1
+fi
+
+if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+    echo "ERROR: /dev/kvm is not readable and writable by deck." >&2
+    exit 1
+fi
+
+if ! podman image exists "$IMAGE"; then
+    echo "ERROR: Pinned image is not available locally; no pull attempted." >&2
+    exit 1
+fi
+
+if podman container exists "$CONTAINER"; then
+    echo "ERROR: Container already exists: $CONTAINER" >&2
+    echo "Inspect it; do not overwrite it. Remove only after clean shutdown." >&2
+    exit 1
+fi
+
+# Refuse to share this VM disk with any other existing container.
+while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    mounts="$(podman inspect "$name" --format '{{range .Mounts}}{{println .Source}}{{end}}')"
+    if grep -Fxq "$STORAGE" <<< "$mounts"; then
+        echo "ERROR: Another container already mounts this VM storage: $name" >&2
+        echo "Do not create a second writer against the same guest disk." >&2
+        exit 1
+    fi
+done < <(podman ps -a --format '{{.Names}}')
+
+echo "Project root and persistent storage: present"
+echo "Protected environment file: present (contents not displayed)"
+echo "Pinned image: present"
+echo "KVM access: verified"
+echo "Container name: available"
+echo "No other container uses this storage path"
+
+# ---------------------------------------------------------------------------
+# 3. PORT GATE — ACTUAL LISTENERS, NOT HISTORICAL CONTAINER METADATA
+# ---------------------------------------------------------------------------
+
+echo
+echo "===== HOST PORT GATE ====="
+if ss -ltnH | grep -E "(:${WEB_PORT}|:${RDP_PORT})[[:space:]]"; then
+    echo "ERROR: A required host TCP port is already listening." >&2
+    echo "Inspect the listener before proceeding." >&2
+    exit 1
+fi
+echo "TCP $WEB_PORT and TCP $RDP_PORT have no detected listeners."
+
+# ---------------------------------------------------------------------------
+# 4. CREATE THE NORMAL RUNTIME CONTAINER — NO ISO ARGUMENT EXISTS
+# ---------------------------------------------------------------------------
+
+echo
+echo "===== CREATE NO-ISO-BIND RUNTIME CONTAINER ====="
+
+podman create \
+    --name "$CONTAINER" \
+    --pull=never \
+    --restart=no \
+    --stop-timeout 120 \
+    --device=/dev/kvm \
+    --publish "$HOST_IP:$WEB_PORT:8006" \
+    --publish "$HOST_IP:$RDP_PORT:3389/tcp" \
+    --volume "$STORAGE:/storage:rw" \
+    --volume "$SHARED:/shared:rw" \
+    --env-file "$ENV_FILE" \
+    "$IMAGE"
+
+# ---------------------------------------------------------------------------
+# 5. MANDATORY POST-CREATE TRIPLE CHECK — DO NOT START HERE
+# ---------------------------------------------------------------------------
+
+echo
+echo "===== CHECK 1 — CONTAINER STATE / IMAGE / RESTART ====="
+podman inspect "$CONTAINER" --format \
+    'Name={{.Name}} State={{.State.Status}} Image={{.ImageName}} Restart={{.HostConfig.RestartPolicy.Name}}'
+
+echo
+echo "===== CHECK 2 — COMPLETE MOUNT TABLE ====="
+MOUNTS="$(podman inspect "$CONTAINER" --format \
+    '{{range .Mounts}}{{println .Source "->" .Destination "RW=" .RW}}{{end}}')"
+printf '%s\\n' "$MOUNTS"
+
+if grep -Fq '/custom.iso' <<< "$MOUNTS"; then
+    echo "FATAL: /custom.iso is present. Do NOT start this container." >&2
+    exit 1
+fi
+
+grep -Fq "$STORAGE -> /storage" <<< "$MOUNTS" || {
+    echo "FATAL: expected persistent storage mount is missing." >&2
+    exit 1
+}
+grep -Fq "$SHARED -> /shared" <<< "$MOUNTS" || {
+    echo "FATAL: expected shared-folder mount is missing." >&2
+    exit 1
+}
+
+MOUNT_COUNT="$(grep -c -- ' -> ' <<< "$MOUNTS" || true)"
+if [[ "$MOUNT_COUNT" != "2" ]]; then
+    echo "FATAL: expected exactly two bind mounts; found $MOUNT_COUNT." >&2
+    exit 1
+fi
+
+echo
+echo "===== CHECK 3 — PUBLISHED PORTS ====="
+podman inspect "$CONTAINER" --format '{{json .HostConfig.PortBindings}}'
+
+echo
+echo "===== RESULT ====="
+echo "NO ISO BIND verified: no /custom.iso mount exists."
+echo "Persistent project root retained: $PROJECT"
+echo "Persistent guest storage retained: $STORAGE"
+echo "Container state remains CREATED; it has NOT been started."
+echo "Do not start until all three checks above have been reviewed."
