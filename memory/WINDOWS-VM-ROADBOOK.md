@@ -9,7 +9,7 @@
 | | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
 | | | **Remark** | It remains unverified whether required payloads were missing, whether conversion completed, or whether the resulting ISO is valid. |
 | | | | |
-| 13/11/26 | 18:00 UTC | **Decision** | For the intended updated Home installation media, select the latest available Windows 11 25H2 UUP package set. |
+| 14/11/26 | 18:00 UTC | **Decision** | For the intended updated Home installation media, select the latest available Windows 11 25H2 UUP package set. |
 | | | **Action** | Download the base ESD and update payloads; configure `AddUpdates=1`. |
 | | | **Result** | 25H2 package set selected; KB5127936, KB5130881 and KB5054156 identified. |
 | | | **Remark** | This is the intended 25H2 media-generation effort. Package selection and download do not prove successful integration into the install image. |
