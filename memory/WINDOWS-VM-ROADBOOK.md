@@ -4,13 +4,12 @@
 
 | Date | Time | Entry | Decisions / Actions / Results / Remarks |
 |:---:|:---:|:---:|:---|
-| 15/11/26 | — | **Decision** | Use the already-installed Windows 11 Home 24H2 VM as the next controlled test target. Test the 25H2 enablement package (KB5054156) before changing the ISO-generation or Dockur deployment protocol. |
-| | | **Action** | Proposed: obtain the x64 KB5054156 .msu package and install it on the Home 24H2 VM with WUSA: `wusa.exe C:\\Path\\To\\windows11.0-kb5054156-x64.msu /quiet /norestart`. First verify the currently installed OS build and that prerequisite KB5064081 (build 26100.5074) or a later cumulative update is installed. |
-| | | **Result** | **PENDING.** No package installation or post-install verification has been performed yet. |
-| | | **Remark** | Microsoft documents KB5054156 as the 24H2 → 25H2 enablement package for Home and Pro, and requires KB5064081 (26100.5074) or a later cumulative update. The previously recorded Home build was 26100.1, which is below that prerequisite; therefore do not run WUSA until the current build/prerequisite is checked and, if necessary, the servicing baseline is updated. Microsoft’s current KB page marks the Update Catalog channel as unavailable for this package, so a Catalog search may not return it. See [Microsoft KB5054156](https://support.microsoft.com/en-us/servicing/os/windows/docs/2025/02/kb5054156-feature-update-to-windows-11-version-25h2-by-using-an-enablement-package). |
-| | | **Action** | After installation and the required restart, record the Windows edition, Version, OS build, installed update/package state, and WUSA outcome. Capture the relevant setup/update logs and verify whether the system reports Windows 11 Home 25H2 (build 26200.x). |
-| | | **Result** | Pending. |
-| | | **Remark** | This is a diagnostic enablement test on the existing Home 24H2 installation. A successful transition would demonstrate that this installed OS can be moved to 25H2 by the eKB; it would not, by itself, prove that the generated ISO was correctly assembled. A failure must be interpreted against the prerequisite and WUSA result/logs. |
+| 15/11/26 | 03:44 CET | **Decision** | The proposed standalone WUSA test using a Catalog-downloaded KB5054156 MSU is **blocked**. Do not run the command or obtain the package from an unofficial source. |
+| | | **Audit** | Checked the live Microsoft Update Catalog search for KB5054156. The Catalog returns “We did not find any results” for the exact KB. Reviewed Microsoft's KB5054156 support article. |
+| | | **Result** | **CONFIRMED UNAVAILABLE THROUGH UPDATE CATALOG.** The official KB article lists the Update Catalog channel as unavailable; Windows Update and WSUS are the documented distribution channels. Therefore there is no Catalog MSU to download for the proposed WUSA command. See [Catalog search — KB5054156](https://www.catalog.update.microsoft.com/Search.aspx?q=KB5054156) and [Microsoft KB5054156](https://support.microsoft.com/en-us/servicing/os/windows/docs/2025/02/kb5054156-feature-update-to-windows-11-version-25h2-by-using-an-enablement-package). |
+| | | **Correction** | The earlier proposal to download `windows11.0-kb5054156-x64.msu` from the Microsoft Update Catalog was incorrect. Microsoft's article confirms that the Catalog distribution channel is not available for this eKB. The WUSA command is therefore not currently actionable via the proposed source. |
+| | | **Next decision required** | If the goal remains to test the eKB transition on the existing Home 24H2 VM, use the supported Windows Update route (after confirming the servicing prerequisite: KB5064081 / build 26100.5074 or a later cumulative update), or consider WSUS only if an appropriate WSUS environment is in scope. Do not treat a Windows Update feature-upgrade result as proof that the generated ISO had the eKB integrated. |
+| | | **Result** | **WUSA test: NOT RUN — blocked by official package distribution unavailability.** No installation result is pending. |
 | | | | |
 | 15/11/26 | — | **Audit** | Reviewed the Home UUP converter configuration and relevant converter script paths. |
 | | | **Result** | `ConvertConfig.ini` had `AddUpdates=1`, `Cleanup=0`, `wim2esd=0`, and `SkipISO=0`. The `aria2_download.log` records successful verification and completion of `UUPs/Windows11.0-KB5054156-x64.cab`. The CAB contains the 26200 enablement-package and payload-package manifests. |
@@ -55,7 +54,8 @@
 1. Preserve and inspect the complete UUP download and conversion logs, including `R:\aria2_download.log`.
 2. Inspect the generated ISO's actual `install.wim` metadata and servicing/package state; verify edition, version/build and whether the 25H2 enablement/update packages were integrated.
 3. Establish why the 25H2 build 26200.10066 source resulted in an ISO and installed OS reporting 24H2 build 26100.1. Do not assume a cause before the evidence supports it.
-4. Only after the media discrepancy is understood, resume the separate Home activation and M4800 compatibility checks.
+4. If the eKB transition test is still useful, first verify the Home VM's servicing baseline, then evaluate the supported Windows Update delivery route. The Catalog/WUSA route is unavailable as documented above.
+5. Only after the media discrepancy is understood, resume the separate Home activation and M4800 compatibility checks.
 
 ## Project constraints and safeguards
 
