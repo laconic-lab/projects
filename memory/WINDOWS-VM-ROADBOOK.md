@@ -14,7 +14,7 @@
 | | | **Result** | 25H2 package set selected; KB5127936, KB5130881 and KB5054156 identified. |
 | | | **Remark** | This is the intended 25H2 media-generation effort. Package selection and download do not prove successful integration into the install image. |
 | | | | |
-| — | — | **Decision** | Run a preliminary test of the earlier generated Windows 11 Home ISO. This was not the target media for the later 25H2 effort. |
+| 14/11/26 | — | **Decision** | Run a preliminary test of the earlier generated Windows 11 Home ISO. This was not the target media for the later 25H2 effort. |
 | | | **Action** | Install that earlier Home ISO in the Home VM. |
 | | | **Result** | The earlier ISO installed Windows 11 Home 24H2, build 26100.1. [Download log for this earlier ISO](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log). |
 | | | **Remark** | This records the outcome of an earlier ISO test only. It was not a decision to target 24H2, and it says nothing about the contents or validity of the later 25H2 ISO. |
