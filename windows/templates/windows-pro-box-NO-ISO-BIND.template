@@ -37,7 +37,7 @@ umask 077
 
 PROJECT="/home/deck/Windows11ProVM"
 NAME="windows-pro-box"
-ENV_FILE="$PROJECT/config/\${NAME}.env"
+ENV_FILE="$PROJECT/config/${NAME}.env"
 STORAGE="$PROJECT/storage"
 SHARED="$PROJECT/shared"
 
@@ -98,7 +98,7 @@ check_storage_exclusivity() {
         [[ -n "$id" ]] || continue
 
         name="$(podman inspect "$id" --format '{{.Name}}')"
-        name="\${name#/}"
+        name="${name#/}"
 
         [[ "$name" == "$NAME" ]] && continue
 
