@@ -1,9 +1,27 @@
 # Roadbook - Windows VM / ISO caveats
 
-**Current position:** The Windows VM was used to generate Windows 11 Home installation media from the selected **Windows 11 25H2, build 26200.10066, AMD64** UUP source. The generated ISO and installed OS reported **24H2, build 26100.1** instead. This is a major unresolved discrepancy. **Do not replace the existing Windows 11 Pro installation.**
+**Current position:** The generated Windows 11 Home ISO installed **Windows 11 Home 24H2, build 26100.1**, although the selected UUP source was **25H2, build 26200.10066**. A separate Windows 11 Pro 25H2 ISO (build 26200.9974, filename recorded below) has already been generated and is available for a later controlled VM comparison. The current audit has identified the converter configuration and verified the downloaded eKB CAB, but has **not yet proved that the eKB was successfully integrated into the Home install image**. No UUP conversion is currently running. **Do not replace the existing Windows 11 Pro installation.**
 
 | Date | Time | Entry | Decisions / Actions / Results / Remarks |
 |:---:|:---:|:---:|:---|
+| 15/11/26 | — | **Decision** | Use the already-installed Windows 11 Home 24H2 VM as the next controlled test target. Test the 25H2 enablement package (KB5054156) before changing the ISO-generation or Dockur deployment protocol. |
+| | | **Action** | Proposed: obtain the x64 KB5054156 .msu package and install it on the Home 24H2 VM with WUSA: `wusa.exe C:\\Path\\To\\windows11.0-kb5054156-x64.msu /quiet /norestart`. First verify the currently installed OS build and that prerequisite KB5064081 (build 26100.5074) or a later cumulative update is installed. |
+| | | **Result** | **PENDING.** No package installation or post-install verification has been performed yet. |
+| | | **Remark** | Microsoft documents KB5054156 as the 24H2 → 25H2 enablement package for Home and Pro, and requires KB5064081 (26100.5074) or a later cumulative update. The previously recorded Home build was 26100.1, which is below that prerequisite; therefore do not run WUSA until the current build/prerequisite is checked and, if necessary, the servicing baseline is updated. Microsoft’s current KB page marks the Update Catalog channel as unavailable for this package, so a Catalog search may not return it. See [Microsoft KB5054156](https://support.microsoft.com/en-us/servicing/os/windows/docs/2025/02/kb5054156-feature-update-to-windows-11-version-25h2-by-using-an-enablement-package). |
+| | | **Action** | After installation and the required restart, record the Windows edition, Version, OS build, installed update/package state, and WUSA outcome. Capture the relevant setup/update logs and verify whether the system reports Windows 11 Home 25H2 (build 26200.x). |
+| | | **Result** | Pending. |
+| | | **Remark** | This is a diagnostic enablement test on the existing Home 24H2 installation. A successful transition would demonstrate that this installed OS can be moved to 25H2 by the eKB; it would not, by itself, prove that the generated ISO was correctly assembled. A failure must be interpreted against the prerequisite and WUSA result/logs. |
+| | | | |
+| 15/11/26 | — | **Audit** | Reviewed the Home UUP converter configuration and relevant converter script paths. |
+| | | **Result** | `ConvertConfig.ini` had `AddUpdates=1`, `Cleanup=0`, `wim2esd=0`, and `SkipISO=0`. The `aria2_download.log` records successful verification and completion of `UUPs/Windows11.0-KB5054156-x64.cab`. The CAB contains the 26200 enablement-package and payload-package manifests. |
+| | | **Remark** | `AddUpdates=1` selects the converter’s offline update-integration route. The separate `:uups_external` routine, which stages updates through an external `$OEM$\\$1\\UUP` folder and `Updates.bat`, is called only for `AddUpdates=2`; it was **not** the configured route for this Home conversion. The verified CAB download proves presence and checksum verification, not successful integration into `install.wim`. |
+| | | **Audit** | Identified the converter’s generic enablement-package classification logic, the `:EKB1` / `:EKB2` calls in the offline update-processing path, and the DISM `/Add-Package` servicing call. |
+| | | **Result** | The script contains a route capable of adding an enablement package during offline servicing, but the audit has not yet established that this specific package was selected for the Home image and that DISM completed successfully. |
+| | | **Remark** | The actual WIM package state and conversion/DISM logs remain necessary to prove integration. Do not infer success from the config value or CAB presence. |
+| | | **Decision** | Keep the generated Pro 25H2 ISO as a separate control for a later deployment-protocol comparison. |
+| | | **Result** | Pro ISO already generated: `26200.9974.261109-0904.25H2_GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_EN-US.ISO`. |
+| | | **Remark** | This is not a proposed future ISO-generation task. If used for a fresh `windows-pro-box` comparison, verify the media’s actual image metadata and use a genuinely fresh VM disk/container so an old virtual disk or previously installed OS cannot contaminate the result. |
+| | | | |
 | 15/11/26 | — | **Decision** | Investigate why the Windows 11 25H2 UUP source (26200.10066) produced an ISO and installed OS reporting Windows 11 Home 24H2 (26100.1). This is the current debugging focus. |
 | | | **Action** | Audit the generated ISO, its `install.wim`, the UUP package contents and the conversion/download logs. Establish which stage introduced the version/build discrepancy before changing the media-generation process. |
 | | | **Result** | Investigation pending; no cause has been established. |
