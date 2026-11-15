@@ -583,6 +583,13 @@ The reusable template is updated at ../templates/windows-vm.env.example. The rea
 
 The UUP conversion option to include updates is supported by the Windows conversion workflow. The conversion must be run on Windows for UUP Dump integration options that require Windows; the Linux/macOS conversion route used for the earlier base ISO did not integrate the selected updates. Do not mark the resulting ISO as updated until the conversion completes and its build/package state is verified.
 
+**Mandatory local-workspace rule for UUP conversion:** Extract the UUPDump package to a short path on a Windows **local fixed drive**, for example `C:\\UUP`, and run `convert.cmd` from that local path. Keep the downloaded UUP payloads, extracted working files, DISM image-mount directories (including `MountUUP`), temporary servicing workspace and output being assembled on local storage for the entire conversion. Do not run the conversion from a Samba/SMB mapped drive (for example `Z:\\`) and do not place `MountUUP` or other DISM mount points on a network share. If the guest's C: volume lacks sufficient free space, use a second **local** guest volume; do not substitute a network share. Copy the completed ISO and logs to the shared folder only after conversion has finished and all images have been unmounted cleanly.
+
+**Reason:** DISM mount/service/unmount operations rely on filesystem and file-locking behaviour that may be unreliable over SMB; UUP conversion also performs many small reads/writes and uses download, extraction and image tools (including aria2, 7-Zip and wimlib). Network latency, share permissions, locking and interrupted connections can cause slowdowns, errors, hangs or difficult-to-recover partial mount state. The share remains useful for transferring completed artifacts, not as the active conversion workspace. This is a conservative project engineering rule; it does not claim every SMB conversion must fail.
+
+**Interrupted-conversion safeguard:** Do not force-close Windows or assume that a failed command means all WIM mounts were released. Preserve the conversion and DISM logs, inspect the local mount state, and use the supported DISM unmount/recovery procedure before retrying or deleting the workspace. A subsequent run must start only after stale mounts have been resolved and the local workspace is known to be clean.
+
+
 After conversion, record:
 - Exact UUP selection, architecture, edition and language.
 - Build number and revision represented by the resulting image.
