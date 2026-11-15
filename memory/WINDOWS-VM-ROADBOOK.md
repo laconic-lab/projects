@@ -9,11 +9,6 @@
 | | | **Result** | Investigation pending; no cause has been established. |
 | | | **Remark** | The 24H2 installation is the observed failure to explain, not a separate preliminary ISO test. Do not generate or install another ISO until the existing evidence has been inspected and the discrepancy understood. |
 | | | | |
-| 15/11/26 | — | **Decision** | Do not interrupt the active UUP download/conversion run solely because the log reports errors. |
-| | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\aria2_download.log` for inspection. |
-| | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
-| | | **Remark** | The log entries alone do not establish whether required payloads were ultimately missing or whether the resulting ISO is valid. Completion and image contents still require verification. |
-| | | | |
 | 14/11/26 | 18:00 UTC | **Decision** | Generate the intended Windows 11 Home media from the latest available Windows 11 25H2 UUP package set, version **26200.10066**, AMD64. Home/Core and en-US were the intended edition and language. |
 | | | **Action** | Download the UUP package set in the Windows VM. Configure conversion with `AddUpdates=1`, `wim2esd=0` (retain WIM; do not convert to ESD), and `SkipISO=0`. The conversion configuration also had `Cleanup=0`. |
 | | | **Result** | Home/Core conversion completed and produced an ISO named `26100.1.240331-1435.GE_RELEASE_CLIENTCORE_OEMRET_X64FRE_EN-US.ISO`. The source package folder was `26200.10066_amd64_en-us_core_82cd61b5_convert`. The selected package inventory included KB5127936, KB5130881 and KB5054156. |
@@ -26,7 +21,6 @@
 | | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\aria2_download.log` for inspection. |
 | | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
 | | | **Remark** | The log entries alone do not establish whether required payloads were ultimately missing or whether the resulting ISO is valid. Completion and image contents still require verification. |
-| | | | |
 | | | | |
 | 13/11/26 | — | **Decision** | Use a Windows environment for UUP conversion after the Linux conversion route failed to integrate the intended updates. |
 | | | **Action** | Create and use a temporary Steam Deck Windows VM. |
