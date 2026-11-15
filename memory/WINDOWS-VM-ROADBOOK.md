@@ -16,7 +16,7 @@
 | | | | |
 | — | — | **Decision** | Test the generated Home media. |
 | | | **Action** | Install the Home ISO in the Home VM. |
-| | | **Result** | Windows 11 Home 24H2, build 26100.1. |
+| | | **Result** | Windows 11 Home 24H2, build 26100.1. [Associated download log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log). |
 | | | **Remark** | Unexpected result. It does not establish what a later ISO contains. |
 | | | | |
 | 13/11/2026 | 18:00:11 UTC | **Decision** | Select the latest available Windows 11 25H2 UUP package set. |
@@ -64,10 +64,6 @@
 - The M4800 is outside Microsoft's normal Windows 11 hardware support. Verify CPU instruction compatibility; bypassing TPM/Secure Boot checks is not a CPU compatibility test.
 - Keep iTunes preservation as a short checkpoint; the main effort is installation media.
 - Do not infer ISO contents from its filename, UUP selection or download log alone.
-
-## Reference
-
-- [Earlier Home ISO download log](https://raw.githubusercontent.com/laconic-lab/projects/refs/heads/main/tmp/aria2_download.log)
 
 ## Legend
 
