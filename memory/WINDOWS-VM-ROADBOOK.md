@@ -22,6 +22,12 @@
 | | | **Result** | Installation produced **Windows 11 Home 24H2, build 26100.1**—not the intended Windows 11 25H2 build 26200.10066. |
 | | | **Remark** | This confirms the discrepancy at the installed-OS level; it is not merely a misleading filename. The cause remains undetermined. The earlier suggestion that a shared servicing baseline or enablement package might explain the build number was a hypothesis only and does not explain away the observed 24H2 installation. |
 | | | | |
+| 14/11/26 | — | **Decision** | Do not interrupt the active UUP download/conversion run solely because the log reports errors. |
+| | | **Action** | Allow the run to continue and preserve `aria2_download.log`; the log was also copied to the Windows host as `R:\aria2_download.log` for inspection. |
+| | | **Result** | CUID download-aborted/error entries were observed during the run for the selected 25H2 package set. |
+| | | **Remark** | The log entries alone do not establish whether required payloads were ultimately missing or whether the resulting ISO is valid. Completion and image contents still require verification. |
+| | | | |
+| | | | |
 | 13/11/26 | — | **Decision** | Use a Windows environment for UUP conversion after the Linux conversion route failed to integrate the intended updates. |
 | | | **Action** | Create and use a temporary Steam Deck Windows VM. |
 | | | **Result** | VM used as the Windows environment for UUP/media work. |
