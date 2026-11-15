@@ -1,9 +1,9 @@
 # Windows VM Disposable I/O, RAM-Backed Temporary Storage and SSD Lab
 
 **Platform:** Steam Deck OLED / SteamOS / rootless Podman / Dockur Windows / QEMU/KVM  
-**Guest:** Windows 11 Pro 24H2, build 26100 (user-confirmed)  
+**Historical guest baseline:** original `windows-box`, Windows 11 Pro 24H2, build 26100 (user-confirmed)  
 **Document type:** Experimental lab plan and evidence register  
-**Status:** LAN noVNC access verified; replacement-guest groundwork and read-only storage analysis in progress; no tuning experiments applied  
+**Lab status at last recorded baseline:** LAN noVNC access verified; replacement-guest groundwork and read-only storage analysis in progress; no tuning experiments applied  
 **Priority:** Understand the I/O and memory model and collect baselines before removing the current guest or creating its replacement. Protect SteamOS and the Steam Deck NVMe first.
 
 > **Current VM lifecycle note (2026-11-15):** the separate `windows-pro-box` runtime is running with Web Console and RDP verified and no installation ISO bind. Older RDP-deferred and original `windows-box` statements in this lab are historical snapshots. The NO ISO BIND rule applies to all guests; for accidental ISO-bound runtime containers, follow [Installation Guide §0.2](./WINDOWS-VM-INSTALLATION-GUIDE.md#02-standard-correction-procedure--accidental-iso-bound-runtime-container). Do not combine that fixed container correction with storage experiments.
