@@ -246,26 +246,38 @@ verify_runtime_container() {
         exit 1
     fi
 
-    actual_ports="$(podman port "$NAME")"
+    actual_ports="$(podman inspect "$NAME" --format '{{json .HostConfig.PortBindings}}')"
     echo
-    echo "===== ACTUAL PUBLISHED PORTS ====="
-    printf '%s\n' "$actual_ports"
+    echo "===== CONFIGURED HOST PORT BINDINGS ====="
+    printf '%s\\n' "$actual_ports"
 
-    if ! grep -Fxq "8006/tcp -> $HOST_IP:$WEB_PORT" <<< "$actual_ports"; then
-        echo "FATAL: Web console port mapping is missing or incorrect." >&2
-        exit 1
-    fi
+    python3 - "$actual_ports" "$HOST_IP" "$WEB_PORT" "$RDP_PORT" <<'PORTCHECK'
+import json
+import sys
 
-    if ! grep -Fxq "3389/tcp -> $HOST_IP:$RDP_PORT" <<< "$actual_ports"; then
-        echo "FATAL: RDP port mapping is missing or incorrect." >&2
-        exit 1
-    fi
+raw, host_ip, web_port, rdp_port = sys.argv[1:]
+
+try:
+    actual = json.loads(raw)
+except json.JSONDecodeError as exc:
+    print(f"FATAL: Cannot parse Podman port bindings: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+expected = {
+    "8006/tcp": [{"HostIp": host_ip, "HostPort": web_port}],
+    "3389/tcp": [{"HostIp": host_ip, "HostPort": rdp_port}],
+}
+
+if actual != expected:
+    print("FATAL: Port bindings do not exactly match the approved configuration.", file=sys.stderr)
+    print(f"Expected: {json.dumps(expected, sort_keys=True)}", file=sys.stderr)
+    print(f"Actual:   {json.dumps(actual, sort_keys=True)}", file=sys.stderr)
+    sys.exit(1)
+
+print("Verified exact Web Console and RDP host port bindings.")
+PORTCHECK
 
     echo
-    echo "Verified image: $actual_image"
-    echo "Verified restart policy: no"
-    echo "Verified exact mounts: storage + shared only"
-    echo "Verified no /custom.iso mount"
     echo "Verified Web Console and RDP port mappings"
 }
 
