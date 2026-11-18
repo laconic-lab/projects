@@ -216,3 +216,19 @@ Read-only review of the Live USB kernel log and current mounts:
 This is encouraging evidence that the earlier legacy Arch/GRUB boot attempts have not left visible filesystem error symptoms in the captured kernel log. It is not a full filesystem integrity check and does not prove every file is intact.
 
 No filesystem repair, partition modification, or installed-system configuration change was performed. Both ext4 filesystems were already mounted read/write by the Live desktop before this diagnostic.
+
+
+## LIV-INSPECT-06 — Installed Mint GRUB integrity (2026-11-18 04:01 UTC)
+
+Read-only inspection of the installed Mint root filesystem at `/media/mint/19705670-12b0-4218-b537-1664f375df4c`.
+
+- Installed packages include `grub-common`, `grub2-common`, `grub-efi-amd64-bin`, `grub-efi-amd64-signed`, `grub-pc-bin`, and `os-prober`. Query for `grub-common-bin` returned no package; this is not evidence of a missing required component.
+- `grub-install`, `update-grub`, `grub-mkconfig`, and `grub-editenv` executables are present.
+- EFI module tree `/usr/lib/grub/x86_64-efi` is populated; signed EFI binaries are present under `/usr/lib/grub/x86_64-efi-signed`.
+- Package MD5 verification passed for inspected `grub-install`, `update-grub`, the enumerated x86_64-efi modules and signed EFI binaries. This supports package-file integrity for those checked files; it is not a full validation of every installed file or configuration.
+- Installed kernel and initramfs files for 6.8.0-90, 6.8.0-139, and 6.8.0-147 are present; current symlinks target 6.8.0-147.
+- Existing `/boot/grub/grub.cfg` and `grubenv` are present. The previously inspected generated Windows menu entry and saved_entry still reference EFI UUID `72EC-1F03`, whereas the Kingston ESP UUID is `2CE5-D0E8`.
+- Installed `/etc/fstab` still references `72EC-1F03` for `/boot/efi`; the installed `/boot/efi` directory was empty when inspected with the ESP not mounted there.
+- No package reinstall, GRUB regeneration, fstab edit, EFI write, NVRAM write, or filesystem repair was performed.
+
+Assessment: installed Mint GRUB package files and kernel/initramfs inventory show no identified corruption in this inspection. The remaining known mismatch is the stale EFI UUID reference in fstab and generated GRUB state. This supports treating the next phase as a controlled EFI mount/configuration repair, subject to a reviewed plan and explicit approval. It does not prove complete filesystem integrity or successful bootability.
