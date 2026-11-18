@@ -7,3 +7,4 @@
 - [APT dependency analysis](04-package-dependency-analysis.md) — dependency and ownership risks.
 - [DKMS reference](05-DKMS-and-driver-reference.md) — DKMS interpretation.
 - [Future correction policy](06-future-correction-policy.md) — criteria for future automation.
+- [SecureUpdate optimization](07-secureupdate-optimization.md) — pending-update reporting, safe report-only validation and future kernel-update controls.
