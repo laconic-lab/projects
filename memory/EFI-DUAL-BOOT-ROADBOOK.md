@@ -232,3 +232,18 @@ Read-only inspection of the installed Mint root filesystem at `/media/mint/19705
 - No package reinstall, GRUB regeneration, fstab edit, EFI write, NVRAM write, or filesystem repair was performed.
 
 Assessment: installed Mint GRUB package files and kernel/initramfs inventory show no identified corruption in this inspection. The remaining known mismatch is the stale EFI UUID reference in fstab and generated GRUB state. This supports treating the next phase as a controlled EFI mount/configuration repair, subject to a reviewed plan and explicit approval. It does not prove complete filesystem integrity or successful bootability.
+
+## LIV-PREP-09 — Kingston Mint root visibility (2026-11-18 04:24 UTC)
+
+Read-only verification after the user reported that Nemo displayed the Kingston `/home` volume but not the system/root partition:
+
+- Kingston Mint root `/dev/sda3` is mounted at `/mnt/mint-root` as ext4 with `ro,relatime`.
+- Installed system directories `/boot`, `/etc`, `/usr`, and `/var` are present.
+- Installed `/mnt/mint-root/root` exists with permissions `drwx------` (root-owned, mode 0700).
+- Installed `/mnt/mint-root/home` is present as the mount-point directory; the separate `/dev/sda4` home partition is a distinct filesystem.
+- `/dev/sda3` capacity report: 492 GiB total, 36 GiB used, 431 GiB available.
+- The expected Live-session automount path under `/media/mint/19705670-12b0-4218-b537-1664f375df4c` is not mounted. This is consistent with the root partition having been mounted manually at `/mnt/mint-root`, rather than automatically by the desktop.
+
+Conclusion: the installed Mint root filesystem and its `/root` directory are present and readable. Nemo's failure to show it as a separate automatically mounted volume is a mount-location/UI distinction, not evidence of deletion or loss. The partition remains mounted read-only for recovery inspection.
+
+No files, mounts, permissions, partitions, EFI contents, or boot configuration were changed by this verification.
