@@ -202,3 +202,17 @@ The first backup script stopped at an incorrect entry-count comparison because i
 This backup is on the same physical Kingston SSD as the EFI, so it protects against mistakes during EFI rebuilding but not whole-drive failure. It may be deleted later at the user's discretion after the repaired boot path is proven and an independent backup is available.
 
 No EFI contents or installed Mint configuration were modified during backup or verification.
+
+
+## 2026-11-18 — Mint filesystem indicators (LIV-DIAG-05)
+
+Read-only review of the Live USB kernel log and current mounts:
+
+- Kingston `/dev/sda3` (Mint root, ext4 UUID `19705670-12b0-4218-b537-1664f375df4c`) mounted read/write successfully; 492 GiB total, 36 GiB used, 431 GiB available.
+- Kingston `/dev/sda4` (Mint home, ext4 UUID `7b6ff1ad-f835-4440-966c-d2c147008b2f`) mounted read/write successfully; 429 GiB total, 14 GiB used, 394 GiB available.
+- Kernel log showed normal Kingston device detection, partition discovery, and ext4 mounts.
+- The filtered log contained no reported I/O errors, buffer I/O errors, ext4 filesystem errors, journal aborts, or corruption messages for these partitions.
+
+This is encouraging evidence that the earlier legacy Arch/GRUB boot attempts have not left visible filesystem error symptoms in the captured kernel log. It is not a full filesystem integrity check and does not prove every file is intact.
+
+No filesystem repair, partition modification, or installed-system configuration change was performed. Both ext4 filesystems were already mounted read/write by the Live desktop before this diagnostic.
