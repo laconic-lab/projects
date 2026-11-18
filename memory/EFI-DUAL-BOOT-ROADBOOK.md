@@ -132,3 +132,21 @@ This saves the OS selected from the GRUB menu; it does not detect which OS initi
 7. Do not run Boot Repair's automatic/recommended repair blindly; inspect its proposed target and actions first.
 
 **Current state:** Linux Mint 22 installation identified; partition roles identified; independent Crucial Windows boot previously proven; Kingston ESP retained as repair target; architecture and saved-default GRUB behaviour agreed. **No EFI rebuild, fstab edit, GRUB installation, formatting, or partition changes have yet been performed.**
+
+
+### 18/11/26 — Kingston EFI read-only inspection (LIV-INSPECT-01/02)
+
+- Confirmed /dev/sda1 is the Kingston 1 GiB FAT32 ESP, UUID 2CE5-D0E8, PARTUUID da38cc52-46f9-4f68-85dd-fc2555c3c0ed.
+- The ESP was not mounted before inspection. It was mounted at /mnt/kingston-efi with verified read-only options (ro,relatime). No write operation was performed.
+- The complete file inventory shows a mixed historical EFI:
+  - EFI/GRUB/grubx64.efi and EFI/Boot/bootx64.efi are present.
+  - EFI/Microsoft/Boot contains bootmgfw.efi, bootmgr.efi, BCD and supporting Microsoft boot resources.
+  - A separate root-level grub/ tree contains GRUB configuration, environment, themes, locales and x86_64-efi modules.
+  - Root-level vmlinuz-linux, vmlinuz-linux-lts and matching initramfs images are old Arch Linux boot artifacts.
+  - System Volume Information is also present.
+- This confirms the Kingston ESP contains old Arch/GRUB material and Microsoft boot files; it is not a clean Mint-only EFI. The earlier Windows isolation test already proved that Windows can boot independently from Crucial. The Microsoft files found on Kingston are therefore not required as the Windows independence path, but must be preserved in the pre-repair backup and must not be overwritten during the repair.
+- The EFI mount verification showed /dev/sda1 mounted read-only. The earlier mount-state report showed /dev/sda3 and /dev/sda4 automatically mounted read-write by the Live desktop. No evidence in these inspection steps indicates an intentional write to those installed filesystems.
+- No content-level validation has yet been made of the fallback EFI executable, the GRUB executable, or the BCD store. Their presence alone does not prove that they are functional or identify the exact boot target.
+- The user-facing command output was supplied in chat; the user has local Desktop reports LIV-INSPECT-01-kingston-efi.txt, LIV-INSPECT-01-efi.txt and LIV-INSPECT-02-efi-contents.txt as applicable to the runs.
+
+**Next action:** keep the Kingston ESP mounted read-only while we inspect the installed Mint GRUB defaults/configuration and plan a verified full ESP backup. Before any write, unmount the read-only ESP and prepare an explicit backup destination outside the ESP (preferably the Live USB or another confirmed safe location); verify file count, byte totals and archive integrity. Do not remove or overwrite EFI/Microsoft, EFI/Boot or other existing content until the backup is verified and the exact replacement plan is approved. No fstab edit, GRUB installation, NVRAM write, format or partition change is authorized by this inspection.
