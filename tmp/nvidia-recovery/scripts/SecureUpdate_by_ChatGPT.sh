@@ -14,7 +14,7 @@ if ! ( set -o noclobber; : > "$REPORT" ) 2>/dev/null; then
     exit 2
 fi
 chmod 600 "$REPORT" || exit 2
-exec > >(tee >(sed -u 's/\\x1B\\[[0-9;]*m//g' >> "$REPORT")) 2>&1
+exec > >(tee >(sed -u 's/\x1B\[[0-9;]*m//g' >> "$REPORT")) 2>&1
 
 # ---------- TERMINAL COLORS ----------
 GREEN='\033[0;32m'
