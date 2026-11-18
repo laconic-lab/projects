@@ -353,3 +353,17 @@ The installed Mint system reported the following read-only audit at 04:43:12 UTC
 Before any further reboot, make the tested Mint entry permanent first in firmware BootOrder while preserving the existing Windows and legacy entries. Proposed order: `0000,0003,0001,000B`. This changes only NVRAM boot priority; it does not delete or rewrite any EFI files or boot entries. Verify the resulting BootOrder immediately. The mounted-filesystem audit command returned no rows for its multi-target invocation, so separately verify `/`, `/home`, and `/boot/efi` mount state during the next read-only check; do not infer mount failure from that ambiguous output.
 
 GRUB menu visibility and actual 10-second timeout behaviour remain pending direct visual confirmation.
+
+
+## 2026-11-18 — Permanent Mint-first firmware order verified (LIV-REPAIR-08)
+
+From the installed Mint system, the user applied `efibootmgr -o 0000,0003,0001,000B` and immediately re-read the full firmware state.
+
+- Verified permanent `BootOrder=0000,0003,0001,000B`.
+- `Boot0000*` is Linux Mint (Kingston), targeting Kingston ESP PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed`, loader `\EFI\ubuntu\shimx64.efi`.
+- `Boot0003` Windows Boot Manager remains present and targets the Crucial ESP PARTUUID `775149ef-10c2-4c7b-8192-fe8786b1ad41`.
+- `Boot0001*` legacy Kingston GRUB and `Boot000B*` generic Kingston device entry remain present.
+- `BootCurrent=0000`; no BootNext is shown.
+- No EFI files or partitions were changed by this NVRAM priority operation.
+
+Status: **Mint-first permanent firmware order — PASS.** Do not infer the separate mounted-filesystem state from the earlier empty multi-target `findmnt` output; inspect each mount explicitly before proceeding with Crucial reactivation.
