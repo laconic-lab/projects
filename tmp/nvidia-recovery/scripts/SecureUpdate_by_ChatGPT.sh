@@ -91,7 +91,7 @@ nvidia_check() {
 # ---------- FINAL PENDING-UPDATE REPORT ----------
 secureupdate_final_report() {
     local original_status="$1"
-    local apt_list holds normal_sim full_sim full_inst flatpak_updates line
+    local apt_list holds normal_sim full_sim full_inst flatpak_updates line flatpak_rc
     local phased_names kept_names pkg arch candidate installed reason key
 
     echo
@@ -192,8 +192,12 @@ secureupdate_final_report() {
     echo
     echo "--- FLATPAK UPDATES STILL PENDING ---"
     if command -v flatpak >/dev/null 2>&1; then
-        flatpak_updates=$(flatpak remote-ls --updates 2>&1 || true)
-        if [[ -n "${flatpak_updates//[[:space:]]/}" ]]; then
+        flatpak_updates=$(flatpak remote-ls --updates 2>&1)
+        flatpak_rc=$?
+        if (( flatpak_rc != 0 )); then
+            yellow "Could not determine pending Flatpak updates (exit $flatpak_rc):"
+            printf '%s\\n' "$flatpak_updates"
+        elif [[ -n "${flatpak_updates//[[:space:]]/}" ]]; then
             while IFS= read -r line; do
                 [[ -n "$line" ]] && red "$line"
             done <<< "$flatpak_updates"
