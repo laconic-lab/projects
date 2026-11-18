@@ -333,3 +333,23 @@ The user's `secureupdate` completed an APT upgrade:
 - Next, perform a short read-only audit from the installed Mint system: current firmware BootCurrent/BootOrder, `findmnt` for `/`, `/home`, `/boot/efi`, `grub-editenv list`, and GRUB defaults. Confirm the remembered Mint saved entry and inspect the visible GRUB timeout behaviour if it was not observed during the successful boot.
 - Only after the Kingston boot is stable, re-enable the Crucial disk (leave WDC disabled initially if practical), identify its current ESP PARTUUID from Linux, and add a deliberate GRUB chainloader entry to the Crucial `EFI/Microsoft/Boot/bootmgfw.efi`. Do not use the historical Kingston Microsoft entry found by os-prober as the final Windows route. Preserve the independent Crucial Windows EFI.
 - Later test Windows via the new GRUB entry, then test the user's desired saved-default/10-second behaviour. Update the firmware-entry register only from fresh `efibootmgr -v` evidence; do not assume the one-time BootNext entry was promoted into permanent BootOrder.
+
+## 2026-11-18 — Post-boot firmware audit (LIV-REPAIR-07)
+
+The installed Mint system reported the following read-only audit at 04:43:12 UTC:
+
+- `BootCurrent: 0000`: the machine booted through the newly registered `Linux Mint (Kingston)` entry.
+- `BootNext` is absent, confirming the one-time boot request has been consumed.
+- Permanent `BootOrder=0003,0001,000B` does **not** include `Boot0000`. Therefore the successful Mint boot is not yet the default firmware boot route.
+- `Boot0003` remains the Windows Boot Manager entry targeting Crucial ESP PARTUUID `775149ef-10c2-4c7b-8192-fe8786b1ad41`.
+- `Boot0001` is the older `grub` entry targeting Kingston `EFI/GRUB/grubx64.efi`; retain it, but do not prefer it over the newly tested Mint shim path.
+- `Boot000B` remains the generic Kingston device entry.
+- GRUB saved environment still contains `saved_entry=gnulinux-simple-19705670-12b0-4218-b537-1664f375df4c`.
+- GRUB defaults remain `GRUB_DEFAULT=saved`, `GRUB_SAVEDEFAULT=true`, `GRUB_TIMEOUT_STYLE=menu`, and `GRUB_TIMEOUT=10`.
+- Running kernel remains `6.8.0-147-generic`.
+
+### Next controlled change
+
+Before any further reboot, make the tested Mint entry permanent first in firmware BootOrder while preserving the existing Windows and legacy entries. Proposed order: `0000,0003,0001,000B`. This changes only NVRAM boot priority; it does not delete or rewrite any EFI files or boot entries. Verify the resulting BootOrder immediately. The mounted-filesystem audit command returned no rows for its multi-target invocation, so separately verify `/`, `/home`, and `/boot/efi` mount state during the next read-only check; do not infer mount failure from that ambiguous output.
+
+GRUB menu visibility and actual 10-second timeout behaviour remain pending direct visual confirmation.
