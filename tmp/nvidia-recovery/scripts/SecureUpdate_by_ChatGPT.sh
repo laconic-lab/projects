@@ -157,7 +157,7 @@ secureupdate_final_report() {
                 reason+="included in normal-upgrade simulation; verify actual transaction; "
             fi
             [[ -n "$reason" ]] || reason="Reason undetermined from available APT output."
-            printf '%s  %s (installed: %s; candidate: %s) — %s%s\n' "$RED" "$pkg" "${installed:-unknown}" "${candidate:-unknown}" "$reason" "$RESET"
+            printf '%s  %s [%s] (installed: %s; candidate: %s) — %s%s\n' "$RED" "$pkg" "${arch:-unknown}" "${installed:-unknown}" "${candidate:-unknown}" "$reason" "$RESET"
         done < <(awk '
             NR == 1 { next }
             $1 ~ /\// {
