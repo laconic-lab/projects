@@ -2,7 +2,7 @@
 
 ## Status
 
-- **Phase:** Design and read-only validation
+- **Phase:** Reporting redesign implemented; awaiting live report-only validation
 - **Started:** 2026-11-18
 - **Target system:** Linux Mint 22.x / Ubuntu 24.04 Noble
 - **Current running kernel:** `6.8.0-147-generic`
@@ -236,3 +236,53 @@ The immediate deliverable is a trustworthy SecureUpdate script and a final repor
 ## 10. Change log
 
 - **2026-11-18:** Initial design record created from the current SecureUpdate script, live APT simulations, NVIDIA/DKMS diagnostics, and the NVIDIA recovery project's documented correction constraints.
+
+
+## 11. Reporting implementation committed
+
+The reporting redesign has been implemented in:
+
+- [`scripts/SecureUpdate_by_ChatGPT.sh`](../scripts/SecureUpdate_by_ChatGPT.sh)
+
+The script retains the existing conservative maintenance sequence and NVIDIA 470.256.02 pre/post checks. It does **not** execute `full-upgrade`, remove packages, unhold NVIDIA packages, install kernel 149, or alter the NVIDIA driver branch.
+
+### 11.1 New report behaviour
+
+- Creates a Desktop report named `YYYYMMDD_HHMMSS_results_for_secureupdate.txt`.
+- Uses `tee` so terminal output is also recorded in the report.
+- Uses restrictive report permissions (`0600`).
+- Runs a final report through an EXIT trap, including when an earlier maintenance command fails.
+- Lists every APT candidate from `apt list --upgradable` in red, retaining installed and candidate versions.
+- Lists APT package holds separately in red.
+- Correlates candidate packages with the normal-upgrade simulation's phased and kept-back sections where possible; uncertain reasons are not guessed.
+- Shows the full normal-upgrade simulation as supporting evidence.
+- Shows proposed `Inst` package transactions from the full-upgrade simulation in red, but never executes that transaction. This is important for new kernel image/module/header packages that do not appear as ordinary installed-package upgrades.
+- Lists pending Flatpak updates separately using `flatpak remote-ls --updates`.
+- Explicitly states that pending updates are not automatically NVIDIA risks.
+
+### 11.2 Report-only validation mode
+
+Run the script with:
+
+```bash
+bash SecureUpdate_by_ChatGPT.sh --report-only
+```
+
+This mode:
+- Runs the existing NVIDIA pre-check.
+- Does not refresh APT metadata.
+- Uses the currently cached APT package lists for simulations and inventory.
+- Does not run APT upgrades, Flatpak updates, autoremove, or any package/driver transaction.
+- Still creates the timestamped Desktop report and final pending-update inventory.
+
+The normal mode continues to run `apt-get update`, conservative `apt-get upgrade`, the NVIDIA post-check, Flatpak update, and the existing autoremove preview/confirmation flow.
+
+### 11.3 Validation status
+
+- Local `bash -n` syntax validation: **passed**.
+- ShellCheck: unavailable in the validation environment.
+- Live execution on the M4800: **not yet performed**.
+- Package/driver changes made during implementation: **none**.
+- Kernel 6.8.0-149: remains pending; no installation was attempted.
+
+The first live test must use `--report-only`. Review the resulting report against Update Manager before running the normal maintenance mode. The expected kernel evidence is the 6.8.0-149 metapackage candidate in the APT candidate list and the corresponding new kernel packages in the full-upgrade simulation section.
