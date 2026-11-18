@@ -8,7 +8,7 @@
 
 **btop 1.3.2 is installed under `/usr/local` and has passed post-install verification.** The Ubuntu Noble package **btop 1.3.0-1 remains installed** at `/usr/bin/btop`; it was not replaced or removed. Normal PATH resolution selects `/usr/local/bin/btop` (1.3.2). No rollback or cleanup has been performed.
 
-The user reported that btop 1.3.2 looked and behaved normally compared with 1.3.0 during interactive use, including YouTube and Speedtest workloads. The 1 GB download test also completed successfully and was subsequently deleted by the user.
+The user reported that btop 1.3.2 looked and behaved normally compared with 1.3.0 during interactive use, including YouTube and Speedtest workloads. The final normal-command launch through PATH also worked as expected. During network monitoring, the user tested the Sync and Auto graph modes and found Auto's representation more realistic for the observed traffic. This was accepted as display-scaling behaviour; no measurement fault or unresolved installation issue was identified. The 1 GB download test also completed successfully and was subsequently deleted by the user.
 
 ## Verified source and build
 
@@ -129,7 +129,9 @@ Verification report: `/home/laco/Desktop/20261118_202353_results_for_btop_132_in
 
 The installation is therefore a verified parallel `/usr/local` install. Ubuntu's package-managed 1.3.0 remains installed and intact according to the recorded dpkg checks. The compiled executable installed under `/usr/local` is byte-for-byte identical to the audited build.
 
-A final normal-command interactive launch through PATH is the remaining practical check; it has not yet been recorded as completed.
+### Final interactive verification — PASS
+
+After installation verification, the user launched `btop` through normal PATH resolution. The application behaved normally in practical use. The user also tested the network graph's Sync and Auto modes; Auto produced the more realistic view for the observed download/upload traffic. This is recorded as a display preference/visualization behaviour, not an installation defect. No further change was required.
 
 ## Rollback and clean recovery — primary procedure
 
@@ -199,14 +201,14 @@ Verify all of the following:
 - A normal interactive launch works.
 - The user's configuration remains present and is not reset or deleted.
 
-**Important:** the rollback procedure above is documented for future use. It has not been executed because btop 1.3.2 has not yet been installed.
+**Important:** the rollback procedure above is retained as a future recovery option. It has not been executed because the parallel 1.3.2 installation passed verification and was accepted. The procedure must be revalidated against the actual filesystem before any future removal.
 
 ## Retained artifacts and storage handling
 
 | Artifact | Path | Current disposition |
 |---|---|---|
 | Source/build workspace | `/home/laco/src/btop-v1.3.2` | Retain; reproducible source/build material |
-| Compiled binary | `/home/laco/src/btop-v1.3.2/bin/btop` | Retain as uninstalled 1.3.2 build |
+| Compiled binary | `/home/laco/src/btop-v1.3.2/bin/btop` | Retain as the audited source-workspace build; its installed counterpart is `/usr/local/bin/btop` |
 | Isolated test directory | `/home/laco/.cache/btop-132-test.oR03xG` | Retained test evidence/configuration |
 | Runtime report | `/home/laco/Desktop/20261118_153204_results_for_btop_132_runtime_test.txt` | Retain |
 | Post-runtime audit | `/home/laco/Desktop/20261118_154248_results_for_btop_132_post_runtime_audit.txt` | Retain |
@@ -231,4 +233,6 @@ No cleanup of these artifacts is authorized or implied by the system-installatio
 - 1.3.2 installed under `/usr/local` after explicit user approval; all six paths and binary hash verified.
 - Ubuntu Noble `btop 1.3.0-1` remains installed at `/usr/bin/btop`; dpkg reports no discrepancies.
 - No rollback, package removal, or cleanup has been performed.
-- Remaining practical check: launch `btop` through normal PATH, confirm 1.3.2 interactively, then exit normally.
+- Final normal-PATH interactive launch completed successfully; user reported normal behaviour.
+- Network graph Sync/Auto modes were tested; Auto was preferred as the more realistic visualization for the observed traffic.
+- Project status: **CLOSED — successful parallel installation, verification, and practical use.**
