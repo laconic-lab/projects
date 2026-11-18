@@ -6,9 +6,7 @@
 
 ## Current disposition
 
-**btop 1.3.2 is built and runtime-tested, but has NOT been installed.**
-
-The Ubuntu Noble package **btop 1.3.0-1** remains installed at `/usr/bin/btop`. No package replacement, `/usr/local` installation, or system cleanup has been performed.
+**btop 1.3.2 is installed under `/usr/local` and has passed post-install verification.** The Ubuntu Noble package **btop 1.3.0-1 remains installed** at `/usr/bin/btop`; it was not replaced or removed. Normal PATH resolution selects `/usr/local/bin/btop` (1.3.2). No rollback or cleanup has been performed.
 
 The user reported that btop 1.3.2 looked and behaved normally compared with 1.3.0 during interactive use, including YouTube and Speedtest workloads. The 1 GB download test also completed successfully and was subsequently deleted by the user.
 
@@ -101,9 +99,37 @@ The final conflict check established:
 
 If a future `/usr/local/bin/btop` installation is performed, it will take precedence over `/usr/bin/btop` in this PATH.
 
-### Decision boundary
+### Installation executed — 2026-11-18
 
-A parallel `/usr/local` installation was assessed as the preferred way to trial 1.3.2 without overwriting Ubuntu's dpkg-managed 1.3.0 files. **This installation has not been approved or executed.** The 1.3.0 package remains installed and available.
+The user approved and executed the reviewed parallel installation:
+
+```bash
+sudo make -C /home/laco/src/btop-v1.3.2 install PREFIX=/usr/local
+```
+
+Installation report: `/home/laco/Desktop/20261118_201817_results_for_btop_132_install.txt`.
+
+The installer reported successful placement of all six reviewed artifacts under `/usr/local`. No error was reported. The Ubuntu package was not removed or modified by this install command.
+
+### Post-install verification — PASS
+
+Verification report: `/home/laco/Desktop/20261118_202353_results_for_btop_132_install_verification.txt`.
+
+| Check | Result |
+|---|---|
+| All six expected `/usr/local` paths | Present |
+| Installed binary SHA256 | Matches audited build exactly: `aea40643f6232b39ff891cfb94b38b3d24d322cc4d3eecc06d9767cb85e437b2` |
+| `/usr/local/bin/btop --version` | `btop version: 1.3.2` |
+| `/usr/bin/btop --version` | `btop version: 1.3.0` |
+| `command -v btop` | `/usr/local/bin/btop` |
+| `type -a btop` | `/usr/local/bin/btop`, `/usr/bin/btop`, `/bin/btop` |
+| dpkg package status | `btop 1.3.0-1`, `install ok installed` |
+| dpkg ownership of `/usr/bin/btop` | Confirmed: `btop: /usr/bin/btop` |
+| `dpkg -V btop` | No discrepancies reported |
+
+The installation is therefore a verified parallel `/usr/local` install. Ubuntu's package-managed 1.3.0 remains installed and intact according to the recorded dpkg checks. The compiled executable installed under `/usr/local` is byte-for-byte identical to the audited build.
+
+A final normal-command interactive launch through PATH is the remaining practical check; it has not yet been recorded as completed.
 
 ## Rollback and clean recovery — primary procedure
 
@@ -202,5 +228,7 @@ No cleanup of these artifacts is authorized or implied by the system-installatio
 - Installation layout and Makefile transaction reviewed.
 - PATH conflict check clean.
 - Ubuntu Noble btop 1.3.0-1 remains installed.
-- **No 1.3.2 installation, rollback, package removal, or cleanup has been performed.**
-- Next action requires explicit user approval of the proposed `/usr/local` installation.
+- 1.3.2 installed under `/usr/local` after explicit user approval; all six paths and binary hash verified.
+- Ubuntu Noble `btop 1.3.0-1` remains installed at `/usr/bin/btop`; dpkg reports no discrepancies.
+- No rollback, package removal, or cleanup has been performed.
+- Remaining practical check: launch `btop` through normal PATH, confirm 1.3.2 interactively, then exit normally.
