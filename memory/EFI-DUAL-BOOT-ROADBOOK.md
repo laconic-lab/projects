@@ -4,18 +4,20 @@
 
 ## Firmware entry register
 
-Entries below are from the latest complete `bcdedit /enum firmware` output supplied before the GRUB test. The user subsequently removed the GRUB entry from the active boot sequence; a fresh firmware listing has not yet been supplied.
+The latest complete `bcdedit /enum firmware` output (after the user's attempted Ubuntu-entry promotion) uses a new set of NVRAM identifiers. These are the current identifiers to use; do not reuse the earlier `{eefc...}` identifiers without rechecking.
 
-| Firmware entry | Description / target | Result / evidence | Status |
+| Current firmware entry | Description / target | Result / evidence | Status |
 |:---|:---|:---|:---:|
-| `{eefc7669-e2de-11f1-b8d5-806e6f6e6963}` | GRUB — `T:\\EFI\\GRUB\\grubx64.efi` on Kingston | Firmware successfully launched GRUB. Its menu booted the Arch Linux test configuration and ended at a rootfs error / emergency shell. This is not the intended viable Linux installation. User removed it from active boot sequence. | **NOK — failed Arch test** |
-| `{eefc766a-e2de-11f1-b8d5-806e6f6e6963}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | No `shimx64.efi` was found in either currently mounted EFI partition (S: or T:). Firmware entry has no device field in BCDEdit output. | **UNVERIFIED — loader not found** |
-| `{eefc766b-e2de-11f1-b8d5-806e6f6e6963}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | Same path and no device field. No matching shim found on S: or T:. | **UNVERIFIED — loader not found** |
-| `{eefc766c-e2de-11f1-b8d5-806e6f6e6963}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | Same path and no device field. No matching shim found on S: or T:. Cannot distinguish it from the other duplicate entries. | **UNVERIFIED — loader not found** |
-| `{eefc766d-e2de-11f1-b8d5-806e6f6e6963}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | Same path and no device field. No matching shim found on S: or T:. | **UNVERIFIED — loader not found** |
-| `{eefc766e-e2de-11f1-b8d5-806e6f6e6963}` | UEFI: CT500MX500SSD1 — Crucial EFI (S:) | Windows 11 boots independently when Kingston / other SATA ports are disabled. This is the Crucial disk firmware entry, not Linux Mint. | **OK — Windows disk** |
-| `{515a4b13-e2e1-11f1-b8d7-806e6f6e6963}` | UEFI: KINGSTON SKC600MS1024G — Kingston EFI (T:) | Device entry only; no loader path shown. Not yet tested as a direct boot choice. | **UNTESTED** |
-| `{bootmgr}` | Windows Boot Manager — `S:\\EFI\\Microsoft\\Boot\\bootmgfw.efi` | Windows 11 starts successfully from Crucial. | **OK — Windows** |
+| `{ed3424b2-e286-11f1-b05c-a9157e3a9c2c}` | GRUB — `T:\\EFI\\GRUB\\grubx64.efi` | Same Kingston GRUB/Arch test route. Previously launched, then failed at rootfs/emergency shell. User removed GRUB from active boot sequence before the later firmware listing; current listing includes the entry but not first. | **NOK — failed Arch test** |
+| `{ed3424b3-e286-11f1-b05c-a9157e3a9c2c}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | No matching shim found on S: or T:. No device field shown. | **UNVERIFIED — loader not found** |
+| `{ed3424b4-e286-11f1-b05c-a9157e3a9c2c}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | No matching shim found on S: or T:. No device field shown. | **UNVERIFIED — loader not found** |
+| `{ed3424b5-e286-11f1-b05c-a9157e3a9c2c}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | No matching shim found on S: or T:. No device field shown. | **UNVERIFIED — loader not found** |
+| `{ed3424b6-e286-11f1-b05c-a9157e3a9c2c}` | Ubuntu — `\\EFI\\ubuntu\\shimx64.efi` | No matching shim found on S: or T:. No device field shown. | **UNVERIFIED — loader not found** |
+| `{38f288c3-e2eb-11f1-b8d8-806e6f6e6963}` | UEFI: CT500MX500SSD1 — Crucial EFI (S:) | Firmware device entry. Independent Crucial-only Windows boot was previously successful. | **OK — Windows disk** |
+| `{38f288c4-e2eb-11f1-b8d8-806e6f6e6963}` | UEFI: KINGSTON SKC600MS1024G — Kingston EFI (T:) | Firmware device entry only; direct boot not tested. | **UNTESTED** |
+| `{bootmgr}` | Windows Boot Manager — latest BCDEdit output says `partition=T:`, path `\\EFI\\Microsoft\\Boot\\bootmgfw.efi` | Windows currently runs, but this device mapping differs from the earlier S: mapping and must be reconciled. Both S: and T: contain `EFI\\Microsoft`. Do not alter either copy. | **OK — Windows runs; EFI source mapping needs verification** |
+
+The firmware displayorder in the latest output begins with `{bootmgr}`, followed by the five `{ed3424...}` entries, then Kingston/Crucial generic UEFI entries. The attempted `/set "{fwbootmgr}" displayorder "{eefc...}" /addfirst` returned success but did not produce the expected first-entry result; the output also showed newly changed identifiers. Do not assume the requested Ubuntu entry was promoted.
 
 **Status rule:** NOK means a tested entry failed its intended boot; UNVERIFIED means evidence is insufficient; UNTESTED means no direct boot test; OK means the intended operating system was confirmed to boot. Do not delete an entry solely because it is duplicated or unverified.
 
@@ -37,6 +39,8 @@ Entries below are from the latest complete `bcdedit /enum firmware` output suppl
 | 18/11/26 | **Returned to Windows** | User rebooted from the emergency shell and returned to Windows. |
 | 18/11/26 | **GRUB removed from active boot sequence** | User reports removing the GRUB entry from the firmware boot sequence after the failed Arch test. A fresh `bcdedit /enum firmware` is still needed to record the exact current displayorder. The GRUB NVRAM entry itself has not been reported deleted. |
 | 18/11/26 | **Ubuntu EFI loader search — no match** | Read-only PowerShell inspection of `S:\\EFI` showed only `Boot` and `Microsoft`. Inspection of `T:\\EFI` showed only `GRUB`, `Boot`, and `Microsoft`. Recursive search found no `shimx64.efi` on either mounted EFI partition. Therefore none of the four Ubuntu entries is currently confirmed as the Mint loader. |
+| 18/11/26 | **Latest firmware order / Ubuntu promotion attempt — anomalous result** | User ran `bcdedit /set "{fwbootmgr}" displayorder "{eefc766c-e2de-11f1-b8d5-806e6f6e6963}" /addfirst`; BCDEdit reported success. Verification did not show the requested Ubuntu entry first. Instead, NVRAM identifiers had changed to `{ed3424...}` for GRUB/Ubuntu entries and `{38f288...}` for generic disk entries; displayorder began with `{bootmgr}`. Latest `{bootmgr}` device was reported as T: (Kingston), unlike earlier S: (Crucial). No reboot/test was performed after this output. Treat as anomalous and do not issue more BCDEdit writes until current state is understood. |
+| 18/11/26 | **EFI partition mapping rechecked — READ-ONLY** | `Get-Partition` confirmed Disk 0 Partition 3 = S: (Crucial, 1 GiB FAT32 ESP); Disk 2 Partition 1 = T: (Kingston, 1 GiB FAT32 ESP). S:\\EFI contains only `Boot` and `Microsoft`; T:\\EFI contains `GRUB`, `Boot`, and `Microsoft`. No `shimx64.efi` found. Kingston Disk 2 Partitions 2–4 remain Linux/unknown to Windows. |
 | 18/11/26 | **PowerShell/Linux command mismatch — no changes** | Linux commands were accidentally pasted into Windows PowerShell and rejected. No Linux inspection ran and no system changes resulted. Linux commands must only be run in a Linux terminal. |
 
 ## Current disk map
@@ -48,12 +52,12 @@ Entries below are from the latest complete `bcdedit /enum firmware` output suppl
 
 ## Next steps
 
-1. Obtain a fresh `bcdedit /enum firmware` and record the current displayorder after the user removed GRUB from it.
-2. Identify which Linux filesystem partition contains the intended Linux Mint installation, without changing partitions.
-3. Determine where that installation's EFI loader should reside. The current S: and T: EFI partitions contain no `ubuntu\\shimx64.efi`; do not assume the duplicate Ubuntu NVRAM entries point to a valid loader.
-4. Boot the actual Mint installation using a verified boot path. If necessary, use a suitable live environment only after confirming the intended target and recovery plan.
-5. Once Mint boots, inspect its EFI mount, root filesystem, installed kernel and GRUB configuration; then rebuild GRUB from Mint and add Windows detection/chainloading.
-6. Verify both operating systems boot independently before removing temporary Windows drive letters from either EFI partition.
+1. Do not run more BCDEdit writes or reboot based solely on the duplicate Ubuntu entries: their referenced shim file is absent from both S: and T:.
+2. Reconcile why the latest `{bootmgr}` device is T: even though the Crucial-only Windows boot test succeeded and S: is the Crucial ESP. Preserve both Microsoft EFI directories.
+3. Identify the actual Linux distribution and root filesystem on Kingston Disk 2 Partitions 3 and 4 using a Linux live environment (read-only identification first). Do not assume Mint until `/etc/os-release` is inspected.
+4. From the live environment, inspect filesystem UUIDs, partition contents, installed kernels, and the intended installation's existing boot configuration. Do not mount Linux filesystems read-write or run GRUB installation until the target is confirmed.
+5. Then plan a minimal repair of the confirmed Linux installation's EFI bootloader; rebuild GRUB from the installed Linux environment or a carefully prepared chroot, including Windows detection/chainloading.
+6. Verify both operating systems boot independently before removing temporary Windows drive letters or deleting stale NVRAM entries.
 
 ## Safeguards
 
