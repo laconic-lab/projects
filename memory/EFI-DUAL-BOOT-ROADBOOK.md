@@ -247,3 +247,48 @@ Read-only verification after the user reported that Nemo displayed the Kingston 
 Conclusion: the installed Mint root filesystem and its `/root` directory are present and readable. Nemo's failure to show it as a separate automatically mounted volume is a mount-location/UI distinction, not evidence of deletion or loss. The partition remains mounted read-only for recovery inspection.
 
 No files, mounts, permissions, partitions, EFI contents, or boot configuration were changed by this verification.
+
+
+## 2026-11-18 — Kingston Mint EFI repair in progress (LIV-PREP-10, LIV-REPAIR-01–05)
+
+This section supersedes earlier statements that no fstab, EFI, GRUB, or NVRAM changes had been made. The user approved the Kingston-only repair. Crucial and WDC remain disabled/out of scope during the isolated repair.
+
+### LIV-PREP-10 — signed boot components
+- Signed GRUB binary exists at `/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed` (2,660,232 bytes); shim and supporting EFI files are present.
+- Secure Boot was confirmed disabled. Inspection itself made no changes.
+
+### LIV-REPAIR-01 — fstab and mount preparation (04:26 UTC)
+- Verified Kingston identities: ESP `/dev/sda1` UUID `2CE5-D0E8`; Mint root `/dev/sda3` UUID `19705670-12b0-4218-b537-1664f375df4c`; home `/dev/sda4` UUID `7b6ff1ad-f835-4440-966c-d2c147008b2f`.
+- Backed up installed fstab to `/mnt/mint-root/etc/fstab.pre-grub-repair-20261118T042653Z`.
+- Corrected only the EFI UUID in fstab from stale `72EC-1F03` to `2CE5-D0E8`.
+- Mounted root, home and ESP read-write at the installed-system paths. No repartitioning or formatting.
+
+### LIV-REPAIR-02 — signed UEFI GRUB installation (04:27 UTC)
+- Ran from chroot: `grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --uefi-secure-boot --no-nvram --recheck`. Installer reported success without errors.
+- Created `EFI/ubuntu/grubx64.efi` (2,660,232 bytes), `shimx64.efi` (966,664), `mmx64.efi` (856,280), `BOOTX64.CSV` (108), and `grub.cfg` (126).
+- Existing `EFI/Boot`, `EFI/GRUB`, and `EFI/Microsoft` directories remained present. `--no-nvram` avoided firmware changes in this stage.
+
+### LIV-REPAIR-03 — GRUB menu regenerated (04:28 UTC)
+- `update-grub` detected kernels/initramfs 6.8.0-147, 6.8.0-139, and 6.8.0-90.
+- Mint menu ID: `gnulinux-simple-19705670-12b0-4218-b537-1664f375df4c`; generated root references use the correct Mint root UUID.
+- Old EFI UUID `72EC-1F03` is absent from regenerated grub.cfg.
+- GRUB settings remain `GRUB_DEFAULT=saved`, `GRUB_SAVEDEFAULT=true`, `GRUB_TIMEOUT_STYLE=menu`, `GRUB_TIMEOUT=10`, `GRUB_DISABLE_OS_PROBER=false`.
+- os-prober found Windows Boot Manager on `/dev/sda1`, the historical Kingston ESP. This is not the independent Crucial Windows installation and is not evidence that Crucial Windows was detected.
+
+### LIV-REPAIR-04 — syntax and saved default (04:28 UTC)
+- `grub-script-check /boot/grub/grub.cfg` passed.
+- Set grubenv saved_entry to the Mint menu ID above, replacing the stale saved Windows ID.
+- Confirmed requested timeout and saved-selection settings. Existing BootOrder before new registration was `0003,000B,000C`.
+
+### LIV-REPAIR-05 — Mint UEFI entry registered (04:29 UTC)
+- Created entry with `efibootmgr --create-only --disk /dev/sda --part 1 --label "Linux Mint (Kingston)" --loader '\EFI\ubuntu\shimx64.efi'`.
+- Firmware created Boot0000* Linux Mint (Kingston), targeting Kingston ESP PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed` and loader `\EFI\ubuntu\shimx64.efi`.
+- BootOrder remained `0003,000B,000C`; Windows Boot0003, generic Kingston Boot000B and USB Boot000C remain unchanged.
+- New Mint entry is registered but not yet boot-tested.
+
+### Current state / next actions
+Repair stages 1–5 completed; Mint has not yet booted from the new entry. Before reboot, verify Boot0000 and set one-time BootNext=0000 (do not permanently reorder BootOrder), then cleanly unmount installed filesystems and chroot bind mounts. Keep Crucial and WDC disabled for the first Mint boot test. Retain the verified Kingston EFI backup and historical EFI directories.
+
+After Mint boots, re-enable Crucial in a separate phase and configure/test Windows chainloading from Crucial's independent Microsoft EFI. The os-prober Windows entry currently points to the historical Kingston EFI and must not be used as the final Windows path.
+
+Thermal instability may be related to Live-session fan/graphics behaviour, as the user suspects, but causation has not been established. Keep remaining Live-session work brief and stop if the machine becomes unusually hot or unstable.
