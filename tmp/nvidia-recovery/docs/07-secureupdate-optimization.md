@@ -250,6 +250,7 @@ The script retains the existing conservative maintenance sequence and NVIDIA 470
 
 - Creates a Desktop report named `YYYYMMDD_HHMMSS_results_for_secureupdate.txt`.
 - Uses `tee` so terminal output is also recorded in the report.
+- Keeps ANSI color codes on the terminal but strips them from the saved report, so the `.txt` file remains readable.
 - Uses restrictive report permissions (`0600`).
 - Runs a final report through an EXIT trap, including when an earlier maintenance command fails.
 - Lists every APT candidate from `apt list --upgradable` in red, retaining installed and candidate versions.
