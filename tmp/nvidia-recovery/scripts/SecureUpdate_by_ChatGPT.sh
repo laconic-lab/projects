@@ -126,6 +126,7 @@ secureupdate_final_report() {
     fi
 
     normal_sim=$(sudo apt-get -s upgrade 2>&1 || true)
+    full_sim=$(sudo apt-get -s full-upgrade 2>&1 || true)
     phased_names=$(awk '
         index($0, "The following upgrades have been deferred due to phasing:") { active=1; next }
         active && (/^The following / || /^[[:space:]]*$/) { exit }
@@ -155,6 +156,8 @@ secureupdate_final_report() {
             fi
             if grep -Eq "^Inst ${pkg}([[:space:]]|$)" <<< "$normal_sim"; then
                 reason+="included in normal-upgrade simulation; verify actual transaction; "
+            elif grep -Eq "^Inst ${pkg}([[:space:]]|$)" <<< "$full_sim"; then
+                reason+="proposed by full-upgrade simulation only; not executed; "
             fi
             [[ -n "$reason" ]] || reason="Reason undetermined from available APT output."
             printf '%s  %s [%s] (installed: %s; candidate: %s) — %s%s\n' "$RED" "$pkg" "${arch:-unknown}" "${installed:-unknown}" "${candidate:-unknown}" "$reason" "$RESET"
@@ -177,7 +180,6 @@ secureupdate_final_report() {
     echo "--- NORMAL apt-get upgrade SIMULATION / REASONS ---"
     printf '%s\n' "$normal_sim"
 
-    full_sim=$(sudo apt-get -s full-upgrade 2>&1 || true)
     echo
     echo "--- full-upgrade SIMULATION ONLY — NOT EXECUTED ---"
     full_inst=$(awk '/^Inst / { print }' <<< "$full_sim")
