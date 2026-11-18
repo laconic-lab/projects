@@ -27,13 +27,29 @@ Two Linux Mint btop scripts used the same construction:
 exec > >(tee -a "$REPORT") 2>&1
 ~~~
 
-This redirects the shell's standard output and standard error through Bash process substitution. The tee process is started asynchronously. File descriptors can be inherited by child processes; process-substitution lifecycle and exit-status handling are not equivalent to a simple foreground pipeline.
+This redirects the current shell's standard output and standard error through Bash process substitution. The tee process is started asynchronously. Crucially, `exec` changes the file descriptors of the shell in which it runs; it does not restore them when a pasted command block or sequence of commands finishes. If this line is entered directly at an interactive prompt, that interactive shell remains redirected.
 
-The scripts did not explicitly manage or verify the logger's lifetime. They also lacked a report-size limit and a post-completion check that the report had stopped changing.
+A second top-level redirection can create a chain. In a controlled reproduction using a child Bash shell, the first report received the marker emitted after the first redirection and also both markers emitted after the second redirection. The second report received only the markers emitted after the second redirection. This confirmed that the later tee's output was also flowing through the earlier tee. Subsequent interactive prompts and commands can therefore be appended to both reports.
 
-**Evidence boundary:** this construction is unsafe as a default report-logging design and is prohibited in generated scripts. However, the script text alone does not prove that an orphaned tee process caused the observed growth. The exact writer was not identified before reboot. The two reports were approximately 3.1 MB, had the same last-modification timestamp in the post-reboot inventory, and stopped growing after reboot. These facts are consistent with a lingering writer but do not conclusively identify one.
+### 2.1 Evidence and controlled reproduction: Linux Mint incident, 2026-11-18
 
-There was no obvious intentional infinite loop in either supplied script. The established design failure was inadequate control and verification of the logging lifecycle. Do not describe a suspected process as a proven root cause.
+Two Desktop reports associated with the btop 1.3.2 preflight and source-build work grew to approximately 3.1 MB each. Their tails contained the interactive shell prompt, later commands typed by the user, command output and terminal-control sequences. Both had the same last-modification timestamp in the post-reboot inventory. The files stopped growing after the user rebooted.
+
+The original command blocks used the redirection above at top level. The original script files were not found on disk during the later investigation, but their contents had been supplied in the conversation. No obvious intentional infinite loop or continuously running writer was present in those finite operations.
+
+A controlled Stage 2 test safely reproduced successive top-level redirections inside a disposable child Bash shell:
+- Marker emitted after redirection 1 appeared once in report 1 and not in report 2.
+- Markers emitted after redirection 2 appeared in both reports.
+- The first report therefore contained the complete output stream; the second contained the later portion of that stream.
+
+A Stage 3 test verified safer alternatives:
+- A foreground grouped-command pipeline with `tee` recorded each test marker once.
+- An `exec` redirection confined to a subshell wrote the child marker to its report but did not redirect the parent-shell marker into that report.
+- The child marker also appeared in the outer test's foreground pipeline report, as expected, because that outer pipeline captured the entire test block.
+
+**Conclusion and evidence boundary:** the strongest supported explanation is that the process-substitution `exec` statements were applied to the interactive Bash shell, leaving it redirected after the intended finite command blocks ended. The successive redirections then formed a tee chain, explaining why later interactive activity appeared in both original reports. The Stage 2 reproduction confirms the redirection-chain mechanism; the original report tails independently support that the interactive shell was affected. The original live process tree and file descriptors were not captured before reboot, so the exact original tee PIDs/topology and whether any additional inherited child process contributed to growth remain unverified. Do not claim that the original live process topology was recovered.
+
+The incident was a logging-scope/lifecycle failure, not evidence of a btop infinite loop. The user also reported that a previous suggestion to stop the display manager removed access to the graphical session and chat; this was unnecessarily disruptive and must not be repeated as a generic logging response.
 
 ### Prohibited routine pattern
 
@@ -44,6 +60,8 @@ exec > >(tee -a "$REPORT") 2>&1
 ~~~
 
 Do not assume set -e, set -u or set -o pipefail makes asynchronous logging synchronous or guarantees that the logger has stopped.
+
+**Interactive-shell restriction:** never place a top-level `exec > >(tee ...)` logging redirection in a command block intended to be pasted directly into the user's interactive shell. It changes that shell's descriptors persistently. Prefer the foreground pipeline in §3.1. If a task genuinely requires `exec`, confine it to a dedicated script process or a subshell, and still manage/wait for child processes and verify completion. A subshell prevents the descriptor change from escaping to its parent; it does not by itself guarantee that asynchronous process-substitution children have completed or that their exit status is handled.
 
 ## 3. Safer logging patterns
 
