@@ -69,3 +69,66 @@ The firmware displayorder in the latest output begins with `{bootmgr}`, followed
 - Do not delete the four Ubuntu NVRAM entries until their targets are identified and both boot paths are verified.
 - Treat the failed Arch GRUB route as NOK for the intended OS; do not reuse its configuration as if it were Mint.
 - After each test, update the entry register (OK / NOK / UNVERIFIED / UNTESTED) and append the chronological result. Do not silently rewrite history.
+
+
+## 18/11/26 — Linux Mint Live USB recovery and agreed repair architecture
+
+This section supersedes the earlier uncertainty in the disk map and the old “identify the Linux distribution” next step. It records evidence gathered from a Linux Mint Live USB booted in UEFI mode. No repair or intentional writes to the installed Kingston system have been performed.
+
+### Live environment and disk isolation
+
+- The Live USB booted successfully in UEFI mode (/sys/firmware/efi exists).
+- BIOS configuration had the Crucial and WDC disks disabled for this recovery session. The live environment's block-device inventory showed only the Kingston SSD and the SanDisk Live USB. This is evidence of isolation at the OS level; it does not erase or remove stale firmware NVRAM records.
+- /dev/sda is the Kingston SKC600MS1024G (953.9 GiB); /dev/sdb is the SanDisk Live USB (28.7 GiB).
+- Firmware reported BootCurrent: 000C (USB) and BootOrder: 0003,000B,000C. Boot000B is the generic UEFI entry for Kingston and points to its first GPT partition. Boot0003 is a stale Windows Boot Manager NVRAM entry referring to a GPT partition path; its presence is not evidence that the Crucial disk is accessible in this isolated session.
+- The installed Mint root and home filesystems were automatically mounted read-write by the live desktop during inspection. This was observed, not an intentional repair write. Before any repair, mount state must be deliberately controlled and the EFI contents inspected. No write operation has yet been approved or executed.
+
+### Kingston partition map — confirmed
+
+| Device | Size | Filesystem / role | UUID | Current evidence |
+|:---|---:|:---|:---|:---|
+| /dev/sda1 | 1 GiB | FAT32 EFI System Partition | 2CE5-D0E8 | Kingston ESP; partition retained for the planned repair. Its current contents and exact mountpoint still require controlled inspection. |
+| /dev/sda2 | 16 GiB | Linux swap | d6475051-4ba4-4aa2-966a-309575fe1d13 | Swap partition; observed active in the Live session. |
+| /dev/sda3 | 500 GiB | ext4, installed Mint root / | 19705670-12b0-4218-b537-1664f375df4c | Contains Linux Mint 22 Wilma installation. |
+| /dev/sda4 | 436.9 GiB | ext4, installed /home | 7b6ff1ad-f835-4440-966c-d2c147008b2f | Contains the user's /laco home tree and is configured as /home in installed fstab. |
+
+Installed /etc/os-release confirms Linux Mint 22 (Wilma), Ubuntu Noble base. Installed kernels include 6.8.0-90, 6.8.0-139 and 6.8.0-147; the current kernel and initramfs symlinks point to 6.8.0-147. The installed GRUB configuration directory, grub.cfg, and /etc/default/grub exist. This confirms the installed OS and its existing boot configuration are present; it does not yet prove the installed GRUB EFI loader is valid or bootable.
+
+### Confirmed EFI UUID discrepancy
+
+The installed /etc/fstab contains an EFI mount entry using UUID=72EC-1F03 for /boot/efi. However, the actual Kingston EFI partition /dev/sda1 has UUID 2CE5-D0E8. This mismatch is confirmed. It is consistent with the possibility that Mint was originally configured to use an EFI partition on another disk, but the historical location is not yet proven. The planned repair must use the actual Kingston ESP UUID after a backup and explicit review.
+
+### Agreed target architecture — not yet executed
+
+The user approved the approach of retaining the existing 1 GiB Kingston EFI partition and replacing/rebuilding its boot files, rather than deleting or repartitioning the ESP.
+
+- Kingston remains independently bootable into Linux Mint through a clean GRUB EFI installation on Kingston's existing ESP.
+- Crucial retains its existing independent Microsoft EFI installation. Its Microsoft boot files must not be overwritten or moved.
+- Once the Crucial disk is re-enabled, the Kingston GRUB menu should offer both Linux Mint and Windows 11. The Windows menu entry should chainload the existing Microsoft EFI loader on the Crucial, not relocate Windows boot files.
+- The WDC data disk remains out of scope and untouched.
+- During the isolated recovery phase, only Mint on Kingston can be tested. Windows chainloading/detection must be validated later with the Crucial re-enabled.
+
+### Requested GRUB menu behaviour
+
+The user wants GRUB to remember the last operating system selected, with a 10-second menu timeout. This is intended to make Windows Update's multiple automatic restarts practical: after Windows is selected once, GRUB should keep Windows as the saved default on subsequent reboots until another OS is selected.
+
+Planned GRUB settings (to be applied only during the reviewed repair stage):
+
+    GRUB_DEFAULT=saved
+    GRUB_SAVEDEFAULT=true
+    GRUB_TIMEOUT=10
+    GRUB_TIMEOUT_STYLE=menu
+
+This saves the OS selected from the GRUB menu; it does not detect which OS initiated a reboot. With Windows saved as the selection, the 10-second timeout should expire into Windows on each subsequent restart. Selecting Mint later changes the saved default to Mint.
+
+### Next controlled actions
+
+1. Continue with read-only verification of the current mount table and the exact mount status of /dev/sda1; inspect the Kingston ESP contents without changing them.
+2. Before any write, establish a backup of the current Kingston ESP contents and verify the backup. Do not format or repartition the ESP.
+3. Review the installed fstab and GRUB configuration in context, including the confirmed EFI UUID mismatch. Present the exact proposed changes and rollback path before executing them.
+4. Only after explicit approval, correct the installed EFI mount reference to UUID 2CE5-D0E8, prepare the installed root/home/ESP mounts, and reinstall/rebuild GRUB for UEFI on the Kingston ESP.
+5. Verify the expected EFI files, generated GRUB menu, saved-default settings and Kingston UEFI boot entry before rebooting.
+6. Boot-test Mint with the Crucial still disabled. Then re-enable Crucial and validate Windows chainloading and the remembered-default behaviour, including a Windows restart sequence.
+7. Do not run Boot Repair's automatic/recommended repair blindly; inspect its proposed target and actions first.
+
+**Current state:** Linux Mint 22 installation identified; partition roles identified; independent Crucial Windows boot previously proven; Kingston ESP retained as repair target; architecture and saved-default GRUB behaviour agreed. **No EFI rebuild, fstab edit, GRUB installation, formatting, or partition changes have yet been performed.**
