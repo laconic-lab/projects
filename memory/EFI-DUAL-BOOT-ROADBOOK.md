@@ -367,3 +367,16 @@ From the installed Mint system, the user applied `efibootmgr -o 0000,0003,0001,0
 - No EFI files or partitions were changed by this NVRAM priority operation.
 
 Status: **Mint-first permanent firmware order — PASS.** Do not infer the separate mounted-filesystem state from the earlier empty multi-target `findmnt` output; inspect each mount explicitly before proceeding with Crucial reactivation.
+
+
+## 2026-11-18 — Installed Mint mount topology verified (LIV-REPAIR-09)
+
+Read-only mount and block-device audit from the installed Mint session:
+
+- Root `/`: `/dev/sda3`, ext4, mounted read-write; UUID `19705670-12b0-4218-b537-1664f375df4c`.
+- Home `/home`: `/dev/sda4`, ext4, mounted read-write; UUID `7b6ff1ad-f835-4440-966c-d2c147008b2f`.
+- EFI `/boot/efi`: `/dev/sda1`, vfat, mounted read-write; UUID `2CE5-D0E8`, PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed`.
+- Kingston swap: `/dev/sda2`, UUID `d6475051-4ba4-4aa2-966a-309575fe1d13`, active as swap.
+- The block-device listing shows only the Kingston SSD (`/dev/sda`) in this running system. Crucial and WDC were not present in this inventory.
+
+Status: **Installed Mint root/home/EFI mount topology — PASS.** The EFI partition is mounted read-write, but this audit performed no writes. Before re-enabling other drives, retain the scope boundary: re-enable Crucial only; keep WDC data disk disabled. Once booted, identify Crucial by model/size/partition UUID rather than assuming a device letter/name, and inspect its ESP read-only.
