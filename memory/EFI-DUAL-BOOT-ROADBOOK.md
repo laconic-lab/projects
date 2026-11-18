@@ -181,3 +181,24 @@ Installed package records show `grub-efi-amd64-bin`, `grub-efi-amd64-signed`, `g
 ### Safety and scope
 
 This inspection was read-only. No partition contents, installed configuration, NVRAM entries, or boot order were changed. Crucial Windows EFI remains outside the repair scope. The next step is to prepare and verify a backup of Kingston EFI, then review the exact proposed file and configuration changes before authorizing writes.
+
+
+## 2026-11-18 — Kingston EFI backup verified (LIV-BACKUP-01/02)
+
+A full archive of the Kingston EFI partition was created while `/dev/sda1` was mounted read-only at `/mnt/kingston-efi`.
+
+- Source: Kingston `/dev/sda1`, FAT32, UUID `2CE5-D0E8`, PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed`.
+- Destination: `/dev/sda4` mounted at `/media/mint/7b6ff1ad-f835-4440-966c-d2c147008b2f`, under `laco/EFI-RECOVERY-BACKUP`.
+- Archive: `kingston-efi-20261118T035437Z.tar`.
+- Archive size: 542 MiB (reported by `ls -lh`).
+- `tar -tf` readability check passed.
+- `tar -df archive -C source` reported no differences.
+- Entry counts matched after excluding tar's root marker `./`: 581 source entries, 581 archived entries.
+- SHA-256: `f724be2e16a11b6ce00ae3b4edb685cb7f169c04dd6085b984dddc4e59566507`.
+- Backup destination filesystem had approximately 394 GiB free after archive creation.
+
+The first backup script stopped at an incorrect entry-count comparison because it counted tar's `./` root marker. The follow-up verification corrected this and all checks passed. The second report reached its final line; the user observed a terminal crash/closure, but the report proves verification completed.
+
+This backup is on the same physical Kingston SSD as the EFI, so it protects against mistakes during EFI rebuilding but not whole-drive failure. It may be deleted later at the user's discretion after the repaired boot path is proven and an independent backup is available.
+
+No EFI contents or installed Mint configuration were modified during backup or verification.
