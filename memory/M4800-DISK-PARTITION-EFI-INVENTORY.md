@@ -3,7 +3,7 @@
 **Document type:** Hardware/storage reference  
 **Last evidence update:** 2026-11-18  
 **Related operational record:** [EFI Dual-Boot Roadbook](EFI-DUAL-BOOT-ROADBOOK.md)  
-**Status:** Partially current — disk identities and partition layout confirmed; latest post-reconnection NVRAM dump still outstanding.
+**Status:** Updated 2026-11-18 — full LIV-REPAIR-10 disk, partition-table and NVRAM output received.
 
 ---
 
@@ -40,7 +40,7 @@ Latest inventory supplied by the user: **LIV-REPAIR-10, 2026-11-18 04:51:45 UTC*
 | Data disk | `/dev/sdb` | WDC `WD10JPVX-75JC3T0` | `WX71EA45CJ8N` | 931.5 GiB | Detected; BitLocker partition; not mounted |
 | Linux Mint system disk | `/dev/sdc` | Kingston `SKC600MS1024G` | `50026B76872EB687` | 953.9 GiB | Detected; Mint running from it |
 
-The WDC was intended to remain disabled during the staged reintroduction of the Windows disk, but LIV-REPAIR-10 shows that it was visible to Linux. It was not mounted in the supplied inventory. Its presence is documented, not treated as permission to access it.
+The WDC was intended to remain disabled during the staged reintroduction of the Windows disk, but LIV-REPAIR-10 shows that it was visible to Linux. It was not mounted in the supplied inventory. Its presence is documented, not treated as permission to access it. Its partition table is MBR/DOS (disk identifier `0x5626013f`), with one type-7 HPFS/NTFS/exFAT partition; Linux identifies the on-disk content as BitLocker.
 
 ---
 
@@ -62,7 +62,7 @@ The WDC was intended to remain disabled during the staged reintroduction of the 
 - Its PARTUUID, `775149ef-10c2-4c7b-8192-fe8786b1ad41`, exactly matches the partition GUID in firmware entry **Boot0003 — Windows Boot Manager**.
 - Windows boot files were previously rebuilt onto this dedicated Crucial ESP using `bcdboot C:\Windows /s S: /f UEFI /v`; Windows reported success and the BCD was verified.
 - A prior isolated test with Crucial enabled and Kingston disabled successfully booted Windows. This establishes that the Crucial has an independent working Windows boot path.
-- The current LIV-REPAIR-10 excerpt does not include a fresh read-only directory listing of this ESP. Do not infer its present file listing from the partition inventory alone.
+- The full LIV-REPAIR-10 report confirms the Crucial partition table and firmware target. A fresh read-only directory listing of this ESP is still pending. Do not infer its present file listing from the partition inventory alone.
 
 Expected Windows loader path recorded in NVRAM:
 
@@ -156,12 +156,12 @@ The following entries were present in the full `efibootmgr -v` output from LIV-R
 | `Boot0001` | `*` | grub | Kingston ESP PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed` | `\EFI\GRUB\grubx64.efi` | Historical Kingston GRUB entry; retained |
 | `Boot000B` | `*` | UEFI: KINGSTON SKC600MS1024G | Kingston device/ESP path | Generic device path ending in `AMBO`; no explicit EFI filename | Generic Kingston firmware device entry |
 
-The active marker `*` is reproduced from the firmware output; it is not a statement that an entry is currently selected or currently executing. `BootCurrent` identifies the entry used for the current boot.
+The active marker `*` is reproduced from the firmware output; it is not a statement that an entry is currently selected or currently executing. `BootCurrent` identifies the entry used for the current boot. LIV-REPAIR-10 adds **Boot000C — UEFI: CT500MX500SSD1**, a generic device entry pointing to the Crucial ESP (same PARTUUID as Boot0003), with no explicit EFI filename.
 
 ### Last fully verified permanent BootOrder
 
 ```
-BootOrder: 0000,0003,0001,000B
+BootOrder: 0000,0003,0001,000B,000C
 ```
 
 Meaning:
@@ -170,13 +170,14 @@ Meaning:
 2. **Boot0003 — Windows Boot Manager (Crucial)** — second priority.
 3. **Boot0001 — legacy Kingston GRUB** — retained fallback.
 4. **Boot000B — generic Kingston device entry** — retained fallback.
+5. **Boot000C — generic Crucial device entry** — newly present after Crucial detection; points to Crucial ESP but does not name an EFI loader.
 
 At the time of LIV-REPAIR-08:
 - `BootCurrent: 0000`.
 - No `BootNext` was shown.
 - The order was applied with `efibootmgr -o 0000,0003,0001,000B` and immediately verified with a second full `efibootmgr -v`.
 
-**Freshness caveat:** LIV-REPAIR-10 was run after Crucial and WDC were detected again, but the user's pasted output ended before the `FIRMWARE ENTRIES` section. Therefore `0000,0003,0001,000B` is the last fully verified order, not yet a fresh post-reconnection confirmation. Re-run `sudo efibootmgr -v` and update this register if it differs.
+**LIV-REPAIR-10 post-reconnection confirmation:** the complete report confirms `BootCurrent: 0000` and `BootOrder: 0000,0003,0001,000B,000C`. Boot0000 remains first and points to the Kingston Mint shim. Boot0003 remains the Crucial Windows Boot Manager entry. Boot000C is an additional generic Crucial device entry. No BootNext is shown.
 
 ### Historical temporary USB entry
 
@@ -281,6 +282,20 @@ Dell's M4800 documentation describes its storage interfaces and supported config
 | 2026-11-18 | Kingston Mint EFI repaired; standalone Mint boot succeeded (LIV-REPAIR-06) |
 | 2026-11-18 | Post-boot NVRAM audit confirmed BootCurrent 0000; permanent order corrected (LIV-REPAIR-07/08) |
 | 2026-11-18 | Root, home and EFI mounts verified (LIV-REPAIR-09) |
-| 2026-11-18 | Crucial MX500, Kingston and WDC identities and partition layouts captured (LIV-REPAIR-10, partial pasted report) |
+| 2026-11-18 | Crucial MX500, Kingston and WDC identities and partition layouts captured; full GPT/MBR tables and refreshed UEFI entries confirmed (LIV-REPAIR-10) |
 
 **Maintenance rule:** update this inventory only from fresh command output. Preserve old identifiers and dates when device names or firmware order change; do not silently rewrite historical evidence.
+
+
+### LIV-REPAIR-10 complete report — partition-table and NVRAM details
+
+The complete user-provided report resolves the earlier partial-report caveat.
+
+- Crucial `/dev/sda`: GPT disk GUID `23A3A82A-FD2B-11EF-A09E-9943B1E44900`; four partitions and sector ranges agree with the inventory.
+- WDC `/dev/sdb`: DOS/MBR disk identifier `0x5626013f`; one type-7 partition spanning the data disk. Linux reports its content as BitLocker. No mountpoint.
+- Kingston `/dev/sdc`: GPT disk GUID `CF840EE5-6114-4F08-A3E9-E1015E2CF245`; four partitions. `fdisk` displays unusual GPT type descriptions (“Linux root verity (S390X)”) for the two ext4 partitions, while `lsblk` and the mounted system identify them as ext4 root and home. Treat this as a GPT type-label observation, not evidence that the filesystems are S390X or verity; do not change partition type GUIDs during this repair.
+- Refreshed firmware: `BootCurrent=0000`; `BootOrder=0000,0003,0001,000B,000C`.
+- Boot000C is newly visible: `UEFI: CT500MX500SSD1`, generic Crucial device entry pointing to Crucial ESP PARTUUID `775149ef-10c2-4c7b-8192-fe8786b1ad41`. It is not the same as the explicit Windows loader entry Boot0003.
+- Boot0000 Mint, Boot0001 historical grub, Boot0003 Windows Boot Manager, and Boot000B generic Kingston entry remain present.
+
+No partitions were mounted or modified by this inventory. Next operation remains a read-only inspection of the Crucial ESP, using its PARTUUID to identify it; WDC remains out of scope.
