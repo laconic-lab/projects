@@ -380,3 +380,15 @@ Read-only mount and block-device audit from the installed Mint session:
 - The block-device listing shows only the Kingston SSD (`/dev/sda`) in this running system. Crucial and WDC were not present in this inventory.
 
 Status: **Installed Mint root/home/EFI mount topology — PASS.** The EFI partition is mounted read-write, but this audit performed no writes. Before re-enabling other drives, retain the scope boundary: re-enable Crucial only; keep WDC data disk disabled. Once booted, identify Crucial by model/size/partition UUID rather than assuming a device letter/name, and inspect its ESP read-only.
+
+
+## 2026-11-18 — Crucial and Kingston detected together (LIV-REPAIR-10, partial report)
+
+After re-enabling storage and booting installed Mint, the read-only `lsblk` inventory identified:
+
+- Crucial MX500: current device `/dev/sda`, model `CT500MX500SSD1`, serial `1811E13386E5`, 465.8 GiB.
+- Crucial Windows ESP: `/dev/sda3`, FAT32 label `EFI-WIN`, UUID `D2C8-E433`, PARTUUID `775149ef-10c2-4c7b-8192-fe8786b1ad41`. This PARTUUID exactly matches the previously recorded firmware Windows Boot Manager entry Boot0003.
+- Kingston Mint: current device `/dev/sdc`, model `SKC600MS1024G`, 953.9 GiB; installed root `/dev/sdc3`, home `/dev/sdc4`, and EFI `/dev/sdc1` remain mounted at their expected mountpoints.
+- WDC data disk unexpectedly appears as `/dev/sdb`, model `WD10JPVX-75JC3T0`, serial `WX71EA45CJ8N`, 931.5 GiB. Its only partition is identified as BitLocker and has no mountpoint. It remains strictly out of scope: do not mount, unlock, or modify it.
+
+The user-provided LIV-REPAIR-10 output ends at the `DISK IDENTIFICATION` heading; the `fdisk -l` results and firmware-entry section were not included. Treat this test report as partial. Do not infer those missing results. Next obtain the remaining report lines, confirm BootOrder/Boot0003 after the disk re-detection, and only then perform a read-only inspection of the Crucial ESP. No partition was mounted or modified in the supplied output.
