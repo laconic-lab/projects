@@ -392,3 +392,27 @@ After re-enabling storage and booting installed Mint, the read-only `lsblk` inve
 - WDC data disk unexpectedly appears as `/dev/sdb`, model `WD10JPVX-75JC3T0`, serial `WX71EA45CJ8N`, 931.5 GiB. Its only partition is identified as BitLocker and has no mountpoint. It remains strictly out of scope: do not mount, unlock, or modify it.
 
 The user-provided LIV-REPAIR-10 output ends at the `DISK IDENTIFICATION` heading; the `fdisk -l` results and firmware-entry section were not included. Treat this test report as partial. Do not infer those missing results. Next obtain the remaining report lines, confirm BootOrder/Boot0003 after the disk re-detection, and only then perform a read-only inspection of the Crucial ESP. No partition was mounted or modified in the supplied output.
+
+
+## 2026-11-18 — LIV-REPAIR-10 complete disk and firmware report
+
+The user supplied the complete remainder of LIV-REPAIR-10, including `fdisk -l` and `efibootmgr -v`.
+
+### Partition table confirmation
+
+- Crucial MX500 `/dev/sda`, GPT disk GUID `23A3A82A-FD2B-11EF-A09E-9943B1E44900`; MSR, Windows NTFS, EFI-WIN ESP and Windows recovery partition confirmed.
+- WDC `/dev/sdb`, DOS/MBR identifier `0x5626013f`; one type-7 partition spanning the disk. `lsblk` identifies content as BitLocker. It remains unmounted and strictly out of scope.
+- Kingston `/dev/sdc`, GPT disk GUID `CF840EE5-6114-4F08-A3E9-E1015E2CF245`; EFI, swap, root and home partitions confirmed. Note: `fdisk` prints unusual GPT type descriptions (“Linux root verity (S390X)”) for root/home, while `lsblk` and live mounts confirm ext4. This is recorded as a partition-type metadata observation; no partition type edits are authorized.
+
+### Refreshed UEFI state
+
+- `BootCurrent: 0000`
+- `BootOrder: 0000,0003,0001,000B,000C`
+- Boot0000: Linux Mint Kingston shim — first.
+- Boot0003: Windows Boot Manager — Crucial ESP PARTUUID matches exactly.
+- Boot0001: historical Kingston GRUB entry.
+- Boot000B: generic Kingston device entry.
+- Boot000C: newly visible generic Crucial device entry, pointing to the same Crucial ESP as Boot0003 but without an explicit loader path.
+- No BootNext shown.
+
+The earlier LIV-REPAIR-10 “partial report” caveat is superseded. Disk and partition-table identification and current firmware entry/order are now confirmed. Next controlled operation: inspect the Crucial ESP read-only, identifying it by PARTUUID. Do not mount/unlock/touch WDC.
