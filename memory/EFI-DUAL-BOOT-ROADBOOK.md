@@ -150,3 +150,34 @@ This saves the OS selected from the GRUB menu; it does not detect which OS initi
 - The user-facing command output was supplied in chat; the user has local Desktop reports LIV-INSPECT-01-kingston-efi.txt, LIV-INSPECT-01-efi.txt and LIV-INSPECT-02-efi-contents.txt as applicable to the runs.
 
 **Next action:** keep the Kingston ESP mounted read-only while we inspect the installed Mint GRUB defaults/configuration and plan a verified full ESP backup. Before any write, unmount the read-only ESP and prepare an explicit backup destination outside the ESP (preferably the Live USB or another confirmed safe location); verify file count, byte totals and archive integrity. Do not remove or overwrite EFI/Microsoft, EFI/Boot or other existing content until the backup is verified and the exact replacement plan is approved. No fstab edit, GRUB installation, NVRAM write, format or partition change is authorized by this inspection.
+
+
+## 2026-11-18 — Mint GRUB configuration inspection (LIV-INSPECT-03)
+
+### Verified installed Mint GRUB settings
+
+Read-only inspection of the installed Linux Mint 22 system on Kingston `/dev/sda3` confirmed:
+
+- `GRUB_DEFAULT=saved`
+- `GRUB_SAVEDEFAULT=true`
+- `GRUB_TIMEOUT_STYLE=menu`
+- `GRUB_TIMEOUT=10`
+- `GRUB_DISABLE_OS_PROBER=false`
+
+These settings implement the requested remembered-selection behaviour: GRUB saves the selected entry, then defaults to that entry on subsequent boots, with a visible 10-second menu. Preserve these settings in the repaired installation. This is useful for Windows updates that trigger multiple restarts, because Windows remains the saved selection until another entry is selected.
+
+### Stale references identified
+
+- Installed `/boot/grub/grubenv` contains `saved_entry=osprober-efi-72EC-1F03`.
+- Installed `/boot/grub/grub.cfg` contains an old Windows Boot Manager entry searching for EFI UUID `72EC-1F03`.
+- Actual Kingston EFI partition `/dev/sda1` has UUID `2CE5-D0E8` (PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed`).
+- The old Windows entry therefore must not be assumed valid for the current Kingston EFI layout. Regenerate GRUB configuration after mounting the correct EFI partition and correcting the installed fstab.
+- The Kingston EFI contains Microsoft boot files as well as legacy GRUB/Arch artefacts. Preserve a full backup before any replacement; do not delete the Microsoft directory as part of the Mint repair.
+
+### Package evidence
+
+Installed package records show `grub-efi-amd64-bin`, `grub-efi-amd64-signed`, `grub2-common`, and `os-prober` installed. The generic `grub-efi` and `grub-efi-amd64` package names are not installed. Confirm the exact package requirements for the repair before installing anything.
+
+### Safety and scope
+
+This inspection was read-only. No partition contents, installed configuration, NVRAM entries, or boot order were changed. Crucial Windows EFI remains outside the repair scope. The next step is to prepare and verify a backup of Kingston EFI, then review the exact proposed file and configuration changes before authorizing writes.
