@@ -1,0 +1,18 @@
+{
+  "project": "NVIDIA-Recovery",
+  "snapshot_date": "2026-11-01",
+  "scripts_shell_syntax_checked": true,
+  "automated_correction_script_included": false,
+  "files": [
+    "docs/01-investigation-summary.md",
+    "docs/02-before-and-current-state.md",
+    "docs/03-backup-and-recovery-plan.md",
+    "docs/04-package-dependency-analysis.md",
+    "docs/05-DKMS-and-driver-reference.md",
+    "docs/06-future-correction-policy.md",
+    "docs/INDEX.md",
+    "docs/README.md",
+    "scripts/nvidia-backup.sh",
+    "scripts/nvidia-diagnostic.sh"
+  ]
+}

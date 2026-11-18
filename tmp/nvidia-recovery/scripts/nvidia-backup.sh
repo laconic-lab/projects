@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# Targeted NVIDIA backup.
+# Reads protected paths using sudo; does not restore or modify them.
+# Usage: bash nvidia-backup.sh [optional-exact-path-to-secureupdate]
+
+set -Eeuo pipefail
+umask 077
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+BACKUP_DIR="$PROJECT_DIR/backups"
+
+mkdir -p "$BACKUP_DIR"
+
+for cmd in sudo tar gzip mktemp date hostname dkms dpkg-query apt-mark modinfo; do
+    command -v "$cmd" >/dev/null 2>&1 || {
+        echo "Required command missing: $cmd" >&2
+        exit 1
+    }
+done
+
+OPTIONAL="${1:-}"
+
+if [ -n "$OPTIONAL" ] && [ ! -f "$OPTIONAL" ]; then
+    echo "Not a regular file: $OPTIONAL" >&2
+    exit 1
+fi
+
+# Authenticate before creating backup artifacts.
+sudo -v
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+STAGE="$(mktemp -d "$BACKUP_DIR/.stage-$STAMP.XXXXXX")"
+TMP_ARCHIVE=""
+ARCHIVE="$BACKUP_DIR/nvidia-recovery-$STAMP.tar.gz"
+
+cleanup() {
+    local rc=$?
+
+    if [ -n "$TMP_ARCHIVE" ] && [ -e "$TMP_ARCHIVE" ]; then
+        rm -f -- "$TMP_ARCHIVE"
+    fi
+
+    if [ -n "$STAGE" ] && [ -d "$STAGE" ]; then
+        rm -rf -- "$STAGE"
+    fi
+
+    exit "$rc"
+}
+trap cleanup EXIT
+
+if [ -e "$ARCHIVE" ]; then
+    echo "Archive already exists; refusing to overwrite: $ARCHIVE" >&2
+    exit 1
+fi
+
+mkdir -p "$STAGE/system-state" "$STAGE/config"
+
+echo "Collecting system state..."
+
+uname -a > "$STAGE/system-state/uname.txt"
+cat /proc/cmdline > "$STAGE/system-state/proc-cmdline.txt" 2>/dev/null || true
+dkms status > "$STAGE/system-state/dkms-status.txt" 2>&1 || true
+apt-mark showhold > "$STAGE/system-state/apt-holds.txt" 2>&1 || true
+
+dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package} ${Version}\n' 2>/dev/null \
+    | grep -Ei 'nvidia|libnvidia' \
+    > "$STAGE/system-state/nvidia-packages.txt" || true
+
+cat /proc/driver/nvidia/version \
+    > "$STAGE/system-state/loaded-nvidia-version.txt" 2>&1 || true
+
+modinfo -F version nvidia \
+    > "$STAGE/system-state/modinfo-version.txt" 2>&1 || true
+
+modinfo -n nvidia \
+    > "$STAGE/system-state/modinfo-path.txt" 2>&1 || true
+
+echo "Checking selected protected paths..."
+
+SYSTEM_PATHS=()
+
+for p in \
+    etc/modprobe.d \
+    etc/X11/xorg.conf \
+    etc/default/grub \
+    var/lib/nvidia \
+    usr/src/nvidia-470.256.02
+do
+    if sudo test -e "/$p"; then
+        SYSTEM_PATHS+=("$p")
+    else
+        echo "Not present: /$p" >> "$STAGE/system-state/missing-paths.txt"
+    fi
+done
+
+if [ -n "$OPTIONAL" ]; then
+    cp -p -- "$OPTIONAL" "$STAGE/config/secureupdate"
+fi
+
+cat > "$STAGE/README.txt" <<EOF
+Targeted NVIDIA recovery backup
+Created: $(date --iso-8601=seconds 2>/dev/null || date)
+Host: $(hostname)
+
+This is a preservation snapshot, not an automated restore package.
+System paths are archived directly with elevated read access.
+Numeric ownership, file permissions, POSIX ACLs, extended attributes, and available SELinux contexts are preserved.
+
+Do not blindly restore the installer database or run the NVIDIA uninstaller.
+Review docs/03-backup-and-recovery-plan.md before recovery.
+EOF
+
+echo "Preparing temporary archive..."
+
+TMP_ARCHIVE="$(mktemp "$BACKUP_DIR/.nvidia-recovery-$STAMP.XXXXXX.tmp")"
+
+# Root reads protected paths directly.
+# The normal user's shell creates and owns the archive file.
+sudo tar --create --gzip --file=- --numeric-owner --acls --xattrs --selinux \
+    -C "$STAGE" . \
+    -C / "${SYSTEM_PATHS[@]}" \
+    > "$TMP_ARCHIVE"
+
+chmod 600 "$TMP_ARCHIVE"
+
+echo "Verifying archive integrity and generating listing..."
+
+LISTING="$STAGE/archive-listing.txt"
+tar -tzf "$TMP_ARCHIVE" > "$LISTING"
+
+echo "Archive listing (first 100 entries):"
+sed -n '1,100p' "$LISTING"
+
+# Publish only after successful integrity verification.
+mv -- "$TMP_ARCHIVE" "$ARCHIVE"
+TMP_ARCHIVE=""
+
+echo
+echo "Backup created: $ARCHIVE"
+echo "Archive size: $(du -h "$ARCHIVE" | awk '{print $1}')"
+echo "Permissions: $(stat -c '%a' "$ARCHIVE")"
+echo "Backup complete. No driver/package/configuration changes performed."
