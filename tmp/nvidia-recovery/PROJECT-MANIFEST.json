@@ -1,6 +1,6 @@
 {
   "project": "NVIDIA-Recovery",
-  "snapshot_date": "2026-11-01",
+  "snapshot_date": "2026-11-18",
   "scripts_shell_syntax_checked": true,
   "automated_correction_script_included": false,
   "files": [
@@ -12,6 +12,8 @@
     "docs/06-future-correction-policy.md",
     "docs/INDEX.md",
     "scripts/nvidia-backup.sh",
-    "scripts/nvidia-diagnostic.sh"
+    "scripts/nvidia-diagnostic.sh",
+    "docs/07-secureupdate-optimization.md",
+    "scripts/SecureUpdate_by_ChatGPT.sh"
   ]
 }
