@@ -292,3 +292,44 @@ Repair stages 1–5 completed; Mint has not yet booted from the new entry. Befor
 After Mint boots, re-enable Crucial in a separate phase and configure/test Windows chainloading from Crucial's independent Microsoft EFI. The os-prober Windows entry currently points to the historical Kingston EFI and must not be used as the final Windows path.
 
 Thermal instability may be related to Live-session fan/graphics behaviour, as the user suspects, but causation has not been established. Keep remaining Live-session work brief and stop if the machine becomes unusually hot or unstable.
+
+## 2026-11-18 — Kingston standalone Mint boot SUCCESS (LIV-REPAIR-06)
+
+The rebuilt Kingston EFI boot path has now completed its first real boot into the installed Linux Mint Cinnamon desktop. This supersedes the previous status that Boot0000 was registered but not yet tested.
+
+### One-time boot and clean shutdown of recovery environment
+- Before leaving the Live USB, verified Boot0000* `Linux Mint (Kingston)` points to Kingston ESP PARTUUID `da38cc52-46f9-4f68-85dd-fc2555c3c0ed` and loader `\EFI\ubuntu\shimx64.efi`.
+- An initial preparation script stopped because it checked an obsolete temporary mountpoint (`/mnt/kingston-efi`). No unmount or BootNext operation occurred in that failed attempt.
+- Corrected the check to the actual installed-system mount path `/mnt/mint-root/boot/efi`. The second run successfully unmounted chroot bind mounts, installed EFI, installed home and installed root without force/lazy unmounting.
+- Set one-time `BootNext=0000`. Verified permanent `BootOrder=0003,000B,000C` was unchanged. Kingston root and EFI were unmounted before reboot; the Live session's separate `/dev/sda4` backup/home mount remained mounted.
+- The user rebooted and reached the installed Mint Cinnamon desktop. This is a successful standalone Kingston boot with Crucial and WDC still disabled. It validates the new Kingston firmware entry, signed shim/GRUB path, generated Mint GRUB configuration and installed Mint system working together. The exact GRUB menu display/timeout behaviour was not separately reported, so retain that as pending visual confirmation.
+
+### Installed system evidence after successful boot
+User-provided system report:
+- OS: Linux Mint 22 x86_64; Cinnamon 6.4.8; X11/Muffin.
+- Host: Dell Precision M4800.
+- Running kernel: `6.8.0-147-generic`.
+- External Samsung U28D590 display active at 3840×2160, 60 Hz.
+- Root filesystem: 35.77 GiB used of 491.08 GiB; `/home`: 13.61 GiB used of 428.94 GiB.
+- NVIDIA Quadro K2100M detected; NVIDIA 470.256.02 loaded and verified.
+- `secureupdate` pre- and post-upgrade checks both confirmed NVIDIA 470.256.02 loaded and its DKMS module installed for kernel 6.8.0-147.
+
+### Package update performed after first boot
+The user's `secureupdate` completed an APT upgrade:
+- 56 packages upgraded, 0 newly installed, 0 removed; 16 not upgraded.
+- 497 MB downloaded; package configuration and initramfs regeneration completed.
+- Initramfs regenerated for kernel 6.8.0-147 and reported resume UUID `d6475051-4ba4-4aa2-966a-309575fe1d13` (Kingston swap).
+- APT reported phased updates for Mesa-related packages and kept back `linux-generic`, `linux-headers-generic`, `linux-image-generic`, `nvidia-dkms-470-server`, and `nvidia-driver-470-server`.
+- No autoremove candidates were proposed.
+- Post-upgrade verification still showed kernel 6.8.0-147 running and NVIDIA 470.256.02 loaded/installed for that kernel.
+- DKMS inventory also showed `nvidia/580.178.04` installed for kernel 6.8.0-139 and built for 6.8.0-147, alongside the active 470.256.02 module. This is an observed coexistence state; do not remove, switch, or rebuild drivers without a separate reviewed diagnosis.
+
+### Updated status and next phase
+- **Kingston standalone Linux Mint boot: OK / SUCCESS.**
+- **Crucial independent Windows boot: previously OK**, tested with Kingston disabled.
+- **WDC data disk: untouched / out of scope.**
+- Kingston EFI recovery archive remains at `/dev/sda4` under `laco/EFI-RECOVERY-BACKUP`; retain it until the complete dual-boot configuration is validated and an independent backup exists.
+- Do not change kernel or NVIDIA driver state as part of the EFI work.
+- Next, perform a short read-only audit from the installed Mint system: current firmware BootCurrent/BootOrder, `findmnt` for `/`, `/home`, `/boot/efi`, `grub-editenv list`, and GRUB defaults. Confirm the remembered Mint saved entry and inspect the visible GRUB timeout behaviour if it was not observed during the successful boot.
+- Only after the Kingston boot is stable, re-enable the Crucial disk (leave WDC disabled initially if practical), identify its current ESP PARTUUID from Linux, and add a deliberate GRUB chainloader entry to the Crucial `EFI/Microsoft/Boot/bootmgfw.efi`. Do not use the historical Kingston Microsoft entry found by os-prober as the final Windows route. Preserve the independent Crucial Windows EFI.
+- Later test Windows via the new GRUB entry, then test the user's desired saved-default/10-second behaviour. Update the firmware-entry register only from fresh `efibootmgr -v` evidence; do not assume the one-time BootNext entry was promoted into permanent BootOrder.
