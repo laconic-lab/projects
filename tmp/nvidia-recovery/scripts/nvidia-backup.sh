@@ -129,6 +129,38 @@ echo "Verifying archive integrity and generating listing..."
 LISTING="$STAGE/archive-listing.txt"
 tar -tzf "$TMP_ARCHIVE" > "$LISTING"
 
+# Verify that every protected system path selected above is actually present
+# in the archive. Normalize tar's optional leading ./ and directory suffix.
+for p in "${SYSTEM_PATHS[@]}"; do
+    if ! awk -v wanted="$p" '
+        {
+            name = $0
+            sub(/^\\.\\//, "", name)
+            sub(/\\/$/, "", name)
+            if (name == wanted || index(name, wanted "/") == 1) found = 1
+        }
+        END { exit !found }
+    ' "$LISTING"; then
+        echo "Archive verification failed; missing protected path: /$p" >&2
+        exit 1
+    fi
+done
+
+if [ -n "$OPTIONAL" ] && ! awk '
+    {
+        name = $0
+        sub(/^\\.\\//, "", name)
+        sub(/\\/$/, "", name)
+        if (name == "config/secureupdate" || index(name, "config/secureupdate/") == 1) found = 1
+    }
+    END { exit !found }
+' "$LISTING"; then
+    echo "Archive verification failed; optional SecureUpdate copy is missing." >&2
+    exit 1
+fi
+
+echo "Verified all selected protected paths are present in the archive."
+
 echo "Archive listing (first 100 entries):"
 sed -n '1,100p' "$LISTING"
 
