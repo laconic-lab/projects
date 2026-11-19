@@ -10,7 +10,7 @@ The backup script captures, when present:
 - Kernel, DKMS, package, hold and active-driver state
 - Optional `secureupdate` script when its exact path is passed as an argument
 
-Archives are written under this project's `backups/` directory.
+Archives are written under this project's `backups/` directory. The script verifies tar/gzip integrity and now checks that every selected protected system path (and optional SecureUpdate copy, if supplied) is present in the archive before publishing it. The archive is created with private permissions (`0600`).
 
 ## Run
 ```bash
@@ -25,10 +25,12 @@ bash scripts/nvidia-backup.sh /exact/path/to/secureupdate
 ## Limitations
 This is not a full system image and does not back up the entire OS or package payloads. It is not an automated restore package. The installer database contains historical mixed-version records; preserve it as evidence, but do not blindly restore it or run its uninstaller.
 
-Verify an archive:
+Verify an archive manually:
 ```bash
-tar -tzf backups/nvidia-recovery-*.tar.gz | less
+tar -tzf /exact/path/to/nvidia-recovery-YYYYMMDD-HHMMSS.tar.gz | less
 ```
+
+The script's built-in verification checks archive readability and the presence of each protected path selected during that run. It does not compare every archived file's contents against the live filesystem, prove that a future restore will boot, or include kernel package payloads.
 Keep a copy on external storage before package changes.
 
 ## Recovery principle
