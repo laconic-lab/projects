@@ -67,7 +67,7 @@ Do not assume set -e, set -u or set -o pipefail makes asynchronous logging synch
 
 These examples are patterns, not permission to run unreviewed commands. Adapt them to the actual shell and task.
 
-### 3.1 Bash: foreground pipeline for finite scripts
+### 3.1 Bash: foreground pipeline for finite, non-interactive scripts
 
 ~~~bash
 #!/usr/bin/env bash
@@ -88,6 +88,8 @@ fi
 ~~~
 
 A foreground pipeline keeps the logger attached to the script's execution. With pipefail, a failure in the grouped commands is reflected in the pipeline status. Do not append "|| true" to conceal failures.
+
+**Scope restriction:** this pattern is for finite, non-interactive work only. It is not an acceptable wrapper for an interactive command merely because the pipeline is in the foreground. In particular, do not place an interactive command inside a grouped block whose output is piped to `tee`.
 
 This pattern is not sufficient if the script starts background jobs, daemons, watchers or detached commands. Explicitly manage those processes and their output handles. Prefer not to start them from an audit script.
 
@@ -141,7 +143,7 @@ The assistant must check:
 - [ ] Logging is foreground and lifecycle-managed.
 - [ ] Output is bounded by time, line count, size or a clear completion condition.
 - [ ] No accidental continuous stream, polling loop or background writer exists.
-- [ ] Interactive applications retain terminal access.
+- [ ] Interactive applications retain terminal access and are not placed inside pipelines, logging wrappers or timeout wrappers that can interfere with terminal interaction, authentication or process lifecycle.
 - [ ] Child processes are waited for or explicitly managed.
 - [ ] Exit codes and errors remain visible.
 - [ ] Elevated privileges and destructive effects are explained.
@@ -175,6 +177,31 @@ For an interactive test:
 7. Verify that no process started by the test remains unexpectedly.
 
 Do not pipe an interactive TUI's standard output through tee as a substitute for an application log.
+
+### 6.1 Absolute separation of interactive execution and report logging
+
+Interactive commands must remain directly attached to the user's terminal. Do not embed them inside a shell pipeline, grouped logging pipeline, `tee` pipeline, command-substitution logging wrapper, asynchronous redirection, or timeout wrapper when that arrangement can interfere with normal terminal interaction, authentication, signals, or process lifecycle.
+
+This rule explicitly includes, but is not limited to:
+- `sudo apt install` and `sudo apt-get install`;
+- package-manager upgrades, removals and configuration operations;
+- commands that request a sudo or other interactive authentication password;
+- installers and package-configuration dialogs;
+- terminal user interfaces (TUIs);
+- commands requiring interactive confirmation or user input.
+
+**Mandatory execution model:**
+1. Complete the read-only preflight and verify the exact intended operation.
+2. Explain the operation, required privileges, risks, expected duration and safe interruption procedure before execution.
+3. Run the interactive command directly in the user's terminal. Do not pipe it through `tee`, redirect its terminal streams to an asynchronous logger, or wrap it in `timeout`.
+4. Allow the user to see and interact with the program normally, including authentication and package-configuration prompts.
+5. Wait for the interactive process to terminate and capture its actual exit status directly.
+6. Only after it has terminated, perform separate bounded, non-interactive verification and reporting, if authorized and appropriate.
+7. Report the actual operation result. Never substitute the exit status of a surrounding shell group, logging process, or subsequent `echo` command for the interactive command's exit status.
+
+A report requirement does not authorize changing the execution model of an interactive command. Logging must not take priority over terminal interaction. If safe logging cannot be combined with direct interactive execution, run the interactive operation directly and record its result through separate post-operation verification. Do not invent a logging workaround.
+
+**Authentication input boundary:** ordinary `tee` pipelines capture the standard output and standard error that are connected to them; they do not, by themselves, capture keyboard input from the terminal. Do not claim that this guarantees a password was not exposed by every other mechanism. Never deliberately echo, store, log, or transmit passwords. Keep authentication prompts on the user's terminal and do not redirect or record terminal input.
 
 ## 7. Emergency response when a report grows unexpectedly
 
@@ -216,7 +243,8 @@ This standard is mandatory:
 - Use bounded commands and bounded report output.
 - Never use asynchronous Bash process substitution such as exec > >(tee ...) for report logging.
 - Keep logging in the foreground with a defined lifecycle; account for child/background processes.
-- Preserve interactive terminal applications and TUIs.
+- Preserve interactive terminal applications and TUIs; never put interactive commands, sudo authentication prompts or installers inside tee/logging pipelines or timeout wrappers.
+- Run interactive operations directly in the terminal; perform bounded non-interactive verification and reporting only after they exit.
 - Never leave a report writer running after the script completes.
 - Do not overwrite, truncate or delete existing reports without approval.
 - Explain risks, scope, expected duration, stop procedure and rollback before consequential commands.
