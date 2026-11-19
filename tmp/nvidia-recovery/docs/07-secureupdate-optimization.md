@@ -2,7 +2,7 @@
 
 ## Status
 
-- **Phase:** Reporting redesign implemented; awaiting live report-only validation
+- **Phase:** Reporting redesign validated in local candidate's report-only mode; GitHub script synchronization remains pending
 - **Started:** 2026-11-18
 - **Target system:** Linux Mint 22.x / Ubuntu 24.04 Noble
 - **Current running kernel:** `6.8.0-147-generic`
@@ -282,8 +282,12 @@ The normal mode continues to run `apt-get update`, conservative `apt-get upgrade
 
 - Local `bash -n` syntax validation: **passed**.
 - ShellCheck: unavailable in the validation environment.
-- Live execution on the M4800: **not yet performed**.
+- Live execution on the M4800: **report-only mode passed twice** on the local candidate on 2026-11-19; normal maintenance mode has not been run as part of this validation.
 - Package/driver changes made during implementation: **none**.
 - Kernel 6.8.0-149: remains pending; no installation was attempted.
 
-The first live test must use `--report-only`. Review the resulting report against Update Manager before running the normal maintenance mode. The expected kernel evidence is the 6.8.0-149 metapackage candidate in the APT candidate list and the corresponding new kernel packages in the full-upgrade simulation section.
+The validated local candidate's two `--report-only` runs showed the expected kernel 6.8.0-149 metapackage candidate and corresponding image/modules/headers/tools proposed by the full-upgrade simulation. The normal upgrade simulation reported 10 upgrades, 0 new installs, 0 removals and 16 not upgraded; the full-upgrade simulation proposed 13 upgrades, 7 new installs and 0 removals. NVIDIA 470 holds were listed separately; Flatpak reported no pending updates. Both runs exited 0 and made no package, kernel or driver changes.
+
+The second run also verified the two local reporting corrections: classified lines render actual terminal color rather than literal `\\033` text, and the full full-upgrade simulation is retained rather than filtering it down to `Inst` lines.
+
+**Important repository synchronization note:** the currently committed `scripts/SecureUpdate_by_ChatGPT.sh` is still the pre-correction version. The tested local candidate is `9f21f1e445dc87f5c88bb957930cbaa9462458ea5cc97479e3802b53a94ecef6`, at `/home/laco/Documents/NVIDIA-Recovery/scripts/SecureUpdate_by_ChatGPT-candidate.sh`. It must be uploaded/synchronized before this repository script can be considered canonical. The existing `/home/laco/SecureUpdate_by_ChatGPT.sh` has not been replaced. No normal maintenance-mode run has been performed.
