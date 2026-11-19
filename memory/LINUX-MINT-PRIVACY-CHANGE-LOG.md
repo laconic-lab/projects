@@ -8,9 +8,9 @@
 ## 2026-11-19 — Initial privacy-related changes
 
 ### kerneloops
-- **Decision:** Disable the kernel-oops collection/reporting daemon.
-- **Action:** Set `allow-submit = no` and `allow-pass-on = no` in `/etc/kerneloops.conf`; disabled and stopped `kerneloops.service`.
-- **Observation:** Verification reported service `disabled` and `inactive`; both configuration values were `no`.
+- **Decision:** Keep the permission-based submission policy while preventing third-party forwarding; disable the daemon itself.
+- **Action:** Set `allow-submit = ask` and `allow-pass-on = no` in `/etc/kerneloops.conf`; disabled and stopped `kerneloops.service`.
+- **Observation:** Service verified `disabled` and `inactive`. Configuration values are `ask` and `no`, respectively. The presence of a working permission prompt has not been verified.
 - **Backup:** `/var/backups/mint-privacy-20261119_043528/kerneloops.conf`
 
 ### GeoClue
@@ -43,7 +43,8 @@
 - **Action:** Ran `sudo apt-get remove gnome-online-accounts`.
 - **Observation:** APT removed `gnome-online-accounts` version `3.50.4-0ubuntu2` and `gnome-online-accounts-gtk` version `3.50.7+zara`. The prior removal simulation proposed only these two packages.
 - **Dependency check:** Installed reverse dependencies identified only `gnome-online-accounts-gtk`. No MintUpdate, APT, login, or essential system service dependency was identified.
-- **Related component:** `gvfs-goa-volume-monitor.service` was running before removal. Its post-removal state remains to be verified.
+- **Session processes:** The existing `goa-daemon` and `goa-identity-service` processes continued running from deleted executables after package removal. They are expected to disappear after logout/login.
+- **GVFS integration:** `gvfs-goa-volume-monitor.service` is provided by the retained `gvfs-backends` package. The service was masked at user level and stopped; verification returned `masked` and `inactive`. The package-owned D-Bus activation file was left unchanged. Other GVFS components were retained.
 
 ## Retained components
 
@@ -52,8 +53,9 @@
 | mintreport | Retain. Startup entry was already disabled by the user. Inspected upload actions require explicit user interaction. |
 | MintUpdate and package update timers | Retain. Required for normal update functionality. |
 | Apport support libraries (`python3-apport`, `python3-problem-report`) | Retain and monitor. Main `apport` package and `apport.service` were absent during inventory. |
-| kerneloops package | Still installed; its service is disabled and stopped. |
+| kerneloops package | Still installed; service disabled and stopped; submission policy set to `ask`, third-party forwarding set to `no`. |
 | GeoClue package | Still installed; its service is masked and stopped. |
+| GVFS packages | Retain; only the GOA volume-monitor user service is masked. |
 | base-files | Retain. |
 
 ## Backup
@@ -62,7 +64,6 @@ Configuration and original autostart files were copied to:
 `/var/backups/mint-privacy-20261119_043528`
 
 ## Pending verification
-- Verify that GOA D-Bus activation files and processes are absent after package removal.
-- Check the post-removal state of `gvfs-goa-volume-monitor.service`.
+- Verify that the two deleted GOA session processes have exited after logout/login.
 - Verify GeoClue remains masked and the demo-agent autostart override is effective after a new login.
 - Continue auditing other installed background components for external communication capability.
