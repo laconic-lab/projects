@@ -173,6 +173,122 @@ After installation, run the appropriate dependency-map update for the target ker
 
 The runfile and APT packages may share a DKMS module identity. Package dependencies and maintainer-script risks documented in the project's package and correction-policy references remain relevant. Do not casually install/remove NVIDIA packages, invoke `nvidia-uninstall`, or remove a working DKMS registration.
 
+
+### 4.4 Proven recovery sequence: NVIDIA 470 over NVIDIA 580 (M4800, kernel 151)
+
+This subsection records the successful, evidence-based sequence used on Linux Mint 22 / Dell Precision M4800 when the target kernel had NVIDIA 580.178.04 installed while the working driver branch was NVIDIA 470.256.02.
+
+**Why the ordinary install path was not sufficient:** DKMS 3.0.11 performs a version-sanity check when multiple versions share the DKMS module identity `nvidia`. The newer 580.178.04 registration can cause an ordinary installation of the older 470.256.02 to be rejected unless the install is explicitly forced. The source inspection showed that `--force` allows the intended older version to overwrite the target kernel's module files. On Ubuntu/Debian-style systems DKMS copies the selected files into the target kernel's `updates/dkms` directory; it does not preserve the displaced files. Therefore, **back up the target's currently installed modules before using `--force`**.
+
+The following is the order actually followed. Replace the example kernel, driver version and backup timestamp only after fresh diagnostics. Do not run the install command until the backup and its checksums have been verified.
+
+**Step 1 — Build the intended version for the exact target kernel**
+```bash
+KERNEL="6.8.0-151-generic"
+DRIVER_VERSION="470.256.02"
+
+sudo dkms build -m nvidia -v "$DRIVER_VERSION" -k "$KERNEL"
+dkms status
+```
+
+Confirm the build succeeds and all expected artifacts exist under:
+`/var/lib/dkms/nvidia/470.256.02/6.8.0-151-generic/x86_64/module/`
+
+Inspect their versions, target-kernel `vermagic`, signer/signature and build log. A successful build changes the relevant DKMS state to `built`; it does not install 470 over 580.
+
+**Step 2 — Inspect the install conflict and target files**
+
+Before installation, inspect the installed DKMS implementation's version-sanity and install-copy behavior, then identify the exact target files. In this successful case the target directory was:
+```text
+/lib/modules/6.8.0-151-generic/updates/dkms/
+```
+
+The five NVIDIA 580 files present there were:
+```text
+nvidia.ko.zst
+nvidia-uvm.ko.zst
+nvidia-modeset.ko.zst
+nvidia-drm.ko.zst
+nvidia-peermem.ko.zst
+```
+
+Do not infer that these are the only files to back up on another machine or kernel; inventory the actual target directory first.
+
+**Step 3 — Back up the five target modules before overwrite**
+
+The verified backup used for this transition was:
+```text
+/var/backups/nvidia-kernel-151-pre-470-20261119_202953
+```
+
+Equivalent guarded commands for this exact case:
+```bash
+KERNEL="6.8.0-151-generic"
+TARGET_DIR="/lib/modules/$KERNEL/updates/dkms"
+BACKUP="/var/backups/nvidia-kernel-151-pre-470-20261119_202953"
+
+sudo install -d -o root -g root -m 0700 "$BACKUP"
+
+for module in \
+    nvidia.ko.zst \
+    nvidia-uvm.ko.zst \
+    nvidia-modeset.ko.zst \
+    nvidia-drm.ko.zst \
+    nvidia-peermem.ko.zst
+do
+    sudo test -f "$TARGET_DIR/$module" || {
+        echo "Missing expected target module: $TARGET_DIR/$module" >&2
+        exit 1
+    }
+    sudo cp -a "$TARGET_DIR/$module" "$BACKUP/"
+done
+
+sudo bash -c 'sha256sum "$1"/*.ko.zst' _ "$BACKUP"
+```
+
+Compare each backup checksum with the corresponding original target file before proceeding. The original and backup checksums matched for all five files in this transition. Keep the backup outside `/lib/modules`; do not delete it after installation or first boot.
+
+**Step 4 — Install 470 for the target kernel using the reviewed force option**
+
+Only after reviewing the DKMS behavior, confirming the backup and obtaining approval:
+```bash
+sudo dkms install -m nvidia -v 470.256.02 \
+    -k 6.8.0-151-generic --force
+```
+
+The `--force` option is intentional and narrowly scoped to the exact module/version/kernel tuple. It is not a general remedy for arbitrary DKMS errors. Do not use `--all`, do not remove either DKMS version globally, and do not alter kernel 147.
+
+In this case DKMS installed all five 470 modules into:
+`/lib/modules/6.8.0-151-generic/updates/dkms/`
+and ran `depmod`. The 580 DKMS registration remained present but changed from `installed` to `built` for kernel 151.
+
+**Step 5 — Verify the installed files before reboot**
+
+At minimum:
+```bash
+KERNEL="6.8.0-151-generic"
+
+dkms status
+readlink -f /var/lib/dkms/nvidia/470.256.02/"$KERNEL"/x86_64
+for module in nvidia nvidia-modeset nvidia-drm nvidia-uvm nvidia-peermem; do
+    echo "===== $module ====="
+    modinfo -k "$KERNEL" -F filename "$module"
+    modinfo -k "$KERNEL" -F version "$module"
+    modinfo -k "$KERNEL" -F vermagic "$module"
+    modinfo -k "$KERNEL" -F signer "$module"
+done
+
+for module in nvidia nvidia_modeset nvidia_drm nvidia_uvm; do
+    sudo modprobe -S "$KERNEL" --show-depends "$module"
+done
+```
+
+Also compare every installed `.ko.zst` checksum with its corresponding DKMS build artifact. In this case all five installed files were byte-for-byte identical to the build artifacts. The UVM module did not expose a `version` field through `modinfo`; its matching checksum, dependency on `nvidia`, target-kernel vermagic and valid signature established its identity.
+
+Check the target initramfs and compare with the known-good kernel's initramfs. In this case neither initramfs contained proprietary NVIDIA modules and neither had explicit NVIDIA/Nouveau initramfs module configuration. No initramfs regeneration was necessary solely because of this DKMS replacement. Do not rebuild initramfs by habit; do so only when inspection shows it is required.
+
+**Important:** the pre-reboot gate in Phase 5 still applies in full. The command sequence above does not itself authorize reboot. The target module paths, versions, signatures, dependency resolution, initramfs state, fallback kernel and backup must all be checked first.
+
 ## Phase 5 — Mandatory pre-reboot verification
 
 **This phase is a hard gate. Do not boot the target kernel until every applicable check passes.**
@@ -184,7 +300,7 @@ While still booted into the previous known-good kernel:
 3. Verify module file paths, versions, `vermagic`, compression format and signer/signature details.
 4. Confirm the target kernel's module dependency map has been regenerated and resolves the expected module paths.
 5. Inspect the target initramfs. If it contains NVIDIA modules, verify that they match the intended version. If it contains stale/conflicting modules, or if the installation requires updated initramfs content, regenerate the target initramfs using the distribution's supported procedure and inspect it again.
-6. Review the package state and DKMS registrations for evidence that a package trigger or later autoinstall could immediately restore a conflicting driver version. Do not assume that manually installing one version permanently resolves a conflict while another version remains registered or package-managed.
+6. Review the package state and DKMS registrations for evidence that a package trigger or later autoinstall could immediately restore a conflicting driver version. Distinguish a conflicting version that is actually installed in the target module tree from a version whose DKMS status is only `built`. A built-only registration is not proof that its files are selected at boot, but it is relevant future state and must be recorded for later observation. Do not assume that manually installing one version permanently resolves a conflict while another version remains registered or package-managed.
 7. Confirm the previous known-good kernel and its working driver installation remain intact and selectable.
 8. Save the complete pre-reboot report.
 
@@ -231,6 +347,73 @@ Record for each transition:
 - Whether fallback was required and the final outcome
 
 Keep the previous known-good kernel installed and selectable until the target kernel is verified and stable. Removing an old kernel is a separate maintenance decision, not part of driver recovery.
+
+
+## Historical DKMS transition ledger — M4800 / Linux Mint 22
+
+The following entries are **historical observations from the 6.8.0-147 to 6.8.0-151 transition**, not desired universal DKMS states. They are deliberately separated by phase so that future reports cannot confuse pre-update, post-package-install, post-recovery and post-boot state.
+
+| Observation label | When captured | NVIDIA 470.256.02 | NVIDIA 580.178.04 | VirtualBox 7.0.16 | Interpretation |
+|---|---|---|---|---|---|
+| **HIST-0 — Known-good baseline** | Before installing kernel 151; running kernel 147 | 147: `installed` | 139: `installed`; 147: `built` | 147: `installed` | Working 470 baseline on 147. Old kernel 139 still had a 580 installation at this point. |
+| **HIST-1 — Kernel packages installed, before recovery** | After kernel 151 package installation; still running 147 | 147: `installed`; 151: no 470 entry | 147: `built`; 151: `installed` | 147: `installed`; 151: `installed` | The package-triggered DKMS operation installed 580 for the new kernel 151. Kernel 139 and its 580 entry had been removed during package autoremove. **Not safe to boot 151.** |
+| **HIST-2 — 470 recovery complete, pre-reboot** | After building 470, backing up the five 580 modules, then installing 470 with `--force` | 147: `installed`; 151: `installed` | 147: `built`; 151: `built` | 147: `installed`; 151: `installed` | Target 151 module files were replaced with verified 470 modules. 580 registrations remained built-only. Pre-reboot verification passed. |
+| **HIST-3 — First successful boot of kernel 151** | After selecting and booting 151; NVIDIA diagnostics run | 147: `installed`; 151: `installed` | 147: `built`; 151: `built` | 147: `installed`; 151: `installed` | Recovery and first boot succeeded. This is the current verified DKMS baseline. |
+
+### Exact observed status snapshots
+
+**HIST-0 — Before kernel 151 installation**
+```text
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-139-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+```
+
+**HIST-1 — After kernel 151 installation, before recovery**
+```text
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+nvidia/580.178.04, 6.8.0-151-generic, x86_64: installed
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+virtualbox/7.0.16, 6.8.0-151-generic, x86_64: installed
+```
+
+**HIST-2 / HIST-3 — After recovery and after successful first boot**
+```text
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/470.256.02, 6.8.0-151-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+nvidia/580.178.04, 6.8.0-151-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+virtualbox/7.0.16, 6.8.0-151-generic, x86_64: installed
+```
+
+The `built` entries for NVIDIA 580 are **not to be confused with installed or loaded modules**. Their continued presence is recorded, not treated as an immediate failure.
+
+## Pending observation — next kernel update (6.8.0-15x)
+
+**Decision: defer DKMS cleanup. No cleanup is authorized by this record.**
+
+At the next kernel update in the 6.8.0-15x series:
+
+1. Capture a fresh `dkms status` and full NVIDIA diagnostic report before installing the new kernel.
+2. Record the exact kernel package transaction and its DKMS output.
+3. After kernel package installation, but before reboot, capture DKMS status again. Compare it explicitly with HIST-0 through HIST-3.
+4. Determine whether the package-triggered operation again installs NVIDIA 580 for the new kernel while the working 470 branch remains installed for the known-good kernels.
+5. If the same pattern recurs, perform the documented, backed-up, target-kernel-only 470 recovery sequence and verify the target kernel before reboot.
+6. After successful boot, capture another full DKMS report. Confirm whether the 580 entries for older kernels remain `built` and whether any new 580 entry remains `installed`.
+7. Only after this next transition is understood, assess whether a narrowly scoped cleanup of stale 580 built-only registrations is safe and useful. Review package ownership, DKMS autoinstall behavior, and future kernel triggers first. Do not use `dkms remove ... --all`, blanket package purges or broad autoremove as cleanup shortcuts.
+
+Until that future review, preserve the current state:
+- NVIDIA 470.256.02 installed for kernels 147 and 151.
+- NVIDIA 580.178.04 registrations for kernels 147 and 151 remain built-only.
+- VirtualBox 7.0.16 remains installed for kernels 147 and 151.
+- Keep kernel 147 selectable as the known-good fallback.
+- Retain the verified target-kernel 580 module backup until the next transition and any required rollback window are complete.
+
+This pending item is an observation and review task, **not a scheduled or pre-approved cleanup operation**.
+
 
 ## Safety boundaries and references
 
