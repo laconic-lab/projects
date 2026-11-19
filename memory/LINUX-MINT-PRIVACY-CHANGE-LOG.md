@@ -1,69 +1,61 @@
-# Linux Mint — Privacy and Background Component Change Log
+# Linux Mint — Privacy Change Log
 
-## System
+## System and audit scope
+
 - **OS:** Linux Mint 22 Cinnamon
 - **Hardware:** Dell Precision M4800
 - **Audit date:** 2026-11-19
-- **Audit scope:** Identify unsolicited data collection or external transmission without explicit user choice. Ordinary background services, local network discovery, printing, updates, and hardware support are not classified as telemetry without evidence.
+- **Purpose:** Identify unsolicited data collection or external transmission without explicit user choice. Ordinary background services, local network discovery, printing, updates, and hardware support are not considered telemetry without supporting evidence.
 
-## 2026-11-19 — Privacy-related changes
+## Changes made
 
 ### kerneloops
-- **Decision:** Retain the package but disable its daemon; retain permission-based submission policy and prevent third-party forwarding.
-- **Action:** Set `allow-submit = ask` and `allow-pass-on = no` in `/etc/kerneloops.conf`; disabled and stopped `kerneloops.service`.
-- **Verified state:** Service `disabled` and `inactive`. Configuration values were reported as `ask` and `no`.
-- **Evidence boundary:** The presence and behaviour of a working permission prompt have not been verified. No successful report submission was established.
-- **Backup:** `/var/backups/mint-privacy-20261119_043528/kerneloops.conf`
+- Retained the package; disabled and stopped `kerneloops.service`.
+- Configured `allow-submit = ask` and `allow-pass-on = no` in `/etc/kerneloops.conf`.
+- Verified the service is disabled and inactive. The configuration values were reported as `ask` and `no`.
+- **Evidence limitation:** A working permission prompt has not been verified. No successful report submission was established.
 
 ### GeoClue
-- **Decision:** Disable the system location service and demo-agent autostart.
-- **Action:** Masked and stopped `geoclue.service`; created `~/.config/autostart/geoclue-demo-agent.desktop` with `Hidden=true`.
-- **Verified state:** Service `masked` and `inactive`; user override file exists.
-- **Not yet verified:** Behaviour after a fresh login.
-- **Configuration:** `/etc/geoclue/geoclue.conf` was not modified.
-- **Backup:** `/var/backups/mint-privacy-20261119_043528/geoclue.conf` and `/var/backups/mint-privacy-20261119_043528/geoclue-demo-agent.desktop`
+- Retained the package; masked and stopped `geoclue.service`.
+- Added a user autostart override at `~/.config/autostart/geoclue-demo-agent.desktop` with `Hidden=true`.
+- Verified the service is masked and inactive and the override exists.
+- **Pending:** Verify behaviour after a fresh login. `/etc/geoclue/geoclue.conf` was not changed.
 
 ### motd-news
-- **Decision:** Stop scheduled MOTD news activity.
-- **Action:** Disabled and stopped `motd-news.timer`.
-- **Verified state:** Timer `disabled` and `inactive`. The installed `/etc/update-motd.d/50-motd-news` script contained only `#!/bin/sh`.
-- **Package note:** The script is owned by `base-files`; `base-files` was retained.
+- Disabled and stopped `motd-news.timer`.
+- Verified the timer is disabled and inactive. The installed `/etc/update-motd.d/50-motd-news` contained only its shebang.
+- Retained `base-files`, which owns that script.
 
 ### mintchat
-- **Decision:** Remove the application.
-- **Action:** Ran `sudo apt-get remove mintchat`.
-- **Result:** APT removed `mintchat` version `1.8`. No other package was removed. Package state `rc` indicated residual configuration files.
-- **Removal scope:** No purge or autoremove was performed.
+- Removed `mintchat` version `1.8` with `apt-get remove`.
+- No other package was removed. No purge or autoremove was performed; package state `rc` indicated residual configuration files.
 
 ### GNOME Online Accounts
-- **Decision:** Remove optional online-account desktop integration.
-- **Action:** Ran `sudo apt-get remove gnome-online-accounts`.
-- **Result:** APT removed `gnome-online-accounts` version `3.50.4-0ubuntu2` and `gnome-online-accounts-gtk` version `3.50.7+zara`. The prior removal simulation proposed only these two packages.
-- **Dependency check:** Installed reverse dependencies identified only `gnome-online-accounts-gtk`. No MintUpdate, APT, login, or essential system-service dependency was identified.
-- **Session processes:** Existing `goa-daemon` and `goa-identity-service` processes continued running from deleted executables after package removal. They are expected to exit after logout/login; this remains to be verified.
-- **GVFS integration:** Masked and stopped the user-level `gvfs-goa-volume-monitor.service`; verified `masked` and `inactive`. The package-owned D-Bus activation file was left unchanged, and other GVFS components were retained.
+- Removed `gnome-online-accounts` version `3.50.4-0ubuntu2` and `gnome-online-accounts-gtk` version `3.50.7+zara`.
+- The removal simulation proposed only those two packages. No dependency on MintUpdate, APT, login, or essential system services was identified.
+- Existing `goa-daemon` and `goa-identity-service` processes remained in the session from deleted executables after removal.
+- Masked and stopped the user-level `gvfs-goa-volume-monitor.service`; verified it is masked and inactive. The package-owned D-Bus activation file and other GVFS components were left unchanged.
+- **Pending:** Verify the old GOA processes have exited after logout/login.
 
-## Retained components and audit conclusions
+## Retained components and findings
 
-| Component | Decision / evidence |
+| Component | Finding / decision |
 |---|---|
-| mintreport | Retain. Startup entry was already disabled by the user. Inspected upload actions require explicit user interaction. |
-| MintUpdate and package update timers | Retain for normal update functionality. |
-| Apport support libraries (`python3-apport`, `python3-problem-report`) | Retain. Main `apport` package and `apport.service` were absent during inventory; no active reporting was established. |
-| kerneloops | Package retained; daemon disabled/stopped; submission policy `ask`, third-party forwarding `no`. |
-| GeoClue | Package retained; service masked/stopped. |
-| GVFS | Retain; only the GOA volume-monitor user service is masked. |
-| base-files | Retain. |
-| Avahi, CUPS, cups-browsed | Retain. Observed activity was local mDNS/DNS-SD discovery and local printing. CUPS listens only on loopback. No unsolicited telemetry transmission evidence was found. |
+| mintreport | Retained. Startup entry was already disabled by the user; inspected upload actions require explicit user interaction. |
+| MintUpdate and package update timers | Retained for normal update functionality. |
+| `python3-apport`, `python3-problem-report` | Retained. Main `apport` package and `apport.service` were absent; no active reporting was established. |
+| GVFS | Retained; only the GOA volume-monitor user service was masked. |
+| Avahi | Retained. Observed mDNS activity was local-network discovery; no unsolicited telemetry transmission evidence was found. |
+| CUPS and cups-browsed | Retained. CUPS listened only on loopback; observed browsing was local printer discovery. No unsolicited telemetry transmission evidence was found. |
 
 ## Backups
 
-Configuration and original autostart files were copied to:
+Original configuration and autostart files were copied to:
 
 `/var/backups/mint-privacy-20261119_043528`
 
 ## Pending audit and verification
 
-- Verify that the two existing GOA session processes have exited after logout/login.
-- Verify GeoClue remains masked and the demo-agent autostart override is effective after a new login.
-- Complete the fwupd inspection. The previous diagnostic report is incomplete: it stopped at a permission error reading `/etc/fwupd/fwupd.conf`; configured remotes and fwupd settings were not inspected.
+- Verify GOA session processes have exited after logout/login.
+- Verify GeoClue remains masked and the demo-agent override is effective after a new login.
+- Complete fwupd inspection. The previous report stopped at a permission error reading `/etc/fwupd/fwupd.conf`; configured remotes and fwupd settings were not inspected.
