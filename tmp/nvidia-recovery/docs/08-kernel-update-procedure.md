@@ -391,6 +391,22 @@ virtualbox/7.0.16, 6.8.0-151-generic, x86_64: installed
 
 The `built` entries for NVIDIA 580 are **not to be confused with installed or loaded modules**. Their continued presence is recorded, not treated as an immediate failure.
 
+
+## Supporting diagnostic reports — kernel 147 to 151 transition
+
+The following read-only diagnostic reports are retained in the repository's [reports directory](../reports/). They provide the machine-state evidence behind the historical ledger above. The filename prefixes establish the sequence; the timestamps remain the authoritative capture times.
+
+| Report | Capture point | What it establishes |
+|---|---|---|
+| [kernel147.nvidia-diagnostic-20261101-161037.txt](../reports/kernel147.nvidia-diagnostic-20261101-161037.txt) | 1 November 2026 — earlier kernel 147 baseline | Earlier reference snapshot: kernel 147 running NVIDIA 470.256.02; DKMS still showed NVIDIA 580 installed for kernel 139 and built for 147. |
+| [kernel147.nvidia-diagnostic-20261119-183727.txt](../reports/kernel147.nvidia-diagnostic-20261119-183727.txt) | 19 November 2026, 18:37 — immediately before the kernel 151 transition | Starting known-good state on kernel 147, with NVIDIA 470.256.02 active and the then-current DKMS/package state. |
+| [A-kernel151_no.recovery_nvidia-diagnostic-20261119-194019.txt](../reports/A-kernel151_no.recovery_nvidia-diagnostic-20261119-194019.txt) | 19 November 2026, 19:40 — after kernel 151 package installation, before 470 recovery | Kernel 147 was still running; DKMS showed NVIDIA 580 installed for target kernel 151, while 470 remained installed for 147. This is the pre-recovery, **not safe to boot 151** snapshot. |
+| [B-kernel151.recovery_no.reboot.nvidia-diagnostic-20261119-203618.txt](../reports/B-kernel151.recovery_no.reboot.nvidia-diagnostic-20261119-203618.txt) | 19 November 2026, 20:36 — after 470 recovery, before reboot | Still running kernel 147; DKMS showed 470 installed for both 147 and 151, with 580 built-only for both. This is the post-recovery pre-reboot state. |
+| [C-kernel151.recovery_post.reboot.nvidia-diagnostic-20261119-204554.txt](../reports/C-kernel151.recovery_post.reboot.nvidia-diagnostic-20261119-204554.txt) | 19 November 2026, 20:45 — after successful boot into kernel 151 | Running kernel 151 with NVIDIA 470.256.02 active, correct module path under the 151 module tree, and the expected post-recovery DKMS state. This is the first-boot diagnostic confirmation. |
+
+These reports are diagnostic snapshots, not complete proof of every pre-reboot check. The detailed build, module checksum, signature, dependency-map, initramfs and backup verification evidence remains in the dedicated prebuild, preboot and recovery records. Preserve those records alongside these snapshots.
+
+
 ## Pending observation — next kernel update (6.8.0-15x)
 
 **Decision: defer DKMS cleanup. No cleanup is authorized by this record.**
