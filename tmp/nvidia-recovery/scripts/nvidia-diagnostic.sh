@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# READ-ONLY NVIDIA diagnostic. Writes a report only; does not change system state.
-set -u
+# READ-ONLY NVIDIA diagnostic. Writes a private report only; does not change system state.
+set -Eeuo pipefail
+umask 077
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 REPORT_DIR="$PROJECT_DIR/reports"
-mkdir -p "$REPORT_DIR"
+mkdir -p "$REPORT_DIR" || { echo "Cannot create report directory: $REPORT_DIR" >&2; exit 1; }
 STAMP="$(date +%Y%m%d-%H%M%S)"
 REPORT="$REPORT_DIR/nvidia-diagnostic-$STAMP.txt"
 run() { printf '\n$'; printf ' %q' "$@"; printf '\n'; "$@" 2>&1 || echo "[exit: $?]"; }
@@ -51,5 +52,5 @@ if command -v systemctl >/dev/null; then
 fi
 echo; echo "=== END — NO SYSTEM MODIFICATIONS PERFORMED ==="
 } 2>&1 | tee "$REPORT"
-chmod 600 "$REPORT"
+chmod 600 "$REPORT" || { echo "Could not secure report permissions: $REPORT" >&2; exit 1; }
 echo "Report saved: $REPORT"
