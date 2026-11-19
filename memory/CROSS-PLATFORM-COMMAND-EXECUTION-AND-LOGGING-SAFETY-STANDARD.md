@@ -230,7 +230,43 @@ A report requirement does not authorize changing the execution model of an inter
 - Never ask the user to run a large diagnostic script during an active emergency.
 - Never repeat a failed or suspect command unchanged.
 
-## 9. Reusable instruction for future ChatGPT sessions
+## 9. Assistant error register — observed mistakes and prevention
+
+This table records concrete mistakes made while generating or guiding commands in prior sessions. It is a mandatory learning aid for future command generation. The entries distinguish confirmed mistakes from causes that have not been established. It must not be used to claim that a particular mistake caused an unrelated crash or system symptom without evidence.
+
+| Observed assistant error | What went wrong / evidence boundary | Mandatory rule to avoid repeating it |
+|---|---|---|
+| Used top-level asynchronous `exec > >(tee -a "$REPORT") 2>&1` in commands intended for the interactive Bash shell (btop audit, 2026-11-18) | Changed the interactive shell's file descriptors persistently and created successive tee redirection chains. Later prompts and commands were written into the reports; the controlled reproduction confirmed the chain mechanism. | Never use this pattern in a pasted interactive-shell block. Use a dedicated script process or a scoped subshell with a managed lifecycle. |
+| Recommended stopping the display manager during a report-growth incident | This was unnecessarily disruptive: it terminated the graphical session and removed the user's access to the desktop/chat. It was not a proportionate first diagnostic step. | Never stop a display manager as a generic logging response. Identify and inspect the exact writer first; stop only a confirmed unwanted process using the least disruptive targeted action. |
+| fwupd audit script tested whether `/etc/fwupd/fwupd.conf` existed but not whether it was readable (2026-11-19) | The file existed but `sed` failed with “Permission denied”. With strict error handling and a pipeline, the grouped audit stopped at that point. Remote configuration, `fwupdmgr get-remotes` and `get-settings` were not inspected. The report was incomplete. | Preflight every path for existence, file type and readability. Treat permission restrictions as explicit findings; select an approved read-only privilege method when needed. Record skipped/unrun checks and never present a partial report as complete. |
+| Used a foreground `tee` pipeline for the fwupd diagnostic without a material need | The pattern was not the prohibited asynchronous process-substitution pattern. There is no evidence that this foreground `tee` caused the terminal crash. It nevertheless added unnecessary pipeline complexity. | Do not use `tee` by habit. Choose the simplest safe capture method for the task. For a short diagnostic, direct terminal output may be sufficient. When a report is required, isolate capture in a script process or scoped subshell; do not redirect the interactive shell. |
+| Placed `set -Eeuo pipefail` in a block intended to be pasted into an interactive shell | Strict shell options can persist in the user's current shell. The combination also made the fwupd audit abort on an unhandled read-permission failure. | Scope strict options to a standalone script or subshell. Design expected non-zero outcomes explicitly; strict mode does not replace error handling. |
+| Used repeated `|| true` in the fwupd audit | This hid command failures without distinguishing expected absence from genuine errors. | Handle each expected condition explicitly, preserve unexpected exit statuses, and report failures rather than suppressing them. |
+| Did not provide a completion marker or completeness summary in the fwupd audit | The output stopped at the first permission error and did not clearly state which later checks had not run. | Multi-section diagnostics must end with a status summary: completed, skipped, failed and not run. Include an explicit complete/incomplete result. |
+| Previously overstated what kerneloops configuration proved | A setting permitting or preventing forwarding describes policy/capability; it does not establish that a report was successfully transmitted. No successful submission evidence had been established. | Distinguish configuration, permission, process activity, attempted transmission and confirmed successful transmission. State only what the evidence supports. |
+| Initially risked classifying ordinary background/network activity as telemetry during the Mint privacy audit | Local mDNS/DNS-SD discovery and printing are functional network activity, not evidence of unsolicited telemetry. The user clarified that the audit is not a hunt for ordinary daemons. | Keep the question narrow: identify unsolicited collection or external transmission without explicit user choice. A running daemon, network socket or LAN packet alone is not telemetry evidence. |
+| Briefly reversed a user-level GVFS GOA service mask with an `unmask` command before masking it again | The command sequence temporarily undid the intended state. The mask was reapplied and later verified as masked/inactive. | Before state changes, verify the exact target and intended verb. After each operation, verify both enablement/mask state and active state; do not assume a command sequence produced the intended result. |
+
+### 9.1 Mandatory script-review checklist
+
+Before presenting a command block or script, review it for all of the following:
+
+1. **Shell and scope:** Is this the correct shell? Will shell options, variables, traps, working directory or file descriptors persist in the user's interactive session?
+2. **Permissions:** Are all files checked for existence, type and readability before access? Is elevation genuinely necessary?
+3. **Failure handling:** Are expected missing/permission-denied cases handled explicitly? Are unexpected errors and exit statuses preserved?
+4. **Logging:** Is logging necessary? Is `tee` genuinely useful? Is the logger foreground, bounded and guaranteed to finish? Does any redirection alter the interactive shell?
+5. **Interaction:** Are authentication prompts, installers, package operations, TUIs and user-input commands directly attached to the terminal?
+6. **Process lifecycle:** Are child processes waited for? Could any process remain as an untracked writer after the parent exits?
+7. **Output bounds:** Are command output, runtime, loops and journal ranges bounded?
+8. **Report integrity:** Is the filename collision-safe? Is existing data preserved? Is the report's completion and exit status unambiguous?
+9. **Scope discipline:** Does the script answer the actual question without unrelated inventory, cleanup or changes?
+10. **Evidence discipline:** Does the interpretation distinguish capability from observed activity and observed activity from confirmed transmission?
+11. **User safety:** Are environment, purpose, risk, expected duration and safe stop explained before execution?
+12. **Verification:** Is there a separate, bounded post-run check for the actual result and any unexpected surviving processes?
+
+A script that fails this review must be corrected before it is given to the user. Large scripts are acceptable when the task warrants them; correctness, bounded behaviour, clarity and reviewability matter more than line count.
+
+## 10. Reusable instruction for future ChatGPT sessions
 
 Copy and paste this instruction whenever requesting shell commands or scripts:
 
@@ -256,7 +292,7 @@ This standard is mandatory:
 - If safe bounded logging cannot be guaranteed, explain why and provide a safer alternative instead of generating the script.
 ~~~
 
-## 10. Applicability
+## 11. Applicability
 
 This standard applies to new chats and projects, regardless of whether the target is Linux Mint, Arch Linux, another Linux distribution, Windows PowerShell, a VM, WSL or a container.
 
