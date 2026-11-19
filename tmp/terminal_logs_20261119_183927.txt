@@ -1,0 +1,573 @@
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ ./nvidia-backup.sh
+Collecting system state...
+Checking selected protected paths...
+Preparing temporary archive...
+Verifying archive integrity and generating listing...
+Archive listing (first 100 entries):
+./
+./system-state/
+./system-state/uname.txt
+./system-state/modinfo-version.txt
+./system-state/loaded-nvidia-version.txt
+./system-state/nvidia-packages.txt
+./system-state/modinfo-path.txt
+./system-state/dkms-status.txt
+./system-state/apt-holds.txt
+./system-state/proc-cmdline.txt
+./README.txt
+./config/
+etc/modprobe.d/
+etc/modprobe.d/blacklist-oss.conf
+etc/modprobe.d/amd64-microcode-blacklist.conf
+etc/modprobe.d/nvidia-drm.conf
+etc/modprobe.d/dkms.conf
+etc/modprobe.d/blacklist-rare-network.conf
+etc/modprobe.d/blacklist-framebuffer.conf
+etc/modprobe.d/intel-microcode-blacklist.conf
+etc/modprobe.d/nvidia-kms.conf
+etc/modprobe.d/blacklist-modem.conf
+etc/modprobe.d/mdadm.conf
+etc/modprobe.d/nvidia-graphics-drivers-kms.conf
+etc/modprobe.d/blacklist.conf
+etc/modprobe.d/bluetooth-stability.conf
+etc/modprobe.d/alsa-base.conf
+etc/modprobe.d/iwlwifi_AX210.conf
+etc/modprobe.d/disable-algif_aead.conf
+etc/modprobe.d/iwlwifi.conf
+etc/modprobe.d/blacklist-firewire.conf
+etc/modprobe.d/blacklist-ath_pci.conf
+etc/X11/xorg.conf
+etc/default/grub
+var/lib/nvidia/
+var/lib/nvidia/119
+var/lib/nvidia/log
+var/lib/nvidia/110
+var/lib/nvidia/138
+var/lib/nvidia/130
+var/lib/nvidia/152
+var/lib/nvidia/128
+var/lib/nvidia/150
+var/lib/nvidia/112
+var/lib/nvidia/108
+var/lib/nvidia/113
+var/lib/nvidia/146
+var/lib/nvidia/111
+var/lib/nvidia/125
+var/lib/nvidia/121
+var/lib/nvidia/114
+var/lib/nvidia/163
+var/lib/nvidia/129
+var/lib/nvidia/164
+var/lib/nvidia/174
+var/lib/nvidia/148
+var/lib/nvidia/106
+var/lib/nvidia/127
+var/lib/nvidia/126
+var/lib/nvidia/dirs
+var/lib/nvidia/156
+var/lib/nvidia/151
+var/lib/nvidia/133
+var/lib/nvidia/136
+var/lib/nvidia/145
+var/lib/nvidia/169
+var/lib/nvidia/140
+var/lib/nvidia/154
+var/lib/nvidia/109
+var/lib/nvidia/115
+var/lib/nvidia/162
+var/lib/nvidia/147
+var/lib/nvidia/144
+var/lib/nvidia/149
+var/lib/nvidia/102
+var/lib/nvidia/173
+var/lib/nvidia/103
+var/lib/nvidia/167
+var/lib/nvidia/118
+var/lib/nvidia/122
+var/lib/nvidia/141
+var/lib/nvidia/157
+var/lib/nvidia/142
+var/lib/nvidia/165
+var/lib/nvidia/166
+var/lib/nvidia/120
+var/lib/nvidia/132
+var/lib/nvidia/137
+var/lib/nvidia/117
+var/lib/nvidia/101
+var/lib/nvidia/134
+var/lib/nvidia/160
+var/lib/nvidia/168
+var/lib/nvidia/175
+var/lib/nvidia/153
+var/lib/nvidia/161
+var/lib/nvidia/116
+var/lib/nvidia/107
+var/lib/nvidia/135
+var/lib/nvidia/143
+
+Backup created: /home/laco/Documents/NVIDIA-Recovery/backups/nvidia-recovery-20261119-183513.tar.gz
+Archive size: 308M
+Permissions: 600
+Backup complete. No driver/package/configuration changes performed.
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ copylog
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ ./nvidia-diagnostic.sh 
+NVIDIA DIAGNOSTIC — READ ONLY
+2026-11-19T18:37:27+01:00
+Host: Unknown
+User: laco
+
+=== OS ===
+NAME="Linux Mint"
+VERSION="22 (Wilma)"
+ID=linuxmint
+ID_LIKE="ubuntu debian"
+PRETTY_NAME="Linux Mint 22"
+VERSION_ID="22"
+HOME_URL="https://www.linuxmint.com/"
+SUPPORT_URL="https://forums.linuxmint.com/"
+BUG_REPORT_URL="http://linuxmint-troubleshooting-guide.readthedocs.io/en/latest/"
+PRIVACY_POLICY_URL="https://www.linuxmint.com/"
+VERSION_CODENAME=wilma
+UBUNTU_CODENAME=noble
+
+=== KERNEL ===
+
+$ uname -a
+Linux Unknown 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+=== PCI / GPU ===
+00:16.3 Serial controller [0700]: Intel Corporation 8 Series/C220 Series Chipset Family KT Controller [8086:8c3d] (rev 04)
+	Subsystem: Dell 8 Series/C220 Series Chipset Family KT Controller [1028:05cc]
+	Kernel driver in use: serial
+00:19.0 Ethernet controller [0200]: Intel Corporation Ethernet Connection I217-LM [8086:153a] (rev 04)
+	DeviceName:  Onboard LAN
+--
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK106GLM [Quadro K2100M] [10de:11fc] (rev a1)
+	Subsystem: Dell GK106GLM [Quadro K2100M] [1028:05cc]
+	Kernel driver in use: nvidia
+	Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+01:00.1 Audio device [0403]: NVIDIA Corporation GK106 HDMI Audio Controller [10de:0e0b] (rev a1)
+	Subsystem: Dell GK106 HDMI Audio Controller [1028:05cc]
+	Kernel driver in use: snd_hda_intel
+	Kernel modules: snd_hda_intel
+03:00.0 Network controller [0280]: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] [8086:2725] (rev 1a)
+
+=== ACTIVE NVIDIA MODULE ===
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  470.256.02  Thu May  2 14:37:44 UTC 2024
+GCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 
+
+$ modinfo -F version nvidia
+470.256.02
+
+$ modinfo -n nvidia
+/lib/modules/6.8.0-147-generic/updates/dkms/nvidia.ko.zst
+
+$ nvidia-smi
+Thu Nov 19 18:37:27 2026       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Quadro K2100M       Off  | 00000000:01:00.0  On |                  N/A |
+| N/A   46C    P0    N/A /  N/A |    582MiB /  1991MiB |     13%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A      1854      G   /usr/lib/xorg/Xorg                308MiB |
+|    0   N/A  N/A      2464      G   cinnamon                           63MiB |
+|    0   N/A  N/A      2835      G   ...-uuid=3190708988185955192      206MiB |
++-----------------------------------------------------------------------------+
+
+=== DKMS ===
+
+$ dkms status
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-139-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+
+=== NVIDIA APT PACKAGES ===
+ii  libnvidia-cfg1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-common-580 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-compute-470-server:amd64 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-compute-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-compute-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-egl-wayland1:amd64 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-egl-wayland1:i386 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-encode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-encode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-extra-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:i386 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-gl-470:i386 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-gl-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-gl-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  linux-firmware-nvidia-graphics 20240318.git3b128b60-0ubuntu3.1
+ii  nvidia-compute-utils-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-dkms-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-dkms-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-dkms-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-driver-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-driver-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-driver-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-firmware-580-580.178.04 580.178.04-0ubuntu0.24.04.1
+rc  nvidia-kernel-common-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-kernel-common-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-kernel-source-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-prime 0.8.17.2
+ii  nvidia-settings 510.47.03-0ubuntu4.24.04.1
+ii  nvidia-utils-580 580.178.04-0ubuntu0.24.04.1
+ii  xserver-xorg-video-nvidia-580 580.178.04-0ubuntu0.24.04.1
+
+=== APT HOLDS ===
+nvidia-dkms-470-server
+nvidia-driver-470-server
+nvidia-kernel-common-470-server
+
+=== KERNEL COMMAND LINE ===
+BOOT_IMAGE=/boot/vmlinuz-6.8.0-147-generic root=UUID=19705670-12b0-4218-b537-1664f375df4c ro quiet splash usbcore.autosuspend=-1 pci=noaer
+
+=== INSTALLER / SOURCE PATHS ===
+drwx------ 2 root root 4096 Oct 20 20:07 /var/lib/nvidia
+drwxr-xr-x 8 root root 4096 Oct 20 20:07 /usr/src/nvidia-470.256.02
+lrwxrwxrwx 1 root root 16 Oct 20 20:07 /usr/bin/nvidia-uninstall -> nvidia-installer
+Root-only installer DB; requesting read-only header:
+1.0-47025602 (470.256.02)
+NVIDIA Accelerated Graphics Driver for Linux-x86_64
+2: /usr/lib/x86_64-linux-gnu/libnvidia-fbc.so.1
+
+=== NVIDIA LIBRARY LINKS ===
+--- /usr/lib/x86_64-linux-gnu/libcuda.so
+Link: libcuda.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so
+--- /usr/lib/x86_64-linux-gnu/libcuda.so.1
+Link: libcuda.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+--- /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+Link: libcudadebugger.so.580.178.04
+Resolved: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.580.178.04
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+Link: libnvidia-ml.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+Link: libnvidia-ml.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+Link: libnvidia-nvvm.so.4
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+Link: libnvidia-nvvm.so.4.0.0
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+-rw-r--r-- 1 root root 24829456 Aug 10 00:18 /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+Link: libnvidia-opencl.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+Link: libnvidia-ptxjitcompiler.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+Link: libnvidia-ptxjitcompiler.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+
+=== NVIDIA CONFIG PATHS ===
+drwxr-xr-x 2 root root 4096 Oct 19 22:54 /etc/modprobe.d
+-rw-r--r-- 1 root root 1192 Oct 20 20:09 /etc/X11/xorg.conf
+-rw-r--r-- 1 root root 1756 Apr 27  2026 /etc/default/grub
+/etc/modprobe.d/nvidia-drm.conf
+/etc/modprobe.d/nvidia-kms.conf
+/etc/modprobe.d/nvidia-graphics-drivers-kms.conf
+
+=== NVIDIA SUSPEND/RESUME SERVICE STATUS ===
+--- nvidia-suspend.service
+enabled
+inactive
+--- nvidia-resume.service
+enabled
+inactive
+--- nvidia-hibernate.service
+enabled
+inactive
+
+=== END — NO SYSTEM MODIFICATIONS PERFORMED ===
+Report saved: /home/laco/Documents/NVIDIA-Recovery/reports/nvidia-diagnostic-20261119-183727.txt
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ copylog
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ ./SecureUpdate_by_ChatGPT-candidate.sh 
+
+========== NVIDIA / KERNEL CHECK: BEFORE UPDATE ==========
+Running kernel: 6.8.0-147-generic
+✔ Loaded NVIDIA driver 470.256.02 verified
+Newest installed kernel: 6.8.0-147-generic
+✔ NVIDIA 470.256.02 module verified for 6.8.0-147-generic
+
+DKMS status:
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-139-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+✔ DKMS registration verified for 6.8.0-147-generic
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 https://brave-browser-apt-release.s3.brave.com stable InRelease
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:5 https://ppa.launchpadcontent.net/agornostal/ulauncher/ubuntu noble InRelease
+Hit:6 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:7 https://ppa.launchpadcontent.net/graphics-drivers/ppa/ubuntu noble InRelease
+Hit:8 https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu noble InRelease
+Ign:9 http://packages.linuxmint.com wilma InRelease
+Hit:10 https://repo.waydro.id noble InRelease
+Get:11 http://archive.ubuntu.com/ubuntu noble-updates/main i386 Packages [581 kB]
+Hit:12 http://packages.linuxmint.com wilma Release
+Get:13 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1 475 kB]
+Get:14 http://archive.ubuntu.com/ubuntu noble-updates/main Translation-en [319 kB]
+Get:15 http://archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1 922 kB]
+Get:16 http://archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [443 kB]
+Get:17 http://archive.ubuntu.com/ubuntu noble-updates/universe i386 Packages [1 157 kB]
+Get:18 http://archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1 716 kB]
+Fetched 7 739 kB in 1s (5 494 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+The following upgrades have been deferred due to phasing:
+  alsa-ucm-conf libegl-mesa0 libgbm1 libgbm1:i386 libgl1-mesa-dri libglx-mesa0
+  mesa-libgallium mesa-libgallium:i386 mesa-va-drivers mesa-vdpau-drivers
+  mesa-vulkan-drivers
+The following packages have been kept back:
+  linux-generic linux-headers-generic linux-image-generic
+  nvidia-dkms-470-server nvidia-driver-470-server
+The following packages will be upgraded:
+  brave-browser gir1.2-gstreamer-1.0 gstreamer1.0-tools hplip hplip-data
+  libgstreamer1.0-0 libhpmud0 libsane-hpaio linux-libc-dev linux-tools-common
+  printer-driver-hpcups printer-driver-postscript-hp
+12 upgraded, 0 newly installed, 0 to remove and 16 not upgraded.
+Need to get 172 MB of archives.
+After this operation, 10,0 MB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libgstreamer1.0-0 amd64 1.24.2-1ubuntu0.2 [1 165 kB]
+Get:2 https://brave-browser-apt-release.s3.brave.com stable/main amd64 brave-browser amd64 1.100.58 [160 MB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 gir1.2-gstreamer-1.0 amd64 1.24.2-1ubuntu0.2 [88,4 kB]
+Get:4 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 gstreamer1.0-tools amd64 1.24.2-1ubuntu0.2 [67,1 kB]
+Get:5 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 printer-driver-postscript-hp amd64 3.23.12+dfsg0-0ubuntu5.4 [1 223 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libsane-hpaio amd64 3.23.12+dfsg0-0ubuntu5.4 [135 kB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 hplip amd64 3.23.12+dfsg0-0ubuntu5.4 [204 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 libhpmud0 amd64 3.23.12+dfsg0-0ubuntu5.4 [127 kB]
+Get:9 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 hplip-data all 3.23.12+dfsg0-0ubuntu5.4 [6 469 kB]
+Get:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 printer-driver-hpcups amd64 3.23.12+dfsg0-0ubuntu5.4 [248 kB]
+Get:11 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-libc-dev amd64 6.8.0-151.151 [1 712 kB]
+Get:12 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-tools-common all 6.8.0-151.151 [552 kB]
+Fetched 172 MB in 9s (19,6 MB/s)
+(Reading database… 602380 files and directories currently installed.)
+Preparing to unpack …/00-brave-browser_1.100.58_amd64.deb…
+Unpacking brave-browser (1.100.58) over (1.99.57)…
+Preparing to unpack …/01-libgstreamer1.0-0_1.24.2-1ubuntu0.2_amd64.deb…
+Unpacking libgstreamer1.0-0:amd64 (1.24.2-1ubuntu0.2) over (1.24.2-1ubuntu0.1)…
+Preparing to unpack …/02-gir1.2-gstreamer-1.0_1.24.2-1ubuntu0.2_amd64.deb…
+Unpacking gir1.2-gstreamer-1.0:amd64 (1.24.2-1ubuntu0.2) over (1.24.2-1ubuntu0.1)…
+Preparing to unpack …/03-gstreamer1.0-tools_1.24.2-1ubuntu0.2_amd64.deb…
+Unpacking gstreamer1.0-tools (1.24.2-1ubuntu0.2) over (1.24.2-1ubuntu0.1)…
+Preparing to unpack …/04-printer-driver-postscript-hp_3.23.12+dfsg0-0ubuntu5.4_amd64.deb…
+Unpacking printer-driver-postscript-hp (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/05-libsane-hpaio_3.23.12+dfsg0-0ubuntu5.4_amd64.deb…
+Adding “diversion of /lib/udev/rules.d/56-hpmud.rules to /lib/udev/rules.d/56-hpmud.rules.usr-is-merged by usr-is-merged”
+Unpacking libsane-hpaio:amd64 (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/06-hplip_3.23.12+dfsg0-0ubuntu5.4_amd64.deb…
+Unpacking hplip (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/07-libhpmud0_3.23.12+dfsg0-0ubuntu5.4_amd64.deb…
+Unpacking libhpmud0:amd64 (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/08-hplip-data_3.23.12+dfsg0-0ubuntu5.4_all.deb…
+Unpacking hplip-data (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/09-printer-driver-hpcups_3.23.12+dfsg0-0ubuntu5.4_amd64.deb…
+Unpacking printer-driver-hpcups (3.23.12+dfsg0-0ubuntu5.4) over (3.23.12+dfsg0-0ubuntu5.3)…
+Preparing to unpack …/10-linux-libc-dev_6.8.0-151.151_amd64.deb…
+Unpacking linux-libc-dev:amd64 (6.8.0-151.151) over (6.8.0-149.149)…
+Preparing to unpack …/11-linux-tools-common_6.8.0-151.151_all.deb…
+Unpacking linux-tools-common (6.8.0-151.151) over (6.8.0-149.149)…
+Setting up hplip-data (3.23.12+dfsg0-0ubuntu5.4)…
+/usr/share/hplip/base/imagesize.py:186: SyntaxWarning: invalid escape sequence '\#'
+  re.compile('\#define\s+\S+\s+\d+')     : ('image/x-xbitmap', xbmsize),
+/usr/share/hplip/base/imagesize.py:187: SyntaxWarning: invalid escape sequence '\/'
+  re.compile('\/\* XPM \*\/')            : ('image/x-xpixmap', xpmsize),
+/usr/share/hplip/base/imagesize.py:189: SyntaxWarning: invalid escape sequence '\*'
+  re.compile('^II\*\x00')                : ('image/tiff', tiffsize),
+/usr/share/hplip/fax/ledmfax.py:46: SyntaxWarning: invalid escape sequence '\d'
+  http_result_pat = re.compile(b"""HTTP/\d.\d\s(\d+)""", re.I)
+Setting up linux-libc-dev:amd64 (6.8.0-151.151)…
+Setting up printer-driver-postscript-hp (3.23.12+dfsg0-0ubuntu5.4)…
+Setting up brave-browser (1.100.58)…
+Setting up linux-tools-common (6.8.0-151.151)…
+Setting up libhpmud0:amd64 (3.23.12+dfsg0-0ubuntu5.4)…
+Setting up libsane-hpaio:amd64 (3.23.12+dfsg0-0ubuntu5.4)…
+Removing “diversion of /lib/udev/rules.d/56-hpmud.rules to /lib/udev/rules.d/56-hpmud.rules.usr-is-merged by usr-is-merged”
+Setting up libgstreamer1.0-0:amd64 (1.24.2-1ubuntu0.2)…
+Setcap worked! gst-ptp-helper is not suid!
+Setting up gir1.2-gstreamer-1.0:amd64 (1.24.2-1ubuntu0.2)…
+Setting up gstreamer1.0-tools (1.24.2-1ubuntu0.2)…
+Setting up printer-driver-hpcups (3.23.12+dfsg0-0ubuntu5.4)…
+Setting up hplip (3.23.12+dfsg0-0ubuntu5.4)…
+Creating/updating hplip user account...
+Processing triggers for desktop-file-utils (0.27-2build1)…
+Processing triggers for cups (2.4.7-1.2ubuntu7.14)…
+Processing triggers for gnome-menus (3.36.0-1.1ubuntu3)…
+Processing triggers for mate-menus (1.26.1+mint1)…
+Processing triggers for libc-bin (2.39-0ubuntu8.12)…
+Processing triggers for man-db (2.12.0-4build2)…
+Processing triggers for mailcap (3.70+nmu1ubuntu1.24.04.1)…
+Processing triggers for bamfdaemon (0.5.6+22.04.20220217-0ubuntu5)…
+Rebuilding /usr/share/applications/bamf-2.index...
+
+========== NVIDIA / KERNEL CHECK: AFTER APT UPGRADE ==========
+Running kernel: 6.8.0-147-generic
+✔ Loaded NVIDIA driver 470.256.02 verified
+Newest installed kernel: 6.8.0-147-generic
+✔ NVIDIA 470.256.02 module verified for 6.8.0-147-generic
+
+DKMS status:
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-139-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+✔ DKMS registration verified for 6.8.0-147-generic
+Looking for updates…
+
+Nothing to do.
+
+========== APT AUTOREMOVE PREVIEW ==========
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 16 not upgraded.
+No packages proposed for removal. Skipping confirmation.
+Reading package lists...
+Building dependency tree...
+Reading state information...
+
+✘ ========== UPDATES NOT INSTALLED — REVIEW REQUIRED =========
+This section lists pending updates; pending does not automatically mean unsafe.
+
+--- APT PACKAGE CANDIDATES (installed version -> candidate version) ---
+✘ WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+✘ alsa-ucm-conf/noble-updates,noble-updates 1.2.10-1ubuntu5.16 all [upgradable from: 1.2.10-1ubuntu5.15]
+✘ libegl-mesa0/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ libgbm1/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ libgbm1/noble-updates 25.2.8-0ubuntu0.24.04.5 i386 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ libgl1-mesa-dri/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ libglx-mesa0/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ linux-generic/noble-updates 6.8.0-151.151 amd64 [upgradable from: 6.8.0-147.147]
+✘ linux-headers-generic/noble-updates 6.8.0-151.151 amd64 [upgradable from: 6.8.0-147.147]
+✘ linux-image-generic/noble-updates 6.8.0-151.151 amd64 [upgradable from: 6.8.0-147.147]
+✘ mesa-libgallium/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ mesa-libgallium/noble-updates 25.2.8-0ubuntu0.24.04.5 i386 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ mesa-va-drivers/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ mesa-vdpau-drivers/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ mesa-vulkan-drivers/noble-updates 25.2.8-0ubuntu0.24.04.5 amd64 [upgradable from: 25.2.8-0ubuntu0.24.04.4]
+✘ nvidia-dkms-470-server/noble-updates,noble-security 470.256.02-0ubuntu0.24.04.6 amd64 [upgradable from: 470.256.02-0ubuntu0.24.04.5]
+✘ nvidia-driver-470-server/noble-updates,noble-security 470.256.02-0ubuntu0.24.04.6 amd64 [upgradable from: 470.256.02-0ubuntu0.24.04.5]
+
+--- APT PACKAGE HOLDS ---
+✘ HELD: nvidia-dkms-470-server
+✘ HELD: nvidia-driver-470-server
+✘ HELD: nvidia-kernel-common-470-server
+
+--- CLASSIFIED APT CANDIDATES ---
+  alsa-ucm-conf [all] (installed: 1.2.10-1ubuntu5.15; candidate: 1.2.10-1ubuntu5.16) — DEFERRED due to APT phasing; 
+  libegl-mesa0 [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  libgbm1 [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  libgbm1 [i386] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  libgl1-mesa-dri [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  libglx-mesa0 [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  linux-generic [amd64] (installed: 6.8.0-147.147; candidate: 6.8.0-151.151) — KEPT BACK by normal apt-get upgrade; proposed by full-upgrade simulation only; not executed; 
+  linux-headers-generic [amd64] (installed: 6.8.0-147.147; candidate: 6.8.0-151.151) — KEPT BACK by normal apt-get upgrade; proposed by full-upgrade simulation only; not executed; 
+  linux-image-generic [amd64] (installed: 6.8.0-147.147; candidate: 6.8.0-151.151) — KEPT BACK by normal apt-get upgrade; proposed by full-upgrade simulation only; not executed; 
+  mesa-libgallium [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  mesa-libgallium [i386] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  mesa-va-drivers [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  mesa-vdpau-drivers [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  mesa-vulkan-drivers [amd64] (installed: 25.2.8-0ubuntu0.24.04.4; candidate: 25.2.8-0ubuntu0.24.04.5) — DEFERRED due to APT phasing; 
+  nvidia-dkms-470-server [amd64] (installed: 470.256.02-0ubuntu0.24.04.5; candidate: 470.256.02-0ubuntu0.24.04.6) — HELD by apt-mark; KEPT BACK by normal apt-get upgrade; 
+  nvidia-driver-470-server [amd64] (installed: 470.256.02-0ubuntu0.24.04.5; candidate: 470.256.02-0ubuntu0.24.04.6) — HELD by apt-mark; KEPT BACK by normal apt-get upgrade; 
+
+--- NORMAL apt-get upgrade SIMULATION / REASONS ---
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+The following upgrades have been deferred due to phasing:
+  alsa-ucm-conf libegl-mesa0 libgbm1 libgbm1:i386 libgl1-mesa-dri libglx-mesa0
+  mesa-libgallium mesa-libgallium:i386 mesa-va-drivers mesa-vdpau-drivers
+  mesa-vulkan-drivers
+The following packages have been kept back:
+  linux-generic linux-headers-generic linux-image-generic
+  nvidia-dkms-470-server nvidia-driver-470-server
+0 upgraded, 0 newly installed, 0 to remove and 16 not upgraded.
+
+--- full-upgrade SIMULATION ONLY — NOT EXECUTED ---
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+The following NEW packages will be installed:
+  linux-headers-6.8.0-151 linux-headers-6.8.0-151-generic
+  linux-image-6.8.0-151-generic linux-modules-6.8.0-151-generic
+  linux-modules-extra-6.8.0-151-generic linux-tools-6.8.0-151
+  linux-tools-6.8.0-151-generic
+The following upgrades have been deferred due to phasing:
+  alsa-ucm-conf libegl-mesa0 libgbm1 libgbm1:i386 libgl1-mesa-dri libglx-mesa0
+  mesa-libgallium mesa-libgallium:i386 mesa-va-drivers mesa-vdpau-drivers
+  mesa-vulkan-drivers
+The following packages have been kept back:
+  nvidia-dkms-470-server nvidia-driver-470-server
+The following packages will be upgraded:
+  linux-generic linux-headers-generic linux-image-generic
+3 upgraded, 7 newly installed, 0 to remove and 13 not upgraded.
+Inst linux-modules-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Inst linux-image-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Inst linux-modules-extra-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Inst linux-generic [6.8.0-147.147] (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64]) []
+Inst linux-image-generic [6.8.0-147.147] (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64]) []
+Inst linux-headers-6.8.0-151 (6.8.0-151.151 Ubuntu:24.04/noble-updates [all]) []
+Inst linux-headers-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64]) []
+Inst linux-headers-generic [6.8.0-147.147] (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Inst linux-tools-6.8.0-151 (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Inst linux-tools-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-modules-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-image-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-modules-extra-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-image-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-headers-6.8.0-151 (6.8.0-151.151 Ubuntu:24.04/noble-updates [all])
+Conf linux-headers-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-headers-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-tools-6.8.0-151 (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+Conf linux-tools-6.8.0-151-generic (6.8.0-151.151 Ubuntu:24.04/noble-updates [amd64])
+
+--- FLATPAK UPDATES STILL PENDING ---
+✔ No Flatpak updates reported.
+
+APT normal-upgrade output distinguishes phased updates and packages kept back.
+APT holds are listed separately. The full-upgrade simulation is diagnostic only.
+No full-upgrade transaction or pending kernel installation is performed by this report.
+SecureUpdate exit status before final reporting: 0
+Report file: /home/laco/Desktop/20261119_183756_results_for_secureupdate.txt
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ 
