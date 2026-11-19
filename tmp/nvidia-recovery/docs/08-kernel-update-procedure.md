@@ -1,143 +1,177 @@
-# 08 — Kernel update procedure
+# 08 — Kernel transition and NVIDIA 470 recovery protocol
 
-Status: procedure draft for review. This document does not authorize a kernel or NVIDIA package transaction.
+Status: operational protocol. It guides a user-controlled kernel update and the subsequent NVIDIA 470 recovery. It does not authorize package or driver corrections by itself.
 
-## Purpose and scope
+## Purpose and responsibility
 
-Use this procedure when considering a newer Linux Mint kernel on the Dell Precision M4800 with NVIDIA Quadro K2100M. The established working baseline is Linux Mint 22, kernel `6.8.0-147-generic`, and the loaded NVIDIA runfile driver `470.256.02`.
+This document covers the practical transition to a newer Linux Mint kernel on the Dell Precision M4800 / NVIDIA Quadro K2100M, including recovery of the existing NVIDIA 470.256.02 runfile installation when its DKMS module does not build or load for the new kernel.
 
-The objective is to move to a newer kernel only when the existing NVIDIA 470 installation can be preserved and independently verified. SecureUpdate remains a notification/update-control tool; NVIDIA compatibility and recovery belong here.
+The established working baseline in the investigation is Linux Mint 22, kernel `6.8.0-147-generic`, and NVIDIA 470.256.02. Reconfirm the live state before each transition; historical snapshots are not a substitute for current diagnostics.
 
-Do not assume that a newer kernel is compatible merely because APT offers it, because the old kernel's module is installed, or because DKMS reports a successful build.
+The intended outcome is to keep using newer kernels while preserving a known-good fallback and recovering NVIDIA 470 for the target kernel. **A successful NVIDIA 470 build for the target kernel is not a prerequisite for installing the kernel.** A failed build or first boot is a recoverable condition, provided the previous working kernel remains installed and selectable.
 
-## Phase 0 — Preconditions and stop conditions
+Responsibilities remain separate:
 
-Before starting:
+- **SecureUpdate:** installs ordinary updates and clearly reports deferred/held updates, including kernel updates. It does not decide NVIDIA compatibility or perform kernel recovery.
+- **User / Update Manager:** the user decides when to install the held/deferred kernel update, after backup and review of the proposed transaction.
+- **NVIDIA-Recovery:** captures evidence, diagnoses DKMS/build/load problems, and guides the manual recovery of NVIDIA 470.
+- **Document 06:** governs any corrective package or driver transaction. Its approval and safety requirements apply to corrections; they must not be misread as a rule to avoid installing newer kernels indefinitely.
 
-- Confirm the machine is currently booted into the known-good kernel.
-- Confirm the loaded NVIDIA version is `470.256.02`.
-- Confirm the external display works in the current session.
-- Confirm the previous known-good kernel remains installed and selectable in GRUB.
-- Confirm the recovery backup destination has sufficient free space.
-- Do not proceed if the current baseline is already degraded, the backup cannot be verified, package state differs materially from the documented baseline, or APT proposes unexpected removals.
+## Protocol at a glance
 
-No NVIDIA purge, runfile uninstall, DKMS removal, package hold change, library-link recreation, or initramfs/GRUB modification is part of this procedure unless separately investigated and explicitly approved.
-
-## Phase 1 — Capture the known-good baseline
-
-Run the read-only diagnostic and create a fresh targeted backup using the current project scripts:
-
-```bash
-bash scripts/nvidia-diagnostic.sh
-bash scripts/nvidia-backup.sh
+```text
+Known-good kernel + NVIDIA 470
+          |
+          v
+Fresh diagnostic + verified targeted backup
+          |
+          v
+Review exact kernel update transaction
+          |
+          v
+User installs kernel through Update Manager
+          |
+          v
+Keep previous kernel installed and bootable
+          |
+          v
+Inspect target kernel, headers, DKMS result and logs
+          |
+          +---- 470 target module ready? ----+
+          |                                  |
+         YES                                 NO
+          |                                  |
+          v                                  v
+Boot target kernel                    Keep / return to old kernel
+          |                            Diagnose exact build failure
+          |                            Recover 470 DKMS for target
+          |                                  |
+          +----------------+-----------------+
+                           |
+                           v
+             Verify module, GPU, desktop,
+                 external display
+                           |
+                           v
+              Record result; retain fallback
 ```
 
-Review both outputs. Record at minimum:
+## Phase 1 — Preserve the working baseline
 
-- `uname -r` and `/proc/cmdline`
-- Loaded driver from `/proc/driver/nvidia/version`
-- `nvidia-smi` result
-- `modinfo -F version nvidia` and `modinfo -n nvidia`
-- Complete `dkms status`
-- Installed kernel image, modules, headers and metapackage versions
-- APT holds and installed NVIDIA-related package versions
-- NVIDIA library-link targets and dpkg ownership
-- Current external-display operation
+Before installing a newer kernel:
 
-Verify the backup archive's gzip/tar integrity and required contents. Copy the verified archive and reports to independent storage before changing packages. The targeted archive is not a full system image and does not contain all kernel package payloads.
+1. Boot the currently working kernel.
+2. Confirm the loaded NVIDIA driver, GPU operation, Cinnamon session and external display.
+3. Run the project's diagnostic script and create a fresh targeted backup:
+   ```bash
+   bash scripts/nvidia-diagnostic.sh
+   bash scripts/nvidia-backup.sh
+   ```
+4. Review the reports and verify the archive's integrity and required contents.
+5. Copy the verified archive and reports to independent storage.
+6. Confirm that the current known-good kernel remains installed and can be selected from GRUB.
 
-## Phase 2 — Identify the exact target kernel transaction
+The backup is targeted evidence preservation, not a full system image or automatic restore mechanism. See document 03 for its contents and limitations.
 
-Refresh package metadata only when ready to evaluate a real update. Record the proposed target kernel release and inspect the exact package versions for:
+Do not start from an already degraded baseline without first recording and understanding that state.
 
-- Kernel image
-- Kernel modules and modules-extra, where applicable
-- Kernel headers and generic headers metapackage
-- Kernel image/generic metapackage
-- Kernel tools, if proposed
+## Phase 2 — Review and install the kernel update
 
-Capture the complete APT simulation output, including summary, `Inst`, `Conf`, and `Remv` lines. Do not filter away removals or transaction summary. Review phased updates, held packages, packages kept back, and any dependency changes.
+1. Identify the exact target kernel release and the packages Update Manager proposes to install.
+2. Review the complete transaction, including kernel image, modules, headers, metapackages, tools, removals and dependency changes.
+3. Check specifically whether the transaction proposes NVIDIA package changes. The existing 470 holds and the observed 535/580 package state are important; do not unhold packages or approve an unrelated NVIDIA transition as part of the kernel update.
+4. If the transaction contains unexpected removals, changes to the working kernel, or an unexplained NVIDIA package transition, pause and investigate that transaction before approving it.
+5. Once the kernel transaction is understood and the backup/fallback are in place, the user may install the kernel manually through Update Manager.
 
-A simulation is a proposal, not a guarantee of the final transaction. Re-run it immediately before execution if metadata or installed state changes.
+**Do not require a successful target-kernel NVIDIA 470 build before installing the kernel.** The purpose of the retained old kernel is to provide a working environment from which the new kernel's driver can be diagnosed and recovered.
 
-## Phase 3 — Evaluate NVIDIA 470 compatibility for the target kernel
+Do not combine kernel installation with NVIDIA cleanup, driver replacement, hold changes or library-link correction. Those are separate changes governed by document 06.
 
-The active driver is the runfile-managed `470.256.02` release. Its DKMS identity is `nvidia/470.256.02`. APT packages have previously been observed to share that DKMS identity and to invoke the NVIDIA uninstaller in maintainer scripts. Do not install or remove NVIDIA packages as a side effect of a kernel update without separately reviewing their maintainer scripts and transaction.
+## Phase 3 — Inspect the installed target kernel before changing NVIDIA
 
-For the exact target kernel:
+After the kernel packages have been installed:
 
-1. Confirm the matching target-kernel headers are available and their exact version matches the target release.
-2. Inspect the existing runfile DKMS source and configuration without modifying it.
-3. Establish whether this exact driver source is known to build against this exact kernel/API. Do not infer compatibility from a different kernel release.
-4. If a build test is proposed, define its scope, expected artifacts, log location, cleanup boundary, and rollback before running it.
-5. After any approved build, inspect the build log and DKMS status for the target kernel.
-6. Verify the module file exists under the target kernel's module tree, and inspect its version, vermagic, signer and path with target-kernel-specific `modinfo` queries.
+1. Keep the previous known-good kernel installed.
+2. If still booted into the old kernel, remain there while inspecting the target kernel. This is the preferred recovery environment because the working desktop and NVIDIA 470 installation remain available.
+3. Confirm the target kernel image, modules and matching headers are installed and that their release versions agree.
+4. Inspect the complete DKMS status, specifically the `nvidia/470.256.02` entry for the target kernel.
+5. Inspect the target-kernel DKMS build log and any package-triggered DKMS output. Record the exact first relevant error; do not infer the cause from a generic failure status.
+6. Check whether the target kernel's module tree contains the expected NVIDIA module. Verify its version, vermagic, file path and signer using target-kernel-specific inspection.
 
-A successful build only establishes that a module was produced. It does not establish that the module will load, that Secure Boot will accept it, that userspace libraries are coherent, or that the desktop/display will work.
+Interpret the results carefully:
 
-If compatibility cannot be established, stop and retain the current working kernel. Do not attempt an improvised patch or driver replacement during the kernel update.
+- `installed` means DKMS reports that module as installed for the named kernel.
+- `built` means DKMS reports a build but not an installation for that kernel.
+- Neither status proves which driver is currently loaded.
+- A module built for kernel 147 is not a module for kernel 151.
+- A successful build does not prove that the module will load, Secure Boot will accept it, userspace libraries are coherent, or the desktop/display will work.
 
-## Phase 4 — Approve and install the kernel only
+If the target module is already correctly built and installed, proceed to Phase 5. If it is missing or the build failed, proceed to Phase 4.
 
-Before execution, review the exact final APT transaction and confirm:
+## Phase 4 — Recover NVIDIA 470 for the target kernel
 
-- No unexpected package removals or NVIDIA driver transitions.
-- No removal of the current known-good kernel.
-- No unintended change to NVIDIA holds or the runfile installation.
-- Required target kernel packages and headers are included.
-- A verified backup and a bootable fallback kernel are available.
+Perform recovery from the known-good kernel whenever possible.
 
-Only the exact reviewed transaction may be approved. Do not use a broad `full-upgrade` merely because it proposes the target kernel. Do not combine unrelated NVIDIA package cleanup with the kernel installation.
+1. Preserve the original DKMS build log and collect the target kernel's headers, DKMS configuration, runfile source and package state needed to reproduce the failure.
+2. Compare the target-kernel failure with the known-good kernel's working `nvidia/470.256.02` source and build configuration.
+3. Identify the actual cause before changing anything. Possible categories include missing/mismatched headers, DKMS configuration or source problems, kernel API incompatibility, compiler/build errors, signing or Secure Boot rejection, and package-maintainer-script interference. These are diagnostic categories, not assumed causes.
+4. Define the smallest evidence-based recovery action. If a source patch or configuration change is needed, explain the exact change, affected files, backup and rollback before applying it.
+5. Obtain explicit approval before modifying driver source/configuration, changing packages or holds, removing DKMS registrations, changing library links, or running any installer/uninstaller.
+6. Build/install the existing NVIDIA 470.256.02 DKMS source for the exact target kernel only after the cause and action have been reviewed.
+7. Preserve the full build log. Verify the result for the target kernel: DKMS status, module file path, module version, vermagic and signer.
+8. If the build still fails, stop and retain the evidence. Do not substitute NVIDIA 535/580, run an improvised patch, or remove the working 470 installation as a guess.
 
-## Phase 5 — First boot and verification
+The runfile and APT packages have previously been observed to share the `nvidia/470.256.02` DKMS identity. The APT dependency and maintainer-script risks documented in 04 and 06 remain relevant. Do not casually install/remove NVIDIA packages, invoke `nvidia-uninstall`, or run a global DKMS removal.
 
-After the kernel package transaction completes, do not immediately remove the previous kernel.
+If the target kernel was already booted and the graphics driver failed, use GRUB to return to the previous known-good kernel, then perform the diagnosis and recovery from that working environment.
 
-Boot the new kernel only when the target-kernel module build and package transaction have been reviewed. At the first boot, verify:
+## Phase 5 — Boot and verify the target kernel
+
+Boot the target kernel only when the target module is ready for a controlled verification attempt. If an initial attempt has already failed, return to the old kernel and complete Phase 4 before retrying.
+
+After booting the target kernel, verify each layer separately:
 
 1. `uname -r` reports the intended target kernel.
-2. `cat /proc/driver/nvidia/version` reports the expected loaded driver.
+2. `/proc/driver/nvidia/version` reports the expected loaded NVIDIA 470.256.02 driver.
 3. `nvidia-smi` works and identifies the Quadro K2100M.
-4. `modinfo -F version nvidia` and `modinfo -n nvidia` resolve to the intended module for the running kernel.
-5. `dkms status` reports the intended 470 module as installed for the running kernel.
-6. Relevant kernel logs contain no NVIDIA module load, signature, API mismatch, or GPU initialization failure.
-7. Cinnamon starts normally and the external display works at the expected resolution and refresh rate.
+4. `modinfo` resolves the module for the running kernel and reports the expected version and path.
+5. DKMS reports `nvidia/470.256.02` installed for the running kernel.
+6. Kernel logs show no relevant NVIDIA module load, signature, API mismatch or GPU initialization failure.
+7. Cinnamon starts normally.
+8. The external display works at the expected resolution and refresh rate.
 
-Treat module load, desktop operation and external-display operation as separate checks. Do not mark the kernel transition successful until all required checks pass.
+If any check fails, do not declare the transition successful. Capture the logs, return to the known-good kernel if needed, and continue diagnosis from Phase 4. A working `nvidia-smi` alone is not proof that the external display and desktop are fully operational.
 
-## Phase 6 — Failure and fallback
+## Phase 6 — Completion and fallback retention
 
-If the new kernel fails to boot or NVIDIA/display verification fails:
+A kernel transition is complete only after the target kernel has passed the module, GPU, desktop and external-display checks and has remained stable through a normal reboot.
 
-- Use GRUB to boot the previous known-good kernel.
-- Do not uninstall the NVIDIA driver or remove the old kernel as an immediate reaction.
-- Capture the failed kernel's boot and DKMS logs while preserving the current state.
-- Compare the new-kernel evidence with the known-good baseline.
-- Create a specific recovery plan based on the observed failure before making changes.
+Record for each transition:
 
-Keep the previous kernel installed until the new kernel has passed verification and has remained stable through a normal reboot. Kernel removal is a separate, explicitly reviewed maintenance action.
+- Date, machine and previous/target kernel releases
+- Exact kernel package transaction and any removals
+- Backup archive path, integrity result and independent-copy location
+- NVIDIA 470 source/version and target-kernel DKMS build result
+- Relevant build and boot log paths
+- Loaded module, GPU, Cinnamon and external-display verification
+- Any recovery changes and their explicit approval
+- Whether fallback was required and the final outcome
 
-## Completion record
+Keep the previous known-good kernel installed and selectable until the new kernel is verified and stable. Removing an old kernel is a separate maintenance decision, not part of driver recovery.
 
-For each transition, record:
+## Safety boundaries and references
 
-- Date and machine identity
-- Previous and target kernel versions
-- Exact APT transaction and its simulation
-- NVIDIA driver/source version and target-kernel DKMS build result
-- Backup archive path, integrity result and required-content verification
-- First-boot module, GPU, desktop and external-display results
-- Whether fallback was needed
-- Final decision: passed, failed, or deferred
+The following are not authorized by this procedure alone:
 
-## Explicit non-goals
+- Purging or replacing NVIDIA 470 with another driver branch
+- Removing 535/580 packages or DKMS registrations
+- Changing APT holds
+- Running `nvidia-uninstall`
+- Recreating generic NVIDIA library links from memory
+- Applying unreviewed kernel-compatibility patches
+- Removing the known-good kernel or changing GRUB/initramfs without a specific reviewed reason
+- Automating kernel installation or NVIDIA recovery
 
-This procedure does not authorize:
+Any corrective package/driver operation must follow document 06: fresh audit, exact transaction or file-level change, backup, explicit approval, verification and documented rollback. Documents 01–05 provide the investigation, state, backup, package and DKMS evidence on which that work depends.
 
-- Replacing the 470.256.02 runfile driver with an APT driver.
-- Removing 535/580 packages or DKMS registrations.
-- Changing package holds.
-- Running `nvidia-uninstall`.
-- Rebuilding generic library symlinks from memory.
-- Automating kernel installation or recovery.
-- Treating the S3 resume issue as part of kernel compatibility without separate evidence.
+S3 resume black-screen remains a separate investigation and is not automatically attributed to a kernel transition or NVIDIA package state.
