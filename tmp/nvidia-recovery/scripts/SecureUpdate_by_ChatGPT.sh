@@ -141,7 +141,7 @@ secureupdate_final_report() {
     echo
     echo "--- CLASSIFIED APT CANDIDATES ---"
     if (( apt_list_rc == 0 )); then
-        while IFS=$'t' read -r pkg arch candidate installed; do
+        while IFS=$'\t' read -r pkg arch candidate installed; do
             [[ -z "$pkg" ]] && continue
             key="${pkg%%:*}"
             reason=""
@@ -160,7 +160,7 @@ secureupdate_final_report() {
                 reason+="proposed by full-upgrade simulation only; not executed; "
             fi
             [[ -n "$reason" ]] || reason="Reason undetermined from available APT output."
-            printf '%s  %s [%s] (installed: %s; candidate: %s) — %s%s\n' "$RED" "$pkg" "${arch:-unknown}" "${installed:-unknown}" "${candidate:-unknown}" "$reason" "$RESET"
+            printf "${RED}  %s [%s] (installed: %s; candidate: %s) — %s${RESET}\n" "$pkg" "${arch:-unknown}" "${installed:-unknown}" "${candidate:-unknown}" "$reason"
         done < <(awk '
             NR == 1 { next }
             $1 ~ /\// {
@@ -182,14 +182,7 @@ secureupdate_final_report() {
 
     echo
     echo "--- full-upgrade SIMULATION ONLY — NOT EXECUTED ---"
-    full_inst=$(awk '/^Inst / { print }' <<< "$full_sim")
-    if [[ -n "$full_inst" ]]; then
-        while IFS= read -r line; do
-            red "$line"
-        done <<< "$full_inst"
-    else
-        printf '%s\n' "$full_sim"
-    fi
+    printf '%s\n' "$full_sim"
 
     echo
     echo "--- FLATPAK UPDATES STILL PENDING ---"
