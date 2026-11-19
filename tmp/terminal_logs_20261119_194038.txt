@@ -1,0 +1,532 @@
+laco@Unknown:~$ sudo -v
+[sudo] password for laco:      
+laco@Unknown:~$ sudo apt-get update && sudo apt-get upgrade && flatpak update && { echo; echo "========== APT AUTOREMOVE PREVIEW =========="; preview=$(sudo apt-get autoremove --dry-run 2>&1) || { echo "$preview"; exit 1; }; echo "$preview"; if grep -qE '^[0-9]+ upgraded, [0-9]+ newly installed, [1-9][0-9]* to remove' <<< "$preview"; then echo; read -r -p "Review the list above. Proceed with autoremove? [y/N] " answer; if [[ "$answer" =~ ^[Yy]$ ]]; then sudo apt-get autoremove && sudo apt-get autoclean; else echo "Removal skipped; autoclean skipped."; fi; else echo "No packages proposed for removal. Skipping confirmation."; sudo apt-get autoclean; fi; }
+Hit:1 http://archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 https://brave-browser-apt-release.s3.brave.com stable InRelease                                                  
+Hit:3 http://archive.ubuntu.com/ubuntu noble-updates InRelease                                                         
+Hit:4 http://archive.ubuntu.com/ubuntu noble-backports InRelease                                                       
+Hit:5 https://ppa.launchpadcontent.net/agornostal/ulauncher/ubuntu noble InRelease                                     
+Hit:6 https://ppa.launchpadcontent.net/graphics-drivers/ppa/ubuntu noble InRelease                                     
+Hit:7 https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu noble InRelease  
+Hit:8 http://security.ubuntu.com/ubuntu noble-security InRelease    
+Ign:9 http://packages.linuxmint.com wilma InRelease                 
+Hit:10 https://repo.waydro.id noble InRelease 
+Hit:11 http://packages.linuxmint.com wilma Release
+Reading package lists... Done
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Calculating upgrade... Done
+The following upgrades have been deferred due to phasing:
+  alsa-ucm-conf libegl-mesa0 libgbm1 libgbm1:i386 libgl1-mesa-dri libglx-mesa0 mesa-libgallium mesa-libgallium:i386
+  mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers
+The following packages have been kept back:
+  linux-generic linux-headers-generic linux-image-generic nvidia-dkms-470-server nvidia-driver-470-server
+0 upgraded, 0 newly installed, 0 to remove and 16 not upgraded.
+N: Some packages may have been kept back due to phasing.
+Looking for updates…
+
+Nothing to do.
+
+========== APT AUTOREMOVE PREVIEW ==========
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 16 not upgraded.
+No packages proposed for removal. Skipping confirmation.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+laco@Unknown:~$ sudo apt update && sudo apt upgrade -y && flatpak update -y && sudo apt autoremove -y && sudo apt autoclean
+Hit:1 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:2 http://archive.ubuntu.com/ubuntu noble InRelease                                                                 
+Hit:3 https://brave-browser-apt-release.s3.brave.com stable InRelease                                                  
+Hit:4 http://archive.ubuntu.com/ubuntu noble-updates InRelease                                                         
+Hit:5 http://archive.ubuntu.com/ubuntu noble-backports InRelease                                                       
+Hit:6 https://ppa.launchpadcontent.net/agornostal/ulauncher/ubuntu noble InRelease                                     
+Hit:7 https://ppa.launchpadcontent.net/graphics-drivers/ppa/ubuntu noble InRelease
+Hit:8 https://repo.waydro.id noble InRelease  
+Hit:9 https://ppa.launchpadcontent.net/zhangsongcui3371/fastfetch/ubuntu noble InRelease
+Ign:10 http://packages.linuxmint.com wilma InRelease
+Hit:11 http://packages.linuxmint.com wilma Release
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+16 packages can be upgraded. Run 'apt list --upgradable' to see them.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+Calculating upgrade... Done
+The following NEW packages will be installed:
+  linux-headers-6.8.0-151 linux-headers-6.8.0-151-generic linux-image-6.8.0-151-generic
+  linux-modules-6.8.0-151-generic linux-modules-extra-6.8.0-151-generic linux-tools-6.8.0-151
+  linux-tools-6.8.0-151-generic
+The following upgrades have been deferred due to phasing:
+  alsa-ucm-conf libegl-mesa0 libgbm1 libgbm1:i386 libgl1-mesa-dri libglx-mesa0 mesa-libgallium mesa-libgallium:i386
+  mesa-va-drivers mesa-vdpau-drivers mesa-vulkan-drivers
+The following packages have been kept back:
+  nvidia-dkms-470-server nvidia-driver-470-server
+The following packages will be upgraded:
+  linux-generic linux-headers-generic linux-image-generic
+3 upgraded, 7 newly installed, 0 to remove and 13 not upgraded.
+Need to get 191 MB of archives.
+After this operation, 305 MB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-modules-6.8.0-151-generic amd64 6.8.0-151.151 [39,4 MB]
+Get:2 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-image-6.8.0-151-generic amd64 6.8.0-151.151 [14,9 MB]
+Get:3 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-modules-extra-6.8.0-151-generic amd64 6.8.0-151.151 [113 MB]
+Get:4 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-generic amd64 6.8.0-151.151 [1 694 B]
+Get:5 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-image-generic amd64 6.8.0-151.151 [11,7 kB]
+Get:6 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-headers-6.8.0-151 all 6.8.0-151.151 [13,8 MB]
+Get:7 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-headers-6.8.0-151-generic amd64 6.8.0-151.151 [4 016 kB]
+Get:8 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-headers-generic amd64 6.8.0-151.151 [11,5 kB]
+Get:9 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-tools-6.8.0-151 amd64 6.8.0-151.151 [5 442 kB]
+Get:10 http://archive.ubuntu.com/ubuntu noble-updates/main amd64 linux-tools-6.8.0-151-generic amd64 6.8.0-151.151 [1 812 B]
+Fetched 191 MB in 5s (36,8 MB/s)                               
+Selecting previously unselected package linux-modules-6.8.0-151-generic.
+(Reading database… 602380 files and directories currently installed.)
+Preparing to unpack …/0-linux-modules-6.8.0-151-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-modules-6.8.0-151-generic (6.8.0-151.151)…
+Selecting previously unselected package linux-image-6.8.0-151-generic.
+Preparing to unpack …/1-linux-image-6.8.0-151-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-image-6.8.0-151-generic (6.8.0-151.151)…
+Selecting previously unselected package linux-modules-extra-6.8.0-151-generic.
+Preparing to unpack …/2-linux-modules-extra-6.8.0-151-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-modules-extra-6.8.0-151-generic (6.8.0-151.151)…
+Preparing to unpack …/3-linux-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-generic (6.8.0-151.151) over (6.8.0-147.147)…
+Preparing to unpack …/4-linux-image-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-image-generic (6.8.0-151.151) over (6.8.0-147.147)…
+Selecting previously unselected package linux-headers-6.8.0-151.
+Preparing to unpack …/5-linux-headers-6.8.0-151_6.8.0-151.151_all.deb…
+Unpacking linux-headers-6.8.0-151 (6.8.0-151.151)…
+Selecting previously unselected package linux-headers-6.8.0-151-generic.
+Preparing to unpack …/6-linux-headers-6.8.0-151-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-headers-6.8.0-151-generic (6.8.0-151.151)…
+Preparing to unpack …/7-linux-headers-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-headers-generic (6.8.0-151.151) over (6.8.0-147.147)…
+Selecting previously unselected package linux-tools-6.8.0-151.
+Preparing to unpack …/8-linux-tools-6.8.0-151_6.8.0-151.151_amd64.deb…
+Unpacking linux-tools-6.8.0-151 (6.8.0-151.151)…
+Selecting previously unselected package linux-tools-6.8.0-151-generic.
+Preparing to unpack …/9-linux-tools-6.8.0-151-generic_6.8.0-151.151_amd64.deb…
+Unpacking linux-tools-6.8.0-151-generic (6.8.0-151.151)…
+Setting up linux-tools-6.8.0-151 (6.8.0-151.151)…
+Setting up linux-headers-6.8.0-151 (6.8.0-151.151)…
+Setting up linux-tools-6.8.0-151-generic (6.8.0-151.151)…
+Setting up linux-modules-6.8.0-151-generic (6.8.0-151.151)…
+Setting up linux-headers-6.8.0-151-generic (6.8.0-151.151)…
+/etc/kernel/header_postinst.d/dkms:
+ * dkms: running auto installation service for kernel 6.8.0-151-generic
+Sign command: /usr/bin/kmodsign
+Signing key: /var/lib/shim-signed/mok/MOK.priv
+Public certificate (MOK): /var/lib/shim-signed/mok/MOK.der
+
+Building module:
+Cleaning build area...
+unset ARCH; [ ! -h /usr/bin/cc ] && export CC=/usr/bin/gcc; env NV_VERBOSE=1 'make' -j8 NV_EXCLUDE_BUILD_MODULES='' KERN
+EL_UNAME=6.8.0-151-generic IGNORE_XEN_PRESENCE=1 IGNORE_CC_MISMATCH=1 SYSSRC=/lib/modules/6.8.0-151-generic/build LD=/us
+r/bin/ld.bfd CONFIG_X86_KERNEL_IBT= modules.........................
+Signing module /var/lib/dkms/nvidia/580.178.04/build/nvidia.ko
+Signing module /var/lib/dkms/nvidia/580.178.04/build/nvidia-modeset.ko
+Signing module /var/lib/dkms/nvidia/580.178.04/build/nvidia-drm.ko
+Signing module /var/lib/dkms/nvidia/580.178.04/build/nvidia-uvm.ko
+Signing module /var/lib/dkms/nvidia/580.178.04/build/nvidia-peermem.ko
+Cleaning build area...
+
+nvidia.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+nvidia-modeset.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+nvidia-drm.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+nvidia-uvm.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+nvidia-peermem.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+depmod...
+Sign command: /usr/bin/kmodsign
+Signing key: /var/lib/shim-signed/mok/MOK.priv
+Public certificate (MOK): /var/lib/shim-signed/mok/MOK.der
+
+Building module:
+Cleaning build area...
+make -j8 KERNELRELEASE=6.8.0-151-generic -C /lib/modules/6.8.0-151-generic/build M=/var/lib/dkms/virtualbox/7.0.16/build
+.....
+Signing module /var/lib/dkms/virtualbox/7.0.16/build/vboxdrv/vboxdrv.ko
+Signing module /var/lib/dkms/virtualbox/7.0.16/build/vboxnetadp/vboxnetadp.ko
+Signing module /var/lib/dkms/virtualbox/7.0.16/build/vboxnetflt/vboxnetflt.ko
+Cleaning build area...
+
+vboxdrv.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+vboxnetadp.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+
+vboxnetflt.ko.zst:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/6.8.0-151-generic/updates/dkms/
+depmod...
+dkms autoinstall on 6.8.0-151-generic/x86_64 succeeded for nvidia virtualbox
+ * dkms: autoinstall for kernel 6.8.0-151-generic
+   ...done.
+Setting up linux-modules-extra-6.8.0-151-generic (6.8.0-151.151)…
+Setting up linux-image-6.8.0-151-generic (6.8.0-151.151)…
+I: /boot/vmlinuz.old is now a symlink to vmlinuz-6.8.0-147-generic
+I: /boot/initrd.img.old is now a symlink to initrd.img-6.8.0-147-generic
+I: /boot/vmlinuz is now a symlink to vmlinuz-6.8.0-151-generic
+I: /boot/initrd.img is now a symlink to initrd.img-6.8.0-151-generic
+Setting up linux-image-generic (6.8.0-151.151)…
+Setting up linux-headers-generic (6.8.0-151.151)…
+Setting up linux-generic (6.8.0-151.151)…
+Processing triggers for linux-image-6.8.0-151-generic (6.8.0-151.151)…
+/etc/kernel/postinst.d/dkms:
+ * dkms: running auto installation service for kernel 6.8.0-151-generic
+ * dkms: autoinstall for kernel 6.8.0-151-generic
+   ...done.
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-6.8.0-151-generic
+I: The initramfs will attempt to resume from /dev/sdc2
+I: (UUID=d6475051-4ba4-4aa2-966a-309575fe1d13)
+I: Set the RESUME variable to override this.
+/etc/kernel/postinst.d/zz-update-grub:
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/50_linuxmint.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-6.8.0-151-generic
+Found initrd image: /boot/initrd.img-6.8.0-151-generic
+Found linux image: /boot/vmlinuz-6.8.0-147-generic
+Found initrd image: /boot/initrd.img-6.8.0-147-generic
+Found linux image: /boot/vmlinuz-6.8.0-139-generic
+Found initrd image: /boot/initrd.img-6.8.0-139-generic
+Found linux image: /boot/vmlinuz-6.8.0-90-generic
+Found initrd image: /boot/initrd.img-6.8.0-90-generic
+Warning: os-prober will be executed to detect other bootable partitions.
+Its output will be used to detect bootable binaries on them and create new boot entries.
+Found Windows Boot Manager on /dev/sda3@/efi/Microsoft/Boot/bootmgfw.efi
+Found Windows Boot Manager on /dev/sdc1@/EFI/Microsoft/Boot/bootmgfw.efi
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+N: Some packages may have been kept back due to phasing.
+Looking for updates…
+
+Nothing to do.
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following packages will be REMOVED:
+  linux-headers-6.8.0-139 linux-headers-6.8.0-139-generic linux-image-6.8.0-139-generic
+  linux-modules-6.8.0-139-generic linux-modules-extra-6.8.0-139-generic linux-tools-6.8.0-139
+  linux-tools-6.8.0-139-generic
+0 upgraded, 0 newly installed, 7 to remove and 13 not upgraded.
+After this operation, 303 MB disk space will be freed.
+(Reading database… 640410 files and directories currently installed.)
+Removing linux-headers-6.8.0-139-generic (6.8.0-139.139)…
+Removing linux-headers-6.8.0-139 (6.8.0-139.139)…
+Removing linux-image-6.8.0-139-generic (6.8.0-139.139)…
+/etc/kernel/prerm.d/dkms:
+dkms: removing: nvidia 580.178.04 (6.8.0-139-generic) (x86_64)
+Module nvidia-580.178.04 for kernel 6.8.0-139-generic (x86_64).
+Before uninstall, this module version was ACTIVE on this kernel.
+
+nvidia.ko.zst:
+ - Uninstallation
+   - Deleting from: /lib/modules/6.8.0-139-generic/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+nvidia-modeset.ko.zst:
+ - Uninstallation
+   - Deleting from: /lib/modules/6.8.0-139-generic/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+nvidia-drm.ko.zst:
+ - Uninstallation
+   - Deleting from: /lib/modules/6.8.0-139-generic/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+nvidia-uvm.ko.zst:
+ - Uninstallation
+   - Deleting from: /lib/modules/6.8.0-139-generic/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+nvidia-peermem.ko.zst:
+ - Uninstallation
+   - Deleting from: /lib/modules/6.8.0-139-generic/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+depmod....
+/etc/kernel/postrm.d/initramfs-tools:
+update-initramfs: Deleting /boot/initrd.img-6.8.0-139-generic
+/etc/kernel/postrm.d/zz-update-grub:
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/50_linuxmint.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-6.8.0-151-generic
+Found initrd image: /boot/initrd.img-6.8.0-151-generic
+Found linux image: /boot/vmlinuz-6.8.0-147-generic
+Found initrd image: /boot/initrd.img-6.8.0-147-generic
+Found linux image: /boot/vmlinuz-6.8.0-90-generic
+Found initrd image: /boot/initrd.img-6.8.0-90-generic
+Warning: os-prober will be executed to detect other bootable partitions.
+Its output will be used to detect bootable binaries on them and create new boot entries.
+Found Windows Boot Manager on /dev/sda3@/efi/Microsoft/Boot/bootmgfw.efi
+Found Windows Boot Manager on /dev/sdc1@/EFI/Microsoft/Boot/bootmgfw.efi
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+Removing linux-modules-extra-6.8.0-139-generic (6.8.0-139.139)…
+Removing linux-modules-6.8.0-139-generic (6.8.0-139.139)…
+Removing linux-tools-6.8.0-139-generic (6.8.0-139.139)…
+Removing linux-tools-6.8.0-139 (6.8.0-139.139)…
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+laco@Unknown:~$ copylog
+laco@Unknown:~$ 
+laco@Unknown:~$ cd /home/laco/Documents/NVIDIA-Recovery/scripts
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ ./nvidia-diagnostic.sh 
+NVIDIA DIAGNOSTIC — READ ONLY
+2026-11-19T19:40:19+01:00
+Host: Unknown
+User: laco
+
+=== OS ===
+NAME="Linux Mint"
+VERSION="22 (Wilma)"
+ID=linuxmint
+ID_LIKE="ubuntu debian"
+PRETTY_NAME="Linux Mint 22"
+VERSION_ID="22"
+HOME_URL="https://www.linuxmint.com/"
+SUPPORT_URL="https://forums.linuxmint.com/"
+BUG_REPORT_URL="http://linuxmint-troubleshooting-guide.readthedocs.io/en/latest/"
+PRIVACY_POLICY_URL="https://www.linuxmint.com/"
+VERSION_CODENAME=wilma
+UBUNTU_CODENAME=noble
+
+=== KERNEL ===
+
+$ uname -a
+Linux Unknown 6.8.0-147-generic #147-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep 24 11:33:16 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+=== PCI / GPU ===
+00:16.3 Serial controller [0700]: Intel Corporation 8 Series/C220 Series Chipset Family KT Controller [8086:8c3d] (rev 04)
+	Subsystem: Dell 8 Series/C220 Series Chipset Family KT Controller [1028:05cc]
+	Kernel driver in use: serial
+00:19.0 Ethernet controller [0200]: Intel Corporation Ethernet Connection I217-LM [8086:153a] (rev 04)
+	DeviceName:  Onboard LAN
+--
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GK106GLM [Quadro K2100M] [10de:11fc] (rev a1)
+	Subsystem: Dell GK106GLM [Quadro K2100M] [1028:05cc]
+	Kernel driver in use: nvidia
+	Kernel modules: nvidiafb, nouveau, nvidia_drm, nvidia
+01:00.1 Audio device [0403]: NVIDIA Corporation GK106 HDMI Audio Controller [10de:0e0b] (rev a1)
+	Subsystem: Dell GK106 HDMI Audio Controller [1028:05cc]
+	Kernel driver in use: snd_hda_intel
+	Kernel modules: snd_hda_intel
+03:00.0 Network controller [0280]: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] [8086:2725] (rev 1a)
+
+=== ACTIVE NVIDIA MODULE ===
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  470.256.02  Thu May  2 14:37:44 UTC 2024
+GCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 
+
+$ modinfo -F version nvidia
+470.256.02
+
+$ modinfo -n nvidia
+/lib/modules/6.8.0-147-generic/updates/dkms/nvidia.ko.zst
+
+$ nvidia-smi
+Thu Nov 19 19:40:19 2026       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Quadro K2100M       Off  | 00000000:01:00.0  On |                  N/A |
+| N/A   48C    P0    N/A /  N/A |    503MiB /  1991MiB |     21%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A      1854      G   /usr/lib/xorg/Xorg                304MiB |
+|    0   N/A  N/A      2464      G   cinnamon                           86MiB |
+|    0   N/A  N/A     21817      G   ...-uuid=3190708988185955192      107MiB |
++-----------------------------------------------------------------------------+
+
+=== DKMS ===
+
+$ dkms status
+nvidia/470.256.02, 6.8.0-147-generic, x86_64: installed
+nvidia/580.178.04, 6.8.0-147-generic, x86_64: built
+nvidia/580.178.04, 6.8.0-151-generic, x86_64: installed
+virtualbox/7.0.16, 6.8.0-147-generic, x86_64: installed
+virtualbox/7.0.16, 6.8.0-151-generic, x86_64: installed
+
+=== NVIDIA APT PACKAGES ===
+ii  libnvidia-cfg1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-common-580 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-compute-470-server:amd64 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-compute-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-compute-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-decode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-egl-wayland1:amd64 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-egl-wayland1:i386 1:1.1.17-0ubuntu0~gpu24.04.1
+ii  libnvidia-encode-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-encode-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-extra-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-fbc1-580:i386 580.178.04-0ubuntu0.24.04.1
+rc  libnvidia-gl-470:i386 470.256.02-0ubuntu0.24.04.5
+ii  libnvidia-gl-580:amd64 580.178.04-0ubuntu0.24.04.1
+ii  libnvidia-gl-580:i386 580.178.04-0ubuntu0.24.04.1
+ii  linux-firmware-nvidia-graphics 20240318.git3b128b60-0ubuntu3.1
+ii  nvidia-compute-utils-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-dkms-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-dkms-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-dkms-580 580.178.04-0ubuntu0.24.04.1
+hi  nvidia-driver-470-server 470.256.02-0ubuntu0.24.04.5
+ii  nvidia-driver-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-driver-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-firmware-580-580.178.04 580.178.04-0ubuntu0.24.04.1
+rc  nvidia-kernel-common-535 535.309.01-0ubuntu0.24.04.2
+ii  nvidia-kernel-common-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-kernel-source-580 580.178.04-0ubuntu0.24.04.1
+ii  nvidia-prime 0.8.17.2
+ii  nvidia-settings 510.47.03-0ubuntu4.24.04.1
+ii  nvidia-utils-580 580.178.04-0ubuntu0.24.04.1
+ii  xserver-xorg-video-nvidia-580 580.178.04-0ubuntu0.24.04.1
+
+=== APT HOLDS ===
+nvidia-dkms-470-server
+nvidia-driver-470-server
+nvidia-kernel-common-470-server
+
+=== KERNEL COMMAND LINE ===
+BOOT_IMAGE=/boot/vmlinuz-6.8.0-147-generic root=UUID=19705670-12b0-4218-b537-1664f375df4c ro quiet splash usbcore.autosuspend=-1 pci=noaer
+
+=== INSTALLER / SOURCE PATHS ===
+drwx------ 2 root root 4096 Oct 20 20:07 /var/lib/nvidia
+drwxr-xr-x 8 root root 4096 Oct 20 20:07 /usr/src/nvidia-470.256.02
+lrwxrwxrwx 1 root root 16 Oct 20 20:07 /usr/bin/nvidia-uninstall -> nvidia-installer
+Root-only installer DB; requesting read-only header:
+1.0-47025602 (470.256.02)
+NVIDIA Accelerated Graphics Driver for Linux-x86_64
+2: /usr/lib/x86_64-linux-gnu/libnvidia-fbc.so.1
+
+=== NVIDIA LIBRARY LINKS ===
+--- /usr/lib/x86_64-linux-gnu/libcuda.so
+Link: libcuda.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so
+--- /usr/lib/x86_64-linux-gnu/libcuda.so.1
+Link: libcuda.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libcuda.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+--- /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+Link: libcudadebugger.so.580.178.04
+Resolved: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.580.178.04
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+Link: libnvidia-ml.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+Link: libnvidia-ml.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+Link: libnvidia-nvvm.so.4
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+Link: libnvidia-nvvm.so.4.0.0
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4.0.0
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+-rw-r--r-- 1 root root 24829456 Aug 10 00:18 /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+--- /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+Link: libnvidia-opencl.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+Link: libnvidia-ptxjitcompiler.so.1
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+--- /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+Link: libnvidia-ptxjitcompiler.so.470.256.02
+Resolved: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.470.256.02
+libnvidia-compute-580:amd64: /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+
+=== NVIDIA CONFIG PATHS ===
+drwxr-xr-x 2 root root 4096 Oct 19 22:54 /etc/modprobe.d
+-rw-r--r-- 1 root root 1192 Oct 20 20:09 /etc/X11/xorg.conf
+-rw-r--r-- 1 root root 1756 Apr 27  2026 /etc/default/grub
+/etc/modprobe.d/nvidia-drm.conf
+/etc/modprobe.d/nvidia-kms.conf
+/etc/modprobe.d/nvidia-graphics-drivers-kms.conf
+
+=== NVIDIA SUSPEND/RESUME SERVICE STATUS ===
+--- nvidia-suspend.service
+enabled
+inactive
+--- nvidia-resume.service
+enabled
+inactive
+--- nvidia-hibernate.service
+enabled
+inactive
+
+=== END — NO SYSTEM MODIFICATIONS PERFORMED ===
+Report saved: /home/laco/Documents/NVIDIA-Recovery/reports/nvidia-diagnostic-20261119-194019.txt
+laco@Unknown:~/Documents/NVIDIA-Recovery/scripts$ 
