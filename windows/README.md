@@ -8,6 +8,67 @@ The existing Linux-generated ISO selected for VM installation is intentionally a
 
 The Windows 11 Pro guest installation is user-confirmed complete. LAN noVNC access is verified at http://192.168.1.161:8006/ from PC client 192.168.1.169. The host loopback endpoint 127.0.0.1:8006 is intentionally not bound; the user accepts the LAN endpoint.
 
+
+## Architecture overview
+
+The Windows workload runs on the Steam Deck. The LAN PC is a remote client for the web console and RDP; it does not host the VM.
+
+```text
+                 LOCAL NETWORK (LAN)
+        +----------------------------------+
+        |                                  |
+        |       Linux / Windows PC         |
+        |       remote workstation         |
+        |                                  |
+        |  - Browser: Web Console          |
+        |  - Remote Desktop (RDP)           |
+        |  - SSH / project administration  |
+        +----------------+-----------------+
+                         |
+              LAN access to the Deck
+              Web Console: :8006
+              RDP: guest access (verified)
+                         |
+        +----------------v-----------------+
+        |          STEAM DECK OLED         |
+        |              SteamOS             |
+        |                                  |
+        |  HOST                            |
+        |  - hardware, kernel and network  |
+        |  - /dev/kvm                      |
+        |  - rootless Podman               |
+        |                                  |
+        |  +----------------------------+  |
+        |  | windows-pro-box            |  |
+        |  | dockurr/windows container  |  |
+        |  |                            |  |
+        |  |  QEMU + KVM acceleration   |  |
+        |  |            |               |  |
+        |  |  +---------v------------+  |  |
+        |  |  | Windows 11 Pro       |  |  |
+        |  |  | 25H2 guest           |  |  |
+        |  |  |                      |  |  |
+        |  |  | - Windows workloads  |  |  |
+        |  |  | - Web console agent  |  |  |
+        |  |  | - RDP service        |  |  |
+        |  |  +----------------------+  |  |
+        |  |                            |  |
+        |  |  Mounts:                   |  |
+        |  |  /storage -> persistent    |  |
+        |  |  /shared  -> host shared   |  |
+        |  |  NO /custom.iso            |  |
+        |  +----------------------------+  |
+        |                |                 |
+        |       /home/deck/WindowsVM       |
+        |       - storage/ (guest disk)   |
+        |       - shared/  (exchange)    |
+        |       - config/ and scripts    |
+        +----------------------------------+
+```
+
+The diagram represents the current runtime model, not every historical deployment state. The normal runtime container must remain ISO-free: installation media belongs only in a separately identified temporary installer container. The guest disk and shared data persist on the host under `/home/deck/WindowsVM`; the container is replaceable.
+
+
 ## Current status
 
 **Status (2026-11-15): WINDOWS 11 PRO 25H2 GUEST RUNNING / WEB CONSOLE VERIFIED / RDP VERIFIED / NO ISO BIND VERIFIED**
