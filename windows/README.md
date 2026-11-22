@@ -9,6 +9,70 @@ The existing Linux-generated ISO selected for VM installation is intentionally a
 The Windows 11 Pro guest installation is user-confirmed complete. LAN noVNC access is verified at http://192.168.1.161:8006/ from PC client 192.168.1.169. The host loopback endpoint 127.0.0.1:8006 is intentionally not bound; the user accepts the LAN endpoint.
 
 
+## Architecture and access
+
+The Steam Deck is the virtualization host. The Windows guest runs under QEMU/KVM inside a manually managed, rootless Podman container. Linux Mint and Windows PCs act as remote clients; they do not host the VM.
+
+```text
+                  LOCAL NETWORK (LAN)
+       +----------------------------------------+
+       |                                        |
++----------------------+              +----------------------+
+| Linux Mint PC        |              | Windows PC           |
+| - browser / noVNC    |              | - browser / noVNC    |
+| - RDP client         |              | - RDP client         |
++----------+-----------+              +-----------+----------+
+           |                                      |
+           +------------------+-------------------+
+                              |
+                Project-specific LAN access
+                 noVNC :8006 / Windows RDP
+                              |
+              +---------------v----------------+
+              |       STEAM DECK OLED          |
+              |            SteamOS             |
+              |                                |
+              |  HOST                          |
+              |  - AMD hardware / KVM          |
+              |  - /dev/kvm                    |
+              |  - rootless Podman             |
+              |  - project storage             |
+              |                                |
+              |  +--------------------------+  |
+              |  | windows-pro-box           |  |
+              |  | Podman container          |  |
+              |  |                           |  |
+              |  |  QEMU + KVM                |  |
+              |  |       |                   |  |
+              |  |       v                   |  |
+              |  |  +--------------------+   |  |
+              |  |  | Windows 11 Pro VM  |   |  |
+              |  |  | build 26200.9974   |   |  |
+              |  |  |                    |   |  |
+              |  |  | Windows apps       |   |  |
+              |  |  | UUP conversion     |   |  |
+              |  |  +--------------------+   |  |
+              |  |                           |  |
+              |  |  /storage  /shared         |  |
+              |  +-----+----------+----------+  |
+              |        |          |             |
+              |  +-----v----+ +---v----------+  |
+              |  | storage/ | | shared/      |  |
+              |  | guest    | | host/guest   |  |
+              |  | disk     | | exchange     |  |
+              |  +----------+ +--------------+  |
+              +--------------------------------+
+
+       Installation media (ISO)
+       - temporary installer workflow only
+       - never mounted at /custom.iso in normal runtime
+```
+
+The diagram describes the current intended runtime boundary: the host supplies hardware, KVM access, networking and persistent storage; the Podman container runs QEMU; QEMU runs the Windows guest. The host-backed `storage/` and `shared/` directories keep guest state and exchange data outside the container writable layer.
+
+The normal `windows-pro-box` runtime must remain ISO-free. Installation media belongs only to a separately identified temporary installer container. The LAN noVNC endpoint is verified at `192.168.1.161:8006`; RDP access is also user-confirmed. The diagram is conceptual and does not imply that every client or guest workload is always connected or running.
+
+
 ## Architecture overview
 
 The Windows workload runs on the Steam Deck. The LAN PC is a remote client for the web console and RDP; it does not host the VM.
