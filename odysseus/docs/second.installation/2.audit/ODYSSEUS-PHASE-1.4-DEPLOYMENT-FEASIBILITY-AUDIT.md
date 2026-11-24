@@ -3,8 +3,8 @@
 > **Canonical living audit · Second rebuild · ChatGPT continuity handoff**
 >
 > **Document ID:** ODYSSEUS-PHASE-1.4-AUDIT  
-> **Version:** 3.46  
-> **Record date:** 2026-11-11  
+> **Version:** 3.47  
+> **Record date:** 2026-11-24  
 > **Status:** ACTIVE — AUDIT ONLY / INSTALLATION NOT YET AUTHORIZED; conditional authorization rule recorded in §18.6  
 > **Canonical path:** `odysseus/docs/second.installation/2.audit/ODYSSEUS-PHASE-1.4-DEPLOYMENT-FEASIBILITY-AUDIT.md`
 
@@ -2822,7 +2822,7 @@ Only documents and outputs actually retrieved or recorded may be described as re
 
 **Project:** Odysseus second rebuild — Audit 2 / Phase 1.4 deployment feasibility.
 
-**Canonical version:** 3.46. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
+**Canonical version:** 3.47. The latest unchanged checkpoint archive is v3.20, preserved under `archive/2026-11-08/`. Functional runtime-test counter: **3/5 since v3.20**; no five-test snapshot is due yet.
 
 **Audit status:** ACTIVE — audit only. **Installation remains NOT AUTHORIZED.** The user's conditional rule in §18.6 remains controlling. Actual installation still requires separate approval of the exact plan.
 
